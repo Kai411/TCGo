@@ -24,16 +24,16 @@
 
     <div
       v-else
-      class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+      class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
     >
       <NuxtLink
         v-for="card in availableCards"
         :key="card.id"
         :to="`/cards/${card.id}`"
-        class="bg-white rounded-xl overflow-hidden border border-gray-200 hover:border-pokemon-blue hover:shadow-md transition-all group block"
+        class="bg-white rounded-xl overflow-hidden border border-gray-200 hover:border-pokemon-blue hover:shadow-md transition-all group cursor-pointer block"
       >
         <div
-          class="aspect-[4/3] bg-gray-100 flex items-center justify-center overflow-hidden"
+          class="aspect-[3/4] bg-gray-100 flex items-center justify-center overflow-hidden"
         >
           <img
             v-if="card.imageUrls?.length || card.imageUrl"

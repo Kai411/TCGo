@@ -29,6 +29,7 @@ export interface Bid {
   amount: number;
   timestamp: number;
   isAutoBid: boolean;
+  triggeredAntiSnipe?: boolean;
 }
 
 export interface AutoBid {
@@ -142,15 +143,26 @@ export const useAuctionDetail = (auctionId: string) => {
 
     // Place the bid
     const bidsRef = dbRef(db!, `auctions/${auctionId}/bids`);
+    const timeLeft = auction.value.endsAt - Date.now();
+    const isAntiSnipe = timeLeft <= 60000;
+
     const newBid: Bid = {
       bidder,
       bidderUid,
       amount,
       timestamp: Date.now(),
       isAutoBid: false,
+      triggeredAntiSnipe: isAntiSnipe,
     };
     await push(bidsRef, newBid);
-    await update(dbRef(db!, `auctions/${auctionId}`), { currentPrice: amount });
+
+    // Anti-snipe: if bid is within last 60 seconds, extend by 60 seconds
+    const updateData: Record<string, any> = { currentPrice: amount };
+    if (isAntiSnipe) {
+      updateData.endsAt = auction.value.endsAt + 60000;
+      updateData.antiSnipeTriggered = true;
+    }
+    await update(dbRef(db!, `auctions/${auctionId}`), updateData);
 
     // Trigger auto-bid responses
     await processAutoBids(auctionId, bidderUid, amount);
@@ -196,6 +208,8 @@ export const useAuctionDetail = (auctionId: string) => {
     // Immediately place a bid at the minimum required amount
     const bidsRef = dbRef(db!, `auctions/${auctionId}/bids`);
     const bidAmount = Math.min(maxAmount, minBid);
+    const timeLeft = auction.value.endsAt - Date.now();
+    const isAntiSnipe = timeLeft <= 60000;
 
     const newBid: Bid = {
       bidder,
@@ -203,11 +217,17 @@ export const useAuctionDetail = (auctionId: string) => {
       amount: bidAmount,
       timestamp: Date.now(),
       isAutoBid: true,
+      triggeredAntiSnipe: isAntiSnipe,
     };
     await push(bidsRef, newBid);
-    await update(dbRef(db!, `auctions/${auctionId}`), {
-      currentPrice: bidAmount,
-    });
+
+    // Anti-snipe: if bid is within last 60 seconds, extend by 60 seconds
+    const updateData: Record<string, any> = { currentPrice: bidAmount };
+    if (isAntiSnipe) {
+      updateData.endsAt = auction.value.endsAt + 60000;
+      updateData.antiSnipeTriggered = true;
+    }
+    await update(dbRef(db!, `auctions/${auctionId}`), updateData);
 
     // Process other auto-bids in response
     await processAutoBids(auctionId, bidderUid, bidAmount);
@@ -270,10 +290,17 @@ export const useAuctionDetail = (auctionId: string) => {
         amount: newPrice,
         timestamp: Date.now(),
         isAutoBid: true,
+        triggeredAntiSnipe: (data.endsAt || 0) - Date.now() <= 60000,
       });
-      await update(dbRef(db!, `auctions/${auctionId}`), {
-        currentPrice: newPrice,
-      });
+
+      // Anti-snipe for auto-bids
+      const autoUpdateData: Record<string, any> = { currentPrice: newPrice };
+      const endsAt = data.endsAt || 0;
+      if (endsAt - Date.now() <= 60000) {
+        autoUpdateData.endsAt = endsAt + 60000;
+        autoUpdateData.antiSnipeTriggered = true;
+      }
+      await update(dbRef(db!, `auctions/${auctionId}`), autoUpdateData);
     } else {
       // Only competitor has auto-bid, respond with minimum increment
       newPrice = Math.min(price + minIncrement, topCompetitor.maxAmount);
@@ -285,10 +312,17 @@ export const useAuctionDetail = (auctionId: string) => {
         amount: newPrice,
         timestamp: Date.now(),
         isAutoBid: true,
+        triggeredAntiSnipe: (data.endsAt || 0) - Date.now() <= 60000,
       });
-      await update(dbRef(db!, `auctions/${auctionId}`), {
-        currentPrice: newPrice,
-      });
+
+      // Anti-snipe for auto-bids
+      const autoUpdateData2: Record<string, any> = { currentPrice: newPrice };
+      const endsAt2 = data.endsAt || 0;
+      if (endsAt2 - Date.now() <= 60000) {
+        autoUpdateData2.endsAt = endsAt2 + 60000;
+        autoUpdateData2.antiSnipeTriggered = true;
+      }
+      await update(dbRef(db!, `auctions/${auctionId}`), autoUpdateData2);
     }
   };
 
