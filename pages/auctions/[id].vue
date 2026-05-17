@@ -157,6 +157,11 @@
                   class="font-bold text-sm"
                   :class="index === 0 ? 'text-pokemon-red' : 'text-gray-700'"
                 >
+                  <span
+                    v-if="bid.triggeredAntiSnipe"
+                    title="Triggered anti-snipe"
+                    >⚡</span
+                  >
                   RM {{ bid.amount.toFixed(2) }}
                 </p>
               </div>
@@ -187,6 +192,12 @@
               >
                 {{ isEnded ? "Auction Ended" : `Ends in ${timeLeft}` }}
               </p>
+              <p
+                v-if="antiSnipeActive && !isEnded"
+                class="text-xs text-orange-600 font-medium mt-1"
+              >
+                ⚡ Anti-snipe active — time extended
+              </p>
             </div>
 
             <!-- Must be logged in -->
@@ -215,91 +226,107 @@
               v-else-if="user && !isEnded && !isSeller"
               class="mt-4 space-y-4"
             >
+              <!-- Leading bidder message -->
               <div
-                class="flex rounded-lg overflow-hidden border border-gray-300"
+                v-if="isLeadingBidder"
+                class="bg-green-50 border border-green-200 rounded-lg p-4 text-center"
               >
-                <button
-                  @click="bidMode = 'manual'"
-                  class="flex-1 py-2 text-sm font-medium transition-colors"
-                  :class="
-                    bidMode === 'manual'
-                      ? 'bg-pokemon-red text-white'
-                      : 'bg-gray-50 text-gray-600'
-                  "
-                >
-                  Manual Bid
-                </button>
-                <button
-                  @click="bidMode = 'auto'"
-                  class="flex-1 py-2 text-sm font-medium transition-colors"
-                  :class="
-                    bidMode === 'auto'
-                      ? 'bg-pokemon-red text-white'
-                      : 'bg-gray-50 text-gray-600'
-                  "
-                >
-                  Auto Bid
-                </button>
+                <p class="text-green-700 font-medium text-sm">
+                  ✓ You're the highest bidder!
+                </p>
+                <p class="text-green-600 text-xs mt-1">
+                  You'll be notified if someone outbids you.
+                </p>
               </div>
 
-              <!-- Manual -->
-              <div v-if="bidMode === 'manual'" class="space-y-3">
-                <div>
-                  <label class="block text-xs text-gray-500 mb-1"
-                    >Your Bid (min RM {{ minBidAmount.toFixed(2) }})</label
+              <template v-else>
+                <div
+                  class="flex rounded-lg overflow-hidden border border-gray-300"
+                >
+                  <button
+                    @click="bidMode = 'manual'"
+                    class="flex-1 py-2 text-sm font-medium transition-colors"
+                    :class="
+                      bidMode === 'manual'
+                        ? 'bg-pokemon-red text-white'
+                        : 'bg-gray-50 text-gray-600'
+                    "
                   >
-                  <input
-                    v-model.number="bidAmount"
-                    type="number"
-                    :min="minBidAmount"
-                    step="0.01"
-                    :placeholder="minBidAmount.toFixed(2)"
-                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-                  />
-                </div>
-                <button
-                  @click="handleBid"
-                  :disabled="bidding"
-                  class="w-full bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
-                >
-                  {{ bidding ? "Placing Bid..." : "Place Bid" }}
-                </button>
-              </div>
-
-              <!-- Auto -->
-              <div v-else class="space-y-3">
-                <div class="bg-blue-50 rounded-lg p-3 text-xs text-gray-600">
-                  Set your maximum. The system bids the minimum increment on
-                  your behalf up to your max.
-                </div>
-                <div>
-                  <label class="block text-xs text-gray-500 mb-1"
-                    >Max Bid (min RM {{ minBidAmount.toFixed(2) }})</label
+                    Bid
+                  </button>
+                  <button
+                    @click="bidMode = 'auto'"
+                    class="flex-1 py-2 text-sm font-medium transition-colors"
+                    :class="
+                      bidMode === 'auto'
+                        ? 'bg-pokemon-red text-white'
+                        : 'bg-gray-50 text-gray-600'
+                    "
                   >
-                  <input
-                    v-model.number="autoBidMax"
-                    type="number"
-                    :min="minBidAmount"
-                    step="0.01"
-                    :placeholder="(minBidAmount + 10).toFixed(2)"
-                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-pokemon-blue focus:outline-none focus:ring-1 focus:ring-pokemon-blue"
-                  />
+                    Auto Bid
+                  </button>
                 </div>
-                <button
-                  @click="handleAutoBid"
-                  :disabled="bidding"
-                  class="w-full bg-pokemon-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  {{ bidding ? "Setting Auto Bid..." : "Set Auto Bid" }}
-                </button>
-              </div>
 
-              <p v-if="bidError" class="text-red-500 text-sm text-center">
-                {{ bidError }}
-              </p>
-              <p v-if="bidSuccess" class="text-green-600 text-sm text-center">
-                {{ bidSuccess }}
-              </p>
+                <!-- Manual — single button at next increment -->
+                <div v-if="bidMode === 'manual'" class="space-y-3">
+                  <div class="text-center bg-gray-50 rounded-lg py-3">
+                    <p class="text-xs text-gray-500">Your bid will be</p>
+                    <p class="text-2xl font-bold text-pokemon-red">
+                      RM {{ minBidAmount.toFixed(2) }}
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">
+                      Current RM {{ auction.currentPrice.toFixed(2) }} + RM
+                      {{ (auction.minIncrement || 1).toFixed(2) }} increment
+                    </p>
+                  </div>
+                  <button
+                    @click="handleQuickBid"
+                    :disabled="bidding"
+                    class="w-full bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    {{
+                      bidding
+                        ? "Placing Bid..."
+                        : `Bid RM ${minBidAmount.toFixed(2)}`
+                    }}
+                  </button>
+                </div>
+
+                <!-- Auto -->
+                <div v-else class="space-y-3">
+                  <div class="bg-blue-50 rounded-lg p-3 text-xs text-gray-600">
+                    Set your maximum. The system bids the minimum increment on
+                    your behalf up to your max.
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-500 mb-1"
+                      >Max Bid (min RM {{ minBidAmount.toFixed(2) }})</label
+                    >
+                    <input
+                      v-model.number="autoBidMax"
+                      type="number"
+                      :min="minBidAmount"
+                      step="0.01"
+                      :placeholder="(minBidAmount + 10).toFixed(2)"
+                      class="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-pokemon-blue focus:outline-none focus:ring-1 focus:ring-pokemon-blue"
+                    />
+                  </div>
+                  <button
+                    @click="handleAutoBid"
+                    :disabled="bidding"
+                    class="w-full bg-pokemon-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {{ bidding ? "Setting Auto Bid..." : "Set Auto Bid" }}
+                  </button>
+                </div>
+
+                <p v-if="bidError" class="text-red-500 text-sm text-center">
+                  {{ bidError }}
+                </p>
+                <p v-if="bidSuccess" class="text-green-600 text-sm text-center">
+                  {{ bidSuccess }}
+                </p>
+              </template>
             </div>
 
             <!-- Winner -->
@@ -382,8 +409,16 @@ const isSeller = computed(
     user.value && auction.value && auction.value.sellerUid === user.value.uid,
 );
 
+const isLeadingBidder = computed(() => {
+  if (!user.value || !bids.value.length) return false;
+  return bids.value[0].bidderUid === user.value.uid;
+});
+
+const antiSnipeActive = computed(
+  () => auction.value && (auction.value as any).antiSnipeTriggered,
+);
+
 const bidMode = ref<"manual" | "auto">("manual");
-const bidAmount = ref<number | null>(null);
 const autoBidMax = ref<number | null>(null);
 const bidding = ref(false);
 const bidError = ref("");
@@ -426,22 +461,48 @@ onUnmounted(() => {
   clearInterval(timer);
 });
 
-const handleBid = async () => {
+// Play notification sound when a new bid arrives
+const prevBidCount = ref(0);
+
+const playBidSound = () => {
+  try {
+    const ctx = new AudioContext();
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+    oscillator.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.3);
+  } catch {}
+};
+
+watch(
+  bids,
+  (newBids: any[]) => {
+    if (prevBidCount.value > 0 && newBids.length > prevBidCount.value) {
+      playBidSound();
+    }
+    prevBidCount.value = newBids.length;
+  },
+  { immediate: true },
+);
+
+const handleQuickBid = async () => {
   bidError.value = "";
   bidSuccess.value = "";
-  if (!bidAmount.value || bidAmount.value < minBidAmount.value) {
-    bidError.value = `Bid must be at least RM ${minBidAmount.value.toFixed(2)}`;
-    return;
-  }
   bidding.value = true;
   try {
     await placeBid(
       user.value!.uid,
       myProfile.value?.customName || user.value!.displayName || "Anonymous",
-      bidAmount.value,
+      minBidAmount.value,
     );
-    bidSuccess.value = "Bid placed successfully!";
-    bidAmount.value = null;
+    bidSuccess.value = `Bid placed: RM ${minBidAmount.value.toFixed(2)}`;
   } catch (e: any) {
     bidError.value = e.message || "Failed to place bid";
   } finally {

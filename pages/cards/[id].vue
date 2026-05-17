@@ -120,7 +120,7 @@
             </div>
 
             <!-- Contact Seller Button -->
-            <div v-if="!card.sold" class="mt-6">
+            <div v-if="!card.sold && !isOwnListing" class="mt-6">
               <a
                 :href="whatsappLink"
                 target="_blank"
@@ -145,7 +145,7 @@
               </p>
             </div>
 
-            <div v-else class="mt-6">
+            <div v-else-if="card.sold" class="mt-6">
               <div
                 class="w-full text-center bg-gray-100 text-gray-500 py-3 rounded-lg font-medium"
               >
@@ -167,9 +167,14 @@ const cardId = route.params.id as string;
 
 const { cards, loading, markInterested } = useCards();
 const { firestore } = useFirebase();
+const { user } = useAuth();
 
 const card = computed(
   () => cards.value.find((c: Card) => c.id === cardId) || null,
+);
+
+const isOwnListing = computed(
+  () => user.value && card.value && card.value.sellerUid === user.value.uid,
 );
 
 const activeImageIndex = ref(0);

@@ -30,10 +30,10 @@
         v-for="auction in auctions"
         :key="auction.id"
         :to="`/auctions/${auction.id}`"
-        class="bg-white rounded-xl overflow-hidden border border-gray-200 hover:border-pokemon-red hover:shadow-md transition-all group"
+        class="bg-white rounded-xl overflow-hidden border border-gray-200 hover:border-pokemon-red hover:shadow-md transition-all group cursor-pointer block"
       >
         <div
-          class="aspect-[4/3] bg-gray-100 flex items-center justify-center overflow-hidden"
+          class="aspect-[3/4] bg-gray-100 flex items-center justify-center overflow-hidden"
         >
           <img
             v-if="auction.imageUrls?.length || auction.imageUrl"
