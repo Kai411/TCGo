@@ -2,8 +2,12 @@
   <nav class="bg-white border-b border-gray-200 shadow-sm">
     <div class="container mx-auto px-4">
       <div class="flex items-center justify-between h-16">
-        <NuxtLink to="/" class="text-xl font-bold text-pokemon-red">
-          TCGo Marketplace
+        <NuxtLink to="/" class="flex items-center">
+          <img
+            src="~/assets/images/tcgo-text.png"
+            alt="TCGo"
+            class="h-8 w-auto"
+          />
         </NuxtLink>
 
         <!-- Desktop nav -->
@@ -129,10 +133,14 @@
           >
             <NuxtLink
               to="/"
-              class="text-xl font-bold text-pokemon-red"
+              class="flex items-center"
               @click="mobileMenuOpen = false"
             >
-              PikaPicks
+              <img
+                src="~/assets/images/tcgo-text.png"
+                alt="TCGo"
+                class="h-8 w-auto"
+              />
             </NuxtLink>
             <button
               class="p-2 text-gray-600 hover:text-gray-900 transition-colors"
