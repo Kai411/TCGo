@@ -56,7 +56,10 @@ export const useCards = () => {
   });
 
   const createCard = async (
-    card: Omit<Card, "id" | "createdAt" | "sold" | "interestedCount">,
+    card: Omit<
+      Card,
+      "id" | "createdAt" | "sold" | "interestedCount" | "favouriteCount"
+    >,
   ) => {
     const newCard = {
       ...card,

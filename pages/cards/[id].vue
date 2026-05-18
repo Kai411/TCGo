@@ -301,7 +301,11 @@ watch(
 
 const whatsappLink = computed(() => {
   if (!card.value) return "#";
-  const cleanPhone = sellerPhone.value.replace(/[^0-9]/g, "");
+  let cleanPhone = sellerPhone.value.replace(/[^0-9]/g, "");
+  // Fix: strip leading 0 and prepend 60 if no country code
+  if (cleanPhone.startsWith("0")) {
+    cleanPhone = "60" + cleanPhone.slice(1);
+  }
   const message = encodeURIComponent(
     `Hi, I'm interested in your card: ${card.value.cardName} (${card.value.cardSet}, ${card.value.condition}) listed at RM ${card.value.price.toFixed(2)} on TCGo Marketplace.`,
   );

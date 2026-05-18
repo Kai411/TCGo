@@ -115,26 +115,36 @@
         <!-- Contact Number -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
-            Contact Number
+            Contact Number (WhatsApp)
           </label>
-          <div class="flex gap-3">
+          <div class="flex gap-2">
+            <select
+              v-model="phonePrefix"
+              class="border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+            >
+              <option value="60">🇲🇾 +60</option>
+              <option value="65">🇸🇬 +65</option>
+            </select>
             <input
-              v-model="editPhone"
+              v-model="phoneNumber"
               type="tel"
-              placeholder="+60123456789"
+              placeholder="123456789"
               class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
             />
             <button
-              v-if="editPhone !== profile?.whatsappNumber"
+              v-if="fullPhone !== profile?.whatsappNumber"
               @click="savePhone"
-              :disabled="savingPhone"
+              :disabled="savingPhone || !phoneNumber"
               class="bg-pokemon-red text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ savingPhone ? "..." : "Save" }}
             </button>
           </div>
-          <p class="text-xs text-gray-400 mt-1">
-            Include country code (e.g. +60).
+          <p v-if="phoneError" class="text-red-500 text-xs mt-1">
+            {{ phoneError }}
+          </p>
+          <p v-else class="text-xs text-gray-400 mt-1">
+            Enter without leading 0. E.g. 123456789
           </p>
         </div>
 
@@ -241,7 +251,9 @@ const { profile, loading, updateProfile, updateCustomName } = useMyProfile();
 const { uploadImage } = useStorage();
 
 const editName = ref("");
-const editPhone = ref("");
+const phonePrefix = ref("60");
+const phoneNumber = ref("");
+const phoneError = ref("");
 const editShippingWM = ref(8);
 const editShippingEM = ref(12);
 const editFavouritesPublic = ref(true);
@@ -251,15 +263,31 @@ const savingShipping = ref(false);
 const saveSuccess = ref(false);
 const uploadingPhoto = ref(false);
 
+const fullPhone = computed(() => {
+  const num = phoneNumber.value.replace(/^0+/, ""); // strip leading zeros
+  return num ? `${phonePrefix.value}${num}` : "";
+});
+
 watch(
   profile,
   (p: UserProfile | null) => {
     if (p) {
       editName.value = p.customName || p.displayName;
-      editPhone.value = p.whatsappNumber || p.phone || "";
       editShippingWM.value = p.shippingWM ?? 8;
       editShippingEM.value = p.shippingEM ?? 12;
       editFavouritesPublic.value = p.favouritesPublic ?? true;
+
+      // Parse existing phone into prefix + number
+      const existing = p.whatsappNumber || p.phone || "";
+      if (existing.startsWith("65")) {
+        phonePrefix.value = "65";
+        phoneNumber.value = existing.slice(2);
+      } else if (existing.startsWith("60")) {
+        phonePrefix.value = "60";
+        phoneNumber.value = existing.slice(2);
+      } else {
+        phoneNumber.value = existing.replace(/^\+/, "");
+      }
     }
   },
   { immediate: true },
@@ -281,12 +309,24 @@ const saveName = async () => {
 };
 
 const savePhone = async () => {
+  phoneError.value = "";
+
+  // Validate
+  const num = phoneNumber.value.replace(/^0+/, "").replace(/\D/g, "");
+  if (!num || num.length < 7 || num.length > 12) {
+    phoneError.value =
+      "Please enter a valid phone number (7-12 digits, no leading 0)";
+    return;
+  }
+
+  const formattedPhone = `${phonePrefix.value}${num}`;
+
   savingPhone.value = true;
   saveSuccess.value = false;
   try {
     await updateProfile({
-      phone: editPhone.value,
-      whatsappNumber: editPhone.value,
+      phone: formattedPhone,
+      whatsappNumber: formattedPhone,
       usePhoneAsWhatsapp: true,
     });
     saveSuccess.value = true;

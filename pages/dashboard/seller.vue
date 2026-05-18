@@ -373,7 +373,11 @@ const getContactBuyerLink = (auction: any) => {
   const winner = getWinner(auction);
   if (!winner) return "#";
   const phone = buyerPhones.value[winner.bidderUid] || "";
-  const cleanPhone = phone.replace(/[^0-9]/g, "");
+  let cleanPhone = phone.replace(/[^0-9]/g, "");
+  // Fix: strip leading 0 and prepend 60 if no country code
+  if (cleanPhone.startsWith("0")) {
+    cleanPhone = "60" + cleanPhone.slice(1);
+  }
   const message = encodeURIComponent(
     `Hi ${winner.bidder}, you won the auction for ${auction.cardName} at RM ${auction.currentPrice.toFixed(2)} on TCGo Marketplace. Let's arrange the deal!`,
   );

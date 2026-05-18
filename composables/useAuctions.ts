@@ -136,6 +136,14 @@ export const useAuctionDetail = (auctionId: string) => {
       );
     }
 
+    // Check trust score
+    const trustScore = userData?.trustScore ?? 100;
+    if (trustScore < 60) {
+      throw new Error(
+        "Your trust score is too low to bid. Contact support if you believe this is an error.",
+      );
+    }
+
     const minIncrement = auction.value.minIncrement || 1;
     const minBid = auction.value.currentPrice + minIncrement;
 
@@ -190,6 +198,14 @@ export const useAuctionDetail = (auctionId: string) => {
     if (!userData?.phone && !userData?.whatsappNumber) {
       throw new Error(
         "Please add your contact number in your Profile before bidding.",
+      );
+    }
+
+    // Check trust score
+    const userTrustScore = userData?.trustScore ?? 100;
+    if (userTrustScore < 60) {
+      throw new Error(
+        "Your trust score is too low to bid. Contact support if you believe this is an error.",
       );
     }
 

@@ -17,7 +17,10 @@
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <CardFormFields v-model="cardForm" />
+          <CardFormFields
+            v-model="cardForm"
+            @import-image="handleImportImage"
+          />
 
           <!-- Card: Photos (full width) -->
           <div
@@ -258,6 +261,12 @@ watch(
 
 const triggerFileInput = () => fileInput.value?.click();
 
+// Handle imported image from Collectr/Shiny
+const importedImageUrl = ref("");
+const handleImportImage = (url: string) => {
+  importedImageUrl.value = url;
+};
+
 const handleFileSelect = (event: Event) => {
   const input = event.target as HTMLInputElement;
   if (input.files) addFiles(Array.from(input.files));
@@ -310,10 +319,15 @@ const handleSubmit = async () => {
     }
     if (!price.value || price.value <= 0)
       throw new Error("Price must be greater than 0");
-    if (selectedFiles.value.length === 0)
-      throw new Error("Please upload at least one photo");
+    if (selectedFiles.value.length === 0 && !importedImageUrl.value)
+      throw new Error("Please upload at least one photo or import from a link");
 
     let imageUrls: string[] = [];
+
+    // Use imported image if no files uploaded
+    if (importedImageUrl.value) {
+      imageUrls.push(importedImageUrl.value);
+    }
 
     uploading.value = true;
     uploadProgress.value = 0;

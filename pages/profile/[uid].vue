@@ -72,16 +72,64 @@
               <p class="text-xs sm:text-sm text-gray-500 mt-0.5 truncate">
                 Member since {{ formatDate(profile.createdAt) }}
               </p>
+              <!-- Trust Score -->
+              <div class="flex items-center gap-2 mt-1">
+                <span
+                  class="text-xs font-medium"
+                  :class="getScoreColor(profile.trustScore ?? 100)"
+                >
+                  Trust: {{ profile.trustScore ?? 100 }}/100
+                </span>
+                <span
+                  v-if="getScoreBadge(profile.trustScore ?? 100)"
+                  class="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                  :class="getScoreBadge(profile.trustScore ?? 100)?.class"
+                >
+                  {{ getScoreBadge(profile.trustScore ?? 100)?.label }}
+                </span>
+                <button
+                  @click="showTrustInfo = true"
+                  class="text-gray-400 hover:text-gray-600 transition-colors"
+                  title="How trust score works"
+                >
+                  <svg
+                    class="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
-          <div class="self-start" v-if="isOwnProfile">
+          <div class="self-start flex sm:flex-col gap-2" v-if="isOwnProfile">
             <NuxtLink
               to="/profile"
               class="text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-gray-700 transition-colors whitespace-nowrap"
             >
               Settings
             </NuxtLink>
+            <button
+              @click="handleSignOut"
+              class="text-xs sm:text-sm bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-lg text-red-700 transition-colors whitespace-nowrap"
+            >
+              Logout
+            </button>
           </div>
+          <button
+            v-else-if="user"
+            @click="showReportForm = true"
+            class="self-start text-xs sm:text-sm bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+          >
+            Report
+          </button>
         </div>
         <div class="flex gap-4 sm:gap-6 mt-3 text-xs sm:text-sm text-gray-500">
           <span>{{ userCards.length }} card(s) for sale</span>
@@ -281,6 +329,119 @@
         </div>
       </div>
     </template>
+
+    <!-- Report Form Modal -->
+    <ReportForm
+      v-if="showReportForm && profile"
+      :reported-uid="uid"
+      :reported-name="profile.customName || profile.displayName"
+      @close="showReportForm = false"
+      @submitted="reportSubmitted = true"
+    />
+
+    <!-- Trust Score Info Modal -->
+    <div
+      v-if="showTrustInfo"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      @click.self="showTrustInfo = false"
+    >
+      <div
+        class="bg-white rounded-xl w-full max-w-md max-h-[80vh] overflow-y-auto p-6"
+      >
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold">Trust Score</h2>
+          <button
+            @click="showTrustInfo = false"
+            class="text-gray-400 hover:text-gray-600"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-4 text-sm text-gray-700">
+          <p>
+            Every user starts with a trust score of <strong>100/100</strong>. It
+            reflects your reliability as a community member.
+          </p>
+
+          <div>
+            <h3 class="font-semibold text-gray-900 mb-1">How it decreases</h3>
+            <ul class="space-y-1 text-xs text-gray-600">
+              <li class="flex justify-between">
+                <span>Scam (buyer or seller)</span
+                ><span class="text-red-600 font-medium">-25</span>
+              </li>
+              <li class="flex justify-between">
+                <span>Auction bail (winner didn't pay)</span
+                ><span class="text-orange-600 font-medium">-10</span>
+              </li>
+              <li class="flex justify-between">
+                <span>Ghosted on agreed deal</span
+                ><span class="text-yellow-600 font-medium">-5</span>
+              </li>
+              <li class="flex justify-between">
+                <span>Other disruptive behaviour</span
+                ><span class="text-yellow-600 font-medium">-5</span>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-gray-900 mb-1">How it works</h3>
+            <ul class="space-y-1 text-xs text-gray-600 list-disc pl-4">
+              <li>
+                Reports are reviewed by admins before any penalty is applied
+              </li>
+              <li>Evidence (screenshots) is required when reporting</li>
+              <li>False reports will not result in penalties</li>
+              <li>Score recovers +2 per completed deal</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-gray-900 mb-1">Restrictions</h3>
+            <ul class="space-y-1 text-xs text-gray-600">
+              <li class="flex justify-between">
+                <span>Below 80</span><span>⚠️ Warning badge shown</span>
+              </li>
+              <li class="flex justify-between">
+                <span>Below 60</span><span>🚫 Cannot bid on auctions</span>
+              </li>
+              <li class="flex justify-between">
+                <span>Below 40</span><span>🚫 Cannot list items</span>
+              </li>
+              <li class="flex justify-between">
+                <span>Below 20</span><span>🚫 Account suspended</span>
+              </li>
+            </ul>
+          </div>
+
+          <p class="text-xs text-gray-400 pt-2 border-t border-gray-100">
+            This system protects our community from bad actors. Trade
+            responsibly!
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="reportSubmitted"
+      class="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg text-sm shadow-lg z-50"
+    >
+      Report submitted. We'll review it shortly.
+    </div>
   </div>
 </template>
 
@@ -291,12 +452,18 @@ const route = useRoute();
 const uid = route.params.uid as string;
 
 const { profile, loading: profileLoading } = useProfile(uid);
-const { user } = useAuth();
+const { user, signOut } = useAuth();
 const { auctions } = useAuctions();
 const { cards } = useCards();
 const { userFavourites } = useUserFavourites(uid);
 
 const isOwnProfile = computed(() => user.value?.uid === uid);
+
+const showReportForm = ref(false);
+const reportSubmitted = ref(false);
+const showTrustInfo = ref(false);
+
+const { getScoreColor, getScoreBadge } = useTrustScore();
 
 // Show favourites tab if: it's own profile OR profile has favouritesPublic enabled
 const showFavourites = computed(() => {
@@ -341,5 +508,9 @@ const formatDate = (timestamp: number) => {
     month: "short",
     day: "numeric",
   });
+};
+
+const handleSignOut = () => {
+  signOut();
 };
 </script>

@@ -6,7 +6,7 @@
           <img
             src="~/assets/images/tcgo_sprites.png"
             alt="TCGo"
-            class="h-full w-[100px] object-cover w-auto"
+            class="h-full w-[110px] object-cover w-auto"
           />
         </NuxtLink>
 
@@ -42,6 +42,14 @@
           >
             My Bids
           </NuxtLink>
+          <NuxtLink
+            v-if="isAdmin"
+            to="/admin/reports"
+            class="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
+            active-class="!text-pokemon-red"
+          >
+            Admin
+          </NuxtLink>
 
           <!-- Sell buttons -->
           <div v-if="user" class="flex gap-2">
@@ -75,12 +83,6 @@
                 class="w-8 h-8 rounded-full border border-gray-200 object-cover"
               />
             </NuxtLink>
-            <button
-              @click="signOut"
-              class="text-gray-400 hover:text-gray-600 text-xs"
-            >
-              Logout
-            </button>
           </div>
           <button
             v-else
@@ -139,7 +141,7 @@
               <img
                 src="~/assets/images/tcgo_sprites.png"
                 alt="TCGo"
-                class="h-full w-[100px] object-cover"
+                class="h-full w-[110px] object-cover"
               />
             </NuxtLink>
             <button
@@ -244,12 +246,6 @@
                   <p class="text-xs text-gray-400">View profile</p>
                 </div>
               </NuxtLink>
-              <button
-                @click="handleSignOut"
-                class="text-gray-400 hover:text-gray-600 text-sm font-medium transition-colors"
-              >
-                Logout
-              </button>
             </div>
             <button
               v-else
@@ -268,6 +264,7 @@
 <script setup lang="ts">
 const { user, authLoading, signInWithGoogle, signOut } = useAuth();
 const { profile } = useMyProfile();
+const { isAdmin } = useAdmin();
 
 const mobileMenuOpen = ref(false);
 

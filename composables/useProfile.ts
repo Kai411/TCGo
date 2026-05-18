@@ -19,6 +19,7 @@ export interface UserProfile {
   shippingWM: number;
   shippingEM: number;
   favouritesPublic: boolean;
+  trustScore: number;
   createdAt: number;
 }
 
@@ -89,6 +90,7 @@ export const useMyProfile = () => {
                 shippingWM: 8,
                 shippingEM: 12,
                 favouritesPublic: true,
+                trustScore: 100,
                 createdAt: Date.now(),
               };
               setDoc(profileDoc, newProfile);

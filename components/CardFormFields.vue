@@ -1,4 +1,35 @@
 <template>
+  <!-- Card: Quick Import (full width) -->
+  <div class="bg-white rounded-xl border border-gray-200 p-5 lg:col-span-2">
+    <h3 class="text-sm font-semibold text-gray-900 mb-2">Quick Import</h3>
+    <p class="text-xs text-gray-400 mb-3">
+      Paste a Collectr link to auto-fill card details
+    </p>
+    <div class="flex gap-2">
+      <input
+        v-model="importUrl"
+        type="url"
+        placeholder="https://www.getcollectr.com/products/..."
+        class="flex-1 bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+        @keydown.enter.prevent="handleImport"
+      />
+      <button
+        type="button"
+        @click="handleImport"
+        :disabled="importing || !importUrl"
+        class="bg-pokemon-blue text-white text-sm px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+      >
+        {{ importing ? "Loading..." : "Import" }}
+      </button>
+    </div>
+    <p v-if="importError" class="text-red-500 text-xs mt-2">
+      {{ importError }}
+    </p>
+    <p v-if="importSuccess" class="text-green-600 text-xs mt-2">
+      {{ importSuccess }}
+    </p>
+  </div>
+
   <!-- Card: Product Type (full width) -->
   <div class="bg-white rounded-xl border border-gray-200 p-5 lg:col-span-2">
     <h3 class="text-sm font-semibold text-gray-900 mb-3">
@@ -215,7 +246,51 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   "update:modelValue": [value: CardFormData];
+  "import-image": [url: string];
 }>();
+
+// Quick Import
+const importUrl = ref("");
+const importing = ref(false);
+const importError = ref("");
+const importSuccess = ref("");
+
+const handleImport = async () => {
+  if (!importUrl.value) return;
+  importError.value = "";
+  importSuccess.value = "";
+  importing.value = true;
+
+  try {
+    const data = await $fetch<{
+      cardName: string;
+      cardNumber: string;
+      cardSet: string;
+      imageUrl: string;
+    }>("/api/fetch-card-meta", {
+      query: { url: importUrl.value },
+    });
+
+    // Auto-fill fields
+    const updates: Partial<CardFormData> = { ...props.modelValue };
+    if (data.cardName) updates.cardName = data.cardName;
+    if (data.cardNumber) updates.cardNumber = data.cardNumber;
+    if (data.cardSet) updates.cardSet = data.cardSet;
+    emit("update:modelValue", updates as CardFormData);
+
+    // Emit image URL for parent to handle
+    if (data.imageUrl) {
+      emit("import-image", data.imageUrl);
+    }
+
+    importSuccess.value = `Imported: ${data.cardName || "card data"}`;
+  } catch (e: any) {
+    importError.value =
+      e.data?.message || e.message || "Failed to import. Check the URL.";
+  } finally {
+    importing.value = false;
+  }
+};
 
 const updateField = (key: keyof CardFormData, value: any) => {
   emit("update:modelValue", { ...props.modelValue, [key]: value });
