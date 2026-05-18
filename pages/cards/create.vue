@@ -179,6 +179,42 @@ const { uploadAuctionImages } = useStorage();
 const { user, signInWithGoogle } = useAuth();
 const { profile } = useMyProfile();
 
+// Unsaved changes guard
+const formDirty = computed(() => {
+  return (
+    cardForm.value.cardName !== "" ||
+    cardForm.value.cardSet !== "" ||
+    cardForm.value.description !== "" ||
+    selectedFiles.value.length > 0 ||
+    (price.value !== null && price.value > 0)
+  );
+});
+
+const submitted = ref(false);
+
+onBeforeRouteLeave(() => {
+  if (formDirty.value && !submitted.value) {
+    const answer = window.confirm(
+      "You have unsaved changes. Are you sure you want to leave?",
+    );
+    if (!answer) return false;
+  }
+});
+
+onMounted(() => {
+  window.addEventListener("beforeunload", handleBeforeUnload);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("beforeunload", handleBeforeUnload);
+});
+
+const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+  if (formDirty.value && !submitted.value) {
+    e.preventDefault();
+  }
+};
+
 interface SelectedFile {
   file: File;
   preview: string;
@@ -309,6 +345,7 @@ const handleSubmit = async () => {
     });
 
     selectedFiles.value.forEach((f: any) => URL.revokeObjectURL(f.preview));
+    submitted.value = true;
     await router.push("/");
   } catch (e: any) {
     error.value = e.message || "Failed to list card";

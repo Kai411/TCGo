@@ -18,6 +18,7 @@ export interface UserProfile {
   whatsappVerified: boolean;
   shippingWM: number;
   shippingEM: number;
+  favouritesPublic: boolean;
   createdAt: number;
 }
 
@@ -87,6 +88,7 @@ export const useMyProfile = () => {
                 whatsappVerified: false,
                 shippingWM: 8,
                 shippingEM: 12,
+                favouritesPublic: true,
                 createdAt: Date.now(),
               };
               setDoc(profileDoc, newProfile);

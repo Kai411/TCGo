@@ -17,7 +17,7 @@
       ></div>
     </div>
 
-    <div v-else-if="auctions.length === 0" class="text-center py-12">
+    <div v-else-if="publicAuctions.length === 0" class="text-center py-12">
       <p class="text-gray-500 text-lg">No active auctions yet.</p>
       <p class="text-gray-400 mt-1 text-sm">Be the first to list a card!</p>
     </div>
@@ -27,7 +27,7 @@
       class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
     >
       <NuxtLink
-        v-for="auction in auctions"
+        v-for="auction in publicAuctions"
         :key="auction.id"
         :to="`/auctions/${auction.id}`"
         class="bg-white rounded-xl overflow-hidden border border-gray-200 hover:border-pokemon-red hover:shadow-md transition-all group cursor-pointer block"
@@ -55,14 +55,21 @@
             <p class="text-pokemon-red font-bold text-sm">
               RM {{ auction.currentPrice.toFixed(2) }}
             </p>
-            <p
-              class="text-xs"
-              :class="
-                isEnding(auction.endsAt) ? 'text-red-500' : 'text-gray-400'
-              "
-            >
-              {{ formatTimeLeft(auction.endsAt) }}
-            </p>
+            <div class="flex items-center gap-1">
+              <p
+                class="text-xs"
+                :class="
+                  isEnding(auction.endsAt) ? 'text-red-500' : 'text-gray-400'
+                "
+              >
+                {{ formatTimeLeft(auction.endsAt) }}
+              </p>
+              <FavouriteButton
+                :item-id="auction.id"
+                item-type="auction"
+                size="sm"
+              />
+            </div>
           </div>
           <p class="text-xs text-gray-400 mt-1">
             {{ Object.keys(auction.bids || {}).length }} bid(s)
@@ -87,6 +94,10 @@ useHead({
 
 const { auctions, loading } = useAuctions();
 const { user } = useAuth();
+
+const publicAuctions = computed(() =>
+  auctions.value.filter((a: any) => !a.isPrivate),
+);
 
 const isEnding = (endsAt: number) => {
   return endsAt - Date.now() < 3600000;

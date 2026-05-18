@@ -74,13 +74,14 @@
               </p>
             </div>
           </div>
-          <NuxtLink
-            v-if="isOwnProfile"
-            to="/profile"
-            class="self-start text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-gray-700 transition-colors whitespace-nowrap"
-          >
-            Edit Profile
-          </NuxtLink>
+          <div class="self-start" v-if="isOwnProfile">
+            <NuxtLink
+              to="/profile"
+              class="text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-gray-700 transition-colors whitespace-nowrap"
+            >
+              Settings
+            </NuxtLink>
+          </div>
         </div>
         <div class="flex gap-4 sm:gap-6 mt-3 text-xs sm:text-sm text-gray-500">
           <span>{{ userCards.length }} card(s) for sale</span>
@@ -90,22 +91,22 @@
 
       <!-- Toggle -->
       <div
-        class="flex items-center gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit"
+        class="flex items-center gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit overflow-x-auto"
       >
         <button
           @click="activeTab = 'cards'"
-          class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          class="px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
           :class="
             activeTab === 'cards'
               ? 'bg-white text-gray-900 shadow-sm'
               : 'text-gray-500 hover:text-gray-700'
           "
         >
-          Cards for Sale ({{ userCards.length }})
+          Cards ({{ userCards.length }})
         </button>
         <button
           @click="activeTab = 'auctions'"
-          class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          class="px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
           :class="
             activeTab === 'auctions'
               ? 'bg-white text-gray-900 shadow-sm'
@@ -113,6 +114,18 @@
           "
         >
           Auctions ({{ userAuctions.length }})
+        </button>
+        <button
+          v-if="showFavourites"
+          @click="activeTab = 'favourites'"
+          class="px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap"
+          :class="
+            activeTab === 'favourites'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          "
+        >
+          ♥ Favourites
         </button>
       </div>
 
@@ -224,6 +237,49 @@
           </NuxtLink>
         </div>
       </div>
+
+      <!-- Favourites -->
+      <div v-if="activeTab === 'favourites' && showFavourites">
+        <div
+          v-if="favouriteCards.length === 0 && favouriteAuctions.length === 0"
+          class="text-gray-400 text-sm py-4"
+        >
+          No favourites yet.
+        </div>
+        <div v-else class="space-y-4">
+          <div
+            v-if="favouriteCards.length > 0"
+            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
+          >
+            <NuxtLink
+              v-for="card in favouriteCards"
+              :key="card.id"
+              :to="`/cards/${card.id}`"
+              class="bg-white rounded-xl overflow-hidden border border-gray-200 hover:border-pokemon-blue hover:shadow-md transition-all group cursor-pointer block"
+            >
+              <div
+                class="aspect-[3/4] bg-gray-100 flex items-center justify-center overflow-hidden"
+              >
+                <img
+                  v-if="card.imageUrls?.length || card.imageUrl"
+                  :src="card.imageUrls?.[0] || card.imageUrl"
+                  :alt="card.cardName"
+                  class="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                />
+                <span v-else class="text-gray-400 text-xs">No Image</span>
+              </div>
+              <div class="p-3">
+                <h3 class="font-semibold text-sm truncate">
+                  {{ card.cardName }}
+                </h3>
+                <p class="text-pokemon-red font-bold text-sm mt-1">
+                  RM {{ card.price.toFixed(2) }}
+                </p>
+              </div>
+            </NuxtLink>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -238,10 +294,17 @@ const { profile, loading: profileLoading } = useProfile(uid);
 const { user } = useAuth();
 const { auctions } = useAuctions();
 const { cards } = useCards();
+const { userFavourites } = useUserFavourites(uid);
 
 const isOwnProfile = computed(() => user.value?.uid === uid);
 
-const activeTab = ref<"cards" | "auctions">("cards");
+// Show favourites tab if: it's own profile OR profile has favouritesPublic enabled
+const showFavourites = computed(() => {
+  if (isOwnProfile.value) return true;
+  return profile.value?.favouritesPublic ?? true;
+});
+
+const activeTab = ref<"cards" | "auctions" | "favourites">("cards");
 
 const userCards = computed(() =>
   cards.value
@@ -254,6 +317,21 @@ const userAuctions = computed(() =>
     .filter((a: any) => a.sellerUid === uid)
     .sort((a: any, b: any) => b.createdAt - a.createdAt),
 );
+
+// Get actual card objects for favourited items
+const favouriteCards = computed(() => {
+  const favCardIds = userFavourites.value
+    .filter((f: any) => f.itemType === "card")
+    .map((f: any) => f.itemId);
+  return cards.value.filter((c: any) => favCardIds.includes(c.id));
+});
+
+const favouriteAuctions = computed(() => {
+  const favAuctionIds = userFavourites.value
+    .filter((f: any) => f.itemType === "auction")
+    .map((f: any) => f.itemId);
+  return auctions.value.filter((a: any) => favAuctionIds.includes(a.id));
+});
 
 const isActive = (auction: Auction) => auction.endsAt > Date.now();
 

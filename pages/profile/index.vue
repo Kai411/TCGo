@@ -11,7 +11,13 @@
     </div>
 
     <template v-else>
-      <h1 class="text-2xl font-bold mb-6">My Profile</h1>
+      <div
+        v-if="saveSuccess"
+        class="fixed bottom-10 right-10 text-green-600 text-sm bg-green-200 p-4 rounded"
+      >
+        Profile updated!
+      </div>
+      <h1 class="text-2xl font-bold mb-6">Settings</h1>
 
       <div v-if="loading" class="flex justify-center py-12">
         <div
@@ -20,9 +26,10 @@
       </div>
 
       <div
-        v-else
+        v-if="!loading"
         class="bg-white rounded-xl p-6 border border-gray-200 space-y-6"
       >
+        <p class="text-xl font-bold">Profile</p>
         <!-- Avatar -->
         <div class="flex items-center gap-4">
           <div class="relative group">
@@ -131,6 +138,25 @@
           </p>
         </div>
 
+        <div class="pt-4 border-t border-gray-200">
+          <p class="text-sm text-gray-500">
+            Your public profile:
+            <NuxtLink
+              :to="`/profile/${user.uid}`"
+              class="text-pokemon-red hover:underline"
+            >
+              View profile →
+            </NuxtLink>
+          </p>
+        </div>
+      </div>
+
+      <div
+        v-if="!loading"
+        class="bg-white rounded-xl p-6 border border-gray-200 space-y-6 mt-4"
+      >
+        <p class="text-xl font-bold">Shipping</p>
+
         <!-- Shipping Defaults -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -177,22 +203,30 @@
             Used as default when creating new listings.
           </p>
         </div>
+      </div>
 
-        <!-- Success Messages -->
-        <div v-if="saveSuccess" class="text-green-600 text-sm">
-          Profile updated!
-        </div>
+      <div
+        v-if="!loading"
+        class="bg-white rounded-xl p-6 border border-gray-200 space-y-6 mt-4"
+      >
+        <p class="text-xl font-bold">Privacy</p>
 
-        <div class="pt-4 border-t border-gray-200">
-          <p class="text-sm text-gray-500">
-            Your public profile:
-            <NuxtLink
-              :to="`/profile/${user.uid}`"
-              class="text-pokemon-red hover:underline"
-            >
-              View profile →
-            </NuxtLink>
-          </p>
+        <!-- Privacy Settings -->
+        <div>
+          <label class="flex items-center justify-between cursor-pointer">
+            <div>
+              <p class="text-sm font-medium text-gray-700">Favourites</p>
+              <p class="text-xs text-gray-400">
+                Others can see your favourited cards
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              :checked="editFavouritesPublic"
+              @change="toggleFavouritesPublic"
+              class="w-5 h-5 rounded border-gray-300 text-pokemon-red focus:ring-pokemon-red cursor-pointer"
+            />
+          </label>
         </div>
       </div>
     </template>
@@ -210,6 +244,7 @@ const editName = ref("");
 const editPhone = ref("");
 const editShippingWM = ref(8);
 const editShippingEM = ref(12);
+const editFavouritesPublic = ref(true);
 const saving = ref(false);
 const savingPhone = ref(false);
 const savingShipping = ref(false);
@@ -224,6 +259,7 @@ watch(
       editPhone.value = p.whatsappNumber || p.phone || "";
       editShippingWM.value = p.shippingWM ?? 8;
       editShippingEM.value = p.shippingEM ?? 12;
+      editFavouritesPublic.value = p.favouritesPublic ?? true;
     }
   },
   { immediate: true },
@@ -277,6 +313,11 @@ const saveShipping = async () => {
   } finally {
     savingShipping.value = false;
   }
+};
+
+const toggleFavouritesPublic = async () => {
+  editFavouritesPublic.value = !editFavouritesPublic.value;
+  await updateProfile({ favouritesPublic: editFavouritesPublic.value });
 };
 
 const handlePhotoUpload = async (event: Event) => {

@@ -61,12 +61,19 @@
             <div class="flex-1">
               <div class="flex items-start justify-between gap-3">
                 <h1 class="text-2xl font-bold">{{ card.cardName }}</h1>
-                <span
-                  v-if="card.sold"
-                  class="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded-full font-medium"
-                >
-                  Sold
-                </span>
+                <div class="flex items-center gap-2">
+                  <FavouriteButton
+                    :item-id="card.id"
+                    item-type="card"
+                    size="md"
+                  />
+                  <span
+                    v-if="card.sold"
+                    class="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded-full font-medium"
+                  >
+                    Sold
+                  </span>
+                </div>
               </div>
 
               <p class="text-gray-500 text-sm mt-1">

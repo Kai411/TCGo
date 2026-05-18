@@ -57,9 +57,20 @@
             <p class="text-pokemon-red font-bold text-sm">
               RM {{ card.price.toFixed(2) }}
             </p>
-            <span v-if="card.interestedCount > 0" class="text-xs text-gray-400">
-              🔥 {{ card.interestedCount }}
-            </span>
+            <div class="flex items-center gap-1">
+              <span
+                v-if="card.interestedCount > 0"
+                class="text-xs text-gray-400"
+              >
+                🔥 {{ card.interestedCount }}
+              </span>
+              <FavouriteButton
+                :item-id="card.id"
+                item-type="card"
+                :count="card.favouriteCount || 0"
+                size="sm"
+              />
+            </div>
           </div>
         </div>
       </NuxtLink>

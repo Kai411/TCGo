@@ -86,6 +86,12 @@
         <div class="lg:col-span-4 space-y-4">
           <div class="bg-white rounded-xl p-5 border border-gray-200">
             <h1 class="text-xl font-bold mb-2">{{ auction.title }}</h1>
+            <div
+              v-if="auction.isPrivate"
+              class="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs font-medium px-2 py-0.5 rounded-full mb-2"
+            >
+              🔒 Private Auction
+            </div>
             <div class="flex flex-wrap gap-2 mb-3">
               <span
                 class="bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full text-xs"

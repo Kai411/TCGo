@@ -94,9 +94,31 @@
           <div
             class="bg-white rounded-xl border border-gray-200 p-5 space-y-4 lg:col-span-2"
           >
-            <h3 class="text-sm font-semibold text-gray-900">
-              Auction Settings
-            </h3>
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-gray-900">
+                Auction Settings
+              </h3>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <span class="text-xs text-gray-500">Private</span>
+                <div
+                  class="relative w-9 h-5 rounded-full transition-colors"
+                  :class="isPrivate ? 'bg-pokemon-red' : 'bg-gray-300'"
+                  @click="isPrivate = !isPrivate"
+                >
+                  <div
+                    class="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
+                    :class="isPrivate ? 'translate-x-4' : 'translate-x-0.5'"
+                  ></div>
+                </div>
+              </label>
+            </div>
+            <p
+              v-if="isPrivate"
+              class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"
+            >
+              🔒 This auction will only be visible to people with the direct
+              link.
+            </p>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -233,6 +255,42 @@ const { uploadAuctionImages } = useStorage();
 const { user, signInWithGoogle } = useAuth();
 const { profile } = useMyProfile();
 
+// Unsaved changes guard
+const formDirty = computed(() => {
+  return (
+    cardForm.value.cardName !== "" ||
+    cardForm.value.cardSet !== "" ||
+    cardForm.value.description !== "" ||
+    selectedFiles.value.length > 0 ||
+    (startingPrice.value !== null && startingPrice.value > 0)
+  );
+});
+
+const submitted = ref(false);
+
+onBeforeRouteLeave(() => {
+  if (formDirty.value && !submitted.value) {
+    const answer = window.confirm(
+      "You have unsaved changes. Are you sure you want to leave?",
+    );
+    if (!answer) return false;
+  }
+});
+
+onMounted(() => {
+  window.addEventListener("beforeunload", handleBeforeUnload);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("beforeunload", handleBeforeUnload);
+});
+
+const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+  if (formDirty.value && !submitted.value) {
+    e.preventDefault();
+  }
+};
+
 interface SelectedFile {
   file: File;
   preview: string;
@@ -261,6 +319,7 @@ const cardForm = ref<CardFormData>({
 const startingPrice = ref<number | null>(null);
 const minIncrement = ref(1);
 const duration = ref(86400000);
+const isPrivate = ref(false);
 const submitting = ref(false);
 const error = ref("");
 
@@ -376,9 +435,11 @@ const handleSubmit = async () => {
         profile.value?.customName || user.value!.displayName || "Anonymous",
       sellerUid: user.value!.uid,
       endsAt: Date.now() + duration.value,
+      isPrivate: isPrivate.value,
     });
 
     selectedFiles.value.forEach((f: any) => URL.revokeObjectURL(f.preview));
+    submitted.value = true;
     await router.push(`/auctions/${auctionId}`);
   } catch (e: any) {
     error.value = e.message || "Failed to create auction";

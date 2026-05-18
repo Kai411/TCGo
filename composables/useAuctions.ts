@@ -25,6 +25,7 @@ export interface Auction {
   sellerUid: string;
   endsAt: number;
   createdAt: number;
+  isPrivate: boolean;
   bids: Record<string, Bid>;
   autoBids: Record<string, AutoBid>;
 }

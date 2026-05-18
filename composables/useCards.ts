@@ -32,6 +32,7 @@ export interface Card {
   createdAt: number;
   sold: boolean;
   interestedCount: number;
+  favouriteCount: number;
 }
 
 export const useCards = () => {
@@ -62,6 +63,7 @@ export const useCards = () => {
       createdAt: Date.now(),
       sold: false,
       interestedCount: 0,
+      favouriteCount: 0,
     };
     const docRef = await addDoc(cardsCollection, newCard);
     return docRef.id;
