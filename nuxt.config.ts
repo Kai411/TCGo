@@ -86,6 +86,11 @@ export default defineNuxtConfig({
         { name: "apple-mobile-web-app-status-bar-style", content: "default" },
         { name: "apple-mobile-web-app-title", content: "TCGo" },
         { name: "format-detection", content: "telephone=no" },
+
+        {
+          name: "google-site-verification",
+          content: "25Sj9LfPcOkYGGAx2THNkHMOV63av2TPuISGJ-CQfcw",
+        },
       ],
       link: [
         { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
