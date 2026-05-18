@@ -6,7 +6,7 @@
           <img
             src="~/assets/images/tcgo_sprites.png"
             alt="TCGo"
-            class="h-full w-[110px] object-cover w-auto"
+            class="h-full w-[110px] object-cover"
           />
         </NuxtLink>
 
