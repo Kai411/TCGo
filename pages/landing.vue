@@ -38,8 +38,8 @@
           </span>
         </div>
         <p class="mt-6 text-lg sm:text-xl text-gray-500 max-w-2xl mx-auto">
-          Malaysia's trusted community marketplace for Pokemon TCG collectors.
-          List your cards, bid on auctions, and connect with fellow trainers.
+          Malaysia's trusted community marketplace for TCG collectors. List your
+          cards, bid on auctions, and connect with fellow trainers.
         </p>
         <div class="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
           <NuxtLink
