@@ -1,25 +1,57 @@
 <template>
   <div>
-    <!-- Header -->
-    <header class="flex items-end justify-between mb-8">
-      <div>
+    <!-- Hero -->
+    <section class="pt-2 pb-10 lg:pb-14">
+      <div class="max-w-3xl">
+        <span class="eyebrow">Marketplace</span>
         <h1
-          class="font-display text-4xl sm:text-5xl font-extrabold tracking-tightest text-ink dark:text-white"
+          class="mt-3 font-display text-hero font-extrabold tracking-hero text-ink dark:text-white"
         >
-          Shop
+          Trade rare cards,
+          <span class="text-pokemon-red">smarter.</span>
         </h1>
-        <p class="mt-1 text-sm text-ink-muted dark:text-zinc-400">
-          {{ availableCards.length }} card{{
-            availableCards.length === 1 ? "" : "s"
-          }}
-          for sale · curated by Malaysian collectors
+        <p class="mt-4 max-w-xl text-base sm:text-lg text-ink-muted dark:text-zinc-400 leading-relaxed">
+          The Pokémon TCG marketplace for Malaysian collectors. Discover graded
+          slabs, fresh pulls, and vintage finds from the community.
         </p>
+
+        <!-- Stats row -->
+        <dl class="mt-8 flex flex-wrap gap-x-10 gap-y-4">
+          <div>
+            <dt class="eyebrow">Listed</dt>
+            <dd class="mt-1 tabular-price text-2xl font-bold text-ink dark:text-white">
+              {{ availableCards.length.toLocaleString() }}
+            </dd>
+          </div>
+          <div>
+            <dt class="eyebrow">Sold</dt>
+            <dd class="mt-1 tabular-price text-2xl font-bold text-ink dark:text-white">
+              {{ soldCount.toLocaleString() }}
+            </dd>
+          </div>
+          <div>
+            <dt class="eyebrow">Collectors</dt>
+            <dd class="mt-1 tabular-price text-2xl font-bold text-ink dark:text-white">
+              {{ collectorCount.toLocaleString() }}
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- Section header -->
+    <div class="flex items-end justify-between mb-5">
+      <div>
+        <span class="eyebrow">Latest listings</span>
+        <h2 class="mt-1 text-2xl sm:text-3xl font-bold tracking-tightest text-ink dark:text-white">
+          Fresh on the market
+        </h2>
       </div>
 
       <NuxtLink
         v-if="user"
         to="/cards/create"
-        class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
+        class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity ease-premium"
       >
         <svg
           class="w-4 h-4"
@@ -33,7 +65,7 @@
         </svg>
         List Card
       </NuxtLink>
-    </header>
+    </div>
 
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-24">
@@ -56,7 +88,7 @@
       <NuxtLink
         v-if="user"
         to="/cards/create"
-        class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
+        class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow ease-premium"
       >
         List your first card
       </NuxtLink>
@@ -65,7 +97,7 @@
     <!-- Grid -->
     <div
       v-else
-      class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4"
+      class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
     >
       <NuxtLink
         v-for="card in availableCards"
@@ -73,51 +105,61 @@
         :to="`/cards/${card.id}`"
         class="group block"
       >
-        <div
-          class="surface rounded-2xl overflow-hidden hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200"
+        <article
+          class="surface rounded-2xl overflow-hidden hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 ease-premium"
         >
           <div
-            class="aspect-[3/4] bg-canvas-sunken dark:bg-white/[0.02] flex items-center justify-center overflow-hidden"
+            class="relative aspect-[3/4] bg-canvas-sunken dark:bg-white/[0.02] overflow-hidden"
           >
             <img
               v-if="card.imageUrls?.length || card.imageUrl"
               :src="card.imageUrls?.[0] || card.imageUrl"
               :alt="card.cardName"
-              class="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+              loading="lazy"
+              class="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500 ease-premium"
             />
-            <span
+            <div
               v-else
-              class="text-xs text-ink-soft dark:text-zinc-500"
-              >No image</span
+              class="absolute inset-0 flex items-center justify-center text-xs text-ink-soft dark:text-zinc-500"
             >
+              No image
+            </div>
+
+            <!-- Condition chip overlay -->
+            <span
+              v-if="conditionLabel(card)"
+              class="absolute top-2 left-2 chip"
+              :class="conditionChipVariant(card)"
+            >
+              {{ conditionLabel(card) }}
+            </span>
           </div>
-          <div class="p-3 sm:p-3.5">
+
+          <div class="p-3.5 sm:p-4">
             <h3
-              class="font-semibold text-sm text-ink dark:text-white truncate"
+              class="font-semibold text-[15px] leading-tight text-ink dark:text-white truncate"
             >
               {{ card.cardName }}
             </h3>
             <p
-              class="mt-0.5 text-[11px] text-ink-muted dark:text-zinc-400 truncate"
+              v-if="card.cardSet"
+              class="mt-1 text-xs text-ink-muted dark:text-zinc-400 truncate"
             >
-              <span v-if="card.cardSet">{{ card.cardSet }}</span>
-              <span v-if="card.cardSet && conditionLabel(card)"> · </span>
-              <span>{{ conditionLabel(card) }}</span>
+              {{ card.cardSet }}
             </p>
-            <p
-              class="mt-0.5 text-[11px] text-ink-soft dark:text-zinc-500 truncate"
-            >
-              {{ card.seller }}
-            </p>
-            <div class="mt-2.5 flex items-center justify-between">
-              <p
-                class="tabular-price font-bold text-[15px] text-ink dark:text-white"
-              >
-                <span class="text-ink-soft text-[11px] font-medium mr-0.5"
-                  >RM</span
-                >{{ card.price.toFixed(2) }}
-              </p>
-              <div class="flex items-center gap-1.5">
+
+            <div class="mt-3 flex items-end justify-between">
+              <div class="min-w-0">
+                <span class="text-[10px] font-semibold uppercase tracking-wider text-ink-soft dark:text-zinc-500">
+                  RM
+                </span>
+                <p
+                  class="tabular-price font-extrabold text-[17px] leading-none text-ink dark:text-white"
+                >
+                  {{ card.price.toFixed(2) }}
+                </p>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
                 <span
                   v-if="card.interestedCount > 0"
                   class="text-[10px] text-ink-soft dark:text-zinc-500"
@@ -132,8 +174,14 @@
                 />
               </div>
             </div>
+
+            <p
+              class="mt-2 text-[11px] text-ink-soft dark:text-zinc-500 truncate"
+            >
+              by {{ card.seller }}
+            </p>
           </div>
-        </div>
+        </article>
       </NuxtLink>
     </div>
   </div>
@@ -162,6 +210,12 @@ const availableCards = computed(() =>
     .sort((a: Card, b: Card) => b.createdAt - a.createdAt),
 );
 
+const soldCount = computed(() => cards.value.filter((c: Card) => c.sold).length);
+const collectorCount = computed(() => {
+  const sellers = new Set(cards.value.map((c: Card) => c.sellerUid));
+  return sellers.size;
+});
+
 const conditionLabel = (card: Card): string => {
   if (card.productType === "Graded") {
     const provider =
@@ -172,5 +226,11 @@ const conditionLabel = (card: Card): string => {
   }
   if (card.productType === "Sealed") return "Sealed";
   return card.condition || "";
+};
+
+const conditionChipVariant = (card: Card): string => {
+  if (card.productType === "Graded") return "chip-gold";
+  if (card.productType === "Sealed") return "chip-accent";
+  return "";
 };
 </script>

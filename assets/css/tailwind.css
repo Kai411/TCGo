@@ -6,7 +6,7 @@
 
 @layer base {
   html {
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -41,10 +41,10 @@
 @layer components {
   /* Glassy elevated surface — used for navbar, dropdowns, hero cards */
   .glass {
-    @apply bg-white/70 backdrop-blur-xl backdrop-saturate-150 border border-black/[0.06];
+    @apply bg-white/75 backdrop-blur-xl backdrop-saturate-150 border-b border-black/[0.06];
   }
   .dark .glass {
-    @apply bg-white/[0.04] border-white/[0.08];
+    @apply bg-canvas-inverse/70 border-white/[0.06];
   }
 
   /* Plain raised surface — used for cards, panels */
@@ -52,6 +52,27 @@
     @apply bg-canvas-raised border border-black/[0.06] shadow-card;
   }
   .dark .surface {
-    @apply bg-white/[0.03] border-white/[0.06] shadow-none;
+    @apply bg-canvas-inverse-raised border-white/[0.06] shadow-none;
+  }
+
+  /* Eyebrow label — small caps, lots of tracking */
+  .eyebrow {
+    @apply inline-block text-[11px] font-semibold tracking-[0.18em] uppercase text-ink-muted dark:text-zinc-400;
+  }
+
+  /* Pill chip — for conditions, tags, metadata */
+  .chip {
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide uppercase bg-ink/[0.04] text-ink-muted dark:bg-white/[0.06] dark:text-zinc-300;
+  }
+  .chip-accent {
+    @apply bg-pokemon-red/[0.08] text-pokemon-red;
+  }
+  .chip-gold {
+    @apply bg-amber-500/[0.10] text-amber-700 dark:text-amber-300;
+  }
+
+  /* Hairline divider — for premium feel */
+  .hairline {
+    @apply border-t border-black/[0.06] dark:border-white/[0.06];
   }
 }

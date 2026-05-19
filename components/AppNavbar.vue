@@ -2,45 +2,45 @@
   <!-- Top bar (sticky, glassy) -->
   <nav class="sticky top-0 z-40 glass">
     <div
-      class="container mx-auto px-4 h-14 lg:h-16 flex items-center justify-between"
+      class="container mx-auto px-4 sm:px-6 h-16 lg:h-20 flex items-center justify-between gap-4"
     >
       <!-- Logo -->
-      <NuxtLink to="/landing" class="flex items-center">
+      <NuxtLink to="/landing" class="flex items-center shrink-0">
         <img
-          src="~/assets/images/tcgo_sprites.png"
+          src="~/assets/images/tcgo-text.png"
           alt="TCGo"
-          class="h-9 lg:h-11 w-auto"
+          class="h-7 lg:h-9 w-auto dark:invert dark:opacity-95"
         />
       </NuxtLink>
 
       <!-- Desktop nav -->
-      <div class="hidden lg:flex items-center gap-1">
+      <div class="hidden lg:flex items-center gap-1 flex-1 justify-center max-w-xl">
         <NuxtLink
           v-for="link in desktopLinks"
           :key="link.to"
           :to="link.to"
-          class="px-3 py-1.5 rounded-full text-sm font-medium text-ink/70 dark:text-zinc-300 hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-          active-class="!text-ink dark:!text-white bg-black/[0.04] dark:bg-white/[0.06]"
+          class="relative px-4 py-2 rounded-full text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors duration-200 ease-premium"
+          :active-class="activeLinkClass"
         >
           {{ link.label }}
         </NuxtLink>
       </div>
 
       <!-- Right cluster -->
-      <div class="flex items-center gap-1.5 lg:gap-2">
+      <div class="flex items-center gap-1.5 lg:gap-2 shrink-0">
         <ThemeToggle />
 
         <!-- Desktop sell CTAs -->
         <div v-if="user" class="hidden lg:flex items-center gap-2 ml-1">
           <NuxtLink
             to="/cards/create"
-            class="px-3.5 py-1.5 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
+            class="px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
           >
             Sell
           </NuxtLink>
           <NuxtLink
             to="/auctions/create"
-            class="px-3.5 py-1.5 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
+            class="px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
           >
             Auction
           </NuxtLink>
@@ -65,7 +65,7 @@
         <button
           v-else
           @click="signInWithGoogle"
-          class="px-3.5 py-1.5 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
+          class="px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
         >
           Sign In
         </button>
@@ -78,27 +78,28 @@
     class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08]"
     style="padding-bottom: env(safe-area-inset-bottom)"
   >
-    <div class="grid grid-cols-4 h-16">
+    <div class="grid grid-cols-4 h-[68px]">
       <NuxtLink
         v-for="tab in mobileTabs"
         :key="tab.to"
         :to="tab.to"
-        class="flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-ink/60 dark:text-zinc-400"
-        :class="
-          tab.accent
-            ? 'text-pokemon-red dark:text-pokemon-red'
-            : 'active:text-ink dark:active:text-white'
-        "
+        class="relative flex flex-col items-center justify-center gap-1 text-[11px] font-semibold text-ink-soft dark:text-zinc-500 transition-colors duration-200 ease-premium"
         :active-class="
           tab.accent
             ? '!text-pokemon-red'
-            : '!text-ink dark:!text-white'
+            : '!text-ink dark:!text-white [&_.tab-indicator]:!opacity-100'
         "
       >
+        <!-- Top indicator bar -->
+        <span
+          v-if="!tab.accent"
+          class="tab-indicator absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-full bg-pokemon-red opacity-0 transition-opacity duration-200 ease-premium"
+        />
+
         <div
           :class="
             tab.accent
-              ? 'w-11 h-11 -mt-2 rounded-full bg-pokemon-red text-white flex items-center justify-center shadow-glow'
+              ? 'w-12 h-12 -mt-3 rounded-full bg-pokemon-red text-white flex items-center justify-center shadow-glow'
               : 'w-6 h-6 flex items-center justify-center'
           "
         >
@@ -117,6 +118,9 @@ const { user, authLoading, signInWithGoogle } = useAuth();
 const { profile } = useMyProfile();
 const { isAdmin } = useAdmin();
 
+const activeLinkClass =
+  "!text-white dark:!text-ink !bg-ink dark:!bg-white shadow-card";
+
 const desktopLinks = computed(() => {
   const links = [
     { to: "/", label: "Shop" },
@@ -132,7 +136,6 @@ const desktopLinks = computed(() => {
   return links;
 });
 
-// Inline icons as render functions — keeps the template lean and avoids deps.
 const stroke = {
   fill: "none",
   stroke: "currentColor",
@@ -153,7 +156,7 @@ const IconGavel = () =>
     h("path", { d: "M3 21h12" }),
   ]);
 const IconPlus = () =>
-  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+  h("svg", { viewBox: "0 0 24 24", ...stroke, "stroke-width": "2.5" }, [
     h("path", { d: "M12 5v14M5 12h14" }),
   ]);
 const IconUser = () =>
@@ -185,8 +188,12 @@ const mobileTabs = computed(() => {
       icon: IconUser,
     });
   } else {
-    // Pad so the grid stays 4-col and Sign In sits in the action slot.
-    tabs.push({ to: "/cards/create", label: "Sell", icon: IconPlus, accent: true });
+    tabs.push({
+      to: "/cards/create",
+      label: "Sell",
+      icon: IconPlus,
+      accent: true,
+    });
     tabs.push({ to: "/profile", label: "Sign in", icon: IconUser });
   }
   return tabs;
