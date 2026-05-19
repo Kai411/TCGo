@@ -99,9 +99,6 @@
           class="animate-spin rounded-full h-10 w-10 border-b-2 border-white mb-4"
         ></div>
         <p class="text-sm">{{ processingMessage }}</p>
-        <p v-if="ocrProgress > 0" class="text-xs text-white/60 mt-2">
-          {{ Math.round(ocrProgress * 100) }}%
-        </p>
       </div>
 
       <!-- Stage 3: Pick a match -->
@@ -233,7 +230,6 @@ const manualSearch = ref("");
 const searching = ref(false);
 const saving = ref(false);
 
-const ocrProgress = ref(0);
 const processingMessage = ref("Reading card...");
 
 const startCamera = async () => {
@@ -306,6 +302,19 @@ const handleFileUpload = async (event: Event) => {
   await processBlob(file);
 };
 
+const blobToBase64 = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Strip the "data:image/...;base64," prefix — Gemini wants raw base64.
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(new Error("Failed to read image"));
+    reader.readAsDataURL(blob);
+  });
+
 const processBlob = async (blob: Blob) => {
   stopCamera();
   capturedBlob.value = blob;
@@ -313,221 +322,40 @@ const processBlob = async (blob: Blob) => {
   capturedPreview.value = URL.createObjectURL(blob);
 
   stage.value = "processing";
-  ocrProgress.value = 0;
 
   try {
-    processingMessage.value = "Cleaning up image...";
-    const img = await loadImage(blob);
-    // Top strip: card name. Bottom strip: set number.
-    const nameCanvas = preprocessRegion(img, {
-      x: 0,
-      y: 0.05,
-      width: 1,
-      height: 0.14,
-    });
-    const numberCanvas = preprocessRegion(img, {
-      x: 0,
-      y: 0.88,
-      width: 1,
-      height: 0.1,
-    });
-
-    processingMessage.value = "Reading card text...";
-    const { createWorker } = await import("tesseract.js");
-    const worker = await createWorker("eng", 1, {
-      logger: (m: { status: string; progress: number }) => {
-        if (m.status === "recognizing text") ocrProgress.value = m.progress;
+    processingMessage.value = "Identifying card...";
+    const imageBase64 = await blobToBase64(blob);
+    const { name, number } = await $fetch<{ name: string; number: string }>(
+      "/api/identify-card",
+      {
+        method: "POST",
+        body: { imageBase64, mimeType: blob.type || "image/jpeg" },
       },
-    });
+    );
 
-    let nameText = "";
-    let numberText = "";
-    try {
-      // PSM 7 = single line. Both crops are single-line strips.
-      await worker.setParameters({ tessedit_pageseg_mode: "7" as any });
-      const nameResult = await worker.recognize(nameCanvas);
-      nameText = nameResult.data.text || "";
-
-      // Restrict number OCR to digits + slash so letters can't sneak in.
-      await worker.setParameters({
-        tessedit_pageseg_mode: "7" as any,
-        tessedit_char_whitelist: "0123456789/",
-      });
-      const numberResult = await worker.recognize(numberCanvas);
-      numberText = numberResult.data.text || "";
-    } finally {
-      await worker.terminate();
-    }
-
-    const name = parseName(nameText);
-    const number = parseNumber(numberText);
     detectedName.value = name;
     detectedNumber.value = number;
 
     processingMessage.value = "Looking up card...";
     let results: TcgCard[] = [];
-    if (name && number) {
-      results = await searchByNameAndNumber(name, number);
+    // number on alt-arts can exceed the printed total (e.g. 222/193), so the
+    // TCG API may return nothing for the strict pair. Strip the "/total" and
+    // search by just the card number when that happens.
+    const cardNumber = number.includes("/") ? number.split("/")[0] : number;
+    if (name && cardNumber) {
+      results = await searchByNameAndNumber(name, cardNumber);
     }
     if (results.length === 0 && name) {
       results = await searchByName(name);
     }
     matches.value = results;
     stage.value = "matches";
-  } catch (e) {
-    console.error(e);
+  } catch (e: any) {
+    console.error("identify-card failed:", e);
     matches.value = [];
     stage.value = "matches";
   }
-};
-
-const loadImage = (blob: Blob): Promise<HTMLImageElement> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(blob);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      resolve(img);
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Failed to load image"));
-    };
-    img.src = url;
-  });
-};
-
-interface Region {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-// Otsu's method: pick the threshold that maximizes between-class variance.
-// Works much better than a fixed mean for bimodal regions like text-on-art.
-const otsuThreshold = (hist: Uint32Array, total: number): number => {
-  let sumAll = 0;
-  for (let t = 0; t < 256; t++) sumAll += t * hist[t];
-  let sumB = 0;
-  let wB = 0;
-  let maxVar = 0;
-  let threshold = 127;
-  for (let t = 0; t < 256; t++) {
-    wB += hist[t];
-    if (wB === 0) continue;
-    const wF = total - wB;
-    if (wF === 0) break;
-    sumB += t * hist[t];
-    const mB = sumB / wB;
-    const mF = (sumAll - sumB) / wF;
-    const between = wB * wF * (mB - mF) * (mB - mF);
-    if (between > maxVar) {
-      maxVar = between;
-      threshold = t;
-    }
-  }
-  return threshold;
-};
-
-// Crop to region, upscale, grayscale, contrast-stretch, Otsu threshold,
-// then auto-invert so the text minority class always ends up black.
-// Strips out holo color noise and glare so Tesseract sees clean text.
-const preprocessRegion = (img: HTMLImageElement, region: Region): HTMLCanvasElement => {
-  const sx = img.width * region.x;
-  const sy = img.height * region.y;
-  const sw = img.width * region.width;
-  const sh = img.height * region.height;
-
-  const scale = 2;
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(sw * scale);
-  canvas.height = Math.round(sh * scale);
-
-  const ctx = canvas.getContext("2d")!;
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-
-  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const px = imgData.data;
-  const gray = new Uint8Array(px.length / 4);
-
-  // Grayscale + contrast-stretch in one pass.
-  let min = 255;
-  let max = 0;
-  for (let i = 0, j = 0; i < px.length; i += 4, j++) {
-    const g = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000;
-    gray[j] = g;
-    if (g < min) min = g;
-    if (g > max) max = g;
-  }
-  const range = max - min || 1;
-
-  // Build histogram of contrast-stretched values for Otsu.
-  const hist = new Uint32Array(256);
-  for (let j = 0; j < gray.length; j++) {
-    const stretched = Math.round(((gray[j] - min) / range) * 255);
-    gray[j] = stretched;
-    hist[stretched]++;
-  }
-
-  const threshold = otsuThreshold(hist, gray.length);
-
-  // First pass: threshold + count black pixels to detect polarity.
-  let blackCount = 0;
-  for (let j = 0; j < gray.length; j++) {
-    const v = gray[j] > threshold ? 255 : 0;
-    if (v === 0) blackCount++;
-    gray[j] = v;
-  }
-  // If most pixels are black, the text was originally light-on-dark — invert
-  // so the text (minority class) ends up black, which Tesseract expects.
-  const invert = blackCount > gray.length / 2;
-
-  for (let j = 0; j < gray.length; j++) {
-    const v = invert ? 255 - gray[j] : gray[j];
-    const i = j * 4;
-    px[i] = v;
-    px[i + 1] = v;
-    px[i + 2] = v;
-    px[i + 3] = 255;
-  }
-
-  ctx.putImageData(imgData, 0, 0);
-  return canvas;
-};
-
-const parseNumber = (raw: string): string => {
-  // e.g. "020/189", "20/189", "020 / 189". Strip OCR junk first.
-  const cleaned = raw.replace(/[^0-9/\s]/g, "");
-  const m = cleaned.match(/(\d{1,3})\s*\/\s*(\d{1,3})/);
-  if (!m) return "";
-  // Strip leading zeros; the TCG API expects "20" not "020".
-  return m[1].replace(/^0+/, "") || "0";
-};
-
-const parseName = (raw: string): string => {
-  const lines = raw
-    .replace(/\r/g, "")
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  // Best candidate: longest mostly-alphabetic line.
-  let best = "";
-  let bestScore = 0;
-  for (const line of lines) {
-    const cleaned = line.replace(/[^A-Za-z\s'-]/g, "").trim();
-    if (cleaned.length < 3) continue;
-    const letters = (cleaned.match(/[A-Za-z]/g) || []).length;
-    if (letters > bestScore) {
-      bestScore = letters;
-      best = cleaned;
-    }
-  }
-  // Card names are usually 1-2 words. Limit to first 3 to avoid HP/type stragglers.
-  return best ? best.split(/\s+/).slice(0, 3).join(" ") : "";
 };
 
 const runManualSearch = async () => {
