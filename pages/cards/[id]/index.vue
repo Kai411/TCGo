@@ -24,6 +24,17 @@
         ← Back to shop
       </NuxtLink>
 
+      <div class="flex items-center justify-between mb-4">
+        <div></div>
+        <NuxtLink
+          v-if="isOwnListing && !card.sold"
+          :to="`/cards/${card.id}/edit`"
+          class="text-sm bg-gray-100 hover:bg-gray-200 px-4 py-1.5 rounded-lg text-gray-700 transition-colors"
+        >
+          Edit Listing
+        </NuxtLink>
+      </div>
+
       <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-0">
           <!-- Images -->

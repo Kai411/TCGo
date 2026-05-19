@@ -2,7 +2,7 @@
   <nav class="bg-white border-b border-gray-200 shadow-sm">
     <div class="container mx-auto px-4">
       <div class="flex items-center justify-between h-16">
-        <NuxtLink to="/" class="flex items-center h-full">
+        <NuxtLink to="/landing" class="flex items-center h-full">
           <img
             src="~/assets/images/tcgo_sprites.png"
             alt="TCGo"

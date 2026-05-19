@@ -379,7 +379,7 @@ const getContactBuyerLink = (auction: any) => {
     cleanPhone = "60" + cleanPhone.slice(1);
   }
   const message = encodeURIComponent(
-    `Hi ${winner.bidder}, you won the auction for ${auction.cardName} at RM ${auction.currentPrice.toFixed(2)} on TCGo Marketplace. Let's arrange the deal!`,
+    `Hi ${winner.bidder}, you won the auction for ${auction.cardName} at RM ${auction.currentPrice.toFixed(2)} on TCGo Marketplace. <br> Let's arrange the deal!`,
   );
   if (cleanPhone) {
     return `https://wa.me/${cleanPhone}?text=${message}`;

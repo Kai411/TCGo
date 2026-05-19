@@ -131,15 +131,18 @@
               placeholder="123456789"
               class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
             />
+          </div>
+          <div class="w-full flex">
             <button
               v-if="fullPhone !== profile?.whatsappNumber"
               @click="savePhone"
               :disabled="savingPhone || !phoneNumber"
-              class="bg-pokemon-red text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="bg-pokemon-red w-full mt-2 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ savingPhone ? "..." : "Save" }}
             </button>
           </div>
+
           <p v-if="phoneError" class="text-red-500 text-xs mt-1">
             {{ phoneError }}
           </p>
