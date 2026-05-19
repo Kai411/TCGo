@@ -9,7 +9,7 @@ useHead({
 </script>
 
 <template>
-  <div class="w-[60%] mx-auto pt-8 pb-[120px]">
+  <div class="w-[90%] sm:w-[60%] mx-auto pt-8 pb-[120px]">
     <div class="header">
       <h1>Privacy Policy</h1>
       <p class="italic mt-2">Last updated: May 19, 2026</p>
@@ -31,8 +31,9 @@ useHead({
     <div class="content-container">
       <div class="content">
         <h2>1. Information We Collect</h2>
+        <br />
         <p>Account Information</p>
-
+        <br />
         <div class="list-container">
           <div class="list-title">
             When users sign in using Google authentication, we may collect:
@@ -43,7 +44,7 @@ useHead({
             <li>Profile Image</li>
             <li>Google account identifier</li>
           </ul>
-          <p>We do not collect or store your Google password.</p>
+          <p class="mt-2">We do not collect or store your Google password.</p>
         </div>
       </div>
 
@@ -51,6 +52,7 @@ useHead({
 
       <div class="content">
         <h2>2. Listing Information</h2>
+        <br />
         <div class="list-container">
           <div class="list-title">
             When users create listings, we may collect:
@@ -62,7 +64,9 @@ useHead({
             <li>Listing descriptions</li>
             <li>Optional contact information provided by users</li>
           </ul>
-          <p>Listings submitted to the platform may be publicly visible.</p>
+          <p class="mt-2">
+            Listings submitted to the platform may be publicly visible.
+          </p>
         </div>
       </div>
 
@@ -71,10 +75,12 @@ useHead({
       <div class="content">
         <h2>3. User Communications</h2>
         <div class="list-container">
+          <br />
           <p>
             Buyers and sellers may communicate externally through WhatsApp or
             other third-party messaging services.
           </p>
+          <br />
 
           <div class="list-title">Please note:</div>
           <ul>
@@ -91,13 +97,14 @@ useHead({
             </li>
           </ul>
 
-          <p>
+          <p class="mt-2">
             All risks relating to purchases, sales, trades, deliveries,
             payments, authenticity, condition, scams, disputes, or user conduct
             must be independently evaluated and accepted by both buyers and
             sellers.
           </p>
 
+          <br />
           <div class="list-title">We are not responsible or liable for:</div>
           <ul>
             <li>Fraudulent transactions</li>
@@ -113,7 +120,7 @@ useHead({
             </li>
           </ul>
 
-          <p>
+          <p class="mt-2">
             Users are encouraged to exercise caution and perform their own due
             diligence before completing any transaction.
           </p>
@@ -124,6 +131,7 @@ useHead({
 
       <div class="content">
         <h2>4. Third-Party Services</h2>
+        <br />
         <div class="list-container">
           <div class="list-title">
             We may use trusted third-party services to operate and improve the
@@ -141,7 +149,7 @@ useHead({
               auto-populate listing details
             </li>
           </ul>
-          <p>
+          <p class="mt-2">
             These services may process certain user data according to their own
             privacy policies and terms of service.
           </p>
@@ -152,11 +160,13 @@ useHead({
 
       <div class="content">
         <h2>5. Collectr Link Imports</h2>
+        <br />
+        <p>
+          Users may optionally paste publicly accessible Collectr product links
+          to assist with listing creation.
+        </p>
+        <br />
         <div class="list-container">
-          <p>
-            Users may optionally paste publicly accessible Collectr product
-            links to assist with listing creation.
-          </p>
           <div class="list-title">
             We may retrieve publicly available metadata from these links,
             including:
@@ -167,7 +177,9 @@ useHead({
             <li>Card numbers</li>
             <li>Product images</li>
           </ul>
-          <p>We do not access private Collectr account information.</p>
+          <p class="mt-2">
+            We do not access private Collectr account information.
+          </p>
         </div>
       </div>
 
@@ -175,6 +187,7 @@ useHead({
 
       <div class="content">
         <h2>6. How We Use Information</h2>
+        <br />
         <div class="list-container">
           <div class="list-title">We may use collected information to:</div>
           <ul>
@@ -193,14 +206,17 @@ useHead({
 
       <div class="content">
         <h2>7. Data Storage and Security</h2>
+        <br />
         <p>
           We take reasonable measures to protect user information against
           unauthorized access, disclosure, or misuse.
         </p>
+        <br />
         <p>
           However, no online platform or electronic storage system can guarantee
           absolute security.
         </p>
+        <br />
         <p>
           Users are responsible for safeguarding their own accounts, devices,
           and communications.
@@ -211,6 +227,7 @@ useHead({
 
       <div class="content">
         <h2>8. Cookies and Analytics</h2>
+        <br />
         <div class="list-container">
           <div class="list-title">
             We may use cookies or similar technologies to:
@@ -222,7 +239,7 @@ useHead({
             <li>Analyze usage and performance</li>
           </ul>
         </div>
-        <p>
+        <p class="mt-2">
           Users may disable cookies through browser settings, though some
           features may not function properly.
         </p>
@@ -232,6 +249,7 @@ useHead({
 
       <div class="content">
         <h2>9. User Responsibilities</h2>
+        <br />
         <div class="list-container">
           <div class="list-title">Users are solely responsible for:</div>
           <ul>
@@ -243,6 +261,7 @@ useHead({
           </ul>
         </div>
 
+        <br />
         <div class="list-container">
           <div class="list-title">We do not verify or guarantee:</div>
           <ul>
@@ -259,6 +278,7 @@ useHead({
 
       <div class="content">
         <h2>10. Children's Privacy</h2>
+        <br />
         <p>Our platform is not intended for children under the age of 13.</p>
         <br />
         <p>We do not knowingly collect personal information from children.</p>
@@ -268,7 +288,9 @@ useHead({
 
       <div class="content">
         <h2>11. Account Removal</h2>
+        <br />
         <p>Users may request account deletion by contacting us.</p>
+        <br />
         <div class="list-container">
           <div class="list-title">
             We may retain limited information where necessary for:
@@ -286,6 +308,7 @@ useHead({
 
       <div class="content">
         <h2>12. Changes to This Privacy Policy</h2>
+        <br />
         <p>We may update this Privacy Policy from time to time.</p>
         <br />
         <p>
