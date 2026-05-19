@@ -43,6 +43,14 @@
             My Bids
           </NuxtLink>
           <NuxtLink
+            v-if="user"
+            to="/profile/collection"
+            class="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
+            active-class="!text-pokemon-red"
+          >
+            Collection
+          </NuxtLink>
+          <NuxtLink
             v-if="isAdmin"
             to="/admin/reports"
             class="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
@@ -199,6 +207,15 @@
               @click="mobileMenuOpen = false"
             >
               My Bids
+            </NuxtLink>
+            <NuxtLink
+              v-if="user"
+              to="/profile/collection"
+              class="text-lg font-medium text-gray-700 hover:text-pokemon-red py-3 border-b border-gray-100 transition-colors"
+              active-class="!text-pokemon-red"
+              @click="mobileMenuOpen = false"
+            >
+              Collection
             </NuxtLink>
 
             <!-- Sell buttons -->
