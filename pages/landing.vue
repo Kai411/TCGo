@@ -31,7 +31,7 @@
               </Transition>
             </span>
             <span
-              class="text-gray-900 mb-[1px]"
+              class="text-gray-900 mb-[1px] sm:mb-[8px]"
               style="transition: cubic-bezier(0.6, -0.28, 0.74, 0.05)"
               >Cards</span
             >
