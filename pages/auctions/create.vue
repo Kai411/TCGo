@@ -13,7 +13,168 @@
     </div>
 
     <template v-else>
-      <h1 class="text-2xl font-bold mb-6">Create an Auction</h1>
+      <h1 class="text-2xl font-bold mb-2">Create an Auction</h1>
+      <p class="text-sm text-gray-500 mb-6">
+        Scan cards to bulk-list as auctions, or fill in the form below for one
+        at a time.
+      </p>
+
+      <!-- Scan flow -->
+      <div
+        class="bg-white rounded-xl border border-gray-200 p-5 mb-6 flex items-center justify-between gap-4 flex-wrap"
+      >
+        <div>
+          <p class="text-sm font-semibold text-gray-900">Scan cards</p>
+          <p class="text-xs text-gray-500 mt-0.5">
+            Each scan becomes a draft auction — fill the starting price +
+            duration for each one and publish them together.
+          </p>
+        </div>
+        <button
+          type="button"
+          @click="scannerOpen = true"
+          class="inline-flex items-center gap-1.5 bg-pokemon-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            <path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Scan cards
+        </button>
+      </div>
+
+      <!-- Scanned drafts queue -->
+      <div
+        v-if="queue.length > 0"
+        class="bg-white rounded-xl border border-gray-200 p-5 mb-6"
+      >
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-semibold text-gray-900">
+            Scanned drafts
+            <span class="text-gray-400 font-normal">({{ queue.length }})</span>
+          </h2>
+          <button
+            type="button"
+            @click="clearDrafts"
+            class="text-xs text-gray-500 hover:text-pokemon-red transition-colors"
+          >
+            Clear all
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <div
+            v-for="item in queue"
+            :key="item.id"
+            class="flex gap-3 p-3 border border-gray-200 rounded-lg"
+          >
+            <img
+              :src="item.imageUrl"
+              :alt="item.cardName"
+              class="w-16 h-22 object-cover rounded shrink-0"
+            />
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold text-sm text-gray-900 truncate">
+                {{ item.cardName }}
+              </p>
+              <p class="text-xs text-gray-500 truncate">
+                {{ item.cardSet }} · {{ item.cardNumber }}
+              </p>
+
+              <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <select
+                  v-model="draftFields[item.id].productType"
+                  class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                >
+                  <option value="Ungraded">Ungraded</option>
+                  <option value="Graded">Graded</option>
+                  <option value="Sealed">Sealed</option>
+                </select>
+                <select
+                  v-if="draftFields[item.id].productType === 'Ungraded'"
+                  v-model="draftFields[item.id].condition"
+                  class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                >
+                  <option value="">Condition…</option>
+                  <option v-for="c in UNGRADED_CONDITIONS" :key="c" :value="c">
+                    {{ c }}
+                  </option>
+                </select>
+                <select
+                  v-if="draftFields[item.id].productType === 'Graded'"
+                  v-model="draftFields[item.id].gradingProvider"
+                  class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                >
+                  <option value="">Provider…</option>
+                  <option v-for="p in GRADING_PROVIDERS" :key="p" :value="p">
+                    {{ p }}
+                  </option>
+                </select>
+                <input
+                  v-if="draftFields[item.id].productType === 'Graded'"
+                  v-model="draftFields[item.id].grade"
+                  placeholder="Grade"
+                  class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                />
+                <input
+                  v-model.number="draftFields[item.id].startingPrice"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="Start price (RM)"
+                  class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                />
+                <select
+                  v-model.number="draftFields[item.id].duration"
+                  class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                >
+                  <option v-for="d in durationOptions" :key="d.value" :value="d.value">
+                    {{ d.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+            <button
+              type="button"
+              @click="removeDraft(item.id)"
+              class="text-gray-400 hover:text-pokemon-red shrink-0 self-start text-lg leading-none"
+              aria-label="Remove"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        <div
+          v-if="draftError"
+          class="mt-3 bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm"
+        >
+          {{ draftError }}
+        </div>
+
+        <button
+          type="button"
+          @click="publishDrafts"
+          :disabled="publishing"
+          class="mt-4 w-full bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
+        >
+          {{
+            publishing
+              ? `Publishing ${publishProgress}/${queue.length}…`
+              : `Publish all ${queue.length} auction${queue.length === 1 ? "" : "s"}`
+          }}
+        </button>
+      </div>
+
+      <div v-if="queue.length > 0" class="text-center text-xs text-gray-400 mb-6">
+        — or list one manually below —
+      </div>
 
       <form @submit.prevent="handleSubmit" class="space-y-4">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -245,18 +406,150 @@
           {{ submitting ? "Creating Auction..." : "Start Auction" }}
         </button>
       </form>
+
+      <CardScanner
+        v-if="scannerOpen"
+        @close="scannerOpen = false"
+        @finished="scannerOpen = false"
+      />
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { CardFormData } from "~/components/CardFormFields.vue";
+import {
+  UNGRADED_CONDITIONS,
+  GRADING_PROVIDERS,
+} from "~/composables/useCardConstants";
 
 const router = useRouter();
 const { createAuction } = useAuctions();
 const { uploadAuctionImages } = useStorage();
 const { user, signInWithGoogle } = useAuth();
 const { profile } = useMyProfile();
+const { queue, remove: removeFromQueue, clear: clearQueue } = useScanQueue();
+
+const scannerOpen = ref(false);
+
+interface AuctionDraftFields {
+  productType: "Ungraded" | "Graded" | "Sealed";
+  condition: string;
+  gradingProvider: string;
+  grade: string;
+  startingPrice: number | null;
+  duration: number;
+}
+const draftFields = ref<Record<string, AuctionDraftFields>>({});
+
+watch(
+  queue,
+  (items) => {
+    for (const item of items) {
+      if (!draftFields.value[item.id]) {
+        draftFields.value[item.id] = {
+          productType: "Ungraded",
+          condition: "",
+          gradingProvider: "",
+          grade: "",
+          startingPrice: null,
+          duration: 86400000, // 1 day
+        };
+      }
+    }
+    const liveIds = new Set(items.map((i) => i.id));
+    for (const id of Object.keys(draftFields.value)) {
+      if (!liveIds.has(id)) delete draftFields.value[id];
+    }
+  },
+  { immediate: true, deep: true },
+);
+
+const draftError = ref("");
+const publishing = ref(false);
+const publishProgress = ref(0);
+
+const removeDraft = (id: string) => removeFromQueue(id);
+const clearDrafts = () => {
+  if (window.confirm("Discard all scanned drafts?")) clearQueue();
+};
+
+const publishDrafts = async () => {
+  draftError.value = "";
+
+  if (!profile.value?.phone && !profile.value?.whatsappNumber) {
+    draftError.value =
+      "Please add your contact number in your Profile before creating auctions.";
+    return;
+  }
+
+  for (const item of queue.value) {
+    const f = draftFields.value[item.id];
+    if (!f) continue;
+    if (!f.startingPrice || f.startingPrice <= 0) {
+      draftError.value = `Set a starting price for "${item.cardName}".`;
+      return;
+    }
+    if (f.productType === "Ungraded" && !f.condition) {
+      draftError.value = `Pick a condition for "${item.cardName}".`;
+      return;
+    }
+    if (f.productType === "Graded" && (!f.gradingProvider || !f.grade)) {
+      draftError.value = `Fill grading info for "${item.cardName}".`;
+      return;
+    }
+  }
+
+  publishing.value = true;
+  publishProgress.value = 0;
+  try {
+    const sellerName =
+      profile.value?.customName || user.value!.displayName || "Anonymous";
+    const sellerUid = user.value!.uid;
+    const shippingWM = profile.value?.shippingWM ?? 8;
+    const shippingEM = profile.value?.shippingEM ?? 12;
+    const now = Date.now();
+
+    for (const item of [...queue.value]) {
+      const f = draftFields.value[item.id];
+      if (!f) continue;
+      const imageUrls = item.scannedImageUrl
+        ? [item.scannedImageUrl, item.imageUrl]
+        : [item.imageUrl];
+      await createAuction({
+        title: `${item.cardName} · ${item.cardSet}`,
+        description: "",
+        imageUrl: imageUrls[0],
+        imageUrls,
+        cardName: item.cardName,
+        cardSet: item.cardSet,
+        cardNumber: item.cardNumber,
+        productType: f.productType,
+        condition: f.productType === "Ungraded" ? f.condition : "",
+        gradingProvider: f.productType === "Graded" ? f.gradingProvider : "",
+        grade: f.productType === "Graded" ? f.grade : "",
+        customGradingProvider: "",
+        shippingWM,
+        shippingEM,
+        startingPrice: f.startingPrice!,
+        minIncrement: 1,
+        seller: sellerName,
+        sellerUid,
+        endsAt: now + f.duration,
+        isPrivate: false,
+      });
+      publishProgress.value++;
+    }
+
+    clearQueue();
+    submitted.value = true;
+    await router.push("/auctions");
+  } catch (e: any) {
+    draftError.value = e.message || "Failed to publish drafts";
+  } finally {
+    publishing.value = false;
+  }
+};
 
 // Unsaved changes guard
 const formDirty = computed(() => {

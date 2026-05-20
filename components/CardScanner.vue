@@ -211,7 +211,7 @@
         </div>
       </div>
 
-      <!-- Stage 4: Saving -->
+      <!-- Stage 4: Saving (uploading user photo) -->
       <div
         v-else-if="stage === 'saving'"
         class="flex-1 flex flex-col items-center justify-center text-white"
@@ -219,7 +219,68 @@
         <div
           class="animate-spin rounded-full h-10 w-10 border-b-2 border-white mb-4"
         ></div>
-        <p class="text-sm">Adding to your collection...</p>
+        <p class="text-sm">Saving photo...</p>
+      </div>
+
+      <!-- Stage 5: Queued — show summary and offer 'scan another' / 'finish' -->
+      <div
+        v-else-if="stage === 'queued'"
+        class="flex-1 bg-white overflow-y-auto"
+      >
+        <div class="max-w-md mx-auto p-6 text-center">
+          <div
+            class="w-14 h-14 mx-auto rounded-full bg-emerald-500/15 flex items-center justify-center mb-4"
+          >
+            <svg
+              class="w-7 h-7 text-emerald-600"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <p class="text-lg font-semibold text-gray-900">Added to queue</p>
+          <p class="mt-1 text-sm text-gray-500">
+            {{ queue.length }} card{{ queue.length === 1 ? "" : "s" }} scanned
+          </p>
+
+          <div
+            v-if="lastAdded"
+            class="mt-5 inline-flex items-center gap-3 bg-gray-50 rounded-xl border border-gray-200 px-3 py-2 text-left"
+          >
+            <img
+              :src="lastAdded.imageUrl"
+              class="w-10 h-14 object-cover rounded"
+            />
+            <div class="text-xs">
+              <p class="font-semibold text-gray-900 truncate max-w-[180px]">
+                {{ lastAdded.cardName }}
+              </p>
+              <p class="text-gray-500 truncate max-w-[180px]">
+                {{ lastAdded.cardSet }} · {{ lastAdded.cardNumber }}
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-7 flex flex-col gap-2">
+            <button
+              @click="resetToCamera"
+              class="w-full bg-pokemon-red text-white py-3 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
+            >
+              Scan another card
+            </button>
+            <button
+              @click="finishScanning"
+              class="w-full bg-gray-100 text-gray-900 py-3 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
+            >
+              Finish · fill details
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </Teleport>
@@ -227,18 +288,20 @@
 
 <script setup lang="ts">
 import type { TcgCard } from "~/composables/usePokemonTcg";
+import type { ScanQueueItem } from "~/composables/useScanQueue";
 
 const emit = defineEmits<{
   close: [];
-  added: [];
+  finished: [];
 }>();
 
 const { uploadImage } = useStorage();
 const { searchByNameAndNumber, searchByName } = usePokemonTcg();
-const { addCard } = useCollection();
+const { queue, add: addToQueue } = useScanQueue();
 
-type Stage = "camera" | "processing" | "matches" | "saving";
+type Stage = "camera" | "processing" | "matches" | "saving" | "queued";
 const stage = ref<Stage>("camera");
+const lastAdded = ref<ScanQueueItem | null>(null);
 
 const videoEl = ref<HTMLVideoElement | null>(null);
 const stream = ref<MediaStream | null>(null);
@@ -485,7 +548,7 @@ const confirmMatch = async (match: TcgCard) => {
       }
     }
 
-    await addCard({
+    const item = {
       cardName: match.name,
       cardSet: match.set.name,
       cardNumber: match.number,
@@ -493,15 +556,23 @@ const confirmMatch = async (match: TcgCard) => {
       imageUrl: match.images.large || match.images.small,
       tcgApiId: match.id,
       scannedImageUrl: scannedUrl,
-    });
+    };
+    addToQueue(item);
+    // Use the most recently-added item from the queue for the summary card
+    // (with its assigned id) — keeps the source of truth in one place.
+    lastAdded.value = queue.value[queue.value.length - 1] || null;
 
-    emit("added");
-    close();
+    stage.value = "queued";
   } catch (e: any) {
     alert(e.message || "Failed to save card");
     stage.value = "matches";
   } finally {
     saving.value = false;
   }
+};
+
+const finishScanning = () => {
+  emit("finished");
+  close();
 };
 </script>
