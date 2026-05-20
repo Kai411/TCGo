@@ -68,12 +68,21 @@ export const useScanQueue = () => {
   };
 
   const pickMatch = (id: string, match: TcgCard) => {
+    // Format card number as "N/Total" when the set advertises a printed
+    // total — that's the form people actually use to identify a card
+    // ("020/189" / "187/167"). Falls back to just the number if the TCG
+    // API doesn't have the total for that set.
+    const printedTotal = match.set.printedTotal;
+    const cardNumber = printedTotal
+      ? `${match.number}/${printedTotal}`
+      : match.number;
+
     updateItem(id, {
       status: "ready",
       tcgApiId: match.id,
       cardName: match.name,
       cardSet: match.set.name,
-      cardNumber: match.number,
+      cardNumber,
       rarity: match.rarity || "",
       imageUrl: match.images.large || match.images.small,
       matches: undefined,

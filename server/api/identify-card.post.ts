@@ -1,19 +1,23 @@
-// Calls Gemini 2.0 Flash Lite to read the visible card name + set number
-// off a photo of a Pokemon TCG card. The browser sends the image as
-// base64; we forward it to Gemini with a strict JSON response schema and
-// return { name, number } back. The actual card lookup happens client-side
-// against api.pokemontcg.io using those two fields.
+// Calls Gemini to read the visible card name + set number off a photo of
+// a Pokemon TCG card. The browser sends the image as base64; we forward
+// it to Gemini with a strict JSON response schema and return { name,
+// number } back. Handles non-English cards by translating the name to its
+// canonical English form (the Pokemon TCG API is only indexed in
+// English). The actual card lookup happens client-side against
+// api.pokemontcg.io using those two fields.
 
 const MODEL = "gemini-2.5-flash";
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
 const PROMPT = `You are reading a single Pokemon TCG card from the image.
 
+The card may be from any region: English, Japanese, Korean, Chinese, German, French, Italian, Spanish, Portuguese. If the printed name is NOT in English, translate it to the canonical English Pokemon name (e.g. リザードン → "Charizard", カイリュー → "Dragonite", ピカチュウ → "Pikachu", 한카리아스 → "Garchomp"). The Pokemon TCG API is only indexed in English, so always return the English name. Keep suffixes like "ex", "V", "VMAX", "GX" if they appear on the card.
+
 The card may be rotated, tilted, partially obscured by a hand or sleeve, or have holo/glare reflections. Mentally rotate the image as needed and look past glare to read the printed text.
 
 Return ONLY a JSON object with two fields:
-- "name": the card's printed name as shown near the top of the card (e.g. "Charizard ex", "Tyranitar", "Chansey", "Pikachu VMAX"). Use the main name only — no HP, attack text, or trainer card descriptors.
-- "number": the set number printed near the bottom corner, formatted exactly as "N/Total" (e.g. "20/189", "187/167", "222/193"). Strip any leading zeros from N — write "20" not "020".
+- "name": the card's English Pokemon name (e.g. "Charizard ex", "Tyranitar", "Chansey", "Pikachu VMAX"). Even if the printed text is in another language, return the English name. Use the main name only — no HP, attack text, or trainer card descriptors.
+- "number": the set number printed near the bottom corner, formatted exactly as "N/Total" (e.g. "20/189", "187/167", "222/193"). Japanese cards use the same format (often "001/100"). Strip any leading zeros from N — write "20" not "020".
 
 If you genuinely cannot read a field, use null for that field. Do not guess.`;
 
