@@ -78,7 +78,10 @@
     class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08]"
     style="padding-bottom: env(safe-area-inset-bottom)"
   >
-    <div class="grid grid-cols-4 h-[68px]">
+    <div
+      class="grid h-[68px]"
+      :style="{ gridTemplateColumns: `repeat(${mobileTabs.length}, minmax(0, 1fr))` }"
+    >
       <NuxtLink
         v-for="tab in mobileTabs"
         :key="tab.to"
@@ -130,6 +133,7 @@ const desktopLinks = computed(() => {
     links.push(
       { to: "/dashboard/seller", label: "Listings" },
       { to: "/dashboard/buyer", label: "Bids" },
+      { to: "/profile/collection", label: "Collection" },
     );
   }
   if (isAdmin.value) links.push({ to: "/admin/reports", label: "Admin" });
@@ -164,6 +168,13 @@ const IconUser = () =>
     h("circle", { cx: "12", cy: "8", r: "4" }),
     h("path", { d: "M4 21a8 8 0 0 1 16 0" }),
   ]);
+const IconCollection = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("rect", { x: "3", y: "3", width: "7", height: "9", rx: "1" }),
+    h("rect", { x: "14", y: "3", width: "7", height: "5", rx: "1" }),
+    h("rect", { x: "14", y: "12", width: "7", height: "9", rx: "1" }),
+    h("rect", { x: "3", y: "16", width: "7", height: "5", rx: "1" }),
+  ]);
 
 const mobileTabs = computed(() => {
   const tabs: {
@@ -181,6 +192,11 @@ const mobileTabs = computed(() => {
       label: "Sell",
       icon: IconPlus,
       accent: true,
+    });
+    tabs.push({
+      to: "/profile/collection",
+      label: "Collection",
+      icon: IconCollection,
     });
     tabs.push({
       to: `/profile/${user.value.uid}`,
