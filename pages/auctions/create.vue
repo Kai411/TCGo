@@ -68,86 +68,196 @@
           </button>
         </div>
 
-        <div class="space-y-3">
+        <div class="space-y-4">
           <div
             v-for="item in queue"
             :key="item.id"
-            class="flex gap-3 p-3 border border-gray-200 rounded-lg"
+            class="p-3 border border-gray-200 rounded-lg"
           >
-            <img
-              :src="item.imageUrl"
-              :alt="item.cardName"
-              class="w-16 h-22 object-cover rounded shrink-0"
-            />
-            <div class="flex-1 min-w-0">
-              <p class="font-semibold text-sm text-gray-900 truncate">
-                {{ item.cardName }}
-              </p>
-              <p class="text-xs text-gray-500 truncate">
-                {{ item.cardSet }} · {{ item.cardNumber }}
-              </p>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <img
+                :src="item.imageUrl"
+                :alt="item.cardName"
+                class="w-20 h-28 sm:w-24 sm:h-32 object-cover rounded shrink-0"
+              />
+              <div class="flex-1 min-w-0 space-y-3">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <p class="font-semibold text-sm text-gray-900 truncate">
+                      {{ item.cardName }}
+                    </p>
+                    <p class="text-xs text-gray-500 truncate">
+                      {{ item.cardSet }} · {{ item.cardNumber }}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    @click="removeDraft(item.id)"
+                    class="text-gray-400 hover:text-pokemon-red shrink-0 text-xl leading-none"
+                    aria-label="Remove"
+                  >
+                    ×
+                  </button>
+                </div>
 
-              <div class="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                <select
-                  v-model="draftFields[item.id].productType"
-                  class="border border-gray-300 rounded px-2 py-1.5 text-xs"
-                >
-                  <option value="Ungraded">Ungraded</option>
-                  <option value="Graded">Graded</option>
-                  <option value="Sealed">Sealed</option>
-                </select>
-                <select
-                  v-if="draftFields[item.id].productType === 'Ungraded'"
-                  v-model="draftFields[item.id].condition"
-                  class="border border-gray-300 rounded px-2 py-1.5 text-xs"
-                >
-                  <option value="">Condition…</option>
-                  <option v-for="c in UNGRADED_CONDITIONS" :key="c" :value="c">
-                    {{ c }}
-                  </option>
-                </select>
-                <select
-                  v-if="draftFields[item.id].productType === 'Graded'"
-                  v-model="draftFields[item.id].gradingProvider"
-                  class="border border-gray-300 rounded px-2 py-1.5 text-xs"
-                >
-                  <option value="">Provider…</option>
-                  <option v-for="p in GRADING_PROVIDERS" :key="p" :value="p">
-                    {{ p }}
-                  </option>
-                </select>
-                <input
-                  v-if="draftFields[item.id].productType === 'Graded'"
-                  v-model="draftFields[item.id].grade"
-                  placeholder="Grade"
-                  class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                <!-- Product type + condition / grading -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <select
+                    v-model="draftFields[item.id].productType"
+                    class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                  >
+                    <option value="Ungraded">Ungraded</option>
+                    <option value="Graded">Graded</option>
+                    <option value="Sealed">Sealed</option>
+                  </select>
+                  <select
+                    v-if="draftFields[item.id].productType === 'Ungraded'"
+                    v-model="draftFields[item.id].condition"
+                    class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                  >
+                    <option value="">Condition…</option>
+                    <option v-for="c in UNGRADED_CONDITIONS" :key="c" :value="c">
+                      {{ c }}
+                    </option>
+                  </select>
+                  <select
+                    v-if="draftFields[item.id].productType === 'Graded'"
+                    v-model="draftFields[item.id].gradingProvider"
+                    class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                  >
+                    <option value="">Provider…</option>
+                    <option v-for="p in GRADING_PROVIDERS" :key="p" :value="p">
+                      {{ p }}
+                    </option>
+                  </select>
+                  <select
+                    v-if="
+                      draftFields[item.id].productType === 'Graded' &&
+                      draftFields[item.id].gradingProvider &&
+                      draftFields[item.id].gradingProvider !== 'Others'
+                    "
+                    v-model="draftFields[item.id].grade"
+                    class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                  >
+                    <option value="">Grade…</option>
+                    <option
+                      v-for="g in getGradesForProvider(
+                        draftFields[item.id].gradingProvider,
+                      )"
+                      :key="g"
+                      :value="g"
+                    >
+                      {{ g }}
+                    </option>
+                  </select>
+                  <input
+                    v-else-if="
+                      draftFields[item.id].productType === 'Graded' &&
+                      draftFields[item.id].gradingProvider === 'Others'
+                    "
+                    v-model="draftFields[item.id].grade"
+                    placeholder="Grade"
+                    class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                  />
+                </div>
+
+                <!-- Auction settings -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <input
+                    v-model.number="draftFields[item.id].startingPrice"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    placeholder="Start price (RM)"
+                    class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                  />
+                  <input
+                    v-model.number="draftFields[item.id].minIncrement"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    placeholder="Min increment"
+                    class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                  />
+                  <select
+                    v-model.number="draftFields[item.id].duration"
+                    class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                  >
+                    <option
+                      v-for="d in durationOptions"
+                      :key="d.value"
+                      :value="d.value"
+                    >
+                      {{ d.label }}
+                    </option>
+                  </select>
+                </div>
+
+                <!-- Private toggle -->
+                <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    v-model="draftFields[item.id].isPrivate"
+                    class="w-4 h-4 rounded border-gray-300 text-pokemon-red focus:ring-pokemon-red"
+                  />
+                  Private auction (only people with the link can bid)
+                </label>
+
+                <!-- Description -->
+                <textarea
+                  v-model="draftFields[item.id].description"
+                  rows="2"
+                  placeholder="Notes about the card (optional)…"
+                  class="w-full border border-gray-300 rounded px-2 py-1.5 text-xs resize-none"
                 />
-                <input
-                  v-model.number="draftFields[item.id].startingPrice"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="Start price (RM)"
-                  class="border border-gray-300 rounded px-2 py-1.5 text-xs"
-                />
-                <select
-                  v-model.number="draftFields[item.id].duration"
-                  class="border border-gray-300 rounded px-2 py-1.5 text-xs"
-                >
-                  <option v-for="d in durationOptions" :key="d.value" :value="d.value">
-                    {{ d.label }}
-                  </option>
-                </select>
+
+                <!-- Extra photos -->
+                <div>
+                  <p class="text-[11px] font-medium text-gray-600 mb-1.5">
+                    Extra photos (optional) — your scan is already attached
+                  </p>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <label
+                      class="cursor-pointer inline-flex items-center justify-center w-14 h-14 border border-dashed border-gray-300 rounded text-gray-400 hover:border-pokemon-red hover:text-pokemon-red transition-colors text-xs"
+                    >
+                      <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        class="hidden"
+                        @change="addDraftFiles(item.id, $event)"
+                      />
+                    </label>
+                    <div
+                      v-for="(f, i) in draftFields[item.id].extraFiles"
+                      :key="i"
+                      class="relative w-14 h-14 group"
+                    >
+                      <img
+                        :src="f.preview"
+                        class="w-14 h-14 object-cover rounded border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        @click="removeDraftFile(item.id, i)"
+                        class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pokemon-red text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <button
-              type="button"
-              @click="removeDraft(item.id)"
-              class="text-gray-400 hover:text-pokemon-red shrink-0 self-start text-lg leading-none"
-              aria-label="Remove"
-            >
-              ×
-            </button>
           </div>
         </div>
 
@@ -421,6 +531,7 @@ import type { CardFormData } from "~/components/CardFormFields.vue";
 import {
   UNGRADED_CONDITIONS,
   GRADING_PROVIDERS,
+  getGradesForProvider,
 } from "~/composables/useCardConstants";
 
 const router = useRouter();
@@ -432,13 +543,21 @@ const { queue, remove: removeFromQueue, clear: clearQueue } = useScanQueue();
 
 const scannerOpen = ref(false);
 
+interface DraftFileEntry {
+  file: File;
+  preview: string;
+}
 interface AuctionDraftFields {
   productType: "Ungraded" | "Graded" | "Sealed";
   condition: string;
   gradingProvider: string;
   grade: string;
+  description: string;
   startingPrice: number | null;
+  minIncrement: number;
   duration: number;
+  isPrivate: boolean;
+  extraFiles: DraftFileEntry[];
 }
 const draftFields = ref<Record<string, AuctionDraftFields>>({});
 
@@ -452,18 +571,47 @@ watch(
           condition: "",
           gradingProvider: "",
           grade: "",
+          description: "",
           startingPrice: null,
+          minIncrement: 1,
           duration: 86400000, // 1 day
+          isPrivate: false,
+          extraFiles: [],
         };
       }
     }
     const liveIds = new Set(items.map((i) => i.id));
     for (const id of Object.keys(draftFields.value)) {
-      if (!liveIds.has(id)) delete draftFields.value[id];
+      if (!liveIds.has(id)) {
+        for (const f of draftFields.value[id].extraFiles) {
+          URL.revokeObjectURL(f.preview);
+        }
+        delete draftFields.value[id];
+      }
     }
   },
   { immediate: true, deep: true },
 );
+
+const addDraftFiles = (id: string, event: Event) => {
+  const input = event.target as HTMLInputElement;
+  if (!input.files) return;
+  for (const file of Array.from(input.files)) {
+    if (!file.type.startsWith("image/")) continue;
+    if (file.size > 5 * 1024 * 1024) continue;
+    draftFields.value[id].extraFiles.push({
+      file,
+      preview: URL.createObjectURL(file),
+    });
+  }
+  input.value = "";
+};
+
+const removeDraftFile = (id: string, index: number) => {
+  const f = draftFields.value[id].extraFiles[index];
+  if (f) URL.revokeObjectURL(f.preview);
+  draftFields.value[id].extraFiles.splice(index, 1);
+};
 
 const draftError = ref("");
 const publishing = ref(false);
@@ -513,12 +661,19 @@ const publishDrafts = async () => {
     for (const item of [...queue.value]) {
       const f = draftFields.value[item.id];
       if (!f) continue;
-      const imageUrls = item.scannedImageUrl
+
+      const extraUrls = f.extraFiles.length
+        ? await uploadAuctionImages(f.extraFiles.map((x) => x.file))
+        : [];
+
+      const baseUrls = item.scannedImageUrl
         ? [item.scannedImageUrl, item.imageUrl]
         : [item.imageUrl];
+      const imageUrls = [...baseUrls, ...extraUrls];
+
       await createAuction({
         title: `${item.cardName} · ${item.cardSet}`,
-        description: "",
+        description: f.description,
         imageUrl: imageUrls[0],
         imageUrls,
         cardName: item.cardName,
@@ -532,11 +687,11 @@ const publishDrafts = async () => {
         shippingWM,
         shippingEM,
         startingPrice: f.startingPrice!,
-        minIncrement: 1,
+        minIncrement: f.minIncrement > 0 ? f.minIncrement : 1,
         seller: sellerName,
         sellerUid,
         endsAt: now + f.duration,
-        isPrivate: false,
+        isPrivate: f.isPrivate,
       });
       publishProgress.value++;
     }
