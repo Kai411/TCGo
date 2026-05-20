@@ -118,28 +118,12 @@
         </div>
       </section>
 
-      <!-- Stat row -->
-      <section class="grid grid-cols-3 gap-3 sm:gap-6 mb-10">
-        <div class="surface rounded-2xl px-5 py-4">
-          <span class="eyebrow">Listed</span>
-          <p
-            class="mt-1.5 tabular-price text-2xl sm:text-3xl font-extrabold text-ink dark:text-white"
-          >
-            {{ userCards.length.toLocaleString() }}
-          </p>
-        </div>
-        <div class="surface rounded-2xl px-5 py-4">
-          <span class="eyebrow">Auctions</span>
-          <p
-            class="mt-1.5 tabular-price text-2xl sm:text-3xl font-extrabold text-ink dark:text-white"
-          >
-            {{ userAuctions.length.toLocaleString() }}
-          </p>
-        </div>
+      <!-- Trust score (Listed + Auctions counts now live in the tab bar) -->
+      <section class="mb-10">
         <button
           type="button"
           @click="showTrustInfo = true"
-          class="surface rounded-2xl px-5 py-4 text-left hover:shadow-card-hover transition-shadow ease-premium"
+          class="surface rounded-2xl px-5 py-4 text-left hover:shadow-card-hover transition-shadow ease-premium w-full sm:max-w-xs"
         >
           <span class="eyebrow flex items-center gap-1">
             Trust
@@ -166,12 +150,12 @@
 
       <!-- Underline tabs -->
       <div class="hairline mb-8">
-        <div class="flex items-center gap-6 -mb-px">
+        <div class="flex items-center gap-8 -mb-px">
           <button
             v-for="tab in tabs"
             :key="tab.id"
             @click="activeTab = tab.id"
-            class="relative pb-3 pt-1 text-sm font-semibold transition-colors ease-premium"
+            class="relative pb-4 pt-1 text-lg sm:text-xl font-bold tracking-tightest transition-colors ease-premium"
             :class="
               activeTab === tab.id
                 ? 'text-ink dark:text-white'
@@ -180,7 +164,7 @@
           >
             {{ tab.label }}
             <span
-              class="ml-1.5 tabular-price text-[11px] font-bold"
+              class="ml-2 tabular-price text-sm font-bold align-middle"
               :class="
                 activeTab === tab.id
                   ? 'text-pokemon-red'
