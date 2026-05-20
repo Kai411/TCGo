@@ -9,6 +9,12 @@ dist
 # Node dependencies
 node_modules
 
+# package-lock.json is intentionally not committed — when generated on
+# macOS/Windows it can omit platform-specific Rollup native binaries,
+# breaking the Netlify Linux build (npm/cli#4828). Netlify will resolve
+# fresh on each deploy.
+package-lock.json
+
 # Logs
 logs
 *.log
