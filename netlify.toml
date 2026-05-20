@@ -1,0 +1,18 @@
+# Netlify build config.
+#
+# Why the `rm -f package-lock.json` here:
+# npm has a long-standing bug with platform-specific optional dependencies
+# (https://github.com/npm/cli/issues/4828) — when the lockfile is generated
+# on macOS or Windows it doesn't always include Rollup's Linux-x64 native
+# binary, so a Netlify (Linux) install fails with:
+#   "Cannot find module @rollup/rollup-linux-x64-gnu"
+#
+# Removing the lockfile here forces npm to do a fresh resolution on the
+# Linux build container, which picks the correct native binary. Local
+# devs still keep the committed package-lock.json for reproducible
+# installs.
+[build]
+  command = "rm -f package-lock.json && npm install && npm run build"
+
+[build.environment]
+  NODE_VERSION = "22"
