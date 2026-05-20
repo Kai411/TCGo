@@ -30,8 +30,6 @@
 
       <!-- Right cluster -->
       <div class="flex items-center gap-1.5 lg:gap-2 shrink-0">
-        <ThemeToggle />
-
         <!-- Desktop sell CTAs -->
         <div v-if="user" class="hidden lg:flex items-center gap-2 ml-1">
           <NuxtLink

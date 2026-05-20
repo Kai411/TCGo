@@ -222,6 +222,26 @@
         v-if="!loading"
         class="bg-white rounded-xl p-6 border border-gray-200 space-y-6 mt-4"
       >
+        <p class="text-xl font-bold">Appearance</p>
+
+        <!-- Dark mode -->
+        <div>
+          <label class="flex items-center justify-between cursor-pointer">
+            <div>
+              <p class="text-sm font-medium text-gray-700">Dark mode</p>
+              <p class="text-xs text-gray-400">
+                Switch between light and dark themes
+              </p>
+            </div>
+            <ThemeToggle />
+          </label>
+        </div>
+      </div>
+
+      <div
+        v-if="!loading"
+        class="bg-white rounded-xl p-6 border border-gray-200 space-y-6 mt-4"
+      >
         <p class="text-xl font-bold">Privacy</p>
 
         <!-- Privacy Settings -->

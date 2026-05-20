@@ -1,71 +1,5 @@
 <template>
   <div>
-    <!-- Hero -->
-    <section class="pt-2 pb-10 lg:pb-14">
-      <div class="max-w-3xl">
-        <h1
-          class="mt-3 font-display text-hero font-extrabold tracking-hero text-ink dark:text-white"
-        >
-          Trade rare cards,
-          <span class="text-pokemon-red">smarter.</span>
-        </h1>
-        <p class="mt-4 max-w-xl text-base sm:text-lg text-ink-muted dark:text-zinc-400 leading-relaxed">
-          The Pokémon TCG marketplace for Malaysian collectors. Discover graded
-          slabs, fresh pulls, and vintage finds from the community.
-        </p>
-
-        <!-- Stats row -->
-        <dl class="mt-8 flex flex-wrap gap-x-10 gap-y-4">
-          <div>
-            <dt class="eyebrow">Listed</dt>
-            <dd class="mt-1 tabular-price text-2xl font-bold text-ink dark:text-white">
-              {{ availableCards.length.toLocaleString() }}
-            </dd>
-          </div>
-          <div>
-            <dt class="eyebrow">Sold</dt>
-            <dd class="mt-1 tabular-price text-2xl font-bold text-ink dark:text-white">
-              {{ soldCount.toLocaleString() }}
-            </dd>
-          </div>
-          <div>
-            <dt class="eyebrow">Collectors</dt>
-            <dd class="mt-1 tabular-price text-2xl font-bold text-ink dark:text-white">
-              {{ collectorCount.toLocaleString() }}
-            </dd>
-          </div>
-        </dl>
-      </div>
-    </section>
-
-    <!-- Section header -->
-    <div class="flex items-end justify-between mb-5">
-      <div>
-        <span class="eyebrow">Latest listings</span>
-        <h2 class="mt-1 text-2xl sm:text-3xl font-bold tracking-tightest text-ink dark:text-white">
-          Fresh on the market
-        </h2>
-      </div>
-
-      <NuxtLink
-        v-if="user"
-        to="/cards/create"
-        class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity ease-premium"
-      >
-        <svg
-          class="w-4 h-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-          stroke-linecap="round"
-        >
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        List Card
-      </NuxtLink>
-    </div>
-
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-24">
       <div
@@ -107,34 +41,48 @@
         <article
           class="surface rounded-2xl overflow-hidden hover:shadow-card-hover transition-shadow duration-300 ease-premium"
         >
-          <div
-            class="relative aspect-[3/4] bg-canvas-sunken dark:bg-white/[0.02] overflow-hidden"
-          >
-            <img
-              v-if="card.imageUrls?.length || card.imageUrl"
-              :src="cdnUrl(card.imageUrls?.[0] || card.imageUrl, 400)"
-              :alt="card.cardName"
-              loading="lazy"
-              class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300 ease-premium"
-            />
+          <!-- White-framed image well: padding around the image so the card
+               art doesn't crash into the surrounding tile edge. -->
+          <div class="p-2 sm:p-2.5 bg-white dark:bg-white/[0.04]">
             <div
-              v-else
-              class="absolute inset-0 flex items-center justify-center text-xs text-ink-soft dark:text-zinc-500"
+              class="relative aspect-[3/4] rounded-lg bg-canvas-sunken dark:bg-white/[0.02] overflow-hidden"
             >
-              No image
-            </div>
+              <img
+                v-if="card.imageUrls?.length || card.imageUrl"
+                :src="cdnUrl(card.imageUrls?.[0] || card.imageUrl, 400)"
+                :alt="card.cardName"
+                loading="lazy"
+                class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300 ease-premium"
+              />
+              <div
+                v-else
+                class="absolute inset-0 flex items-center justify-center text-xs text-ink-soft dark:text-zinc-500"
+              >
+                No image
+              </div>
 
-            <!-- Condition chip overlay -->
-            <span
-              v-if="conditionLabel(card)"
-              class="absolute top-2 left-2 chip"
-              :class="conditionChipVariant(card)"
-            >
-              {{ conditionLabel(card) }}
-            </span>
+              <!-- Bottom-left pills: seller name + condition -->
+              <div
+                class="absolute left-1.5 right-1.5 bottom-1.5 flex items-end gap-1 flex-wrap pointer-events-none"
+              >
+                <span
+                  v-if="card.seller"
+                  class="inline-flex items-center max-w-[60%] truncate px-1.5 py-0.5 rounded-md text-[10px] font-semibold tracking-wide bg-white/95 text-ink shadow-sm"
+                >
+                  {{ card.seller }}
+                </span>
+                <span
+                  v-if="conditionLabel(card)"
+                  class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold tracking-wide uppercase bg-white/95 shadow-sm"
+                  :class="conditionPillTone(card)"
+                >
+                  {{ conditionLabel(card) }}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div class="p-3.5 sm:p-4">
+          <div class="px-3.5 sm:px-4 pt-2 pb-3.5 sm:pb-4">
             <h3
               class="font-semibold text-[15px] leading-tight text-ink dark:text-white truncate"
             >
@@ -173,12 +121,6 @@
                 />
               </div>
             </div>
-
-            <p
-              class="mt-2 text-[11px] text-ink-soft dark:text-zinc-500 truncate"
-            >
-              by {{ card.seller }}
-            </p>
           </div>
         </article>
       </NuxtLink>
@@ -188,6 +130,7 @@
 
 <script setup lang="ts">
 import type { Card } from "~/composables/useCards";
+import { cdnUrl } from "~/composables/useStorage";
 
 useHead({
   title: "Shop Pokemon Cards | TCGo Marketplace",
@@ -209,12 +152,6 @@ const availableCards = computed(() =>
     .sort((a: Card, b: Card) => b.createdAt - a.createdAt),
 );
 
-const soldCount = computed(() => cards.value.filter((c: Card) => c.sold).length);
-const collectorCount = computed(() => {
-  const sellers = new Set(cards.value.map((c: Card) => c.sellerUid));
-  return sellers.size;
-});
-
 const conditionLabel = (card: Card): string => {
   if (card.productType === "Graded") {
     const provider =
@@ -227,9 +164,12 @@ const conditionLabel = (card: Card): string => {
   return card.condition || "";
 };
 
-const conditionChipVariant = (card: Card): string => {
-  if (card.productType === "Graded") return "chip-gold";
-  if (card.productType === "Sealed") return "chip-accent";
-  return "";
+// Text tone for the bottom-of-image condition pill. The pill background
+// is solid white; we color the text per product type so graded slabs read
+// gold and sealed product reads red.
+const conditionPillTone = (card: Card): string => {
+  if (card.productType === "Graded") return "text-amber-700";
+  if (card.productType === "Sealed") return "text-pokemon-red";
+  return "text-ink";
 };
 </script>
