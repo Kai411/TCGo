@@ -30,9 +30,10 @@
         </button>
       </div>
 
-      <!-- Stage 1: Camera viewfinder -->
+      <!-- Always-on camera viewfinder. Capture is non-blocking: each scan
+           queues a 'processing' item and ID runs in the background so the
+           user can keep snapping. -->
       <div
-        v-if="stage === 'camera'"
         class="flex-1 flex flex-col items-center justify-center relative overflow-hidden"
         @dragenter.prevent="dragOver = true"
         @dragover.prevent="dragOver = true"
@@ -47,13 +48,16 @@
           class="w-full h-full object-cover"
         />
         <!-- Card framing overlay -->
-        <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+        <div
+          class="absolute inset-0 pointer-events-none flex items-center justify-center"
+        >
           <div
             class="border-2 border-white/70 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"
             style="aspect-ratio: 2.5 / 3.5; height: 65%"
           ></div>
         </div>
-        <!-- Top stack: warning (if any) then the upload-photo button below it -->
+
+        <!-- Top stack: warning, upload, queue status -->
         <div
           class="absolute top-4 left-0 right-0 flex flex-col items-center gap-3 px-4 z-10"
         >
@@ -87,13 +91,57 @@
               @change="handleFileUpload"
             />
           </label>
+          <!-- Live queue status -->
+          <div
+            v-if="queue.length"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/70 text-white text-[11px] font-semibold backdrop-blur"
+          >
+            <span
+              v-if="processingCount() > 0"
+              class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse"
+            />
+            <span
+              v-else
+              class="inline-block w-2 h-2 rounded-full bg-emerald-400"
+            />
+            {{ queue.length }} scanned
+            <span v-if="processingCount() > 0" class="text-white/70">
+              · identifying {{ processingCount() }}
+            </span>
+          </div>
         </div>
 
-        <p
-          class="absolute bottom-28 left-4 right-4 text-center text-white/80 text-xs"
+        <!-- 'Captured' flash toast -->
+        <Transition
+          enter-active-class="transition duration-200"
+          enter-from-class="opacity-0 scale-90"
+          leave-active-class="transition duration-300"
+          leave-to-class="opacity-0"
         >
-          Line up the card and tap capture, or drag a photo anywhere.
-        </p>
+          <div
+            v-if="showFlash"
+            class="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
+          >
+            <div
+              class="bg-emerald-500/90 text-white rounded-full px-5 py-3 text-sm font-semibold shadow-2xl flex items-center gap-2"
+            >
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              Captured
+            </div>
+          </div>
+        </Transition>
 
         <!-- Drop overlay -->
         <div
@@ -115,7 +163,14 @@
           </svg>
           <p class="text-white text-lg font-semibold">Drop photo to scan</p>
         </div>
-        <!-- Capture button -->
+
+        <p
+          class="absolute bottom-28 left-4 right-4 text-center text-white/80 text-xs"
+        >
+          Line up the card and tap capture, or drag a photo anywhere.
+        </p>
+
+        <!-- Bottom: capture + Done -->
         <div
           class="absolute bottom-0 left-0 right-0 flex items-center justify-center pb-8 pt-6 bg-gradient-to-t from-black/80 to-transparent"
         >
@@ -125,179 +180,26 @@
             class="w-16 h-16 rounded-full bg-white border-4 border-white/40 disabled:opacity-40 hover:scale-105 transition-transform"
             aria-label="Capture"
           ></button>
-        </div>
-      </div>
-
-      <!-- Stage 2: Processing -->
-      <div
-        v-else-if="stage === 'processing'"
-        class="flex-1 flex flex-col items-center justify-center text-white px-6"
-      >
-        <img
-          v-if="capturedPreview"
-          :src="capturedPreview"
-          class="max-h-48 rounded-lg mb-6 shadow-lg"
-        />
-        <div
-          class="animate-spin rounded-full h-10 w-10 border-b-2 border-white mb-4"
-        ></div>
-        <p class="text-sm">{{ processingMessage }}</p>
-      </div>
-
-      <!-- Stage 3: Pick a match -->
-      <div
-        v-else-if="stage === 'matches'"
-        class="flex-1 bg-white overflow-y-auto"
-      >
-        <div class="max-w-2xl mx-auto p-4">
-          <div v-if="capturedPreview" class="flex gap-3 mb-4 items-center">
-            <img
-              :src="capturedPreview"
-              class="w-16 h-20 object-cover rounded border border-gray-200"
-            />
-            <div class="text-sm">
-              <p class="text-gray-500">Detected:</p>
-              <p class="font-medium text-gray-900">
-                {{ detectedName || "(no name)" }}
-                <span v-if="detectedNumber" class="text-gray-400">
-                  · {{ detectedNumber }}</span
-                >
-              </p>
-            </div>
-          </div>
-
-          <div v-if="matches.length === 0" class="text-center py-10">
-            <p class="text-gray-700 font-medium mb-2">No matches found</p>
-            <p class="text-sm text-gray-500 mb-4">
-              Try a clearer photo or search manually.
-            </p>
-            <div class="flex gap-2 max-w-sm mx-auto">
-              <input
-                v-model="manualSearch"
-                type="text"
-                placeholder="e.g. Charizard"
-                class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                @keydown.enter.prevent="runManualSearch"
-              />
-              <button
-                @click="runManualSearch"
-                :disabled="searching || !manualSearch"
-                class="bg-pokemon-blue text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50"
-              >
-                {{ searching ? "..." : "Search" }}
-              </button>
-            </div>
-          </div>
-
-          <div v-else>
-            <p class="text-sm font-semibold text-gray-900 mb-3">
-              Select your card ({{ matches.length }} match{{
-                matches.length === 1 ? "" : "es"
-              }})
-            </p>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <button
-                v-for="m in matches"
-                :key="m.id"
-                @click="confirmMatch(m)"
-                :disabled="saving"
-                class="text-left bg-white border-2 border-gray-200 rounded-lg overflow-hidden hover:border-pokemon-blue transition-colors disabled:opacity-50"
-              >
-                <img
-                  :src="m.images.small"
-                  :alt="m.name"
-                  class="w-full aspect-[2.5/3.5] object-cover"
-                />
-                <div class="p-2">
-                  <p class="text-xs font-semibold text-gray-900 truncate">
-                    {{ m.name }}
-                  </p>
-                  <p class="text-[10px] text-gray-500 truncate">
-                    {{ m.set.name }} · {{ m.number }}
-                  </p>
-                </div>
-              </button>
-            </div>
-          </div>
-
           <button
-            @click="resetToCamera"
-            class="mt-6 w-full bg-gray-100 text-gray-700 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+            v-if="queue.length > 0"
+            @click="finishScanning"
+            class="absolute right-6 bottom-10 inline-flex items-center gap-1.5 bg-emerald-500 text-white px-4 py-2.5 rounded-full text-sm font-semibold shadow-lg hover:bg-emerald-600 transition-colors"
           >
-            Try Again
-          </button>
-        </div>
-      </div>
-
-      <!-- Stage 4: Saving (uploading user photo) -->
-      <div
-        v-else-if="stage === 'saving'"
-        class="flex-1 flex flex-col items-center justify-center text-white"
-      >
-        <div
-          class="animate-spin rounded-full h-10 w-10 border-b-2 border-white mb-4"
-        ></div>
-        <p class="text-sm">Saving photo...</p>
-      </div>
-
-      <!-- Stage 5: Queued — show summary and offer 'scan another' / 'finish' -->
-      <div
-        v-else-if="stage === 'queued'"
-        class="flex-1 bg-white overflow-y-auto"
-      >
-        <div class="max-w-md mx-auto p-6 text-center">
-          <div
-            class="w-14 h-14 mx-auto rounded-full bg-emerald-500/15 flex items-center justify-center mb-4"
-          >
+            Done · {{ queue.length }}
             <svg
-              class="w-7 h-7 text-emerald-600"
-              viewBox="0 0 24 24"
+              class="w-4 h-4"
               fill="none"
               stroke="currentColor"
               stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+              viewBox="0 0 24 24"
             >
-              <path d="M5 13l4 4L19 7" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9 5l7 7-7 7"
+              />
             </svg>
-          </div>
-          <p class="text-lg font-semibold text-gray-900">Added to queue</p>
-          <p class="mt-1 text-sm text-gray-500">
-            {{ queue.length }} card{{ queue.length === 1 ? "" : "s" }} scanned
-          </p>
-
-          <div
-            v-if="lastAdded"
-            class="mt-5 inline-flex items-center gap-3 bg-gray-50 rounded-xl border border-gray-200 px-3 py-2 text-left"
-          >
-            <img
-              :src="lastAdded.scannedImageUrl || lastAdded.imageUrl"
-              class="w-10 h-14 object-cover rounded"
-            />
-            <div class="text-xs">
-              <p class="font-semibold text-gray-900 truncate max-w-[180px]">
-                {{ lastAdded.cardName }}
-              </p>
-              <p class="text-gray-500 truncate max-w-[180px]">
-                {{ lastAdded.cardSet }} · {{ lastAdded.cardNumber }}
-              </p>
-            </div>
-          </div>
-
-          <div class="mt-7 flex flex-col gap-2">
-            <button
-              @click="resetToCamera"
-              class="w-full bg-pokemon-red text-white py-3 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
-            >
-              Scan another card
-            </button>
-            <button
-              @click="finishScanning"
-              class="w-full bg-gray-100 text-gray-900 py-3 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
-            >
-              Finish · fill details
-            </button>
-          </div>
+          </button>
         </div>
       </div>
     </div>
@@ -305,9 +207,6 @@
 </template>
 
 <script setup lang="ts">
-import type { TcgCard } from "~/composables/usePokemonTcg";
-import type { ScanQueueItem } from "~/composables/useScanQueue";
-
 const emit = defineEmits<{
   close: [];
   finished: [];
@@ -315,29 +214,20 @@ const emit = defineEmits<{
 
 const { uploadImage } = useStorage();
 const { searchByNameAndNumber, searchByName } = usePokemonTcg();
-const { queue, add: addToQueue } = useScanQueue();
-
-type Stage = "camera" | "processing" | "matches" | "saving" | "queued";
-const stage = ref<Stage>("camera");
-const lastAdded = ref<ScanQueueItem | null>(null);
+const {
+  queue,
+  addProcessing,
+  updateItem,
+  pickMatch,
+  processingCount,
+} = useScanQueue();
 
 const videoEl = ref<HTMLVideoElement | null>(null);
 const stream = ref<MediaStream | null>(null);
 const streamReady = ref(false);
 const cameraError = ref("");
 const dragOver = ref(false);
-
-const capturedBlob = ref<Blob | null>(null);
-const capturedPreview = ref("");
-
-const detectedName = ref("");
-const detectedNumber = ref("");
-const matches = ref<TcgCard[]>([]);
-const manualSearch = ref("");
-const searching = ref(false);
-const saving = ref(false);
-
-const processingMessage = ref("Reading card...");
+const showFlash = ref(false);
 
 const startCamera = async () => {
   cameraError.value = "";
@@ -374,7 +264,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopCamera();
-  if (capturedPreview.value) URL.revokeObjectURL(capturedPreview.value);
 });
 
 const close = () => {
@@ -382,6 +271,19 @@ const close = () => {
   emit("close");
 };
 
+const finishScanning = () => {
+  stopCamera();
+  emit("finished");
+};
+
+const flash = () => {
+  showFlash.value = true;
+  setTimeout(() => {
+    showFlash.value = false;
+  }, 700);
+};
+
+// User taps the big capture button → grab frame → enqueue + process.
 const capture = async () => {
   const video = videoEl.value;
   if (!video || !streamReady.value) return;
@@ -391,11 +293,10 @@ const capture = async () => {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
   canvas.toBlob(
-    async (blob) => {
+    (blob) => {
       if (!blob) return;
-      await processBlob(blob);
+      acceptScan(blob);
     },
     "image/jpeg",
     0.9,
@@ -406,19 +307,18 @@ const handleFileUpload = async (event: Event) => {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
-  await processBlob(file);
+  acceptScan(file);
+  input.value = "";
 };
 
 const handleDrop = async (event: DragEvent) => {
   dragOver.value = false;
   const file = event.dataTransfer?.files?.[0];
   if (file && file.type.startsWith("image/")) {
-    await processBlob(file);
+    acceptScan(file);
   }
 };
 
-// dragleave fires when crossing child element borders — only clear when the
-// pointer actually leaves the drop zone (relatedTarget outside).
 const onDragLeave = (event: DragEvent) => {
   const current = event.currentTarget as HTMLElement | null;
   const related = event.relatedTarget as Node | null;
@@ -426,10 +326,17 @@ const onDragLeave = (event: DragEvent) => {
   dragOver.value = false;
 };
 
-// Phone photos are 3-5 MB; base64-encoded that's ~7 MB up the wire and a
-// slow Gemini call. 1600px on the longest side keeps card text legible when
-// the card only fills part of the frame, while shrinking the payload to
-// ~350 KB.
+// Adds a fresh queue item (status: processing) and fires off the upload +
+// ID pipeline. Returns immediately so the camera stays interactive.
+const acceptScan = (blob: Blob) => {
+  flash();
+  // Use the local object URL as a quick preview until the Cloudinary
+  // upload completes — that gives the user something to look at right away.
+  const localPreview = URL.createObjectURL(blob);
+  const id = addProcessing(localPreview);
+  void processInBackground(id, blob, localPreview);
+};
+
 const MAX_DIM = 1600;
 const resizeBlob = (blob: Blob): Promise<Blob> =>
   new Promise((resolve) => {
@@ -469,7 +376,6 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      // Strip the "data:image/...;base64," prefix — Gemini wants raw base64.
       const comma = result.indexOf(",");
       resolve(comma >= 0 ? result.slice(comma + 1) : result);
     };
@@ -477,34 +383,53 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
     reader.readAsDataURL(blob);
   });
 
-const processBlob = async (blob: Blob) => {
-  stopCamera();
-  capturedBlob.value = blob;
-  if (capturedPreview.value) URL.revokeObjectURL(capturedPreview.value);
-  capturedPreview.value = URL.createObjectURL(blob);
-
-  stage.value = "processing";
-
+// All the heavy lifting (Cloudinary upload, Gemini ID, TCG API) happens
+// here in the background. Updates the queue item as each stage completes.
+const processInBackground = async (
+  id: string,
+  blob: Blob,
+  localPreview: string,
+) => {
+  // 1. Upload the user's photo to Cloudinary so it survives a refresh.
+  let uploadedUrl = localPreview;
   try {
-    processingMessage.value = "Identifying card...";
+    const file = new File([blob], `scan-${Date.now()}.jpg`, {
+      type: "image/jpeg",
+    });
+    uploadedUrl = await uploadImage(file);
+    updateItem(id, { scannedImageUrl: uploadedUrl });
+    URL.revokeObjectURL(localPreview);
+  } catch {
+    // Upload failed — keep the local preview so the user still sees it.
+  }
+
+  // 2. Identify the card via Gemini.
+  let name = "";
+  let number = "";
+  try {
     const resized = await resizeBlob(blob);
     const imageBase64 = await blobToBase64(resized);
-    const { name, number } = await $fetch<{ name: string; number: string }>(
+    const res = await $fetch<{ name: string; number: string }>(
       "/api/identify-card",
       {
         method: "POST",
         body: { imageBase64, mimeType: "image/jpeg" },
       },
     );
+    name = res.name || "";
+    number = res.number || "";
+  } catch (e: any) {
+    updateItem(id, {
+      status: "failed",
+      error: e?.data?.message || e?.message || "Identification failed",
+    });
+    return;
+  }
+  updateItem(id, { detectedName: name, detectedNumber: number });
 
-    detectedName.value = name;
-    detectedNumber.value = number;
-
-    processingMessage.value = "Looking up card...";
-    let results: TcgCard[] = [];
-    // number on alt-arts can exceed the printed total (e.g. 222/193), so the
-    // TCG API may return nothing for the strict pair. Strip the "/total" and
-    // search by just the card number when that happens.
+  // 3. Look up matches in the TCG API.
+  let results: any[] = [];
+  try {
     const cardNumber = number.includes("/") ? number.split("/")[0] : number;
     if (name && cardNumber) {
       results = await searchByNameAndNumber(name, cardNumber);
@@ -512,85 +437,27 @@ const processBlob = async (blob: Blob) => {
     if (results.length === 0 && name) {
       results = await searchByName(name);
     }
-    matches.value = results;
-    stage.value = "matches";
   } catch (e: any) {
-    console.error("identify-card failed:", e);
-    matches.value = [];
-    stage.value = "matches";
+    updateItem(id, {
+      status: "failed",
+      error: e?.data?.message || e?.message || "Card lookup failed",
+    });
+    return;
   }
-};
 
-const runManualSearch = async () => {
-  if (!manualSearch.value) return;
-  searching.value = true;
-  try {
-    detectedName.value = manualSearch.value;
-    detectedNumber.value = "";
-    matches.value = await searchByName(manualSearch.value);
-  } catch (e) {
-    matches.value = [];
-  } finally {
-    searching.value = false;
+  if (results.length === 0) {
+    updateItem(id, {
+      status: "failed",
+      error: "No matches found — search manually on the drafts page.",
+    });
+    return;
   }
-};
 
-const resetToCamera = () => {
-  matches.value = [];
-  detectedName.value = "";
-  detectedNumber.value = "";
-  manualSearch.value = "";
-  if (capturedPreview.value) {
-    URL.revokeObjectURL(capturedPreview.value);
-    capturedPreview.value = "";
+  // 4. Single match → auto-pick. Multiple matches → flag for user.
+  if (results.length === 1) {
+    pickMatch(id, results[0]);
+  } else {
+    updateItem(id, { status: "needs-pick", matches: results });
   }
-  capturedBlob.value = null;
-  stage.value = "camera";
-  startCamera();
-};
-
-const confirmMatch = async (match: TcgCard) => {
-  if (saving.value) return;
-  saving.value = true;
-  stage.value = "saving";
-  try {
-    let scannedUrl = "";
-    if (capturedBlob.value) {
-      const file = new File([capturedBlob.value], `scan-${Date.now()}.jpg`, {
-        type: "image/jpeg",
-      });
-      try {
-        scannedUrl = await uploadImage(file);
-      } catch {
-        scannedUrl = "";
-      }
-    }
-
-    const item = {
-      cardName: match.name,
-      cardSet: match.set.name,
-      cardNumber: match.number,
-      rarity: match.rarity || "",
-      imageUrl: match.images.large || match.images.small,
-      tcgApiId: match.id,
-      scannedImageUrl: scannedUrl,
-    };
-    addToQueue(item);
-    // Use the most recently-added item from the queue for the summary card
-    // (with its assigned id) — keeps the source of truth in one place.
-    lastAdded.value = queue.value[queue.value.length - 1] || null;
-
-    stage.value = "queued";
-  } catch (e: any) {
-    alert(e.message || "Failed to save card");
-    stage.value = "matches";
-  } finally {
-    saving.value = false;
-  }
-};
-
-const finishScanning = () => {
-  emit("finished");
-  close();
 };
 </script>

@@ -75,19 +75,57 @@
             class="p-3 border border-gray-200 rounded-lg"
           >
             <div class="flex flex-col sm:flex-row gap-3">
-              <img
-                :src="item.scannedImageUrl || item.imageUrl"
-                :alt="item.cardName"
-                class="w-20 h-28 sm:w-24 sm:h-32 object-cover rounded shrink-0"
-              />
+              <!-- Thumbnail with status overlay -->
+              <div class="relative shrink-0">
+                <img
+                  :src="item.scannedImageUrl"
+                  :alt="item.cardName || 'Scanned card'"
+                  class="w-20 h-28 sm:w-24 sm:h-32 object-cover rounded"
+                />
+                <div
+                  v-if="item.status === 'processing'"
+                  class="absolute inset-0 bg-black/50 rounded flex items-center justify-center"
+                >
+                  <div
+                    class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"
+                  />
+                </div>
+                <div
+                  v-else-if="item.status === 'failed'"
+                  class="absolute top-1 right-1 w-5 h-5 rounded-full bg-pokemon-red text-white text-[10px] flex items-center justify-center"
+                  title="Identification failed"
+                >
+                  !
+                </div>
+              </div>
+
               <div class="flex-1 min-w-0 space-y-3">
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0">
-                    <p class="font-semibold text-sm text-gray-900 truncate">
-                      {{ item.cardName }}
+                    <p
+                      class="font-semibold text-sm text-gray-900 truncate"
+                      :class="!item.cardName && 'italic text-gray-400'"
+                    >
+                      {{
+                        item.cardName ||
+                        (item.status === "processing"
+                          ? "Identifying…"
+                          : item.status === "needs-pick"
+                            ? "Pick the right card below"
+                            : "Couldn't identify")
+                      }}
                     </p>
-                    <p class="text-xs text-gray-500 truncate">
+                    <p
+                      v-if="item.cardSet"
+                      class="text-xs text-gray-500 truncate"
+                    >
                       {{ item.cardSet }} · {{ item.cardNumber }}
+                    </p>
+                    <p
+                      v-else-if="item.status === 'failed' && item.error"
+                      class="text-xs text-pokemon-red truncate"
+                    >
+                      {{ item.error }}
                     </p>
                   </div>
                   <button
@@ -100,6 +138,51 @@
                   </button>
                 </div>
 
+                <!-- needs-pick: match grid -->
+                <div v-if="item.status === 'needs-pick' && item.matches">
+                  <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    <button
+                      v-for="m in item.matches"
+                      :key="m.id"
+                      type="button"
+                      @click="pickMatch(item.id, m)"
+                      class="text-left bg-white border border-gray-200 rounded overflow-hidden hover:border-pokemon-red transition-colors"
+                    >
+                      <img
+                        :src="m.images.small"
+                        :alt="m.name"
+                        class="w-full aspect-[2.5/3.5] object-cover"
+                      />
+                      <p class="px-1 py-0.5 text-[10px] font-semibold truncate">
+                        {{ m.name }}
+                      </p>
+                      <p class="px-1 pb-1 text-[9px] text-gray-500 truncate">
+                        {{ m.set.name }} · {{ m.number }}
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- failed: manual search retry -->
+                <div v-else-if="item.status === 'failed'" class="flex gap-2">
+                  <input
+                    v-model="manualSearch[item.id]"
+                    placeholder="Search card name…"
+                    class="flex-1 border border-gray-300 rounded px-2 py-1.5 text-xs"
+                    @keydown.enter.prevent="retryManualSearch(item.id)"
+                  />
+                  <button
+                    type="button"
+                    @click="retryManualSearch(item.id)"
+                    :disabled="manualSearching[item.id]"
+                    class="bg-pokemon-red text-white text-xs px-3 py-1.5 rounded disabled:opacity-50"
+                  >
+                    {{ manualSearching[item.id] ? "…" : "Search" }}
+                  </button>
+                </div>
+
+                <!-- ready: full per-draft form -->
+                <template v-else-if="item.status === 'ready'">
                 <!-- Product type + condition / grading -->
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   <select
@@ -256,6 +339,7 @@
                     </div>
                   </div>
                 </div>
+                </template>
               </div>
             </div>
           </div>
@@ -271,14 +355,10 @@
         <button
           type="button"
           @click="publishDrafts"
-          :disabled="publishing"
+          :disabled="publishing || !canPublishDrafts"
           class="mt-4 w-full bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
         >
-          {{
-            publishing
-              ? `Publishing ${publishProgress}/${queue.length}…`
-              : `Publish all ${queue.length} auction${queue.length === 1 ? "" : "s"}`
-          }}
+          {{ publishButtonLabel }}
         </button>
       </div>
 
@@ -539,7 +619,15 @@ const { createAuction } = useAuctions();
 const { uploadAuctionImages } = useStorage();
 const { user, signInWithGoogle } = useAuth();
 const { profile } = useMyProfile();
-const { queue, remove: removeFromQueue, clear: clearQueue } = useScanQueue();
+const {
+  queue,
+  remove: removeFromQueue,
+  clear: clearQueue,
+  pickMatch: pickMatchInQueue,
+  updateItem: updateQueueItem,
+  processingCount,
+} = useScanQueue();
+const { searchByName } = usePokemonTcg();
 
 const scannerOpen = ref(false);
 
@@ -622,6 +710,64 @@ const clearDrafts = () => {
   if (window.confirm("Discard all scanned drafts?")) clearQueue();
 };
 
+const pickMatch = (id: string, match: any) => pickMatchInQueue(id, match);
+
+const manualSearch = ref<Record<string, string>>({});
+const manualSearching = ref<Record<string, boolean>>({});
+
+const retryManualSearch = async (id: string) => {
+  const term = (manualSearch.value[id] || "").trim();
+  if (!term) return;
+  manualSearching.value[id] = true;
+  try {
+    const results = await searchByName(term);
+    if (results.length === 0) {
+      updateQueueItem(id, {
+        status: "failed",
+        error: `No matches for "${term}".`,
+      });
+    } else if (results.length === 1) {
+      pickMatchInQueue(id, results[0]);
+    } else {
+      updateQueueItem(id, {
+        status: "needs-pick",
+        matches: results,
+        error: undefined,
+      });
+    }
+  } catch (e: any) {
+    updateQueueItem(id, {
+      status: "failed",
+      error: e?.message || "Search failed",
+    });
+  } finally {
+    manualSearching.value[id] = false;
+  }
+};
+
+const readyDrafts = computed(() =>
+  queue.value.filter((i) => i.status === "ready"),
+);
+
+const canPublishDrafts = computed(() => {
+  if (queue.value.length === 0) return false;
+  if (processingCount() > 0) return false;
+  return readyDrafts.value.length > 0;
+});
+
+const publishButtonLabel = computed(() => {
+  if (publishing.value)
+    return `Publishing ${publishProgress.value}/${readyDrafts.value.length}…`;
+  if (processingCount() > 0)
+    return `Identifying ${processingCount()} card${processingCount() === 1 ? "" : "s"}…`;
+  const blocked = queue.value.length - readyDrafts.value.length;
+  if (readyDrafts.value.length === 0)
+    return "Pick or remove unresolved drafts to publish";
+  if (blocked > 0)
+    return `Publish ${readyDrafts.value.length} ready · ${blocked} unresolved`;
+  return `Publish all ${readyDrafts.value.length} auction${readyDrafts.value.length === 1 ? "" : "s"}`;
+});
+
 const publishDrafts = async () => {
   draftError.value = "";
 
@@ -631,7 +777,7 @@ const publishDrafts = async () => {
     return;
   }
 
-  for (const item of queue.value) {
+  for (const item of readyDrafts.value) {
     const f = draftFields.value[item.id];
     if (!f) continue;
     if (!f.startingPrice || f.startingPrice <= 0) {
@@ -658,7 +804,7 @@ const publishDrafts = async () => {
     const shippingEM = profile.value?.shippingEM ?? 12;
     const now = Date.now();
 
-    for (const item of [...queue.value]) {
+    for (const item of [...readyDrafts.value]) {
       const f = draftFields.value[item.id];
       if (!f) continue;
 
@@ -667,18 +813,18 @@ const publishDrafts = async () => {
         : [];
 
       const baseUrls = item.scannedImageUrl
-        ? [item.scannedImageUrl, item.imageUrl]
-        : [item.imageUrl];
+        ? [item.scannedImageUrl, item.imageUrl || ""].filter(Boolean)
+        : [item.imageUrl || ""].filter(Boolean);
       const imageUrls = [...baseUrls, ...extraUrls];
 
       await createAuction({
-        title: `${item.cardName} · ${item.cardSet}`,
+        title: `${item.cardName} · ${item.cardSet || ""}`,
         description: f.description,
         imageUrl: imageUrls[0],
         imageUrls,
-        cardName: item.cardName,
-        cardSet: item.cardSet,
-        cardNumber: item.cardNumber,
+        cardName: item.cardName!,
+        cardSet: item.cardSet || "",
+        cardNumber: item.cardNumber || "",
         productType: f.productType,
         condition: f.productType === "Ungraded" ? f.condition : "",
         gradingProvider: f.productType === "Graded" ? f.gradingProvider : "",
@@ -693,12 +839,15 @@ const publishDrafts = async () => {
         endsAt: now + f.duration,
         isPrivate: f.isPrivate,
       });
+      removeFromQueue(item.id);
       publishProgress.value++;
     }
 
-    clearQueue();
-    submitted.value = true;
-    await router.push("/auctions");
+    if (queue.value.length === 0) {
+      clearQueue();
+      submitted.value = true;
+      await router.push("/auctions");
+    }
   } catch (e: any) {
     draftError.value = e.message || "Failed to publish drafts";
   } finally {
