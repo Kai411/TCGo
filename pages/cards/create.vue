@@ -184,6 +184,15 @@
                   </button>
                 </div>
 
+                <!-- processing: friendly status while Gemini + TCG API run -->
+                <div
+                  v-if="item.status === 'processing'"
+                  class="flex items-center gap-3 py-2 text-xs text-gray-500 dark:text-zinc-400"
+                >
+                  <span class="inline-block w-3 h-3 rounded-full border-2 border-gray-300 dark:border-white/[0.15] border-t-pokemon-red animate-spin"></span>
+                  <span>Reading the card and looking up matches…</span>
+                </div>
+
                 <!-- needs-pick: match grid -->
                 <div v-if="item.status === 'needs-pick' && item.matches">
                   <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">

@@ -93,6 +93,24 @@
                 {{ card.language }}
               </span>
 
+              <!-- Photo count badge (top-left) — only when multi-photo -->
+              <span
+                v-if="(card.imageUrls?.length || 0) > 1"
+                class="absolute top-1.5 left-1.5 inline-flex items-center gap-1 bg-black/75 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded"
+              >
+                <svg
+                  class="w-2.5 h-2.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <rect x="3" y="6" width="18" height="14" rx="2" />
+                  <circle cx="12" cy="13" r="3" />
+                </svg>
+                {{ card.imageUrls!.length }}
+              </span>
+
               <!-- Full-width seller band at the bottom of the image -->
               <div
                 v-if="card.seller"

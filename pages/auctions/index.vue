@@ -53,12 +53,30 @@
                 No image
               </div>
 
-              <!-- Top-left: language badge for non-English cards -->
+              <!-- Top-left: language badge for non-English cards, then a
+                   photo-count badge directly below it when multi-photo. -->
               <span
                 v-if="auction.language && auction.language !== 'EN'"
                 class="absolute left-1.5 top-1.5 bg-black/75 text-white text-[10px] font-bold tracking-wide px-1.5 py-0.5 rounded"
               >
                 {{ auction.language }}
+              </span>
+              <span
+                v-if="(auction.imageUrls?.length || 0) > 1"
+                class="absolute left-1.5 inline-flex items-center gap-1 bg-black/75 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                :class="auction.language && auction.language !== 'EN' ? 'top-8' : 'top-1.5'"
+              >
+                <svg
+                  class="w-2.5 h-2.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <rect x="3" y="6" width="18" height="14" rx="2" />
+                  <circle cx="12" cy="13" r="3" />
+                </svg>
+                {{ auction.imageUrls!.length }}
               </span>
 
               <!-- Top-right: time-left pill -->

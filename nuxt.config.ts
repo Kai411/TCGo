@@ -51,11 +51,11 @@ export default defineNuxtConfig({
       navigateFallback: "/",
       globPatterns: ["**/*.{js,css,html,png,svg,ico}"],
     },
-    // Enable PWA in dev so we can verify the manifest + service worker
-    // locally; otherwise the module only kicks in for production builds.
+    // PWA is production-only. Enabling in dev caches Vite module chunks
+    // in the service worker, which then keeps serving stale bundles
+    // through hot-reloads and makes auto-imports randomly "undefined".
     devOptions: {
-      enabled: true,
-      type: "module",
+      enabled: false,
     },
   },
   app: {

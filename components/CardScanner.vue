@@ -120,13 +120,14 @@
           muted
           class="w-full h-full object-cover"
         />
-        <!-- Card framing overlay -->
+        <!-- Card framing overlay. Sits in the upper half so the bottom
+             stack (hint + capture button) has its own breathing room. -->
         <div
-          class="absolute inset-0 pointer-events-none flex items-center justify-center"
+          class="absolute inset-x-0 top-16 bottom-44 pointer-events-none flex items-center justify-center"
         >
           <div
-            class="border-2 border-white/70 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"
-            style="aspect-ratio: 2.5 / 3.5; height: 65%"
+            class="border-2 border-white/70 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] max-h-full"
+            style="aspect-ratio: 2.5 / 3.5; height: 100%"
           ></div>
         </div>
 
