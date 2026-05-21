@@ -24,12 +24,13 @@ useHead({
           <li>
             <strong>Beta verification gate</strong> — unverified users see a
             full-screen overlay on marketplace pages with instructions to verify
-            their beta access.
+            their beta access to ensure controlled and secure beta testing
+            environment.
           </li>
           <li>
             <strong>Card tile redesign</strong> — grade/condition badge moved to
             image overlay, seller moved to body text, image aspect ratio updated
-            to match real card proportions (3.55:5).
+            to match real card proportions.
           </li>
           <li>
             <strong>Auction tile redesign</strong> — merged status and countdown
@@ -47,8 +48,8 @@ useHead({
           </li>
           <li>
             <strong>Image handling</strong> — scan-to-list no longer saves the
-            official pokemontcg.io image; only the user's own photo is used.
-            Fixed duplicate image bug.
+            official pokemon tcg image; only the user's own photo is used. Fixed
+            duplicate image bug.
           </li>
           <li>
             <strong>Detail page cleanup</strong> — removed
@@ -85,13 +86,13 @@ useHead({
           <li>
             <strong>Installable app (PWA)</strong> — add TCGo to your home
             screen on iOS / Android, or install as a desktop app. Works
-            offline-shell with cached assets.
+            offline-shell with cached assets. (UNDER TESTING)
           </li>
           <li><strong>Dark mode polish</strong> across every page.</li>
           <li>
-            <strong>Smarter scanner</strong> — camera captures at 4K, upload
-            quality bumped, scan/manual segmented toggle on Sell &amp; Auction
-            create pages along with faster identification.
+            <strong>Smarter scanner</strong> — camera captures at full
+            resolution, upload quality bumped, scan/manual segmented toggle on
+            Sell &amp; Auction create pages along with faster identification.
           </li>
           <li>
             <strong>Activity tab</strong> on mobile with quick switcher between
