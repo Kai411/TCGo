@@ -29,6 +29,30 @@
     display: none;
   }
 
+  /* Dark-mode chevron for selects (lighter grey against dark bg) */
+  .dark select {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23a1a1aa'%3e%3cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3e%3c/svg%3e");
+  }
+
+  /* Form fields: dark-mode defaults so every page picks them up.
+     Pages can still override per-element via dark: utilities. */
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+  .dark textarea,
+  .dark select {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.10);
+    color: #fafafa;
+  }
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #71717a;
+  }
+  .dark input[type="checkbox"],
+  .dark input[type="radio"] {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.20);
+  }
+
   /* Price numerals line up vertically */
   .tabular-price {
     font-variant-numeric: tabular-nums;

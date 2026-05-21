@@ -84,7 +84,7 @@
             >
               <path d="M12 5v14M5 12h14" />
             </svg>
-            List
+            Sell
             <svg
               class="w-3 h-3 -mr-0.5"
               :class="sellMenuOpen ? 'rotate-180' : ''"
@@ -346,6 +346,10 @@ const IconUser = () =>
     h("circle", { cx: "12", cy: "8", r: "4" }),
     h("path", { d: "M4 21a8 8 0 0 1 16 0" }),
   ]);
+const IconActivity = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("path", { d: "M22 12h-4l-3 9L9 3l-3 9H2" }),
+  ]);
 
 const mobileTabs = computed(() => {
   const tabs: {
@@ -357,11 +361,14 @@ const mobileTabs = computed(() => {
     { to: "/auctions", label: "Auctions", icon: IconGavel },
   ];
   if (user.value) {
-    tabs.push({
-      to: `/profile/${user.value.uid}`,
-      label: "Profile",
-      icon: IconUser,
-    });
+    tabs.push(
+      { to: "/dashboard/buyer", label: "Activity", icon: IconActivity },
+      {
+        to: `/profile/${user.value.uid}`,
+        label: "Profile",
+        icon: IconUser,
+      },
+    );
   } else {
     tabs.push({ to: "/profile", label: "Sign in", icon: IconUser });
   }

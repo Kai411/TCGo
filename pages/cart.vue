@@ -3,7 +3,7 @@
     <h1 class="text-2xl font-bold mb-6">Shopping Cart</h1>
 
     <div v-if="items.length === 0" class="text-center py-12">
-      <p class="text-gray-500 text-lg">Your cart is empty.</p>
+      <p class="text-gray-500 dark:text-zinc-400 text-lg">Your cart is empty.</p>
       <NuxtLink
         to="/"
         class="text-pokemon-blue hover:underline mt-2 inline-block text-sm"
@@ -17,10 +17,10 @@
         <div
           v-for="item in items"
           :key="item.id"
-          class="bg-white rounded-xl p-4 border border-gray-200 flex gap-4 items-center"
+          class="bg-white dark:bg-white/[0.04] rounded-xl p-4 border border-gray-200 dark:border-white/[0.08] flex gap-4 items-center"
         >
           <div
-            class="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden"
+            class="w-16 h-16 flex-shrink-0 bg-gray-100 dark:bg-white/[0.04] rounded-lg overflow-hidden"
           >
             <img
               v-if="item.imageUrl"
@@ -31,10 +31,10 @@
           </div>
           <div class="flex-1 min-w-0">
             <p class="font-semibold text-sm truncate">{{ item.cardName }}</p>
-            <p class="text-xs text-gray-500">
+            <p class="text-xs text-gray-500 dark:text-zinc-400">
               {{ item.cardSet }} · {{ item.condition }}
             </p>
-            <p class="text-xs text-gray-400">Seller: {{ item.seller }}</p>
+            <p class="text-xs text-gray-400 dark:text-zinc-500">Seller: {{ item.seller }}</p>
           </div>
           <div class="text-right">
             <p class="font-bold text-pokemon-red">
@@ -51,9 +51,9 @@
       </div>
 
       <!-- Summary -->
-      <div class="bg-white rounded-xl p-6 border border-gray-200">
+      <div class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
         <div class="flex justify-between items-center mb-4">
-          <span class="text-gray-600">Total ({{ cartCount }} items)</span>
+          <span class="text-gray-600 dark:text-zinc-300">Total ({{ cartCount }} items)</span>
           <span class="text-xl font-bold text-pokemon-red"
             >RM {{ cartTotal.toFixed(2) }}</span
           >
@@ -63,14 +63,14 @@
         >
           Checkout
         </button>
-        <p class="text-xs text-gray-400 text-center mt-2">
+        <p class="text-xs text-gray-400 dark:text-zinc-500 text-center mt-2">
           Checkout functionality coming soon
         </p>
       </div>
 
       <button
         @click="clearCart"
-        class="text-sm text-gray-400 hover:text-red-500 mt-4 block mx-auto"
+        class="text-sm text-gray-400 dark:text-zinc-500 hover:text-red-500 mt-4 block mx-auto"
       >
         Clear cart
       </button>

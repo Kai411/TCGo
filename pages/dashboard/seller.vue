@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="!user" class="text-center py-12">
-      <p class="text-gray-500 text-lg mb-4">Sign in to view your listings.</p>
+      <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to view your listings.</p>
       <button
         @click="signInWithGoogle"
         class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors"
@@ -11,7 +11,25 @@
     </div>
 
     <template v-else>
-      <h1 class="text-2xl font-bold mb-6">My Listings</h1>
+      <div class="flex items-center justify-between mb-6 gap-3">
+        <h1 class="text-2xl font-bold">My Activity</h1>
+        <div
+          class="inline-flex p-1 bg-gray-100 dark:bg-white/[0.06] rounded-xl"
+          role="tablist"
+        >
+          <span
+            class="px-4 py-1.5 text-sm font-semibold rounded-lg bg-white dark:bg-white/[0.12] text-ink dark:text-white shadow-sm"
+          >
+            Listings
+          </span>
+          <NuxtLink
+            to="/dashboard/buyer"
+            class="px-4 py-1.5 text-sm font-semibold rounded-lg text-gray-600 dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
+          >
+            Bids
+          </NuxtLink>
+        </div>
+      </div>
 
       <div v-if="loading" class="flex justify-center py-12">
         <div
@@ -22,12 +40,12 @@
       <template v-else>
         <!-- Cards for Sale -->
         <section class="mb-10">
-          <h2 class="text-lg font-semibold mb-4 text-gray-700">
+          <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-zinc-200">
             Cards for Sale ({{ activeCards.length }})
           </h2>
           <div
             v-if="activeCards.length === 0"
-            class="text-gray-400 text-sm py-4"
+            class="text-gray-400 dark:text-zinc-500 text-sm py-4"
           >
             No cards listed.
             <NuxtLink
@@ -40,10 +58,10 @@
             <div
               v-for="card in activeCards"
               :key="card.id"
-              class="bg-white rounded-xl p-4 border border-gray-200 flex gap-4 items-center"
+              class="bg-white dark:bg-white/[0.04] rounded-xl p-4 border border-gray-200 dark:border-white/[0.08] flex gap-4 items-center"
             >
               <div
-                class="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden"
+                class="w-16 h-16 flex-shrink-0 bg-gray-100 dark:bg-white/[0.04] rounded-lg overflow-hidden"
               >
                 <img
                   v-if="card.imageUrls?.length || card.imageUrl"
@@ -56,7 +74,7 @@
                 <p class="font-semibold text-sm truncate">
                   {{ card.cardName }}
                 </p>
-                <p class="text-xs text-gray-500">
+                <p class="text-xs text-gray-500 dark:text-zinc-400">
                   {{ card.cardSet }} · {{ card.condition }}
                 </p>
                 <p class="text-pokemon-red font-medium text-sm mt-0.5">
@@ -76,17 +94,17 @@
 
         <!-- Sold Cards -->
         <section v-if="soldCards.length > 0" class="mb-10">
-          <h2 class="text-lg font-semibold mb-4 text-gray-700">
+          <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-zinc-200">
             Sold ({{ soldCards.length }})
           </h2>
           <div class="space-y-3">
             <div
               v-for="card in soldCards"
               :key="card.id"
-              class="bg-white rounded-xl p-4 border border-gray-200 flex gap-4 items-center opacity-60"
+              class="bg-white dark:bg-white/[0.04] rounded-xl p-4 border border-gray-200 dark:border-white/[0.08] flex gap-4 items-center opacity-60"
             >
               <div
-                class="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden"
+                class="w-16 h-16 flex-shrink-0 bg-gray-100 dark:bg-white/[0.04] rounded-lg overflow-hidden"
               >
                 <img
                   v-if="card.imageUrls?.length || card.imageUrl"
@@ -99,15 +117,15 @@
                 <p class="font-semibold text-sm truncate">
                   {{ card.cardName }}
                 </p>
-                <p class="text-xs text-gray-500">
+                <p class="text-xs text-gray-500 dark:text-zinc-400">
                   {{ card.cardSet }} · {{ card.condition }}
                 </p>
-                <p class="text-gray-500 font-medium text-sm mt-0.5">
+                <p class="text-gray-500 dark:text-zinc-400 font-medium text-sm mt-0.5">
                   RM {{ card.price.toFixed(2) }}
                 </p>
               </div>
               <span
-                class="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg font-medium"
+                class="text-xs bg-gray-100 dark:bg-white/[0.04] text-gray-500 dark:text-zinc-400 px-3 py-1.5 rounded-lg font-medium"
               >
                 Sold
               </span>
@@ -117,12 +135,12 @@
 
         <!-- Active Auctions -->
         <section class="mb-10">
-          <h2 class="text-lg font-semibold mb-4 text-gray-700">
+          <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-zinc-200">
             Active ({{ activeAuctions.length }})
           </h2>
           <div
             v-if="activeAuctions.length === 0"
-            class="text-gray-400 text-sm py-4"
+            class="text-gray-400 dark:text-zinc-500 text-sm py-4"
           >
             No active listings.
             <NuxtLink
@@ -135,10 +153,10 @@
             <div
               v-for="auction in activeAuctions"
               :key="auction.id"
-              class="bg-white rounded-xl p-4 border border-gray-200 flex gap-4 items-center"
+              class="bg-white dark:bg-white/[0.04] rounded-xl p-4 border border-gray-200 dark:border-white/[0.08] flex gap-4 items-center"
             >
               <div
-                class="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden"
+                class="w-16 h-16 flex-shrink-0 bg-gray-100 dark:bg-white/[0.04] rounded-lg overflow-hidden"
               >
                 <img
                   v-if="auction.imageUrls?.length || auction.imageUrl"
@@ -154,22 +172,22 @@
                 >
                   {{ auction.cardName }}
                 </NuxtLink>
-                <p class="text-xs text-gray-500">{{ auction.title }}</p>
+                <p class="text-xs text-gray-500 dark:text-zinc-400">{{ auction.title }}</p>
                 <div class="flex gap-3 mt-1 text-xs">
                   <span class="text-pokemon-red font-medium"
                     >RM {{ auction.currentPrice.toFixed(2) }}</span
                   >
-                  <span class="text-gray-400"
+                  <span class="text-gray-400 dark:text-zinc-500"
                     >{{ bidCount(auction) }} bid(s)</span
                   >
-                  <span class="text-gray-500"
+                  <span class="text-gray-500 dark:text-zinc-400"
                     >Ends {{ formatTimeLeft(auction.endsAt) }}</span
                   >
                 </div>
               </div>
               <NuxtLink
                 :to="`/auctions/${auction.id}`"
-                class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-gray-600 transition-colors"
+                class="text-xs bg-gray-100 dark:bg-white/[0.04] hover:bg-gray-200 dark:hover:bg-white/[0.08] px-3 py-1.5 rounded-lg text-gray-600 dark:text-zinc-300 transition-colors"
               >
                 View
               </NuxtLink>
@@ -179,12 +197,12 @@
 
         <!-- Ended Auctions -->
         <section>
-          <h2 class="text-lg font-semibold mb-4 text-gray-700">
+          <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-zinc-200">
             Ended ({{ endedAuctions.length }})
           </h2>
           <div
             v-if="endedAuctions.length === 0"
-            class="text-gray-400 text-sm py-4"
+            class="text-gray-400 dark:text-zinc-500 text-sm py-4"
           >
             No ended listings yet.
           </div>
@@ -192,14 +210,14 @@
             <div
               v-for="auction in endedAuctions"
               :key="auction.id"
-              class="bg-white rounded-xl p-3 sm:p-4 border border-gray-200"
+              class="bg-white dark:bg-white/[0.04] rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-white/[0.08]"
             >
               <div
                 class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
               >
                 <div class="flex gap-3 items-start flex-1 min-w-0">
                   <div
-                    class="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden"
+                    class="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 bg-gray-100 dark:bg-white/[0.04] rounded-lg overflow-hidden"
                   >
                     <img
                       v-if="auction.imageUrls?.length || auction.imageUrl"
@@ -215,7 +233,7 @@
                     >
                       {{ auction.cardName }}
                     </NuxtLink>
-                    <p class="text-xs text-gray-500 truncate">
+                    <p class="text-xs text-gray-500 dark:text-zinc-400 truncate">
                       {{ auction.title }}
                     </p>
                     <div
@@ -232,7 +250,7 @@
                       >
                         Won by {{ getWinner(auction)?.bidder }}
                       </span>
-                      <span v-else class="text-gray-400">No bids</span>
+                      <span v-else class="text-gray-400 dark:text-zinc-500">No bids</span>
                     </div>
                   </div>
                 </div>
@@ -257,7 +275,7 @@
                   </a>
                   <NuxtLink
                     :to="`/auctions/${auction.id}`"
-                    class="flex-1 sm:flex-none text-center text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-gray-600 transition-colors"
+                    class="flex-1 sm:flex-none text-center text-xs bg-gray-100 dark:bg-white/[0.04] hover:bg-gray-200 dark:hover:bg-white/[0.08] px-3 py-1.5 rounded-lg text-gray-600 dark:text-zinc-300 transition-colors"
                   >
                     Details
                   </NuxtLink>

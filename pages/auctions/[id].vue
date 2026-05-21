@@ -7,7 +7,7 @@
     </div>
 
     <div v-else-if="!auction" class="text-center py-12">
-      <p class="text-gray-500 text-lg">Auction not found.</p>
+      <p class="text-gray-500 dark:text-zinc-400 text-lg">Auction not found.</p>
       <NuxtLink
         to="/auctions"
         class="text-pokemon-red hover:underline mt-2 inline-block text-sm"
@@ -19,7 +19,7 @@
     <div v-else>
       <NuxtLink
         to="/auctions"
-        class="text-gray-500 hover:text-gray-700 text-sm inline-block mb-4"
+        class="text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 text-sm inline-block mb-4"
       >
         ← Back to auctions
       </NuxtLink>
@@ -28,10 +28,10 @@
         <!-- Image Gallery -->
         <div class="lg:col-span-4">
           <div
-            class="bg-white rounded-xl overflow-hidden border border-gray-200 sticky top-8"
+            class="bg-white dark:bg-white/[0.04] rounded-xl overflow-hidden border border-gray-200 dark:border-white/[0.08] sticky top-8"
           >
             <div
-              class="aspect-[3/4] bg-gray-100 flex items-center justify-center relative"
+              class="aspect-[3/4] bg-gray-100 dark:bg-white/[0.04] flex items-center justify-center relative"
             >
               <img
                 v-if="activeImage"
@@ -39,7 +39,7 @@
                 :alt="auction.cardName"
                 class="w-full h-full object-cover"
               />
-              <span v-else class="text-gray-400">No Image</span>
+              <span v-else class="text-gray-400 dark:text-zinc-500">No Image</span>
 
               <template v-if="allImages.length > 1">
                 <button
@@ -69,7 +69,7 @@
                 :class="
                   activeImageIndex === index
                     ? 'border-pokemon-red'
-                    : 'border-gray-200 hover:border-gray-400'
+                    : 'border-gray-200 dark:border-white/[0.08] hover:border-gray-400'
                 "
               >
                 <img
@@ -84,7 +84,7 @@
 
         <!-- Card Info -->
         <div class="lg:col-span-4 space-y-4">
-          <div class="bg-white rounded-xl p-5 border border-gray-200">
+          <div class="bg-white dark:bg-white/[0.04] rounded-xl p-5 border border-gray-200 dark:border-white/[0.08]">
             <h1 class="text-xl font-bold mb-2">{{ auction.title }}</h1>
             <div
               v-if="auction.isPrivate"
@@ -94,22 +94,22 @@
             </div>
             <div class="flex flex-wrap gap-2 mb-3">
               <span
-                class="bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full text-xs"
+                class="bg-gray-100 dark:bg-white/[0.04] text-gray-700 dark:text-zinc-200 px-2.5 py-0.5 rounded-full text-xs"
                 >{{ auction.cardName }}</span
               >
               <span
-                class="bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full text-xs"
+                class="bg-gray-100 dark:bg-white/[0.04] text-gray-700 dark:text-zinc-200 px-2.5 py-0.5 rounded-full text-xs"
                 >{{ auction.cardSet }}</span
               >
               <span
-                class="bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full text-xs"
+                class="bg-gray-100 dark:bg-white/[0.04] text-gray-700 dark:text-zinc-200 px-2.5 py-0.5 rounded-full text-xs"
                 >{{ auction.condition }}</span
               >
             </div>
-            <p v-if="auction.description" class="text-gray-600 text-sm">
+            <p v-if="auction.description" class="text-gray-600 dark:text-zinc-300 text-sm">
               {{ auction.description }}
             </p>
-            <div class="flex gap-4 mt-4 text-xs text-gray-500">
+            <div class="flex gap-4 mt-4 text-xs text-gray-500 dark:text-zinc-400">
               <p>
                 Seller:
                 <NuxtLink
@@ -120,20 +120,20 @@
               </p>
               <p>
                 Min increment:
-                <span class="text-gray-700"
+                <span class="text-gray-700 dark:text-zinc-200"
                   >RM {{ (auction.minIncrement || 1).toFixed(2) }}</span
                 >
               </p>
             </div>
           </div>
           <!-- Bid History -->
-          <div class="bg-white rounded-xl p-6 border border-gray-200">
+          <div class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
             <h3 class="font-bold text-sm mb-4">
               Bid History ({{ bids.length }})
             </h3>
             <div
               v-if="bids.length === 0"
-              class="text-gray-400 text-sm text-center py-4"
+              class="text-gray-400 dark:text-zinc-500 text-sm text-center py-4"
             >
               No bids yet. Be the first!
             </div>
@@ -141,27 +141,27 @@
               <div
                 v-for="(bid, index) in bids"
                 :key="bid.id"
-                class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
+                class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-white/[0.06] last:border-0"
               >
                 <div>
                   <p
                     class="text-sm font-medium"
-                    :class="index === 0 ? 'text-pokemon-red' : 'text-gray-700'"
+                    :class="index === 0 ? 'text-pokemon-red' : 'text-gray-700 dark:text-zinc-200'"
                   >
                     {{ bid.bidder }}
                     <span
                       v-if="bid.isAutoBid"
-                      class="text-xs text-gray-400 ml-1"
+                      class="text-xs text-gray-400 dark:text-zinc-500 ml-1"
                       >(auto)</span
                     >
                   </p>
-                  <p class="text-xs text-gray-400">
+                  <p class="text-xs text-gray-400 dark:text-zinc-500">
                     {{ formatTime(bid.timestamp) }}
                   </p>
                 </div>
                 <p
                   class="font-bold text-sm"
-                  :class="index === 0 ? 'text-pokemon-red' : 'text-gray-700'"
+                  :class="index === 0 ? 'text-pokemon-red' : 'text-gray-700 dark:text-zinc-200'"
                 >
                   <span
                     v-if="bid.triggeredAntiSnipe"
@@ -177,24 +177,24 @@
 
         <!-- Bidding Panel -->
         <div class="lg:col-span-4 space-y-4">
-          <div class="bg-white rounded-xl p-6 border border-gray-200">
+          <div class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
             <div class="text-center mb-4">
-              <p class="text-xs text-gray-500">Current Price</p>
+              <p class="text-xs text-gray-500 dark:text-zinc-400">Current Price</p>
               <p class="text-3xl font-bold text-pokemon-red">
                 RM {{ auction.currentPrice.toFixed(2) }}
               </p>
-              <p class="text-xs text-gray-400 mt-1">
+              <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
                 Started at RM {{ auction.startingPrice.toFixed(2) }}
               </p>
             </div>
 
             <div
               class="text-center py-2 rounded-lg"
-              :class="isEnded ? 'bg-red-50' : 'bg-gray-100'"
+              :class="isEnded ? 'bg-red-50' : 'bg-gray-100 dark:bg-white/[0.04]'"
             >
               <p
                 class="text-sm"
-                :class="isEnded ? 'text-red-600' : 'text-gray-600'"
+                :class="isEnded ? 'text-red-600' : 'text-gray-600 dark:text-zinc-300'"
               >
                 {{ isEnded ? "Auction Ended" : `Ends in ${timeLeft}` }}
               </p>
@@ -208,7 +208,7 @@
 
             <!-- Must be logged in -->
             <div v-if="!user && !isEnded" class="mt-4 text-center">
-              <p class="text-gray-500 text-sm mb-3">Sign in to place a bid</p>
+              <p class="text-gray-500 dark:text-zinc-400 text-sm mb-3">Sign in to place a bid</p>
               <button
                 @click="signInWithGoogle"
                 class="bg-gray-900 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
@@ -222,7 +222,7 @@
               v-else-if="user && !isEnded && isSeller"
               class="mt-4 text-center"
             >
-              <p class="text-gray-500 text-sm">
+              <p class="text-gray-500 dark:text-zinc-400 text-sm">
                 You cannot bid on your own listing.
               </p>
             </div>
@@ -247,7 +247,7 @@
 
               <template v-else>
                 <div
-                  class="flex rounded-lg overflow-hidden border border-gray-300"
+                  class="flex rounded-lg overflow-hidden border border-gray-300 dark:border-white/[0.10]"
                 >
                   <button
                     @click="bidMode = 'manual'"
@@ -255,7 +255,7 @@
                     :class="
                       bidMode === 'manual'
                         ? 'bg-pokemon-red text-white'
-                        : 'bg-gray-50 text-gray-600'
+                        : 'bg-gray-50 dark:bg-white/[0.02] text-gray-600 dark:text-zinc-300'
                     "
                   >
                     Bid
@@ -266,7 +266,7 @@
                     :class="
                       bidMode === 'auto'
                         ? 'bg-pokemon-red text-white'
-                        : 'bg-gray-50 text-gray-600'
+                        : 'bg-gray-50 dark:bg-white/[0.02] text-gray-600 dark:text-zinc-300'
                     "
                   >
                     Auto Bid
@@ -275,12 +275,12 @@
 
                 <!-- Manual — single button at next increment -->
                 <div v-if="bidMode === 'manual'" class="space-y-3">
-                  <div class="text-center bg-gray-50 rounded-lg py-3">
-                    <p class="text-xs text-gray-500">Your bid will be</p>
+                  <div class="text-center bg-gray-50 dark:bg-white/[0.02] rounded-lg py-3">
+                    <p class="text-xs text-gray-500 dark:text-zinc-400">Your bid will be</p>
                     <p class="text-2xl font-bold text-pokemon-red">
                       RM {{ minBidAmount.toFixed(2) }}
                     </p>
-                    <p class="text-xs text-gray-400 mt-1">
+                    <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
                       Current RM {{ auction.currentPrice.toFixed(2) }} + RM
                       {{ (auction.minIncrement || 1).toFixed(2) }} increment
                     </p>
@@ -300,12 +300,12 @@
 
                 <!-- Auto -->
                 <div v-else class="space-y-3">
-                  <div class="bg-blue-50 rounded-lg p-3 text-xs text-gray-600">
+                  <div class="bg-blue-50 rounded-lg p-3 text-xs text-gray-600 dark:text-zinc-300">
                     Set your maximum. The system bids the minimum increment on
                     your behalf up to your max.
                   </div>
                   <div>
-                    <label class="block text-xs text-gray-500 mb-1"
+                    <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1"
                       >Max Bid (min RM {{ minBidAmount.toFixed(2) }})</label
                     >
                     <input
@@ -314,7 +314,7 @@
                       :min="minBidAmount"
                       step="0.01"
                       :placeholder="(minBidAmount + 10).toFixed(2)"
-                      class="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-pokemon-blue focus:outline-none focus:ring-1 focus:ring-pokemon-blue"
+                      class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-blue focus:outline-none focus:ring-1 focus:ring-pokemon-blue"
                     />
                   </div>
                   <button
@@ -340,14 +340,14 @@
               v-if="isEnded && bids.length > 0"
               class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4 text-center"
             >
-              <p class="text-xs text-gray-500">Winner</p>
+              <p class="text-xs text-gray-500 dark:text-zinc-400">Winner</p>
               <NuxtLink
                 :to="`/profile/${bids[0].bidderUid}`"
                 class="font-bold text-amber-700 text-lg hover:underline"
               >
                 {{ bids[0].bidder }}
               </NuxtLink>
-              <p class="text-sm text-gray-600">
+              <p class="text-sm text-gray-600 dark:text-zinc-300">
                 Final: RM {{ bids[0].amount.toFixed(2) }}
               </p>
               <div
@@ -378,9 +378,9 @@
 
             <div
               v-if="isEnded && bids.length === 0"
-              class="mt-4 bg-gray-100 rounded-lg p-3 text-center"
+              class="mt-4 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-3 text-center"
             >
-              <p class="text-sm text-gray-500">Auction ended with no bids.</p>
+              <p class="text-sm text-gray-500 dark:text-zinc-400">Auction ended with no bids.</p>
             </div>
           </div>
         </div>

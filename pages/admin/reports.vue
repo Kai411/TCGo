@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-4xl mx-auto">
     <div v-if="!isAdmin" class="text-center py-12">
-      <p class="text-gray-500 text-lg">Access denied.</p>
+      <p class="text-gray-500 dark:text-zinc-400 text-lg">Access denied.</p>
     </div>
 
     <template v-else>
@@ -15,14 +15,14 @@
 
       <template v-else>
         <!-- Tabs -->
-        <div class="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
+        <div class="flex gap-1 mb-6 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-1 w-fit">
           <button
             @click="tab = 'pending'"
             class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
             :class="
               tab === 'pending'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500'
+                ? 'bg-white text-gray-900 dark:text-zinc-100 shadow-sm'
+                : 'text-gray-500 dark:text-zinc-400'
             "
           >
             Pending ({{ pendingReports.length }})
@@ -32,8 +32,8 @@
             class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
             :class="
               tab === 'reviewed'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500'
+                ? 'bg-white text-gray-900 dark:text-zinc-100 shadow-sm'
+                : 'text-gray-500 dark:text-zinc-400'
             "
           >
             Reviewed ({{ reviewedReports.length }})
@@ -44,14 +44,14 @@
         <div v-if="tab === 'pending'" class="space-y-4">
           <div
             v-if="pendingReports.length === 0"
-            class="text-gray-400 text-sm py-8 text-center"
+            class="text-gray-400 dark:text-zinc-500 text-sm py-8 text-center"
           >
             No pending reports.
           </div>
           <div
             v-for="report in pendingReports"
             :key="report.id"
-            class="bg-white rounded-xl border border-gray-200 p-5 space-y-3"
+            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3"
           >
             <div class="flex items-start justify-between">
               <div>
@@ -65,12 +65,12 @@
                   <strong>{{ report.reportedName }}</strong>
                 </p>
               </div>
-              <span class="text-xs text-gray-400">{{
+              <span class="text-xs text-gray-400 dark:text-zinc-500">{{
                 formatDate(report.createdAt)
               }}</span>
             </div>
 
-            <p class="text-sm text-gray-700 bg-gray-50 rounded-lg p-3">
+            <p class="text-sm text-gray-700 dark:text-zinc-200 bg-gray-50 dark:bg-white/[0.02] rounded-lg p-3">
               {{ report.description }}
             </p>
 
@@ -94,9 +94,9 @@
             </div>
 
             <!-- Admin Actions -->
-            <div class="border-t border-gray-200 pt-3 space-y-3">
+            <div class="border-t border-gray-200 dark:border-white/[0.08] pt-3 space-y-3">
               <div>
-                <label class="block text-xs text-gray-500 mb-1"
+                <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1"
                   >Penalty points</label
                 >
                 <input
@@ -105,21 +105,21 @@
                   min="0"
                   max="50"
                   :placeholder="getSuggestedPenalty(report.type).toString()"
-                  class="w-32 border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+                  class="w-32 border border-gray-300 dark:border-white/[0.10] rounded-lg px-3 py-1.5 text-sm"
                 />
-                <span class="text-xs text-gray-400 ml-2">
+                <span class="text-xs text-gray-400 dark:text-zinc-500 ml-2">
                   Suggested: {{ getSuggestedPenalty(report.type) }}
                 </span>
               </div>
               <div>
-                <label class="block text-xs text-gray-500 mb-1"
+                <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1"
                   >Admin note (optional)</label
                 >
                 <input
                   v-model="noteInputs[report.id]"
                   type="text"
                   placeholder="Internal note..."
-                  class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+                  class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg px-3 py-1.5 text-sm"
                 />
               </div>
               <div class="flex gap-2">
@@ -133,7 +133,7 @@
                 <button
                   @click="handleDismiss(report.id)"
                   :disabled="processing === report.id"
-                  class="bg-gray-200 text-gray-700 text-sm px-4 py-1.5 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50"
+                  class="bg-gray-200 dark:bg-white/[0.08] text-gray-700 dark:text-zinc-200 text-sm px-4 py-1.5 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50"
                 >
                   Dismiss
                 </button>
@@ -146,14 +146,14 @@
         <div v-if="tab === 'reviewed'" class="space-y-4">
           <div
             v-if="reviewedReports.length === 0"
-            class="text-gray-400 text-sm py-8 text-center"
+            class="text-gray-400 dark:text-zinc-500 text-sm py-8 text-center"
           >
             No reviewed reports yet.
           </div>
           <div
             v-for="report in reviewedReports"
             :key="report.id"
-            class="bg-white rounded-xl border border-gray-200 p-5 space-y-2"
+            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-2"
           >
             <div class="flex items-start justify-between">
               <div>
@@ -162,7 +162,7 @@
                   :class="
                     report.status === 'approved'
                       ? 'bg-red-100 text-red-700'
-                      : 'bg-gray-100 text-gray-600'
+                      : 'bg-gray-100 dark:bg-white/[0.04] text-gray-600 dark:text-zinc-300'
                   "
                 >
                   {{
@@ -177,11 +177,11 @@
                   {{ getTypeLabel(report.type) }}
                 </p>
               </div>
-              <span class="text-xs text-gray-400">{{
+              <span class="text-xs text-gray-400 dark:text-zinc-500">{{
                 formatDate(report.createdAt)
               }}</span>
             </div>
-            <p v-if="report.adminNote" class="text-xs text-gray-500 italic">
+            <p v-if="report.adminNote" class="text-xs text-gray-500 dark:text-zinc-400 italic">
               Note: {{ report.adminNote }}
             </p>
           </div>

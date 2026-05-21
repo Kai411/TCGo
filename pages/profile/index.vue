@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-xl mx-auto">
     <div v-if="!user" class="text-center py-12">
-      <p class="text-gray-500 text-lg mb-4">Sign in to manage your profile.</p>
+      <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to manage your profile.</p>
       <button
         @click="signInWithGoogle"
         class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors"
@@ -27,7 +27,7 @@
 
       <div
         v-if="!loading"
-        class="bg-white rounded-xl p-6 border border-gray-200 space-y-6"
+        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6"
       >
         <p class="text-xl font-bold">Profile</p>
         <!-- Avatar -->
@@ -36,7 +36,7 @@
             <img
               :src="profile?.photoURL || user.photoURL || ''"
               :alt="profile?.customName || user.displayName || 'User'"
-              class="w-16 h-16 rounded-full border-2 border-gray-200 object-cover"
+              class="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-white/[0.10] object-cover"
             />
             <label
               class="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -80,13 +80,13 @@
             <p class="font-bold text-lg">
               {{ profile?.customName || user.displayName }}
             </p>
-            <p class="text-sm text-gray-500">{{ user.email }}</p>
+            <p class="text-sm text-gray-500 dark:text-zinc-400">{{ user.email }}</p>
           </div>
         </div>
 
         <!-- Display Name -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
+          <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
             Display Name
           </label>
           <div class="flex gap-3">
@@ -95,7 +95,7 @@
               type="text"
               maxlength="30"
               placeholder="Your display name"
-              class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+              class="flex-1 border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
             />
             <button
               @click="saveName"
@@ -107,20 +107,20 @@
               {{ saving ? "Saving..." : "Save" }}
             </button>
           </div>
-          <p class="text-xs text-gray-400 mt-1">
+          <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
             This name will be shown on your bids and listings.
           </p>
         </div>
 
         <!-- Contact Number -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
+          <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
             Contact Number (WhatsApp)
           </label>
           <div class="flex gap-2">
             <select
               v-model="phonePrefix"
-              class="border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+              class="border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
             >
               <option value="60">🇲🇾 +60</option>
               <option value="65">🇸🇬 +65</option>
@@ -129,7 +129,7 @@
               v-model="phoneNumber"
               type="tel"
               placeholder="123456789"
-              class="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+              class="flex-1 border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
             />
           </div>
           <div class="w-full flex">
@@ -146,13 +146,13 @@
           <p v-if="phoneError" class="text-red-500 text-xs mt-1">
             {{ phoneError }}
           </p>
-          <p v-else class="text-xs text-gray-400 mt-1">
+          <p v-else class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
             Enter without leading 0. E.g. 123456789
           </p>
         </div>
 
-        <div class="pt-4 border-t border-gray-200">
-          <p class="text-sm text-gray-500">
+        <div class="pt-4 border-t border-gray-200 dark:border-white/[0.08]">
+          <p class="text-sm text-gray-500 dark:text-zinc-400">
             Your public profile:
             <NuxtLink
               :to="`/profile/${user.uid}`"
@@ -166,18 +166,18 @@
 
       <div
         v-if="!loading"
-        class="bg-white rounded-xl p-6 border border-gray-200 space-y-6 mt-4"
+        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
       >
         <p class="text-xl font-bold">Shipping</p>
 
         <!-- Shipping Defaults -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-2">
             Default Shipping (RM)
           </label>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs text-gray-500 mb-1"
+              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1"
                 >West Malaysia</label
               >
               <input
@@ -185,11 +185,11 @@
                 type="number"
                 min="0"
                 step="0.01"
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-900 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+                class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
               />
             </div>
             <div>
-              <label class="block text-xs text-gray-500 mb-1"
+              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1"
                 >East Malaysia</label
               >
               <input
@@ -197,7 +197,7 @@
                 type="number"
                 min="0"
                 step="0.01"
-                class="w-full border border-gray-300 rounded-lg px-4 py-2 text-gray-900 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+                class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
               />
             </div>
           </div>
@@ -212,7 +212,7 @@
           >
             {{ savingShipping ? "Saving..." : "Save Shipping" }}
           </button>
-          <p class="text-xs text-gray-400 mt-1">
+          <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
             Used as default when creating new listings.
           </p>
         </div>
@@ -220,7 +220,59 @@
 
       <div
         v-if="!loading"
-        class="bg-white rounded-xl p-6 border border-gray-200 space-y-6 mt-4"
+        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-4 mt-4"
+      >
+        <div class="flex items-center justify-between">
+          <p class="text-xl font-bold">Membership</p>
+          <span
+            v-if="isPremium"
+            class="text-[11px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300"
+          >
+            Premium
+          </span>
+          <span
+            v-else
+            class="text-[11px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-ink/[0.06] text-ink-muted dark:bg-white/[0.06] dark:text-zinc-300"
+          >
+            Free
+          </span>
+        </div>
+
+        <div v-if="!isPremium">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm text-gray-700 dark:text-zinc-200">Card scans</p>
+            <p class="text-sm font-medium tabular-nums">
+              {{ scansUsed }}/{{ FREE_SCAN_LIMIT }}
+            </p>
+          </div>
+          <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-white/[0.06] overflow-hidden">
+            <div
+              class="h-full bg-pokemon-red transition-all"
+              :style="{ width: `${Math.min(100, (scansUsed / FREE_SCAN_LIMIT) * 100)}%` }"
+            ></div>
+          </div>
+          <p class="text-xs text-gray-400 dark:text-zinc-500 mt-2">
+            Resets {{ scansResetLabel }}.
+          </p>
+        </div>
+        <p v-else class="text-sm text-gray-500 dark:text-zinc-400">
+          Unlimited card scans. Thanks for supporting TCGo.
+        </p>
+
+        <a
+          v-if="!isPremium && adminWhatsAppLink"
+          :href="adminWhatsAppLink"
+          target="_blank"
+          rel="noopener"
+          class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-ink px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+        >
+          Upgrade to Premium
+        </a>
+      </div>
+
+      <div
+        v-if="!loading"
+        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
       >
         <p class="text-xl font-bold">Appearance</p>
 
@@ -228,8 +280,8 @@
         <div>
           <label class="flex items-center justify-between cursor-pointer">
             <div>
-              <p class="text-sm font-medium text-gray-700">Dark mode</p>
-              <p class="text-xs text-gray-400">
+              <p class="text-sm font-medium text-gray-700 dark:text-zinc-200">Dark mode</p>
+              <p class="text-xs text-gray-400 dark:text-zinc-500">
                 Switch between light and dark themes
               </p>
             </div>
@@ -240,7 +292,7 @@
 
       <div
         v-if="!loading"
-        class="bg-white rounded-xl p-6 border border-gray-200 space-y-6 mt-4"
+        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
       >
         <p class="text-xl font-bold">Privacy</p>
 
@@ -248,8 +300,8 @@
         <div>
           <label class="flex items-center justify-between cursor-pointer">
             <div>
-              <p class="text-sm font-medium text-gray-700">Favourites</p>
-              <p class="text-xs text-gray-400">
+              <p class="text-sm font-medium text-gray-700 dark:text-zinc-200">Favourites</p>
+              <p class="text-xs text-gray-400 dark:text-zinc-500">
                 Others can see your favourited cards
               </p>
             </div>
@@ -257,7 +309,7 @@
               type="checkbox"
               :checked="editFavouritesPublic"
               @change="toggleFavouritesPublic"
-              class="w-5 h-5 rounded border-gray-300 text-pokemon-red focus:ring-pokemon-red cursor-pointer"
+              class="w-5 h-5 rounded border-gray-300 dark:border-white/[0.20] dark:bg-white/[0.06] text-pokemon-red focus:ring-pokemon-red cursor-pointer"
             />
           </label>
         </div>
@@ -272,6 +324,25 @@ import type { UserProfile } from "~/composables/useProfile";
 const { user, signInWithGoogle } = useAuth();
 const { profile, loading, updateProfile, updateCustomName } = useMyProfile();
 const { uploadImage } = useStorage();
+const { isPremium, used: scansUsed } = useScanQuota();
+
+const config = useRuntimeConfig();
+const adminWhatsAppLink = computed(() => {
+  const num = config.public.adminWhatsApp;
+  if (!num) return "";
+  const msg = encodeURIComponent(
+    `Hi! I'd like to upgrade to TCGo Premium (user: ${user.value?.email || user.value?.uid || "anon"}).`,
+  );
+  return `https://wa.me/${num}?text=${msg}`;
+});
+
+const scansResetLabel = computed(() => {
+  if (!profile.value?.scansResetAt) return "next month";
+  return new Date(profile.value.scansResetAt).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+});
 
 const editName = ref("");
 const phonePrefix = ref("60");

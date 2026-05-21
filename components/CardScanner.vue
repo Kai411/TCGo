@@ -8,7 +8,22 @@
       <div
         class="flex items-center justify-between px-4 h-14 bg-black text-white"
       >
-        <h2 class="text-base font-semibold">Scan Card</h2>
+        <div class="flex items-center gap-3">
+          <h2 class="text-base font-semibold">Scan Card</h2>
+          <span
+            v-if="user && isPremium"
+            class="text-[11px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300"
+          >
+            Premium · Unlimited
+          </span>
+          <span
+            v-else-if="user"
+            class="text-[11px] font-semibold tracking-wide px-2 py-0.5 rounded-full bg-white/10 text-white/80"
+            :class="{ 'text-red-300 bg-red-500/20': remaining === 0 }"
+          >
+            {{ used }}/{{ FREE_SCAN_LIMIT }} this month
+          </span>
+        </div>
         <button
           @click="close"
           class="p-2 hover:bg-white/10 rounded-full transition-colors"
@@ -30,10 +45,68 @@
         </button>
       </div>
 
+      <!-- Sign-in gate: scanner is auth-only -->
+      <div
+        v-if="!user"
+        class="flex-1 flex flex-col items-center justify-center text-center px-6 text-white"
+      >
+        <svg
+          class="w-12 h-12 mb-4 text-white/70"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+        >
+          <rect x="3" y="11" width="18" height="11" rx="2" />
+          <path d="M7 11V7a5 5 0 0110 0v4" />
+        </svg>
+        <h3 class="text-lg font-semibold mb-1">Sign in to scan</h3>
+        <p class="text-sm text-white/70 mb-6 max-w-xs">
+          Free accounts get {{ FREE_SCAN_LIMIT }} scans per month.
+        </p>
+        <button
+          @click="handleSignIn"
+          class="bg-white text-ink px-6 py-3 rounded-full font-semibold hover:opacity-90 transition-opacity"
+        >
+          Sign in with Google
+        </button>
+      </div>
+
+      <!-- Quota exhausted: upgrade prompt -->
+      <div
+        v-else-if="remaining === 0"
+        class="flex-1 flex flex-col items-center justify-center text-center px-6 text-white"
+      >
+        <div
+          class="w-14 h-14 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center mb-4"
+        >
+          <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold mb-1">You've used all {{ FREE_SCAN_LIMIT }} scans</h3>
+        <p class="text-sm text-white/70 mb-2 max-w-xs">
+          Quota resets {{ resetDateLabel }}. Upgrade to Premium for unlimited scans.
+        </p>
+        <a
+          v-if="adminWhatsAppLink"
+          :href="adminWhatsAppLink"
+          target="_blank"
+          rel="noopener"
+          class="mt-4 inline-flex items-center gap-2 bg-amber-500 text-ink px-6 py-3 rounded-full font-semibold hover:bg-amber-400 transition-colors"
+        >
+          Upgrade via WhatsApp
+        </a>
+        <p v-else class="mt-4 text-xs text-white/50">
+          Premium upgrade isn't configured yet — set NUXT_PUBLIC_ADMIN_WHATSAPP.
+        </p>
+      </div>
+
       <!-- Always-on camera viewfinder. Capture is non-blocking: each scan
            queues a 'processing' item and ID runs in the background so the
            user can keep snapping. -->
       <div
+        v-else
         class="flex-1 flex flex-col items-center justify-center relative overflow-hidden"
         @dragenter.prevent="dragOver = true"
         @dragover.prevent="dragOver = true"
@@ -221,6 +294,33 @@ const {
   pickMatch,
   processingCount,
 } = useScanQueue();
+const { user, signInWithGoogle } = useAuth();
+const { isPremium, remaining, used, tryConsumeScan } = useScanQuota();
+const { profile } = useMyProfile();
+
+const config = useRuntimeConfig();
+const adminWhatsAppLink = computed(() => {
+  const num = config.public.adminWhatsApp;
+  if (!num) return "";
+  const msg = encodeURIComponent(
+    `Hi! I'd like to upgrade to TCGo Premium (user: ${user.value?.email || user.value?.uid || "anon"}).`,
+  );
+  return `https://wa.me/${num}?text=${msg}`;
+});
+
+const resetDateLabel = computed(() => {
+  if (!profile.value?.scansResetAt) return "next month";
+  const d = new Date(profile.value.scansResetAt);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+});
+
+const handleSignIn = async () => {
+  try {
+    await signInWithGoogle();
+  } catch (e) {
+    console.error("[CardScanner] sign-in failed:", e);
+  }
+};
 
 const videoEl = ref<HTMLVideoElement | null>(null);
 const stream = ref<MediaStream | null>(null);
@@ -233,8 +333,15 @@ const startCamera = async () => {
   cameraError.value = "";
   streamReady.value = false;
   try {
+    // Ask for the highest practical resolution. Browsers clamp to what the
+    // device supports — `ideal` lets them pick the closest available rather
+    // than rejecting outright. 4K target keeps small text on cards readable.
     stream.value = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" } },
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 3840 },
+        height: { ideal: 2160 },
+      },
       audio: false,
     });
     if (videoEl.value) {
@@ -258,9 +365,16 @@ const stopCamera = () => {
   streamReady.value = false;
 };
 
-onMounted(() => {
-  startCamera();
-});
+// Only start the camera if user is signed in AND has quota.
+// Watch so camera starts when sign-in completes from inside the modal.
+watch(
+  [user, remaining],
+  ([u, r]) => {
+    if (u && r > 0 && !streamReady.value) startCamera();
+    if ((!u || r === 0) && streamReady.value) stopCamera();
+  },
+  { immediate: true },
+);
 
 onBeforeUnmount(() => {
   stopCamera();
@@ -328,7 +442,11 @@ const onDragLeave = (event: DragEvent) => {
 
 // Adds a fresh queue item (status: processing) and fires off the upload +
 // ID pipeline. Returns immediately so the camera stays interactive.
-const acceptScan = (blob: Blob) => {
+// Reserves one scan from the user's monthly quota first — if over cap,
+// no-op (the UI already shows the upgrade overlay when remaining === 0).
+const acceptScan = async (blob: Blob) => {
+  const allowed = await tryConsumeScan();
+  if (!allowed) return;
   flash();
   // Use the local object URL as a quick preview until the Cloudinary
   // upload completes — that gives the user something to look at right away.

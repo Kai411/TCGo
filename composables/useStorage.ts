@@ -1,10 +1,11 @@
-const MAX_WIDTH = 1600;
-const MAX_HEIGHT = 1600;
-const QUALITY = 0.82;
+const MAX_WIDTH = 2400;
+const MAX_HEIGHT = 2400;
+const QUALITY = 0.88;
 
 /**
  * Compress and convert image to WebP using Canvas API.
- * Resizes to max 1600x1600 while preserving aspect ratio.
+ * Resizes to max 2400x2400 while preserving aspect ratio so card text and
+ * holo detail stay legible at 2x DPR displays.
  * Returns a compressed File ready for upload.
  */
 const compressImage = (file: File): Promise<File> => {

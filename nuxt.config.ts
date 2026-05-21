@@ -53,6 +53,16 @@ export default defineNuxtConfig({
     head: {
       title: "TCGo Marketplace - Buy, Sell & Auction Pokemon Cards in Malaysia",
       htmlAttrs: { lang: "en" },
+      script: [
+        {
+          // Apply theme synchronously before paint to avoid a light→dark flash.
+          // Mirrors the logic in composables/useTheme.ts; keep in sync.
+          innerHTML:
+            "(function(){try{var t=localStorage.getItem('tcgo-theme');var d=t==='dark'||((!t||t==='system')&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();",
+          type: "text/javascript",
+          tagPosition: "head",
+        },
+      ],
       meta: [
         { charset: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -139,6 +149,8 @@ export default defineNuxtConfig({
       firebaseAppId: "",
       cloudinaryCloudName: "",
       cloudinaryUploadPreset: "",
+      // Admin WhatsApp for premium upgrade requests. Set via NUXT_PUBLIC_ADMIN_WHATSAPP.
+      adminWhatsApp: "",
     },
   },
 });

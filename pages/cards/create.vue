@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-5xl mx-auto">
     <div v-if="!user" class="text-center py-12">
-      <p class="text-gray-500 text-lg mb-4">
+      <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">
         You need to sign in to list a card.
       </p>
       <button
@@ -13,19 +13,51 @@
     </div>
 
     <template v-else>
-      <h1 class="text-2xl font-bold mb-2">List Card for Sale</h1>
-      <p class="text-sm text-gray-500 mb-6">
-        Scan cards with your camera to bulk-list, or fill in the form below for
-        one at a time.
-      </p>
+      <h1 class="text-2xl font-bold mb-4">List Card for Sale</h1>
+
+      <!-- Mode toggle: Scan vs Manual -->
+      <div
+        class="inline-flex p-1 mb-6 bg-gray-100 dark:bg-white/[0.06] rounded-xl"
+        role="tablist"
+      >
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="mode === 'scan'"
+          @click="mode = 'scan'"
+          class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors"
+          :class="
+            mode === 'scan'
+              ? 'bg-white dark:bg-white/[0.12] text-ink dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-zinc-400 hover:text-ink dark:hover:text-white'
+          "
+        >
+          Scan cards
+        </button>
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="mode === 'manual'"
+          @click="mode = 'manual'"
+          class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors"
+          :class="
+            mode === 'manual'
+              ? 'bg-white dark:bg-white/[0.12] text-ink dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-zinc-400 hover:text-ink dark:hover:text-white'
+          "
+        >
+          Enter manually
+        </button>
+      </div>
 
       <!-- Scan flow -->
       <div
-        class="bg-white rounded-xl border border-gray-200 p-5 mb-6 flex items-center justify-between gap-4 flex-wrap"
+        v-if="mode === 'scan'"
+        class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 mb-6 flex items-center justify-between gap-4 flex-wrap"
       >
         <div>
-          <p class="text-sm font-semibold text-gray-900">Scan cards</p>
-          <p class="text-xs text-gray-500 mt-0.5">
+          <p class="text-sm font-semibold text-gray-900 dark:text-zinc-100">Scan cards</p>
+          <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
             Use your camera (or upload photos). Each scan goes into a queue —
             fill the price + condition for each one and publish all at once.
           </p>
@@ -51,18 +83,18 @@
 
       <!-- Scanned drafts queue -->
       <div
-        v-if="queue.length > 0"
-        class="bg-white rounded-xl border border-gray-200 p-5 mb-6"
+        v-if="mode === 'scan' && queue.length > 0"
+        class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 mb-6"
       >
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-gray-900">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-zinc-100">
             Scanned drafts
-            <span class="text-gray-400 font-normal">({{ queue.length }})</span>
+            <span class="text-gray-400 dark:text-zinc-500 font-normal">({{ queue.length }})</span>
           </h2>
           <button
             type="button"
             @click="clearDrafts"
-            class="text-xs text-gray-500 hover:text-pokemon-red transition-colors"
+            class="text-xs text-gray-500 dark:text-zinc-400 hover:text-pokemon-red transition-colors"
           >
             Clear all
           </button>
@@ -72,7 +104,7 @@
           <div
             v-for="item in queue"
             :key="item.id"
-            class="p-3 border border-gray-200 rounded-lg"
+            class="p-3 border border-gray-200 dark:border-white/[0.08] rounded-lg"
           >
             <div class="flex flex-col sm:flex-row gap-3">
               <!-- Thumbnail with status overlay -->
@@ -103,8 +135,8 @@
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0">
                     <p
-                      class="font-semibold text-sm text-gray-900 truncate"
-                      :class="!item.cardName && 'italic text-gray-400'"
+                      class="font-semibold text-sm text-gray-900 dark:text-zinc-100 truncate"
+                      :class="!item.cardName && 'italic text-gray-400 dark:text-zinc-500'"
                     >
                       {{
                         item.cardName ||
@@ -117,7 +149,7 @@
                     </p>
                     <p
                       v-if="item.cardSet"
-                      class="text-xs text-gray-500 truncate"
+                      class="text-xs text-gray-500 dark:text-zinc-400 truncate"
                     >
                       {{ item.cardSet }} · {{ item.cardNumber }}
                     </p>
@@ -131,7 +163,7 @@
                   <button
                     type="button"
                     @click="removeDraft(item.id)"
-                    class="text-gray-400 hover:text-pokemon-red shrink-0 text-xl leading-none"
+                    class="text-gray-400 dark:text-zinc-500 hover:text-pokemon-red shrink-0 text-xl leading-none"
                     aria-label="Remove"
                   >
                     ×
@@ -146,7 +178,7 @@
                       :key="m.id"
                       type="button"
                       @click="pickMatch(item.id, m)"
-                      class="text-left bg-white border border-gray-200 rounded overflow-hidden hover:border-pokemon-blue transition-colors"
+                      class="text-left bg-white border border-gray-200 dark:border-white/[0.08] rounded overflow-hidden hover:border-pokemon-blue transition-colors"
                     >
                       <img
                         :src="m.images.small"
@@ -156,7 +188,7 @@
                       <p class="px-1 py-0.5 text-[10px] font-semibold truncate">
                         {{ m.name }}
                       </p>
-                      <p class="px-1 pb-1 text-[9px] text-gray-500 truncate">
+                      <p class="px-1 pb-1 text-[9px] text-gray-500 dark:text-zinc-400 truncate">
                         {{ m.set.name }} · {{ m.number }}
                       </p>
                     </button>
@@ -168,7 +200,7 @@
                   <input
                     v-model="manualSearch[item.id]"
                     placeholder="Search card name…"
-                    class="flex-1 border border-gray-300 rounded px-2 py-1.5 text-xs"
+                    class="flex-1 border border-gray-300 dark:border-white/[0.10] rounded px-2 py-1.5 text-xs"
                     @keydown.enter.prevent="retryManualSearch(item.id)"
                   />
                   <button
@@ -187,7 +219,7 @@
                   <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     <select
                       v-model="draftFields[item.id].productType"
-                      class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                      class="border border-gray-300 dark:border-white/[0.10] rounded px-2 py-1.5 text-xs"
                     >
                       <option value="Ungraded">Ungraded</option>
                       <option value="Graded">Graded</option>
@@ -196,7 +228,7 @@
                     <select
                       v-if="draftFields[item.id].productType === 'Ungraded'"
                       v-model="draftFields[item.id].condition"
-                      class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                      class="border border-gray-300 dark:border-white/[0.10] rounded px-2 py-1.5 text-xs"
                     >
                       <option value="">Condition…</option>
                       <option
@@ -210,7 +242,7 @@
                     <select
                       v-if="draftFields[item.id].productType === 'Graded'"
                       v-model="draftFields[item.id].gradingProvider"
-                      class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                      class="border border-gray-300 dark:border-white/[0.10] rounded px-2 py-1.5 text-xs"
                     >
                       <option value="">Provider…</option>
                       <option
@@ -228,7 +260,7 @@
                         draftFields[item.id].gradingProvider !== 'Others'
                       "
                       v-model="draftFields[item.id].grade"
-                      class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                      class="border border-gray-300 dark:border-white/[0.10] rounded px-2 py-1.5 text-xs"
                     >
                       <option value="">Grade…</option>
                       <option
@@ -248,7 +280,7 @@
                       "
                       v-model="draftFields[item.id].grade"
                       placeholder="Grade"
-                      class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                      class="border border-gray-300 dark:border-white/[0.10] rounded px-2 py-1.5 text-xs"
                     />
                     <input
                       v-model.number="draftFields[item.id].price"
@@ -256,7 +288,7 @@
                       step="0.01"
                       min="0.01"
                       placeholder="Price (RM)"
-                      class="border border-gray-300 rounded px-2 py-1.5 text-xs"
+                      class="border border-gray-300 dark:border-white/[0.10] rounded px-2 py-1.5 text-xs"
                     />
                   </div>
 
@@ -265,17 +297,17 @@
                     v-model="draftFields[item.id].description"
                     rows="2"
                     placeholder="Notes about the card (optional)…"
-                    class="w-full border border-gray-300 rounded px-2 py-1.5 text-xs resize-none"
+                    class="w-full border border-gray-300 dark:border-white/[0.10] rounded px-2 py-1.5 text-xs resize-none"
                   />
 
                   <!-- Extra photos -->
                   <div>
-                    <p class="text-[11px] font-medium text-gray-600 mb-1.5">
+                    <p class="text-[11px] font-medium text-gray-600 dark:text-zinc-300 mb-1.5">
                       Extra photos (optional) — your scan is already attached
                     </p>
                     <div class="flex items-center gap-2 flex-wrap">
                       <label
-                        class="cursor-pointer inline-flex items-center justify-center w-14 h-14 border border-dashed border-gray-300 rounded text-gray-400 hover:border-pokemon-blue hover:text-pokemon-blue transition-colors text-xs"
+                        class="cursor-pointer inline-flex items-center justify-center w-14 h-14 border border-dashed border-gray-300 dark:border-white/[0.10] rounded text-gray-400 dark:text-zinc-500 hover:border-pokemon-blue hover:text-pokemon-blue transition-colors text-xs"
                       >
                         <svg
                           class="w-5 h-5"
@@ -301,7 +333,7 @@
                       >
                         <img
                           :src="f.preview"
-                          class="w-14 h-14 object-cover rounded border border-gray-200"
+                          class="w-14 h-14 object-cover rounded border border-gray-200 dark:border-white/[0.08]"
                         />
                         <button
                           type="button"
@@ -336,11 +368,11 @@
         </button>
       </div>
 
-      <div v-if="queue.length > 0" class="text-center text-xs text-gray-400 mb-6">
-        — or list one manually below —
-      </div>
-
-      <form @submit.prevent="handleSubmit" class="space-y-4">
+      <form
+        v-if="mode === 'manual'"
+        @submit.prevent="handleSubmit"
+        class="space-y-4"
+      >
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <CardFormFields
             v-model="cardForm"
@@ -349,13 +381,13 @@
 
           <!-- Card: Photos (full width) -->
           <div
-            class="bg-white rounded-xl border border-gray-200 p-5 space-y-3 lg:col-span-2"
+            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3 lg:col-span-2"
           >
-            <h3 class="text-sm font-semibold text-gray-900">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
               Photos <span class="text-pokemon-red">*</span>
             </h3>
             <div
-              class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-pokemon-blue transition-colors cursor-pointer"
+              class="border-2 border-dashed border-gray-300 dark:border-white/[0.10] rounded-lg p-6 text-center hover:border-pokemon-blue transition-colors cursor-pointer"
               @click="triggerFileInput"
               @dragover.prevent="dragOver = true"
               @dragleave="dragOver = false"
@@ -370,7 +402,7 @@
                 class="hidden"
                 @change="handleFileSelect"
               />
-              <div class="text-gray-400">
+              <div class="text-gray-400 dark:text-zinc-500">
                 <svg
                   class="mx-auto h-8 w-8 mb-2"
                   fill="none"
@@ -385,7 +417,7 @@
                   />
                 </svg>
                 <p class="text-sm">Click or drag photos here</p>
-                <p class="text-xs text-gray-400 mt-1">
+                <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
                   PNG, JPG, WEBP up to 5MB each
                 </p>
               </div>
@@ -399,7 +431,7 @@
               >
                 <img
                   :src="file.preview"
-                  class="w-full aspect-square object-cover rounded-lg border border-gray-200"
+                  class="w-full aspect-square object-cover rounded-lg border border-gray-200 dark:border-white/[0.08]"
                 />
                 <button
                   type="button"
@@ -413,8 +445,8 @@
           </div>
 
           <!-- Card: Price -->
-          <div class="bg-white rounded-xl border border-gray-200 p-5">
-            <label class="block text-sm font-semibold text-gray-900 mb-2">
+          <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5">
+            <label class="block text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-2">
               Price (RM) <span class="text-pokemon-red">*</span>
             </label>
             <input
@@ -424,19 +456,19 @@
               step="0.01"
               required
               placeholder="10.00"
-              class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-pokemon-blue focus:outline-none focus:ring-1 focus:ring-pokemon-blue"
+              class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-blue focus:outline-none focus:ring-1 focus:ring-pokemon-blue"
             />
           </div>
 
           <!-- Card: Shipping -->
-          <div class="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+          <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3">
             <div class="flex items-center justify-between">
-              <h3 class="text-sm font-semibold text-gray-900">Shipping</h3>
-              <span class="text-xs text-gray-400">Profile defaults</span>
+              <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">Shipping</h3>
+              <span class="text-xs text-gray-400 dark:text-zinc-500">Profile defaults</span>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs text-gray-600 mb-1"
+                <label class="block text-xs text-gray-600 dark:text-zinc-300 mb-1"
                   >West Malaysia (RM)</label
                 >
                 <input
@@ -444,11 +476,11 @@
                   type="number"
                   min="0"
                   step="0.01"
-                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+                  class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
                 />
               </div>
               <div>
-                <label class="block text-xs text-gray-600 mb-1"
+                <label class="block text-xs text-gray-600 dark:text-zinc-300 mb-1"
                   >East Malaysia (RM)</label
                 >
                 <input
@@ -456,7 +488,7 @@
                   type="number"
                   min="0"
                   step="0.01"
-                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+                  class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
                 />
               </div>
             </div>
@@ -478,7 +510,7 @@
             <div
               class="animate-spin rounded-full h-4 w-4 border-b-2 border-pokemon-blue"
             ></div>
-            <span class="text-sm text-gray-600">
+            <span class="text-sm text-gray-600 dark:text-zinc-300">
               Uploading photos... {{ uploadProgress }}/{{
                 selectedFiles.length
               }}
@@ -528,6 +560,7 @@ const {
 const { searchByName } = usePokemonTcg();
 
 const scannerOpen = ref(false);
+const mode = ref<"scan" | "manual">("scan");
 
 // Per-draft form state, keyed by queue item id. Initialized lazily as
 // items get added to the queue.

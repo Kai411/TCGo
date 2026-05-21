@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="!user" class="text-center py-12">
-      <p class="text-gray-500 text-lg mb-4">Sign in to view your bids.</p>
+      <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to view your bids.</p>
       <button
         @click="signInWithGoogle"
         class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors"
@@ -11,7 +11,25 @@
     </div>
 
     <template v-else>
-      <h1 class="text-2xl font-bold mb-6">My Bids</h1>
+      <div class="flex items-center justify-between mb-6 gap-3">
+        <h1 class="text-2xl font-bold">My Activity</h1>
+        <div
+          class="inline-flex p-1 bg-gray-100 dark:bg-white/[0.06] rounded-xl"
+          role="tablist"
+        >
+          <NuxtLink
+            to="/dashboard/seller"
+            class="px-4 py-1.5 text-sm font-semibold rounded-lg text-gray-600 dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
+          >
+            Listings
+          </NuxtLink>
+          <span
+            class="px-4 py-1.5 text-sm font-semibold rounded-lg bg-white dark:bg-white/[0.12] text-ink dark:text-white shadow-sm"
+          >
+            Bids
+          </span>
+        </div>
+      </div>
 
       <div v-if="loading" class="flex justify-center py-12">
         <div
@@ -21,7 +39,7 @@
 
       <template v-else>
         <div v-if="participatedAuctions.length === 0" class="text-center py-12">
-          <p class="text-gray-500 text-lg">
+          <p class="text-gray-500 dark:text-zinc-400 text-lg">
             You haven't bid on any auctions yet.
           </p>
           <NuxtLink
@@ -34,17 +52,17 @@
 
         <!-- Active -->
         <section v-if="activeBids.length > 0" class="mb-10">
-          <h2 class="text-lg font-semibold mb-4 text-gray-700">
+          <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-zinc-200">
             Active ({{ activeBids.length }})
           </h2>
           <div class="space-y-3">
             <div
               v-for="item in activeBids"
               :key="item.auction.id"
-              class="bg-white rounded-xl p-4 border border-gray-200 flex gap-4 items-center"
+              class="bg-white dark:bg-white/[0.04] rounded-xl p-4 border border-gray-200 dark:border-white/[0.08] flex gap-4 items-center"
             >
               <div
-                class="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden"
+                class="w-16 h-16 flex-shrink-0 bg-gray-100 dark:bg-white/[0.04] rounded-lg overflow-hidden"
               >
                 <img
                   v-if="item.auction.imageUrls?.length || item.auction.imageUrl"
@@ -65,7 +83,7 @@
                     >Current: RM
                     {{ item.auction.currentPrice.toFixed(2) }}</span
                   >
-                  <span class="text-gray-500"
+                  <span class="text-gray-500 dark:text-zinc-400"
                     >Your max: RM {{ item.myHighestBid.toFixed(2) }}</span
                   >
                   <span
@@ -76,7 +94,7 @@
                   </span>
                 </div>
               </div>
-              <div class="text-right text-xs text-gray-400">
+              <div class="text-right text-xs text-gray-400 dark:text-zinc-500">
                 {{ formatTimeLeft(item.auction.endsAt) }}
               </div>
             </div>
@@ -85,22 +103,22 @@
 
         <!-- Ended -->
         <section v-if="endedBids.length > 0">
-          <h2 class="text-lg font-semibold mb-4 text-gray-700">
+          <h2 class="text-lg font-semibold mb-4 text-gray-700 dark:text-zinc-200">
             Ended ({{ endedBids.length }})
           </h2>
           <div class="space-y-3">
             <div
               v-for="item in endedBids"
               :key="item.auction.id"
-              class="bg-white rounded-xl p-4 border flex gap-4 items-center"
+              class="bg-white dark:bg-white/[0.04] rounded-xl p-4 border flex gap-4 items-center"
               :class="
                 item.isWinner
                   ? 'border-green-300 bg-green-50'
-                  : 'border-gray-200'
+                  : 'border-gray-200 dark:border-white/[0.08]'
               "
             >
               <div
-                class="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden"
+                class="w-16 h-16 flex-shrink-0 bg-gray-100 dark:bg-white/[0.04] rounded-lg overflow-hidden"
               >
                 <img
                   v-if="item.auction.imageUrls?.length || item.auction.imageUrl"
@@ -120,7 +138,7 @@
                   <span class="text-pokemon-red font-medium"
                     >Final: RM {{ item.auction.currentPrice.toFixed(2) }}</span
                   >
-                  <span class="text-gray-500"
+                  <span class="text-gray-500 dark:text-zinc-400"
                     >Your max: RM {{ item.myHighestBid.toFixed(2) }}</span
                   >
                   <span v-if="item.isWinner" class="text-green-600 font-medium"
@@ -131,7 +149,7 @@
               </div>
               <NuxtLink
                 :to="`/auctions/${item.auction.id}`"
-                class="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg text-gray-600 transition-colors"
+                class="text-xs bg-gray-100 dark:bg-white/[0.04] hover:bg-gray-200 dark:hover:bg-white/[0.08] px-3 py-1.5 rounded-lg text-gray-600 dark:text-zinc-300 transition-colors"
               >
                 Details
               </NuxtLink>

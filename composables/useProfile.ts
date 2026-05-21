@@ -7,6 +7,8 @@ import {
 } from "firebase/firestore";
 import { effectScope, ref, onUnmounted, watch } from "vue";
 
+export type MembershipTier = "free" | "premium";
+
 export interface UserProfile {
   uid: string;
   displayName: string;
@@ -21,6 +23,10 @@ export interface UserProfile {
   favouritesPublic: boolean;
   trustScore: number;
   createdAt: number;
+  tier: MembershipTier;
+  scansUsed: number;
+  // Epoch ms of the next monthly reset (1st of next month, 00:00 local).
+  scansResetAt: number;
 }
 
 export const useProfile = (uid?: string) => {
@@ -86,13 +92,30 @@ export const useMyProfile = () => {
             profileDoc,
             (snapshot) => {
               if (snapshot.exists()) {
+                const data = snapshot.data();
+                // Backfill quota fields for users created before membership shipped.
+                const now = new Date();
+                const firstOfNextMonth = new Date(
+                  now.getFullYear(),
+                  now.getMonth() + 1,
+                  1,
+                ).getTime();
                 profile.value = {
-                  ...snapshot.data(),
+                  tier: "free",
+                  scansUsed: 0,
+                  scansResetAt: firstOfNextMonth,
+                  ...data,
                   uid: u.uid,
                 } as UserProfile;
                 isNewUser.value = false;
               } else {
                 // New user — create a minimal profile and flag them
+                const now = new Date();
+                const firstOfNextMonth = new Date(
+                  now.getFullYear(),
+                  now.getMonth() + 1,
+                  1,
+                ).getTime();
                 const newProfile: UserProfile = {
                   uid: u.uid,
                   displayName: u.displayName || "Anonymous",
@@ -107,6 +130,9 @@ export const useMyProfile = () => {
                   favouritesPublic: true,
                   trustScore: 100,
                   createdAt: Date.now(),
+                  tier: "free",
+                  scansUsed: 0,
+                  scansResetAt: firstOfNextMonth,
                 };
                 setDoc(profileDoc, newProfile);
                 profile.value = newProfile;
