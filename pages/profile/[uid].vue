@@ -113,35 +113,34 @@
       </section>
 
       <!-- Trust score (Listed + Auctions counts now live in the tab bar) -->
-      <section class="mb-10">
+      <section class="mb-6">
         <button
           type="button"
           @click="showTrustInfo = true"
-          class="surface rounded-2xl px-5 py-4 text-left hover:shadow-card-hover transition-shadow ease-premium w-full sm:max-w-xs"
+          class="inline-flex items-center gap-2 surface rounded-full px-3 py-1.5 hover:shadow-card-hover transition-shadow ease-premium"
         >
-          <span class="eyebrow flex items-center gap-1">
+          <span class="text-[11px] font-semibold tracking-wide uppercase text-ink-muted dark:text-zinc-400">
             Trust
-            <svg
-              class="w-3 h-3 text-ink-soft"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 16v-4M12 8h.01" />
-            </svg>
           </span>
-          <p
-            class="mt-1.5 tabular-price text-2xl sm:text-3xl font-extrabold"
+          <span
+            class="tabular-price text-sm font-bold"
             :class="trustScoreColor(profile.trustScore ?? 100)"
           >
-            {{ profile.trustScore ?? 100 }}
-            <span
-              class="text-base text-ink-soft dark:text-zinc-500 font-semibold"
-              >/ 100</span
+            {{ profile.trustScore ?? 100 }}<span
+              class="text-ink-soft dark:text-zinc-500 font-medium"
+              >/100</span
             >
-          </p>
+          </span>
+          <svg
+            class="w-3 h-3 text-ink-soft"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4M12 8h.01" />
+          </svg>
         </button>
       </section>
 
