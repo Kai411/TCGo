@@ -238,6 +238,7 @@ import {
   PRODUCT_TYPES,
   UNGRADED_CONDITIONS,
   GRADING_PROVIDERS,
+  CARD_LANGUAGES,
   getGradesForProvider,
 } from "~/composables/useCardConstants";
 
@@ -255,18 +256,6 @@ export interface CardFormData {
   shippingEM: number;
   language: string;
 }
-
-export const CARD_LANGUAGES = [
-  { code: "EN", label: "English" },
-  { code: "JP", label: "Japanese" },
-  { code: "KR", label: "Korean" },
-  { code: "CN", label: "Chinese" },
-  { code: "DE", label: "German" },
-  { code: "FR", label: "French" },
-  { code: "IT", label: "Italian" },
-  { code: "ES", label: "Spanish" },
-  { code: "PT", label: "Portuguese" },
-] as const;
 
 const props = defineProps<{
   modelValue: CardFormData;

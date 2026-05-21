@@ -1,6 +1,18 @@
 export const PRODUCT_TYPES = ["Ungraded", "Graded", "Sealed"] as const;
 export type ProductType = (typeof PRODUCT_TYPES)[number];
 
+export const CARD_LANGUAGES = [
+  { code: "EN", label: "English" },
+  { code: "JP", label: "Japanese" },
+  { code: "KR", label: "Korean" },
+  { code: "CN", label: "Chinese" },
+  { code: "DE", label: "German" },
+  { code: "FR", label: "French" },
+  { code: "IT", label: "Italian" },
+  { code: "ES", label: "Spanish" },
+  { code: "PT", label: "Portuguese" },
+] as const;
+
 export const UNGRADED_CONDITIONS = [
   "Mint (M)",
   "Near Mint (NM)",

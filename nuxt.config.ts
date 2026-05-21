@@ -2,19 +2,22 @@
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   ssr: false,
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   features: {
     devLogs: false,
   },
   routeRules: {
     "/**": { appManifest: false },
   },
-  modules: ["@nuxtjs/tailwindcss"],
+  modules: ["@nuxtjs/tailwindcss", "@vite-pwa/nuxt"],
   tailwindcss: {
     cssPath: "~/assets/css/tailwind.css",
   },
   pwa: {
     registerType: "autoUpdate",
+    // Inject the SW registration <script> tag into the served HTML. With
+    // ssr:false the module won't otherwise touch the index.html.
+    injectRegister: "script-defer",
     manifest: {
       name: "TCGo Marketplace",
       short_name: "TCGo",
@@ -47,6 +50,12 @@ export default defineNuxtConfig({
     workbox: {
       navigateFallback: "/",
       globPatterns: ["**/*.{js,css,html,png,svg,ico}"],
+    },
+    // Enable PWA in dev so we can verify the manifest + service worker
+    // locally; otherwise the module only kicks in for production builds.
+    devOptions: {
+      enabled: true,
+      type: "module",
     },
   },
   app: {
@@ -123,6 +132,9 @@ export default defineNuxtConfig({
           href: "/apple-touch-icon.png",
         },
         { rel: "canonical", href: "https://tcgo.shop/" },
+        // PWA manifest — @vite-pwa/nuxt doesn't auto-inject this in
+        // ssr:false mode, so we add it ourselves.
+        { rel: "manifest", href: "/manifest.webmanifest" },
         // Inter font — preconnect + non-blocking link starts the fetch in
         // parallel with HTML, not after CSS parses (much faster than @import).
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
