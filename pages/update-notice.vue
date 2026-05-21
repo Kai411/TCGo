@@ -22,44 +22,40 @@ useHead({
         <strong>Major changes:</strong>
         <ul>
           <li>
-            <strong>Membership tiers</strong> — Free accounts get 20 card
-            scans per month; Premium unlocks unlimited scans. Quota meter in
-            scanner header, membership tile in Settings.
+            <strong>Membership tiers</strong> — Free accounts get 20 card scans
+            per month; Premium unlocks unlimited scans. Quota meter in scanner
+            header, membership tile in Settings.
           </li>
           <li>
-            <strong>Multi-TCG support</strong> — listings can now be tagged
-            as Pokémon, One Piece, Digimon, Magic, Yu-Gi-Oh!, Dragon Ball
-            Super, Lorcana, or Other. Shop page has TCG filter pills.
+            <strong>Multi-TCG support</strong> — listings can now be tagged as
+            Pokémon, One Piece, Digimon, Magic, Yu-Gi-Oh!, Dragon Ball Super,
+            Lorcana, or Other. Shop page has TCG filter pills.
           </li>
           <li>
-            <strong>Japanese / non-English cards</strong> — scanner detects
-            the printed language and tags listings (JP / KR / CN / …). For
-            JP cards, the printed set number is preserved instead of being
-            overwritten by an English match.
+            <strong>Japanese / non-English cards</strong> — scanner detects the
+            printed language and tags listings (JP / KR / CN / …). For JP cards,
+            the printed set number is preserved instead of being overwritten by
+            an English match.
           </li>
           <li>
             <strong>Installable app (PWA)</strong> — add TCGo to your home
             screen on iOS / Android, or install as a desktop app. Works
             offline-shell with cached assets.
           </li>
-          <li>
-            <strong>Dark mode polish</strong> across every page. Theme now
-            persists on refresh without the white flash.
-          </li>
+          <li><strong>Dark mode polish</strong> across every page.</li>
           <li>
             <strong>Smarter scanner</strong> — camera captures at 4K, upload
-            quality bumped, scan/manual segmented toggle on Sell &amp;
-            Auction create pages. Faster &amp; cheaper identification via
-            Gemini 3.1 Flash-Lite.
+            quality bumped, scan/manual segmented toggle on Sell &amp; Auction
+            create pages along with faster identification.
           </li>
           <li>
-            <strong>Activity tab</strong> on mobile with quick switcher
-            between My Listings and My Bids.
+            <strong>Activity tab</strong> on mobile with quick switcher between
+            My Listings and My Bids.
           </li>
           <li>
-            <strong>Listing details</strong> — graded slabs now show their
-            grade (e.g. PSA 10) prominently, multi-photo listings show a
-            1/N counter on the hero image.
+            <strong>Listing details</strong> — graded slabs now show their grade
+            (e.g. PSA 10) prominently, multi-photo listings show a 1/N counter
+            on the hero image.
           </li>
           <li>Auction tile bid count now actually shows the bid count.</li>
         </ul>
