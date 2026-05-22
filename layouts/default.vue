@@ -12,5 +12,6 @@
       <slot />
     </main>
     <BetaGate />
+    <InstallPrompt />
   </div>
 </template>
