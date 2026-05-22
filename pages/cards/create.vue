@@ -180,6 +180,23 @@
                       </span>
                     </p>
                     <p
+                      v-if="item.marketPrice"
+                      class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-500/[0.12] px-1.5 py-0.5 rounded"
+                      :title="`Source: ${item.marketPrice.source === 'tcgplayer' ? 'TCGPlayer (USD)' : 'Cardmarket (EUR)'} · approximate MYR conversion`"
+                    >
+                      <svg
+                        class="w-3 h-3"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                      >
+                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                        <polyline points="16 7 22 7 22 13" />
+                      </svg>
+                      Market RM {{ item.marketPrice.low }}–{{ item.marketPrice.high }}
+                    </p>
+                    <p
                       v-else-if="item.status === 'failed' && item.error"
                       class="text-xs text-pokemon-red truncate"
                     >
@@ -332,7 +349,11 @@
                         type="number"
                         step="0.01"
                         min="0.01"
-                        placeholder="0.00"
+                        :placeholder="
+                          item.marketPrice
+                            ? `~${item.marketPrice.low}–${item.marketPrice.high}`
+                            : '0.00'
+                        "
                         class="w-full border border-gray-300 dark:border-white/[0.10] rounded px-2 py-1.5 pl-8 text-xs"
                       />
                     </div>

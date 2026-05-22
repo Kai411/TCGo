@@ -1,3 +1,32 @@
+// pokemontcg.io's price blocks. Both providers report multiple variants
+// (normal, holofoil, reverseHolofoil, ...) each with low/mid/high/market.
+// We let useMarketPrice pick the best variant + currency-convert to MYR.
+export interface TcgPriceBlock {
+  low?: number;
+  mid?: number;
+  high?: number;
+  market?: number;
+  directLow?: number;
+}
+
+export interface TcgPlayerPrices {
+  url?: string;
+  updatedAt?: string;
+  prices?: Record<string, TcgPriceBlock | undefined>;
+}
+
+export interface CardMarketPrices {
+  url?: string;
+  updatedAt?: string;
+  prices?: {
+    averageSellPrice?: number;
+    lowPrice?: number;
+    trendPrice?: number;
+    avg7?: number;
+    avg30?: number;
+  };
+}
+
 export interface TcgCard {
   id: string;
   name: string;
@@ -5,6 +34,8 @@ export interface TcgCard {
   rarity?: string;
   set: { id: string; name: string; series: string; printedTotal?: number };
   images: { small: string; large: string };
+  tcgplayer?: TcgPlayerPrices;
+  cardmarket?: CardMarketPrices;
 }
 
 interface TcgApiResponse {

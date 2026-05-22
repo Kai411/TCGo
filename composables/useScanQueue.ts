@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import type { TcgCard } from "./usePokemonTcg";
+import { extractMarketPrice, type MarketPrice } from "./useMarketPrice";
 
 // Normalize the pokemontcg.io rarity values into our 7-bucket picker.
 // API values are fine-grained ("Rare Holo VMAX", "Rare Ultra", "Rare
@@ -58,8 +59,10 @@ export interface ScanQueueItem {
   cardName?: string;
   cardSet?: string;
   cardNumber?: string;
-  rarity?: string;
   imageUrl?: string;
+  // Market-price hint in MYR derived from the matched TCG API card. Null
+  // when the API returned no pricing for this print.
+  marketPrice?: MarketPrice | null;
 
   // Populated when status === "needs-pick" — the candidates to choose from.
   matches?: TcgCard[];
@@ -118,6 +121,7 @@ export const useScanQueue = () => {
       cardNumber,
       rarity,
       imageUrl: match.images.large || match.images.small,
+      marketPrice: extractMarketPrice(match),
       matches: undefined,
     });
   };
