@@ -24,7 +24,7 @@ Last updated: 2026-05-22. Living doc — tick items as they ship, move blocks be
 - [x] **Market price indicator in scan flow** — pokemontcg.io price block flows into the scan queue; "Market RM X–Y" badge under each draft and a pre-filled price placeholder.
 - [ ] **Seed shop with ~100 real listings** — content work, not code. Catalog of actual cards across TCGs to populate the index for launch credibility.
 - [x] **AppNavbar logo → `/` instead of `/landing`** — in-app nav now stays in-app.
-- [x] **Landing page "TCGo marketplace →" link** — both nav CTAs are now plain `<a target="_blank" rel="noopener">`.
+- [~] **Landing page "TCGo marketplace →" link** — tried `target="_blank"`; user preferred same-tab. Now plain `<NuxtLink to="/">` everywhere. (Open in new tab forces a cold dev-bundle load.)
 
 ---
 
@@ -76,6 +76,7 @@ Detail in **[Competitive features](#tier-1--competitive-differentiators)** below
 
 ## Engineering hygiene (background, not version-gated)
 
+- [ ] Remove the `silence-manifest-warning` plugins once Nuxt fixes the duplicate `manifest-route-rule` middleware registration upstream (currently floods the dev log and slows responses 100x).
 - [ ] Move `nuxt: "3.13.2"` pin → unblock 3.21+ once the vite-node IPC bug is fixed upstream
 - [ ] Replace `bidCount` per-tick recompute with a Firestore-side aggregate
 - [ ] Admin tool to flip user tier (free ↔ premium) without Firebase Console
