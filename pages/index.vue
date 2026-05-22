@@ -4,7 +4,7 @@
          filter row above the spinner. -->
     <div
       v-if="!loading && tcgCounts.length > 1"
-      class="-mx-4 px-4 mb-4 sm:mb-6 overflow-x-auto"
+      class="-mx-4 px-4 mb-3 sm:mb-4 overflow-x-auto"
     >
       <div class="flex items-center gap-2 whitespace-nowrap">
         <button
@@ -23,6 +23,8 @@
         </button>
       </div>
     </div>
+
+    <ListingFilters v-if="!loading" :filters="filters" />
 
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-24">
@@ -197,6 +199,7 @@ useHead({
 
 const { user } = useAuth();
 const { cards, loading } = useCards();
+const filters = useListingFilters();
 
 // TCG filter — defaults to "All". Cards pre-dating the tcgType field
 // are bucketed as "Pokemon" so the legacy catalog stays visible.
@@ -220,14 +223,14 @@ const tcgCounts = computed(() => {
   );
 });
 
-const availableCards = computed(() =>
-  cards.value
+const availableCards = computed(() => {
+  const base = cards.value
     .filter((c: Card) => !c.sold)
     .filter(
       (c: Card) => activeTcg.value === "All" || tcgOf(c) === activeTcg.value,
-    )
-    .sort((a: Card, b: Card) => b.createdAt - a.createdAt),
-);
+    );
+  return filters.apply(base);
+});
 
 // Short pill label that always fits on a tile. Ungraded labels in the
 // constants list are written as "Near Mint (NM)", "Moderately Played (MP)",

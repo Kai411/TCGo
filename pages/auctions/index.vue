@@ -1,5 +1,11 @@
 <template>
   <div>
+    <ListingFilters
+      v-if="!loading"
+      :filters="filters"
+      :show-auction-sort="true"
+    />
+
     <!-- Loading -->
     <div v-if="loading" class="flex justify-center py-24">
       <div
@@ -156,10 +162,12 @@ useHead({
 });
 
 const { auctions, loading } = useAuctions();
+const filters = useListingFilters({ defaultSort: "ending-soon" });
 
-const publicAuctions = computed(() =>
-  auctions.value.filter((a: Auction) => !a.isPrivate),
-);
+const publicAuctions = computed(() => {
+  const base = auctions.value.filter((a: Auction) => !a.isPrivate);
+  return filters.apply(base);
+});
 
 const isEnding = (endsAt: number) => endsAt - Date.now() < 3600000;
 
