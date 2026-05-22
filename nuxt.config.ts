@@ -48,8 +48,21 @@ export default defineNuxtConfig({
       ],
     },
     workbox: {
-      navigateFallback: "/",
-      globPatterns: ["**/*.{js,css,html,png,svg,ico}"],
+      // Don't intercept navigations — HTML must always come from the
+      // network so every deploy is visible immediately. Previously this
+      // was "/" which made the SW serve a stale cached index.html that
+      // referenced old hashed chunks, breaking the site after each deploy.
+      navigateFallback: null,
+      // Precache only truly immutable static assets. JS/CSS are hashed
+      // by Nuxt and cache-busted by filename — letting them through the
+      // network avoids the "old SW serves stale chunks" trap.
+      globPatterns: ["**/*.{svg,ico,png,webp,webmanifest}"],
+      // New SW takes over immediately for all open tabs and removes
+      // outdated precache entries on activation. Critical for users who
+      // had the old precache-everything SW cached.
+      skipWaiting: true,
+      clientsClaim: true,
+      cleanupOutdatedCaches: true,
     },
     // PWA is production-only. Enabling in dev caches Vite module chunks
     // in the service worker, which then keeps serving stale bundles
