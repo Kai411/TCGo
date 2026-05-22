@@ -1,148 +1,274 @@
 # TCGo Roadmap
 
-Last updated: 2026-05-21. Living doc — edit as priorities shift.
+Last updated: 2026-05-22. Living doc — tick items as they ship, move blocks between versions as priorities shift.
 
-## Competitive landscape
+## At a glance
+
+- **Released**: V 0.3.0 (May 21)
+- **In progress**: V 0.4.0 — bug fixes, filters, polish
+- **Next**: V 0.5.0 — Stripe payments + premium membership
+- **After**: V 0.6.0 — wishlist, collection tracker, market prices
+- **Future**: live breaks, in-app chat, trades, reviews
+
+---
+
+## V 0.4.0 — Bug fixes + polish + groundwork (current sprint)
+
+- [ ] **Fix PWA install popup** — install prompt isn't showing on supported browsers (likely caused by the precache-everything SW we just narrowed in `80067a4`; needs verification)
+- [ ] **iOS "Add to Home Screen" prompt** — Safari doesn't show one natively; need an in-app prompt with screenshots/instructions for iOS users
+- [ ] **Filters in shop index page** — rarity, variant, language, condition, price range, set name. Builds on existing TCG type pills.
+- [ ] **Filters in auction index page** — mirror shop filters + status (live / ended) + time-left buckets
+- [ ] **My Listings / My Activity page refactor** — current `/dashboard/buyer` + `/dashboard/seller` are minimal; unify under `/activity` with proper tabs, empty states, filters
+- [ ] **Profile page: cards / auctions / favourite toggle spacing** — tighten the three-tab switcher on `/profile/[uid]`
+- [ ] **Improve search** — global search across listings + auctions; refer to Hoopi / Collektr MY for UX (full-screen modal, recent searches, suggested sets/cards)
+- [ ] **Market price indicator in scan flow** — when scanner identifies a card, show estimated market value (RM range) before publish. Uses [TCGdex](https://tcgdex.dev/) for a first pass.
+- [ ] **Seed shop with ~100 real listings** — content work, not code. Catalog of actual cards across TCGs to populate the index for launch credibility.
+- [ ] **AppNavbar logo → `/` instead of `/landing`** — currently the nav logo on the in-app shell goes to the marketing landing; should go to shop home.
+- [ ] **Landing page "TCGo marketplace →" link** — opens in new tab (`target="_blank" rel="noopener"`)
+
+---
+
+## V 0.5.0 — Membership + Payments
+
+Branch: `feature/membership-stripe`. Full spec in **[Membership + Stripe — full build plan](#membership--stripe--full-build-plan)** below.
+
+- [ ] **Step 1 — Bonus scans** (no Stripe yet) — +5 one-time card-free preview for free users
+- [ ] **Step 2 — Stripe SDK + checkout endpoint** — `/api/stripe/checkout.post.ts`
+- [ ] **Step 3 — Webhook endpoint** — `/api/stripe/webhook.post.ts` (sig verify + Firestore writes)
+- [ ] **Step 4 — `/pricing` page** — Free vs Premium comparison + Upgrade button
+- [ ] **Step 5 — Settings: Manage Subscription** — `/api/stripe/portal.post.ts` + button for active premium users
+- [ ] **Step 6 — Production flip** — Stripe live keys, live webhook endpoint, end-to-end test
+
+---
+
+## V 0.6.0 — Tier 1 differentiators
+
+Detail in **[Competitive features](#tier-1--competitive-differentiators)** below.
+
+- [ ] **Wishlist / want-list with push alerts** — biggest engagement multiplier
+- [ ] **Collection tracker (scan-to-own)** — separate from selling; "My Collection" surface
+- [ ] **Market price reference per card** — full integration with TCGdex/JustTCG (broader than V0.4 scan-only indicator)
+- [ ] **Set completion tracking** — "42/189 Scarlet & Violet" progress bars
+
+---
+
+## Later — ergonomic wins (V 0.7.0+)
+
+- [ ] **In-app messaging** — replace WhatsApp-only seller contact
+- [ ] **Seller ratings & reviews** — needs lifecycle status transitions
+- [ ] **Native push notifications** — outbid, wishlist match, message
+- [ ] **Trade offers (peer-to-peer)** — culturally important in MY/SG
+- [ ] **Bundle / multi-card lots** — one listing, multiple cards, single shipping
+
+---
+
+## Future bets — Tier 3
+
+- [ ] **Live breaks / live auctions** — the Hoopi/Collektr moat. Hard build (WebRTC, moderation, payments-during-live), only when seller pipeline justifies it.
+- [ ] **Stories** — 24h reel of new arrivals per seller
+- [ ] **Loyalty coins** — Hoopi-style earn/redeem
+- [ ] **PSA / CGC submission service** — Collektr-style. Operational lift; revenue lever for high-end.
+- [ ] **AR card preview** — tilt-to-see-holo
+- [ ] **Pre-orders / group buys** — formalize the Facebook-group pattern
+- [ ] **Grading recommendation** — "this card might be worth grading"
+
+---
+
+## Engineering hygiene (background, not version-gated)
+
+- [ ] Move `nuxt: "3.13.2"` pin → unblock 3.21+ once the vite-node IPC bug is fixed upstream
+- [ ] Replace `bidCount` per-tick recompute with a Firestore-side aggregate
+- [ ] Admin tool to flip user tier (free ↔ premium) without Firebase Console
+
+### Schema fields shipped without UI (wire when feature lands)
+
+- `era` — auto-derive from set, surface as filter
+- `tags[]` — free-form, wishlist (V0.6) consumer
+- `defects[]` — condition transparency
+- `certNumber` — graded slabs (grading service)
+- `viewCount` — engagement metric for sellers
+- `status` lifecycle (`active` → `reserved` → `sold` → ...) — needed for reviews + reserved-listings flow
+
+---
+
+## Released
+
+### V 0.3.0 — May 21, 2026
+- [x] Beta verification gate
+- [x] Card tile redesign (grade overlay, seller in body, 3.55:5 aspect ratio)
+- [x] Auction tile redesign (LIVE / ENDED merged badge, urgency colors)
+- [x] Price comma formatting (10,000.00) + RM prefix
+- [x] Scanner simplified (removed rarity/variant/edition auto-detect — was wrong too often)
+- [x] Image handling — scan-to-list no longer saves pokemontcg.io image
+- [x] Detail page cleanup
+- [x] PWA service worker — narrowed precache to fix post-deploy chunk mismatch crash
+
+### V 0.2.0 — May 21, 2026
+- [x] Membership tier system (Free 20 scans/month, Premium unlimited)
+- [x] Multi-TCG support (Pokémon, One Piece, Digimon, MTG, Yu-Gi-Oh!, DBS, Lorcana, Other) + shop filter pills
+- [x] Japanese / non-English scanner (language detection, JP set number preserved)
+- [x] Installable app (PWA)
+- [x] Dark mode polish across every page + theme persists on refresh
+- [x] Smarter scanner — 4K capture, upload quality bump, scan/manual toggle, Gemini 3.1 Flash-Lite
+- [x] Activity tab on mobile
+- [x] Grade badge on detail page
+- [x] Photo counter on multi-photo listings
+- [x] Auction tile bid count fix
+
+### V 0.1.0 — May 21, 2026
+- [x] Queued scanner for create listing
+- [x] Improved marketplace UI
+
+### V 0.0.x — May 14–19, 2026
+- [x] First prototype (V 0.0.1)
+- [x] Sales listings + live bidding (V 0.0.2)
+- [x] Google login + profile management (V 0.0.3)
+- [x] Landing page + privacy policy (V 0.0.4)
+- [x] Closed beta launch (V 0.0.5)
+
+---
+
+## Competitive landscape (reference)
 
 | Platform | Positioning | Killer feature |
 |----------|-------------|----------------|
-| [Collektr](https://collektr.co/) | "Asia's premier live bidding platform" | Livestream auctions, PSA grading submission, multi-category (TCG + Funko + sneakers + watches) |
-| [Hoopi](https://www.hoopi.xyz/) | TCG-only, gamification-heavy | Live Breaking (live box openings), Hoopi Coins currency, Leaderboards, Mystery boxes |
-| [Acorn TCG](https://www.acorntcg.com/) / [Dex](https://apps.apple.com/us/app/dex-for-tcg-collectors/id1555489854) / [Omi](https://tcgscanneromi.com/) | Collection trackers | Scan-to-own (not scan-to-sell), set completion tracking |
+| [Collektr](https://collektr.co/) | "Asia's premier live bidding platform" | Livestream auctions, PSA grading submission, multi-category |
+| [Hoopi](https://www.hoopi.xyz/) | TCG-only, gamification-heavy | Live Breaking, Hoopi Coins currency, Leaderboards |
+| [Acorn TCG](https://www.acorntcg.com/) / [Dex](https://apps.apple.com/us/app/dex-for-tcg-collectors/id1555489854) / [Omi](https://tcgscanneromi.com/) | Collection trackers | Scan-to-own, set completion tracking |
 | [TCGplayer](https://play.google.com/store/apps/details?id=com.tcgplayer.tcgplayer) | Market data + marketplace (US) | Market price reference, watchlists, historical pricing |
 
-## TCGo's existing moats (don't lose these)
+## TCGo moats (don't lose these)
 
-- **AI-powered scanner with multi-field auto-fill** — rarity / variant / edition / artist / language all extracted from a photo. Competitors require manual entry.
-- **Japanese card support** — language detection, JP set number preserved, English name translation.
-- **Multi-TCG support** — Pokémon, One Piece, Digimon, MTG, Yu-Gi-Oh!, DBS, Lorcana, Other. Filter pills on shop.
-- **WhatsApp-native seller contact** — lower friction in MY/SG market than in-app chat alone.
-- **Membership tier system** — free 20 scans/month, premium unlimited. Schema + UI already shipped; manual flip via Firestore for now.
-- **PWA-installable** — no app store needed.
+- **AI-powered scanner with multi-field auto-fill** — name, number, language, artist
+- **Japanese card support** — language detection, JP number preserved, English name translation
+- **Multi-TCG support** — Pokémon, One Piece, Digimon, MTG, Yu-Gi-Oh!, DBS, Lorcana, Other
+- **WhatsApp-native seller contact** — lower friction in MY/SG market
+- **Membership tier system** — schema + UI shipped, awaiting payment gateway
+- **PWA-installable** — no app store needed
 
 ---
 
-## Tier 1 — Competitive differentiators
+## Tier 1 — Competitive differentiators (deeper detail)
 
-These close the gap with Collektr / Hoopi where they're winning.
-
-### 1. Wishlist / want-list with alerts
-- Buyer: "I'm looking for Charizard ex 215/197 under RM 200"
-- When a matching listing goes live → push notification
+### Wishlist / want-list with alerts
+- Buyer: "Looking for Charizard ex 215/197 under RM 200"
+- Push notification when a matching listing goes live
 - Filterable by name, set, condition floor, max price, language
-- **Why first**: highest engagement multiplier per line of code. Pure data + push. Closes the discovery loop.
 
-### 2. Collection tracker (scan-to-own)
-- New surface: "My Collection" — cards you own, not listed
-- Same scanner pipeline; just routes to a personal inventory instead of a draft listing
-- Show total collection value (from market reference, see #4)
-- Set completion bars ("42/189 Scarlet & Violet")
-- Want-list and Collection share data with Marketplace listings (sell from your collection in one tap)
-- **Why second**: turns scanner from a sell-tool into an always-open app. Big retention play.
+### Collection tracker (scan-to-own)
+- "My Collection" — cards you own, not listed
+- Scan pipeline routes to inventory instead of draft listing
+- Total collection value (from market reference)
+- Set completion bars
+- Sell-from-collection in one tap
 
-### 3. Live breaks / live auctions
+### Market price reference per card
+- "Market value: RM 80–110" next to listing's asking price
+- Source: [TCGdex](https://tcgdex.dev/) (free, multilingual, JP) or [JustTCG](https://justtcg.com/) (paid, fuller JP)
+- Anchors buyers + sellers; powers collection valuation
+
+### Live breaks / live auctions
 - WebRTC stream + real-time chat + bidding overlay
-- Sellers host live box openings, viewers chime in / bid on pulls
-- Could lean on Cloudflare Stream or Mux for video infra
-- **Why deferred**: 3–4 week build (streaming, moderation, payments-during-live). Make-or-break is having seller/streamer pipeline, not tech. Revisit when 2 sellers are clamoring for it.
-
-### 4. Market price reference per card
-- Show "Market value: RM 80–110" next to a listing's asking price
-- Source: [TCGdex](https://tcgdex.dev/) (free, multilingual, JP support) or [JustTCG](https://justtcg.com/) (commercial, fuller JP)
-- Anchors both buyers and sellers — and adds collection valuation for #2
-- **Effort**: 1 day if TCGdex is good enough, 1 week if we need JustTCG with billing
+- Cloudflare Stream or Mux for video infra
+- Deferred: ~4 week build. Success hinges on streamer pipeline, not tech.
 
 ---
 
-## Tier 2 — Ergonomic wins
+## Membership + Stripe — full build plan
 
-### 5. In-app messaging
-- Native chat between buyer/seller (currently everything goes to WhatsApp)
-- Preserves history, enables disputes, future-proofs escrow / payments
-- WhatsApp deep-link stays as a fallback
-- **Why**: trust + operational visibility. Today we can't see communication for disputes.
+> Branch: `feature/membership-stripe`. Spec only — implementation tracked in **[V 0.5.0](#v-050--membership--payments)** above.
 
-### 6. Seller ratings & reviews
-- Buyer rates after a completed sale (1–5 stars + optional text)
-- Shows on seller profile + above the "Contact Seller" CTA
-- Trust score is internal; reviews are public and human
-- **Note**: needs lifecycle status (active → reserved → sold → completed) to know when to ask for a review. The `status` enum is already in the schema; the transitions aren't yet.
+### Decisions locked in
+- **Price**: RM **5.99 / month**. Monthly only for v1.
+- **Trial**: Card-free preview — first time a free user taps "Upgrade", grant **+5 bonus scans** (one-time, lifetime). Consumed before the monthly 20.
+- **Payment methods**: **Cards only** for the subscription. FPX/GrabPay/DuitNow are single-charge methods — can't auto-renew via Stripe.
+- **Cancel**: Keep Premium until current period ends, then auto-flip to Free. Stripe `cancel_at_period_end: true`.
 
-### 7. Set completion tracking
-- Tile on collection / profile: "Sword & Shield 42/189", "Surging Sparks 12/191", etc.
-- Reuses set name + number data we already capture
-- Pairs with #2 (collection tracker) — both share the underlying inventory
-- Discovery hook: tap a set → see incomplete cards → see what's listed
+### User flow
 
-### 8. Native push notifications
-- Outbid on an auction → push
-- Wishlist match → push (see #1)
-- New message → push (see #5)
-- Web Push API + service worker is already in place (PWA); just need permission + payload routing.
+```
+Free user (in scanner, hit quota OR clicked Upgrade)
+   │
+   ├── First time: "Try Premium — +5 bonus scans" → claim → back to scanner
+   │
+   └── After trial used / direct upgrade
+         │
+         ▼
+   POST /api/stripe/checkout
+         │ creates Stripe Checkout Session
+         ▼
+   Stripe Hosted Checkout (card form)
+         │
+         ├── success → /membership/success → settings shows Premium
+         └── cancel  → /membership/cancel  → back to /pricing
 
-### 9. Trade offers (peer-to-peer)
-- "Offer my X for your Y" with optional cash on top
-- Pre-internet TCG culture in MY/SG is trade-heavy — this taps real behavior
-- Sellers can accept / counter / reject
-- Needs: trade-request entity, in-app chat (#5) for negotiation
+(Async)
+Stripe ──webhook──► /api/stripe/webhook
+                      writes Premium + Stripe IDs + period dates to Firestore
+```
 
-### 10. Bundle / multi-card lots
-- One listing, multiple cards, single shipping cost
-- Buyer browses bundle contents before contacting
-- Sellers asked for this everywhere I've seen
-- **Effort**: small — schema supports it already (imageUrls is an array; just need a `bundleItems[]` field or treat each card in the bundle as inventory under one listing)
+### Pages
+| Path | Purpose |
+|------|---------|
+| `/pricing` *(new)* | Public. Free vs Premium comparison + Upgrade CTA |
+| `/membership/success` *(new, small)* | Post-checkout landing → /profile |
+| `/membership/cancel` *(new, small)* | Post-cancel landing → /pricing |
+| `/profile` Membership tile | Extend: Manage subscription button → Stripe Customer Portal |
 
----
+### Server endpoints
+| Path | Method | Purpose |
+|------|--------|---------|
+| `/api/stripe/checkout` | POST | Authed. Creates a Checkout Session; returns the hosted URL |
+| `/api/stripe/portal` | POST | Authed. Creates a Customer Portal Session; returns the URL |
+| `/api/stripe/webhook` | POST | Stripe → us. Sig verify, Firestore writes |
 
-## Tier 3 — Nice-to-have / future
+**Webhook listens for:**
+- `checkout.session.completed` → save IDs, set `tier: "premium"`, `currentPeriodEnd`
+- `customer.subscription.updated` → sync status + period dates + `cancelAtPeriodEnd`
+- `customer.subscription.deleted` → set `tier: "free"`, clear sub fields
+- `invoice.payment_failed` → set `subscriptionStatus: "past_due"`, stay premium during retry window
 
-### 11. Stories
-- 24-hour "new arrivals" reels from sellers
-- Instagram-style discovery, drives habit
-- Useful once we have 50+ active sellers
+### Schema additions on `UserProfile`
 
-### 12. Loyalty coins
-- Earn points on completed sales / purchases
-- Redeem for fee discounts, premium upgrade trial, featured-listing slots
-- Hoopi's model is "Hoopi Coins + Hoopi Mall" — could be a margin lever later
+```ts
+// Subscription state — only the webhook writes these.
+stripeCustomerId?: string;
+stripeSubscriptionId?: string;
+subscriptionStatus?: "active" | "past_due" | "canceled" | "trialing" | "incomplete";
+currentPeriodEnd?: number;
+cancelAtPeriodEnd?: boolean;
 
-### 13. PSA / CGC submission service
-- Take a cut of the grading fee, handle MY → US logistics
-- Collektr offers this; substantial revenue lever for high-end collectors
-- High operational lift — leave until volume justifies it
+// Card-free preview — set when user claims the +5 bonus.
+bonusScansRemaining?: number;
+bonusScansClaimedAt?: number;
+```
 
-### 14. AR card preview
-- Tilt phone to see the holo/foil effect on a card
-- Gimmick but viral on social
+`tier` is derived server-side from `subscriptionStatus` so it can't go out of sync.
 
-### 15. Pre-orders / group buys
-- Pool buyers to hit bulk pricing on sealed product
-- Common pattern in MY/SG via Facebook groups; we can formalize it
+### Quota check order (`useScanQuota.tryConsumeScan`)
+1. Premium → allow, no decrement
+2. Else `bonusScansRemaining > 0` → decrement bonus
+3. Else `scansUsed < FREE_SCAN_LIMIT` → increment used
+4. Else → block, show upgrade CTA
 
-### 16. Grading recommendation
-- "This Charizard at NM condition might be worth grading — PSA 9 estimate RM 1,200, PSA 10 estimate RM 4,500"
-- Uses market reference (#4) + condition heuristic
-- Up-sells the grading service (#13)
+### Env vars (Netlify)
+```
+STRIPE_SECRET_KEY                  = sk_test_… (then sk_live_…)
+STRIPE_WEBHOOK_SECRET              = whsec_…
+STRIPE_PRICE_ID_PREMIUM_MONTHLY    = price_…
+NUXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = pk_test_… (then pk_live_…)
+NUXT_PUBLIC_SITE_URL               = https://tcgo.shop
+```
 
----
+### Stripe dashboard setup (one-off, manual)
+1. Confirm Stripe account region = Malaysia
+2. Product: "TCGo Premium", recurring price RM 5.99 / month
+3. Enable Customer Portal: allow cancel + change card; no plan switching (only one plan)
+4. Webhook endpoint → `https://tcgo.shop/api/stripe/webhook` with the 4 events above. Copy signing secret.
+5. Test mode keys during build; flip to Live keys for production.
 
-## Open schema fields already shipped (no UI yet)
-
-These exist on `Card` + `Auction` interfaces but don't have user-facing surfaces. Ship the surfaces when feature lands:
-
-- `era` — auto-derive from set, surface as filter
-- `tags[]` — free-form, becomes useful with search + wishlist (#1)
-- `defects[]` — condition transparency
-- `certNumber` — graded slabs (#13 grading service)
-- `viewCount` — engagement metric for sellers
-- `status` lifecycle — needed for reviews (#6) and reserved-listings flow
-
----
-
-## Engineering hygiene (background work)
-
-- Move `nuxt: "3.13.2"` pin → unblock Nuxt 3.21+ when the vite-node IPC bug is fixed
-- Replace stripped `bids` on auctions list with a Firestore-side aggregate (current `bidCount` is computed on each listener tick)
-- TCG type filter on `/auctions` page (mirror of shop filter)
-- Auction page filter pills for rarity / variant
-- Admin tool to flip user tier (free ↔ premium) without Firebase Console
+### Open / deferred
+- Yearly plan toggle on /pricing (when monthly is converting)
+- Lifetime one-time tier
+- DuitNow Direct Debit for non-card recurring (custom integration)
+- Admin sub-status dashboard
