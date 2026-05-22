@@ -6,9 +6,6 @@ export default defineNuxtConfig({
   features: {
     devLogs: false,
   },
-  routeRules: {
-    "/**": { appManifest: false },
-  },
   modules: ["@nuxtjs/tailwindcss", "@vite-pwa/nuxt"],
   tailwindcss: {
     cssPath: "~/assets/css/tailwind.css",
