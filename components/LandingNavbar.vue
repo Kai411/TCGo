@@ -40,12 +40,14 @@
           >
             Terms of use
           </NuxtLink> -->
-          <NuxtLink
-            to="/"
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener"
             class="inline-flex items-center gap-1 px-3.5 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white shadow-glow"
           >
             TCGo Marketplace →
-          </NuxtLink>
+          </a>
         </div>
 
         <!-- Mobile menu button -->
@@ -149,12 +151,14 @@
 
           <!-- User section at bottom -->
           <div class="flex px-6 py-6 border-t border-gray-200 w-full">
-            <NuxtLink
-              to="/"
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener"
               class="inline-flex w-full items-center justify-center gap-1 px-3.5 py-2 rounded-full text-xl font-semibold bg-pokemon-red text-white shadow-glow"
             >
               TCGo Marketplace →
-            </NuxtLink>
+            </a>
           </div>
         </div>
       </Transition>

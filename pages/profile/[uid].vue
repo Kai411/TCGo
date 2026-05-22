@@ -145,13 +145,13 @@
       </section>
 
       <!-- Underline tabs -->
-      <div class="hairline mb-8">
-        <div class="flex items-center gap-8 -mb-px">
+      <div class="hairline mb-6">
+        <div class="flex items-center gap-5 sm:gap-6 -mb-px">
           <button
             v-for="tab in tabs"
             :key="tab.id"
             @click="activeTab = tab.id"
-            class="relative pb-4 pt-1 text-lg sm:text-xl font-bold tracking-tightest transition-colors ease-premium"
+            class="relative pb-3 pt-1 text-base sm:text-lg font-bold tracking-tightest transition-colors ease-premium"
             :class="
               activeTab === tab.id
                 ? 'text-ink dark:text-white'
@@ -160,7 +160,7 @@
           >
             {{ tab.label }}
             <span
-              class="ml-2 tabular-price text-sm font-bold align-middle"
+              class="ml-1.5 tabular-price text-xs font-bold align-middle"
               :class="
                 activeTab === tab.id
                   ? 'text-pokemon-red'
