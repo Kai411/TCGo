@@ -28,28 +28,52 @@
         </span>
       </button>
 
-      <div class="relative shrink-0">
-        <select
-          v-model="filters.sort.value"
-          class="appearance-none pl-3 pr-8 py-1.5 rounded-full text-sm font-semibold border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-ink dark:text-white"
+      <div class="relative shrink-0" @click.stop>
+        <button
+          type="button"
+          @click="sortOpen = !sortOpen"
+          class="inline-flex items-center gap-1.5 pl-3 pr-2.5 py-1.5 rounded-full text-sm font-semibold border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-ink dark:text-white"
         >
-          <option value="newest">Newest</option>
-          <option value="price-asc">Price ↑</option>
-          <option value="price-desc">Price ↓</option>
-          <option v-if="showAuctionSort" value="ending-soon">
-            Ending soon
-          </option>
-          <option v-if="showAuctionSort" value="most-bids">Most bids</option>
-        </select>
-        <svg
-          class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-ink-muted dark:text-zinc-400 pointer-events-none"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
+          {{ sortLabel }}
+          <svg
+            class="w-3 h-3 text-ink-muted dark:text-zinc-400"
+            :class="sortOpen ? 'rotate-180' : ''"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <Transition
+          enter-active-class="transition duration-150"
+          enter-from-class="opacity-0 -translate-y-1"
+          leave-active-class="transition duration-100"
+          leave-to-class="opacity-0 -translate-y-1"
         >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+          <div
+            v-if="sortOpen"
+            class="absolute right-0 mt-1 w-44 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden py-1 z-10"
+          >
+            <button
+              v-for="opt in sortOptions"
+              :key="opt.value"
+              type="button"
+              @click="filters.sort.value = opt.value; sortOpen = false"
+              class="w-full text-left px-3 py-2 text-sm font-medium hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
+              :class="
+                filters.sort.value === opt.value
+                  ? 'text-pokemon-red'
+                  : 'text-ink dark:text-white'
+              "
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </Transition>
       </div>
 
       <!-- Active filter chips -->
@@ -174,7 +198,7 @@
                     placeholder="Min"
                     :value="filters.priceMin.value ?? ''"
                     @input="onPriceInput($event, 'min')"
-                    class="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-ink dark:text-white"
+                    class="no-spin flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-ink dark:text-white"
                   />
                   <span class="text-ink-muted dark:text-zinc-500">—</span>
                   <input
@@ -183,7 +207,7 @@
                     placeholder="Max"
                     :value="filters.priceMax.value ?? ''"
                     @input="onPriceInput($event, 'max')"
-                    class="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-ink dark:text-white"
+                    class="no-spin flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-ink dark:text-white"
                   />
                 </div>
               </section>
@@ -307,6 +331,34 @@ const props = defineProps<{
 }>();
 
 const open = ref(false);
+const sortOpen = ref(false);
+
+const sortOptions = computed(() => {
+  const base = [
+    { value: "newest" as const, label: "Newest" },
+    { value: "price-asc" as const, label: "Price: low to high" },
+    { value: "price-desc" as const, label: "Price: high to low" },
+  ];
+  if (props.showAuctionSort) {
+    base.push(
+      { value: "ending-soon" as const, label: "Ending soon" },
+      { value: "most-bids" as const, label: "Most bids" },
+    );
+  }
+  return base;
+});
+
+const sortLabel = computed(
+  () =>
+    sortOptions.value.find((o) => o.value === props.filters.sort.value)
+      ?.label ?? "Sort",
+);
+
+const closeSortOnDocClick = () => (sortOpen.value = false);
+onMounted(() => document.addEventListener("click", closeSortOnDocClick));
+onBeforeUnmount(() =>
+  document.removeEventListener("click", closeSortOnDocClick),
+);
 
 const toggle = <T,>(arr: { value: T[] }, v: T) => {
   const i = arr.value.indexOf(v);
@@ -325,6 +377,12 @@ const shortCondition = (c: string) => {
   const m = c.match(/\(([^)]+)\)/);
   return m ? m[1] : c;
 };
+
+// Close the sort dropdown when the sheet opens (avoid floating menu over
+// modal backdrop) and when the user picks a filter.
+watch(open, (v) => {
+  if (v) sortOpen.value = false;
+});
 
 // Build the inline chip list from active filters so users can remove
 // individual selections without re-opening the sheet.
@@ -388,3 +446,17 @@ const chips = computed(() => {
   return out;
 });
 </script>
+
+<style scoped>
+/* Hide the up/down spinners on number inputs — the placeholder "Min/Max"
+   already conveys intent and the spinner makes the field look cluttered. */
+.no-spin::-webkit-outer-spin-button,
+.no-spin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spin {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+</style>

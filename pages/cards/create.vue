@@ -180,6 +180,14 @@
                       </span>
                     </p>
                     <p
+                      v-else-if="item.status === 'failed' && item.error"
+                      class="text-xs text-pokemon-red truncate"
+                    >
+                      {{ item.error }}
+                    </p>
+                    <!-- Market price is independent of the meta/failed
+                         chain above — sits outside the v-if/else-if. -->
+                    <p
                       v-if="item.marketPrice"
                       class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-500/[0.12] px-1.5 py-0.5 rounded"
                       :title="`Source: ${item.marketPrice.source === 'tcgplayer' ? 'TCGPlayer (USD)' : 'Cardmarket (EUR)'} · approximate MYR conversion`"
@@ -195,12 +203,6 @@
                         <polyline points="16 7 22 7 22 13" />
                       </svg>
                       Market RM {{ item.marketPrice.low }}–{{ item.marketPrice.high }}
-                    </p>
-                    <p
-                      v-else-if="item.status === 'failed' && item.error"
-                      class="text-xs text-pokemon-red truncate"
-                    >
-                      {{ item.error }}
                     </p>
                   </div>
                   <button

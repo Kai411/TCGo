@@ -1,5 +1,8 @@
 <template>
   <Teleport to="body">
+    <!-- Bottom card on mobile; right-anchored toast on lg+. Each modal
+         gets its own <Transition> — they can't share one because Vue's
+         Transition requires a single child. -->
     <Transition
       enter-active-class="transition-all duration-300 ease-premium"
       enter-from-class="opacity-0 translate-y-4"
@@ -8,7 +11,6 @@
       leave-from-class="opacity-100 translate-y-0"
       leave-to-class="opacity-0 translate-y-4"
     >
-      <!-- Bottom card on mobile; right-anchored toast on lg+ -->
       <div
         v-if="visible && !showIosSheet"
         class="fixed left-0 right-0 bottom-20 px-3 z-50 sm:left-auto sm:right-4 sm:bottom-4 sm:px-0 sm:max-w-sm pointer-events-none"
@@ -46,7 +48,18 @@
         </div>
       </div>
 
-      <!-- iOS instructions sheet -->
+    </Transition>
+
+    <!-- iOS instructions sheet (separate Transition because Vue allows
+         only one child per <Transition>). -->
+    <Transition
+      enter-active-class="transition-all duration-300 ease-premium"
+      enter-from-class="opacity-0 translate-y-4"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition-all duration-200 ease-premium"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 translate-y-4"
+    >
       <div
         v-if="showIosSheet"
         class="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
