@@ -3,43 +3,56 @@ const route = useRoute();
 const { user } = useAuth();
 const { profile, loading } = useMyProfile();
 
-// Pages that unverified users still need access to
-const allowedPaths = ["/profile"];
+const dismissed = ref(false);
 
-const showGate = computed(() => {
-  // Not logged in or still loading — don't block
+const allowedPaths = ["/profile", "/beta"];
+
+const showBanner = computed(() => {
   if (!user.value || loading.value) return false;
-  // Allow access to certain pages (e.g. profile for screenshot)
-  if (
-    allowedPaths.some((p) => route.path === p || route.path.startsWith(p + "/"))
-  )
-    return false;
-  // Logged in but not verified — show gate
+  if (allowedPaths.some((p) => route.path === p || route.path.startsWith(p + "/"))) return false;
+  if (dismissed.value) return false;
   return !profile.value?.whatsappVerified;
 });
 </script>
 
 <template>
-  <div
-    v-if="showGate"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-zinc-900/90 backdrop-blur-sm"
+  <Transition
+    enter-active-class="transition-transform duration-300 ease-out"
+    enter-from-class="-translate-y-full"
+    enter-to-class="translate-y-0"
+    leave-active-class="transition-transform duration-200 ease-in"
+    leave-from-class="translate-y-0"
+    leave-to-class="-translate-y-full"
   >
     <div
-      class="max-w-md w-[90%] text-center p-8 rounded-2xl bg-white dark:bg-zinc-800 shadow-xl border border-gray-200 dark:border-zinc-700"
+      v-if="showBanner"
+      class="fixed top-0 inset-x-0 z-40 bg-amber-50 dark:bg-amber-950/60 border-b border-amber-200 dark:border-amber-800/50"
     >
-      <p class="text-lg font-semibold text-gray-900 dark:text-white">
-        Oops! Seems like you're not verified for beta access yet.
-      </p>
-      <p class="mt-3 text-sm text-gray-600 dark:text-zinc-400">
-        Please click the button below to read the instructions to verify your
-        beta access.
-      </p>
-      <NuxtLink
-        to="/beta"
-        class="mt-6 inline-block px-6 py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors"
-      >
-        Verify Beta Access
-      </NuxtLink>
+      <div class="container mx-auto px-4 py-2 flex items-center gap-3">
+        <span class="text-amber-600 dark:text-amber-400 shrink-0">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </span>
+        <p class="flex-1 text-xs text-amber-800 dark:text-amber-300 font-medium">
+          Your account isn't verified yet — verify your phone to unlock full marketplace access.
+        </p>
+        <NuxtLink
+          to="/beta"
+          class="shrink-0 text-xs font-bold text-amber-700 dark:text-amber-400 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
+        >
+          Verify now
+        </NuxtLink>
+        <button
+          @click="dismissed = true"
+          class="shrink-0 text-amber-500 dark:text-amber-500 hover:text-amber-800 dark:hover:text-amber-300 transition-colors"
+          aria-label="Dismiss"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
     </div>
-  </div>
+  </Transition>
 </template>
