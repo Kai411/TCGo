@@ -9,6 +9,11 @@ import {
 let recaptchaVerifier: RecaptchaVerifier | null = null;
 let confirmationResult: ConfirmationResult | null = null;
 
+const clearRecaptcha = () => {
+  try { recaptchaVerifier?.clear(); } catch {}
+  recaptchaVerifier = null;
+};
+
 export const usePhoneVerification = () => {
   const { app } = useFirebase();
   const { user } = useAuth();
@@ -44,7 +49,6 @@ export const usePhoneVerification = () => {
         recaptchaVerifier!,
       );
 
-      // Store verificationId for later use
       confirmationResult = {
         verificationId,
         confirm: async (code: string) => {
@@ -55,31 +59,23 @@ export const usePhoneVerification = () => {
 
       codeSent.value = true;
     } catch (e: any) {
-      // If phone is already linked, try a different approach
       if (e.code === "auth/provider-already-linked") {
-        // Already verified
-        await updateProfile({
-          whatsappVerified: true,
-          whatsappNumber: phoneNumber,
-        });
+        await updateProfile({ whatsappVerified: true, whatsappNumber: phoneNumber });
         codeSent.value = false;
         error.value = "";
+        clearRecaptcha();
         return "already-verified";
       }
-      error.value = getErrorMessage(e.code);
-      // Reset recaptcha on error
-      recaptchaVerifier = null;
+      error.value = getErrorMessage(e);
+      clearRecaptcha();
     } finally {
       sending.value = false;
     }
   };
 
-  const verifyCode = async (
-    code: string,
-    phoneNumber: string,
-  ): Promise<boolean> => {
+  const verifyCode = async (code: string, phoneNumber: string): Promise<boolean> => {
     if (!confirmationResult) {
-      error.value = "No verification in progress. Send a code first.";
+      error.value = "No verification in progress. Please send a code first.";
       return false;
     }
 
@@ -88,33 +84,21 @@ export const usePhoneVerification = () => {
 
     try {
       await confirmationResult.confirm(code);
-
-      // Mark profile as verified
-      await updateProfile({
-        whatsappNumber: phoneNumber,
-        whatsappVerified: true,
-      });
-
-      // Cleanup
+      await updateProfile({ whatsappNumber: phoneNumber, whatsappVerified: true });
       confirmationResult = null;
-      recaptchaVerifier = null;
-
+      clearRecaptcha();
       return true;
     } catch (e: any) {
       if (e.code === "auth/invalid-verification-code") {
-        error.value = "Invalid code. Please try again.";
+        error.value = "Incorrect code — double-check and try again.";
       } else if (e.code === "auth/code-expired") {
-        error.value = "Code expired. Please request a new one.";
+        error.value = "Code has expired. Please request a new one.";
         codeSent.value = false;
       } else if (e.code === "auth/provider-already-linked") {
-        // Phone already linked — just mark as verified
-        await updateProfile({
-          whatsappVerified: true,
-          whatsappNumber: phoneNumber,
-        });
+        await updateProfile({ whatsappVerified: true, whatsappNumber: phoneNumber });
         return true;
       } else {
-        error.value = getErrorMessage(e.code);
+        error.value = getErrorMessage(e);
       }
       return false;
     } finally {
@@ -126,27 +110,34 @@ export const usePhoneVerification = () => {
     codeSent.value = false;
     error.value = "";
     confirmationResult = null;
-    recaptchaVerifier = null;
+    clearRecaptcha();
   };
 
   return { sendCode, verifyCode, reset, sending, verifying, error, codeSent };
 };
 
-function getErrorMessage(code: string): string {
+function getErrorMessage(e: any): string {
+  const code: string = e?.code ?? "";
   switch (code) {
     case "auth/invalid-phone-number":
       return "Invalid phone number. Use format: +60123456789";
     case "auth/too-many-requests":
-      return "Too many attempts. Try again later.";
+      return "Too many attempts. Please try again later.";
     case "auth/quota-exceeded":
-      return "SMS quota exceeded. Try again tomorrow.";
+      return "SMS quota exceeded. Please try again tomorrow.";
     case "auth/captcha-check-failed":
-      return "reCAPTCHA failed. Please try again.";
+      return "reCAPTCHA check failed. Please try again.";
     case "auth/provider-already-linked":
       return "This phone is already linked to your account.";
     case "auth/credential-already-in-use":
-      return "This phone number is already used by another account.";
+      return "This phone number is already registered to another account.";
+    case "auth/billing-not-enabled":
+      return "SMS is not enabled on this project. Please contact the administrator.";
+    case "auth/network-request-failed":
+      return "Network error. Check your connection and try again.";
     default:
-      return `Verification failed (${code}). Please try again.`;
+      return e?.message
+        ? `Verification failed: ${e.message}`
+        : "Verification failed. Please refresh the page and try again.";
   }
 }
