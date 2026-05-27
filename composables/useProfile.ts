@@ -9,6 +9,13 @@ import { effectScope, ref, onUnmounted, watch } from "vue";
 
 export type MembershipTier = "free" | "premium";
 
+export type SubscriptionStatus =
+  | "active"
+  | "past_due"
+  | "canceled"
+  | "trialing"
+  | "incomplete";
+
 export interface UserProfile {
   uid: string;
   displayName: string;
@@ -27,6 +34,15 @@ export interface UserProfile {
   scansUsed: number;
   // Epoch ms of the next monthly reset (1st of next month, 00:00 local).
   scansResetAt: number;
+  // Stripe subscription fields — only written by the webhook.
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  subscriptionStatus?: SubscriptionStatus;
+  currentPeriodEnd?: number;
+  cancelAtPeriodEnd?: boolean;
+  // Card-free preview — set when user claims the +5 bonus scans.
+  bonusScansRemaining?: number;
+  bonusScansClaimedAt?: number;
 }
 
 export const useProfile = (uid?: string) => {

@@ -284,8 +284,8 @@
               </div>
             </div>
 
-            <!-- Contact Seller Button -->
-            <div v-if="!card.sold && !isOwnListing" class="mt-6">
+            <!-- Contact Seller + Buy Now -->
+            <div v-if="!card.sold && !isOwnListing" class="mt-6 space-y-3">
               <a
                 :href="whatsappLink"
                 target="_blank"
@@ -300,9 +300,77 @@
                 </svg>
                 Contact Seller
               </a>
+
+              <!-- Buy Now via Stripe (escrow) -->
+              <div class="border border-gray-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
+                <button
+                  @click="buyNowOpen = !buyNowOpen"
+                  class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-ink dark:text-white hover:bg-black/[0.02] dark:hover:bg-white/[0.04] transition-colors"
+                >
+                  <span class="flex items-center gap-2">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                    Buy Now · Pay via Stripe
+                  </span>
+                  <svg class="w-4 h-4 transition-transform" :class="buyNowOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+
+                <Transition enter-active-class="transition-all duration-200" enter-from-class="opacity-0 -translate-y-1" leave-active-class="transition-all duration-150" leave-to-class="opacity-0 -translate-y-1">
+                  <div v-if="buyNowOpen" class="border-t border-gray-200 dark:border-white/[0.08] p-4 space-y-4">
+                    <!-- Shipping region -->
+                    <div>
+                      <p class="text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1.5">Shipping region</p>
+                      <div class="flex gap-2">
+                        <button
+                          @click="buyNowRegion = 'WM'"
+                          :class="['flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors', buyNowRegion === 'WM' ? 'bg-pokemon-red text-white border-pokemon-red' : 'border-gray-300 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200']"
+                        >WM (RM {{ card.shippingWM?.toFixed(2) ?? '0.00' }})</button>
+                        <button
+                          @click="buyNowRegion = 'EM'"
+                          :class="['flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors', buyNowRegion === 'EM' ? 'bg-pokemon-red text-white border-pokemon-red' : 'border-gray-300 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200']"
+                        >EM (RM {{ card.shippingEM?.toFixed(2) ?? '0.00' }})</button>
+                      </div>
+                    </div>
+
+                    <!-- Price breakdown -->
+                    <div class="text-sm space-y-1">
+                      <div class="flex justify-between text-gray-600 dark:text-zinc-300">
+                        <span>Item</span><span>RM {{ card.price.toFixed(2) }}</span>
+                      </div>
+                      <div class="flex justify-between text-gray-600 dark:text-zinc-300">
+                        <span>Shipping</span>
+                        <span>RM {{ buyNowShipping.toFixed(2) }}</span>
+                      </div>
+                      <div class="flex justify-between font-bold pt-1 border-t border-gray-100 dark:border-white/[0.06]">
+                        <span>Total</span><span class="text-pokemon-red">RM {{ buyNowTotal.toFixed(2) }}</span>
+                      </div>
+                    </div>
+
+                    <p class="text-xs text-gray-400 dark:text-zinc-500">
+                      Funds held in escrow until you confirm delivery.
+                    </p>
+
+                    <div v-if="!user">
+                      <button @click="signInWithGoogle" class="w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-gray-700 transition-colors">
+                        Sign in to buy
+                      </button>
+                    </div>
+                    <div v-else>
+                      <button
+                        @click="handleBuyNow"
+                        :disabled="buyNowLoading"
+                        class="w-full bg-pokemon-red text-white py-2.5 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                      >
+                        <span v-if="buyNowLoading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
+                        {{ buyNowLoading ? 'Redirecting...' : 'Pay Securely' }}
+                      </button>
+                    </div>
+                  </div>
+                </Transition>
+              </div>
+
               <p
                 v-if="card.interestedCount > 0"
-                class="text-center text-xs text-gray-400 dark:text-zinc-500 mt-2"
+                class="text-center text-xs text-gray-400 dark:text-zinc-500"
               >
                 {{ card.interestedCount }}
                 {{ card.interestedCount === 1 ? "person has" : "people have" }}
@@ -332,7 +400,60 @@ const cardId = route.params.id as string;
 
 const { cards, loading, markInterested } = useCards();
 const { firestore } = useFirebase();
-const { user } = useAuth();
+const { user, signInWithGoogle } = useAuth();
+const { createPendingOrders } = useOrders();
+
+// Buy Now state
+const buyNowOpen = ref(false);
+const buyNowRegion = ref<'WM' | 'EM'>('WM');
+const buyNowLoading = ref(false);
+
+const buyNowShipping = computed(() => {
+  if (!card.value) return 0;
+  return buyNowRegion.value === 'WM' ? (card.value.shippingWM ?? 0) : (card.value.shippingEM ?? 0);
+});
+
+const buyNowTotal = computed(() => {
+  if (!card.value) return 0;
+  return card.value.price + buyNowShipping.value;
+});
+
+const handleBuyNow = async () => {
+  if (!user.value || !card.value) return;
+  buyNowLoading.value = true;
+  try {
+    const [order] = await createPendingOrders([{
+      cardId: card.value.id,
+      cardName: card.value.cardName,
+      cardSet: card.value.cardSet || '',
+      imageUrl: card.value.imageUrls?.[0] || card.value.imageUrl || '',
+      sellerUid: card.value.sellerUid,
+      sellerName: card.value.seller,
+      price: card.value.price,
+      shipping: buyNowShipping.value,
+    }]);
+    const res = await $fetch<{ url: string }>('/api/stripe/checkout', {
+      method: 'POST',
+      body: {
+        type: 'payment',
+        uid: user.value.uid,
+        email: user.value.email,
+        items: [{
+          orderId: order.id,
+          name: card.value.cardName,
+          price: card.value.price,
+          shipping: buyNowShipping.value,
+          imageUrl: card.value.imageUrls?.[0] || card.value.imageUrl,
+        }],
+      },
+    });
+    if (res.url) window.location.href = res.url;
+  } catch (e: any) {
+    alert(e?.data?.message || 'Checkout failed. Please try again.');
+  } finally {
+    buyNowLoading.value = false;
+  }
+};
 
 const card = computed(
   () => cards.value.find((c: Card) => c.id === cardId) || null,

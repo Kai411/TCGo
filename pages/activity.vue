@@ -154,6 +154,41 @@
           </ActivitySection>
         </div>
 
+        <!-- Orders tab -->
+        <div v-if="activeTab === 'orders'" class="space-y-6">
+          <div v-if="ordersLoadingBuyer || ordersLoadingSeller" class="flex justify-center py-12">
+            <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red"/>
+          </div>
+          <template v-else>
+            <div>
+              <h3 class="text-sm font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wide mb-3">My Purchases</h3>
+              <p v-if="!buyerOrders.length" class="text-sm text-gray-400 dark:text-zinc-500">No purchases yet.</p>
+              <div v-else class="space-y-3">
+                <OrderCard
+                  v-for="order in buyerOrders"
+                  :key="order.id"
+                  :order="order"
+                  role="buyer"
+                  @mark-delivered="markDelivered(order.id)"
+                />
+              </div>
+            </div>
+            <div>
+              <h3 class="text-sm font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wide mb-3">Sales via Stripe</h3>
+              <p v-if="!sellerOrders.length" class="text-sm text-gray-400 dark:text-zinc-500">No Stripe sales yet.</p>
+              <div v-else class="space-y-3">
+                <OrderCard
+                  v-for="order in sellerOrders"
+                  :key="order.id"
+                  :order="order"
+                  role="seller"
+                  @add-tracking="(data) => addTracking(order.id, data.number, data.carrier)"
+                />
+              </div>
+            </div>
+          </template>
+        </div>
+
         <!-- History tab -->
         <div v-if="activeTab === 'history'" class="space-y-8">
           <ActivitySection
@@ -265,13 +300,23 @@
 import type { Auction } from "~/composables/useAuctions";
 import type { Card } from "~/composables/useCards";
 
-type TabId = "selling" | "bidding" | "history";
+type TabId = "selling" | "bidding" | "history" | "orders";
 
 const route = useRoute();
 const router = useRouter();
 const { user, signInWithGoogle } = useAuth();
 const { auctions, loading } = useAuctions();
 const { cards, loading: cardsLoading, markAsSold } = useCards();
+const {
+  buyerOrders,
+  sellerOrders,
+  loadingBuyer: ordersLoadingBuyer,
+  loadingSeller: ordersLoadingSeller,
+  listenBuyerOrders,
+  listenSellerOrders,
+  markDelivered,
+  addTracking,
+} = useOrders();
 
 // Per-user bid index: auctionId → { highestBid }
 const uid = computed(() => user.value?.uid || "");
@@ -282,6 +327,19 @@ const activeTab = ref<TabId>(
 );
 watch(activeTab, (id) => {
   router.replace({ query: { ...route.query, tab: id } });
+});
+
+onMounted(() => {
+  if (user.value) {
+    listenBuyerOrders();
+    listenSellerOrders();
+  }
+});
+watch(user, (u) => {
+  if (u) {
+    listenBuyerOrders();
+    listenSellerOrders();
+  }
 });
 
 const myCards = computed(() =>
@@ -336,6 +394,11 @@ const wonBids = computed(() =>
     .sort((a, b) => b.auction.endsAt - a.auction.endsAt),
 );
 
+const activeOrdersCount = computed(
+  () => buyerOrders.value.filter((o) => o.status !== "delivered" && o.status !== "cancelled").length
+    + sellerOrders.value.filter((o) => o.status === "paid").length,
+);
+
 const tabs = computed(() => [
   {
     id: "selling" as TabId,
@@ -352,6 +415,11 @@ const tabs = computed(() => [
     label: "History",
     count:
       soldCards.value.length + endedAuctions.value.length + wonBids.value.length,
+  },
+  {
+    id: "orders" as TabId,
+    label: "Orders",
+    count: activeOrdersCount.value,
   },
 ]);
 

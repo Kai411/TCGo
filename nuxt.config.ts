@@ -162,6 +162,11 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
+    // Server-only secrets (no NUXT_PUBLIC_ prefix)
+    stripeSecretKey: "",
+    stripeWebhookSecret: "",
+    stripePricePremium: "",
+    firebaseServiceAccount: "", // base64-encoded service account JSON
     public: {
       firebaseApiKey: "",
       firebaseAuthDomain: "",
@@ -172,8 +177,9 @@ export default defineNuxtConfig({
       firebaseAppId: "",
       cloudinaryCloudName: "",
       cloudinaryUploadPreset: "",
-      // Admin WhatsApp for premium upgrade requests. Set via NUXT_PUBLIC_ADMIN_WHATSAPP.
       adminWhatsApp: "",
+      stripePublishableKey: "",
+      siteUrl: "https://tcgo.shop",
     },
   },
 });

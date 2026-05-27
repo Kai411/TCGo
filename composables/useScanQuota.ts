@@ -1,7 +1,8 @@
-import { doc, runTransaction } from "firebase/firestore";
+import { doc, runTransaction, updateDoc } from "firebase/firestore";
 import { computed } from "vue";
 
 export const FREE_SCAN_LIMIT = 20;
+export const BONUS_SCANS = 5;
 
 const firstOfNextMonth = (from: Date) =>
   new Date(from.getFullYear(), from.getMonth() + 1, 1).getTime();
@@ -13,14 +14,23 @@ export const useScanQuota = () => {
 
   const isPremium = computed(() => profile.value?.tier === "premium");
 
+  const hasClaimedBonus = computed(
+    () => !!(profile.value?.bonusScansClaimedAt),
+  );
+
+  const bonusRemaining = computed(
+    () => profile.value?.bonusScansRemaining ?? 0,
+  );
+
   // Live remaining count, accounting for lazy monthly reset.
   const remaining = computed(() => {
     if (!profile.value) return 0;
     if (isPremium.value) return Infinity;
+    const bonus = profile.value.bonusScansRemaining ?? 0;
     const dueReset =
       profile.value.scansResetAt && Date.now() >= profile.value.scansResetAt;
     const used = dueReset ? 0 : profile.value.scansUsed ?? 0;
-    return Math.max(0, FREE_SCAN_LIMIT - used);
+    return bonus + Math.max(0, FREE_SCAN_LIMIT - used);
   });
 
   const limit = computed(() =>
@@ -34,8 +44,23 @@ export const useScanQuota = () => {
     return dueReset ? 0 : profile.value.scansUsed ?? 0;
   });
 
-  // Reserves one scan atomically. Returns true if allowed, false if over cap.
-  // Premium short-circuits — no write, no read.
+  // Claim the one-time +5 bonus scans preview.
+  const claimBonusScans = async (): Promise<boolean> => {
+    if (!user.value || !firestore) return false;
+    if (hasClaimedBonus.value) return false;
+    try {
+      await updateDoc(doc(firestore, "users", user.value.uid), {
+        bonusScansRemaining: BONUS_SCANS,
+        bonusScansClaimedAt: Date.now(),
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // Reserves one scan atomically.
+  // Order: premium → bonus → free quota → block.
   const tryConsumeScan = async (): Promise<boolean> => {
     if (!user.value || !firestore) return false;
     if (isPremium.value) return true;
@@ -44,8 +69,20 @@ export const useScanQuota = () => {
       return await runTransaction(firestore, async (tx) => {
         const snap = await tx.get(ref);
         if (!snap.exists()) return false;
-        const data = snap.data() as { scansUsed?: number; scansResetAt?: number; tier?: string };
+        const data = snap.data() as {
+          scansUsed?: number;
+          scansResetAt?: number;
+          tier?: string;
+          bonusScansRemaining?: number;
+        };
         if (data.tier === "premium") return true;
+
+        // Consume bonus first
+        if ((data.bonusScansRemaining ?? 0) > 0) {
+          tx.update(ref, { bonusScansRemaining: (data.bonusScansRemaining ?? 0) - 1 });
+          return true;
+        }
+
         const now = Date.now();
         const needsReset = !data.scansResetAt || now >= data.scansResetAt;
         const currentUsed = needsReset ? 0 : data.scansUsed ?? 0;
@@ -64,5 +101,14 @@ export const useScanQuota = () => {
     }
   };
 
-  return { isPremium, remaining, limit, used, tryConsumeScan };
+  return {
+    isPremium,
+    remaining,
+    limit,
+    used,
+    hasClaimedBonus,
+    bonusRemaining,
+    claimBonusScans,
+    tryConsumeScan,
+  };
 };

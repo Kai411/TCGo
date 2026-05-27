@@ -205,6 +205,7 @@ const desktopLinks = computed(() => {
   const links = [
     { to: "/", label: "Shop" },
     { to: "/auctions", label: "Auctions" },
+    { to: "/pricing", label: "Pricing" },
   ];
   if (user.value) {
     links.push({ to: "/activity", label: "Activity" });

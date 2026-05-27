@@ -238,36 +238,80 @@
           </span>
         </div>
 
-        <div v-if="!isPremium">
-          <div class="flex items-center justify-between mb-2">
-            <p class="text-sm text-gray-700 dark:text-zinc-200">Card scans</p>
-            <p class="text-sm font-medium tabular-nums">
-              {{ scansUsed }}/{{ FREE_SCAN_LIMIT }}
+        <!-- Premium: active subscription info -->
+        <template v-if="isPremium">
+          <p class="text-sm text-gray-500 dark:text-zinc-400">
+            Unlimited card scans. Thanks for supporting TCGo.
+          </p>
+          <div v-if="profile?.currentPeriodEnd" class="text-xs text-gray-400 dark:text-zinc-500">
+            <span v-if="profile.cancelAtPeriodEnd">
+              Cancels on {{ periodEndLabel }}. You keep Premium until then.
+            </span>
+            <span v-else>Renews {{ periodEndLabel }}</span>
+          </div>
+          <button
+            v-if="profile?.stripeCustomerId"
+            @click="openPortal"
+            :disabled="portalLoading"
+            class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors disabled:opacity-50"
+          >
+            {{ portalLoading ? 'Opening...' : 'Manage subscription →' }}
+          </button>
+        </template>
+
+        <!-- Free: scan usage bar -->
+        <template v-else>
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-sm text-gray-700 dark:text-zinc-200">Card scans</p>
+              <p class="text-sm font-medium tabular-nums">
+                {{ scansUsed }}/{{ FREE_SCAN_LIMIT }}
+                <span v-if="bonusRemaining > 0" class="ml-1 text-xs text-blue-500">(+{{ bonusRemaining }} bonus)</span>
+              </p>
+            </div>
+            <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-white/[0.06] overflow-hidden">
+              <div
+                class="h-full bg-pokemon-red transition-all"
+                :style="{ width: `${Math.min(100, (scansUsed / FREE_SCAN_LIMIT) * 100)}%` }"
+              ></div>
+            </div>
+            <p class="text-xs text-gray-400 dark:text-zinc-500 mt-2">
+              Resets {{ scansResetLabel }}.
             </p>
           </div>
-          <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-white/[0.06] overflow-hidden">
-            <div
-              class="h-full bg-pokemon-red transition-all"
-              :style="{ width: `${Math.min(100, (scansUsed / FREE_SCAN_LIMIT) * 100)}%` }"
-            ></div>
-          </div>
-          <p class="text-xs text-gray-400 dark:text-zinc-500 mt-2">
-            Resets {{ scansResetLabel }}.
-          </p>
-        </div>
-        <p v-else class="text-sm text-gray-500 dark:text-zinc-400">
-          Unlimited card scans. Thanks for supporting TCGo.
-        </p>
 
-        <a
-          v-if="!isPremium && adminWhatsAppLink"
-          :href="adminWhatsAppLink"
-          target="_blank"
-          rel="noopener"
-          class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-ink px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-        >
-          Upgrade to Premium
-        </a>
+          <!-- Bonus scans trial (one-time) -->
+          <div
+            v-if="!hasClaimedBonus"
+            class="flex items-center justify-between gap-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl p-3"
+          >
+            <div>
+              <p class="text-sm font-semibold text-blue-900 dark:text-blue-200">Try before you upgrade</p>
+              <p class="text-xs text-blue-700 dark:text-blue-300 mt-0.5">Claim +5 free bonus scans — no payment needed.</p>
+            </div>
+            <button
+              @click="handleClaimBonus"
+              :disabled="claimingBonus"
+              class="shrink-0 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
+            >
+              {{ claimingBonus ? '...' : 'Claim' }}
+            </button>
+          </div>
+
+          <!-- Upgrade CTA -->
+          <div class="flex items-center gap-3 flex-wrap">
+            <button
+              @click="handleUpgrade"
+              :disabled="upgradeLoading"
+              class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-ink px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
+            >
+              {{ upgradeLoading ? 'Redirecting...' : 'Upgrade to Premium · RM 5.99/mo' }}
+            </button>
+            <NuxtLink to="/pricing" class="text-xs text-gray-400 dark:text-zinc-500 hover:text-ink dark:hover:text-white transition-colors">
+              Compare plans →
+            </NuxtLink>
+          </div>
+        </template>
       </div>
 
       <div
@@ -324,17 +368,8 @@ import type { UserProfile } from "~/composables/useProfile";
 const { user, signInWithGoogle } = useAuth();
 const { profile, loading, updateProfile, updateCustomName } = useMyProfile();
 const { uploadImage } = useStorage();
-const { isPremium, used: scansUsed } = useScanQuota();
-
-const config = useRuntimeConfig();
-const adminWhatsAppLink = computed(() => {
-  const num = config.public.adminWhatsApp;
-  if (!num) return "";
-  const msg = encodeURIComponent(
-    `Hi! I'd like to upgrade to TCGo Premium (user: ${user.value?.email || user.value?.uid || "anon"}).`,
-  );
-  return `https://wa.me/${num}?text=${msg}`;
-});
+const { isPremium, used: scansUsed, hasClaimedBonus, bonusRemaining, claimBonusScans } = useScanQuota();
+const FREE_SCAN_LIMIT = 20;
 
 const scansResetLabel = computed(() => {
   if (!profile.value?.scansResetAt) return "next month";
@@ -343,6 +378,60 @@ const scansResetLabel = computed(() => {
     day: "numeric",
   });
 });
+
+const periodEndLabel = computed(() => {
+  if (!profile.value?.currentPeriodEnd) return "";
+  return new Date(profile.value.currentPeriodEnd).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+});
+
+const upgradeLoading = ref(false);
+const portalLoading = ref(false);
+const claimingBonus = ref(false);
+
+const handleUpgrade = async () => {
+  if (!user.value) return;
+  upgradeLoading.value = true;
+  try {
+    const res = await $fetch<{ url: string }>('/api/stripe/checkout', {
+      method: 'POST',
+      body: { type: 'subscription', uid: user.value.uid, email: user.value.email },
+    });
+    if (res.url) window.location.href = res.url;
+  } catch (e: any) {
+    alert(e?.data?.message || 'Failed to start checkout.');
+  } finally {
+    upgradeLoading.value = false;
+  }
+};
+
+const openPortal = async () => {
+  if (!profile.value?.stripeCustomerId) return;
+  portalLoading.value = true;
+  try {
+    const res = await $fetch<{ url: string }>('/api/stripe/portal', {
+      method: 'POST',
+      body: { customerId: profile.value.stripeCustomerId },
+    });
+    if (res.url) window.location.href = res.url;
+  } catch (e: any) {
+    alert(e?.data?.message || 'Failed to open portal.');
+  } finally {
+    portalLoading.value = false;
+  }
+};
+
+const handleClaimBonus = async () => {
+  claimingBonus.value = true;
+  try {
+    await claimBonusScans();
+  } finally {
+    claimingBonus.value = false;
+  }
+};
 
 const editName = ref("");
 const phonePrefix = ref("60");

@@ -7,6 +7,8 @@ export interface CartItem {
   imageUrl: string;
   seller: string;
   sellerUid: string;
+  shippingWM: number;
+  shippingEM: number;
 }
 
 const items = ref<CartItem[]>([]);
