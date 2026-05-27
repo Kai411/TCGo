@@ -23,7 +23,8 @@ export default defineEventHandler(async (event) => {
 
   const config = useRuntimeConfig();
   const stripe = getStripe();
-  const siteUrl = (config.public.siteUrl as string) || "https://tcgo.shop";
+  const requestUrl = getRequestURL(event);
+  const siteUrl = (config.public.siteUrl as string) || requestUrl.origin;
 
   if (type === "subscription") {
     const pricePremium = config.stripePricePremium as string;

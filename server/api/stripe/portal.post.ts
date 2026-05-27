@@ -10,7 +10,8 @@ export default defineEventHandler(async (event) => {
 
   const config = useRuntimeConfig();
   const stripe = getStripe();
-  const siteUrl = (config.public.siteUrl as string) || "https://tcgo.shop";
+  const requestUrl = getRequestURL(event);
+  const siteUrl = (config.public.siteUrl as string) || requestUrl.origin;
 
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
