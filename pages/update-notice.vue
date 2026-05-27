@@ -15,6 +15,39 @@ useHead({
     <div class="updates">
       <div class="header">
         <hr class="my-8" />
+        <h1>V 0.3.1</h1>
+        <p class="italic mt-2">Date: May 27, 2026</p>
+
+        <br />
+        <strong>Changes:</strong>
+        <ul>
+          <li>
+            <strong>Image gallery swipe</strong> — card and auction detail pages
+            now have a scroll-snap image strip with left/right arrow buttons,
+            swipe-to-navigate on mobile, and a 1/N counter badge.
+          </li>
+          <li>
+            <strong>Auction performance &amp; sharing</strong> — auction pages
+            now load faster and social previews (WhatsApp, Telegram, etc.)
+            correctly show the card image and title when sharing a link.
+          </li>
+          <li>
+            <strong>Auction create form</strong> — inline input labels to reduce
+            form ambiguity.
+          </li>
+          <li>
+            <strong>Install prompt</strong> — updated logo and adjusted position
+            above bottom navigation.
+          </li>
+          <li>
+            <strong>UI/UX</strong> — updated create listing form end edit form
+            to ease navigation and actions.
+          </li>
+        </ul>
+      </div>
+
+      <div class="header">
+        <hr class="my-8" />
         <h1>V 0.3.0</h1>
         <p class="italic mt-2">Date: May 21, 2026</p>
 

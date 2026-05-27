@@ -13,13 +13,13 @@
     >
       <div
         v-if="visible && !showIosSheet"
-        class="fixed left-0 right-0 bottom-20 px-3 z-50 sm:left-auto sm:right-4 sm:bottom-4 sm:px-0 sm:max-w-sm pointer-events-none"
+        class="fixed left-0 right-0 bottom-24 px-3 z-50 sm:left-auto sm:right-4 sm:bottom-4 sm:px-0 sm:max-w-sm pointer-events-none"
       >
         <div
           class="pointer-events-auto rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl shadow-black/10 p-4 flex items-center gap-3"
         >
           <img
-            src="/tcgo.png"
+            src="/tcgo_sprites.png"
             alt=""
             class="w-10 h-10 rounded-xl shrink-0"
           />
@@ -72,7 +72,7 @@
           class="relative w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 p-5 shadow-2xl"
         >
           <div class="flex items-center gap-3 mb-4">
-            <img src="/tcgo.png" alt="" class="w-10 h-10 rounded-xl" />
+            <img src="/tcgo_sprites.png" alt="" class="w-10 h-10 rounded-xl" />
             <div>
               <p class="text-base font-bold text-ink dark:text-white">
                 Add TCGo to Home Screen

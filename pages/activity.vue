@@ -262,7 +262,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Auction, Bid } from "~/composables/useAuctions";
+import type { Auction } from "~/composables/useAuctions";
 import type { Card } from "~/composables/useCards";
 
 type TabId = "selling" | "bidding" | "history";
@@ -272,6 +272,10 @@ const router = useRouter();
 const { user, signInWithGoogle } = useAuth();
 const { auctions, loading } = useAuctions();
 const { cards, loading: cardsLoading, markAsSold } = useCards();
+
+// Per-user bid index: auctionId → { highestBid }
+const uid = computed(() => user.value?.uid || "");
+const { bidIndex } = useUserBidIndex(uid.value);
 
 const activeTab = ref<TabId>(
   (route.query.tab as TabId) || "selling",
@@ -312,25 +316,12 @@ interface BidItem {
 const participated = computed<BidItem[]>(() => {
   if (!user.value) return [];
   return auctions.value
-    .filter((a) =>
-      Object.values(a.bids || {}).some((b) => b.bidderUid === user.value!.uid),
-    )
+    .filter((a) => !!bidIndex.value[a.id])
     .map((auction) => {
-      const myBids = Object.values(auction.bids).filter(
-        (b) => b.bidderUid === user.value!.uid,
-      );
-      const myHighestBid = Math.max(...myBids.map((b) => b.amount));
-      const sorted = Object.values(auction.bids).sort(
-        (a, b) => b.amount - a.amount,
-      );
-      const isLeading = sorted[0]?.bidderUid === user.value!.uid;
+      const myHighestBid = bidIndex.value[auction.id]?.highestBid ?? 0;
+      const isLeading = auction.topBidderUid === user.value!.uid;
       const isEnded = auction.endsAt <= Date.now();
-      return {
-        auction,
-        myHighestBid,
-        isLeading,
-        isWinner: isEnded && isLeading,
-      };
+      return { auction, myHighestBid, isLeading, isWinner: isEnded && isLeading };
     });
 });
 
@@ -364,12 +355,9 @@ const tabs = computed(() => [
   },
 ]);
 
-const getWinner = (auction: Auction): Bid | null => {
-  if (!auction.bids) return null;
-  const sorted = Object.values(auction.bids).sort(
-    (a, b) => b.amount - a.amount,
-  );
-  return sorted[0] || null;
+const getWinner = (auction: Auction) => {
+  if (!auction.topBidderUid) return null;
+  return { bidder: auction.topBidder ?? "", bidderUid: auction.topBidderUid };
 };
 
 const formatTimeLeft = (endsAt: number) => {

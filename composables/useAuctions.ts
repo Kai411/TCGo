@@ -4,10 +4,20 @@ import {
   onValue,
   update,
   get,
-  type Unsubscribe,
+  set,
+  increment as rtdbIncrement,
+  type Unsubscribe as RtdbUnsubscribe,
 } from "firebase/database";
-import { doc, getDoc } from "firebase/firestore";
-import { ref, onUnmounted } from "vue";
+import {
+  collection,
+  doc,
+  addDoc,
+  onSnapshot,
+  getDoc,
+} from "firebase/firestore";
+import { ref, computed, onUnmounted } from "vue";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface Auction {
   id: string;
@@ -33,39 +43,26 @@ export interface Auction {
   endsAt: number;
   createdAt: number;
   isPrivate: boolean;
-  bids: Record<string, Bid>;
-  autoBids: Record<string, AutoBid>;
   language?: string;
   tcgType?: string;
-
-  // ── Product metadata (auto-filled by scanner where possible) ─────────
   rarity?: string;
   variant?: string;
   edition?: string;
   era?: string;
   artist?: string;
-
-  // ── Authenticity / cert ──────────────────────────────────────────────
   certNumber?: string;
-
-  // ── Search / discovery ──────────────────────────────────────────────
   tags?: string[];
   defects?: string[];
-
-  // ── Commerce flags ──────────────────────────────────────────────────
   negotiable?: boolean;
   pickupAvailable?: boolean;
   quantity?: number;
-
-  // ── Lifecycle ────────────────────────────────────────────────────────
   status?: "active" | "reserved" | "pending_payment" | "sold" | "cancelled" | "expired";
-
-  // ── Engagement ──────────────────────────────────────────────────────
   viewCount?: number;
-
-  // Populated on the listing payload (where bids are stripped for perf)
-  // so tiles can show a bid count without holding the full bid map.
+  // From RTDB auction_summaries (merged in at read time)
   bidCount?: number;
+  antiSnipeTriggered?: boolean;
+  topBidderUid?: string;
+  topBidder?: string;
 }
 
 export interface Bid {
@@ -86,246 +83,283 @@ export interface AutoBid {
   createdAt: number;
 }
 
-// Module-level singleton. Previously every page that touched auctions
-// opened its own RTDB listener on the entire auctions tree.
-const auctions = ref<Auction[]>([]);
+// auction_summaries/{id} — the lightweight RTDB node used by list views.
+// Contains only derived/live fields; static product data lives in Firestore.
+interface AuctionSummary {
+  currentPrice: number;
+  endsAt: number;
+  bidCount: number;
+  antiSnipeTriggered?: boolean;
+  topBidderUid?: string;
+  topBidder?: string;
+}
+
+// ── Singleton list state ───────────────────────────────────────────────────────
+
+const firestoreAuctions = ref<any[]>([]);
+const summaries = ref<Record<string, AuctionSummary>>({});
 const loading = ref(true);
 let initialized = false;
-let unsubscribeAuctions: Unsubscribe | null = null;
+let unsubFirestoreList: (() => void) | null = null;
+let unsubSummaries: RtdbUnsubscribe | null = null;
 
 const initializeAuctions = () => {
   if (initialized) return;
   initialized = true;
-  const { db } = useFirebase();
-  const auctionsRef = dbRef(db!, "auctions");
-  unsubscribeAuctions = onValue(auctionsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      // Strip nested bids/autoBids on receipt. RTDB has no field projection
-      // so we still pay bandwidth, but Vue's reactivity won't track the
-      // huge nested objects on the list view — a big memory + render win
-      // when many auctions accumulate bid history. Detail page subscribes
-      // separately via useAuctionDetail.
-      auctions.value = Object.entries(data).map(([id, raw]) => {
-        const auction = raw as any;
-        const { bids, autoBids: _ab, ...rest } = auction;
-        const bidCount = bids ? Object.keys(bids).length : 0;
-        return { ...(rest as Omit<Auction, "id">), id, bidCount } as Auction;
-      });
-    } else {
-      auctions.value = [];
-    }
+  const { firestore, db } = useFirebase();
+
+  unsubFirestoreList = onSnapshot(collection(firestore!, "auctions"), (snap) => {
+    firestoreAuctions.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     loading.value = false;
+  });
+
+  // Lightweight: no bids/autoBids here, just price + meta
+  unsubSummaries = onValue(dbRef(db!, "auction_summaries"), (snap) => {
+    summaries.value = snap.val() || {};
   });
 };
 
+const auctions = computed<Auction[]>(() =>
+  firestoreAuctions.value.map((a) => {
+    const s = summaries.value[a.id];
+    return {
+      ...a,
+      currentPrice: s?.currentPrice ?? a.startingPrice,
+      endsAt: s?.endsAt ?? a.endsAt,
+      bidCount: s?.bidCount ?? 0,
+      antiSnipeTriggered: s?.antiSnipeTriggered,
+      topBidderUid: s?.topBidderUid,
+      topBidder: s?.topBidder,
+    };
+  }),
+);
+
+// ── useAuctions ───────────────────────────────────────────────────────────────
+
 export const useAuctions = () => {
-  const { db } = useFirebase();
   initializeAuctions();
-  const auctionsRef = dbRef(db!, "auctions");
+  const { firestore, db } = useFirebase();
 
   const createAuction = async (
-    auction: Omit<
-      Auction,
-      "id" | "bids" | "autoBids" | "currentPrice" | "createdAt"
-    >,
+    auction: Omit<Auction, "id" | "currentPrice" | "createdAt" | "bidCount" | "antiSnipeTriggered" | "topBidderUid" | "topBidder">,
   ) => {
-    const newAuction = {
+    const { startingPrice, endsAt } = auction;
+
+    // Product data — Firestore (queryable, indexed, rarely changes)
+    const docRef = await addDoc(collection(firestore!, "auctions"), {
       ...auction,
-      currentPrice: auction.startingPrice,
       createdAt: Date.now(),
-      bids: {},
-      autoBids: {},
-    };
-    const result = await push(auctionsRef, newAuction);
-    return result.key;
+    });
+    const id = docRef.id;
+
+    // Live bid state — RTDB (real-time, high-frequency writes)
+    await set(dbRef(db!, `auction_summaries/${id}`), {
+      currentPrice: startingPrice,
+      endsAt,
+      bidCount: 0,
+    });
+
+    return id;
   };
 
   return { auctions, loading, createAuction };
 };
 
-export const useAuctionDetail = (auctionId: string) => {
+// ── useUserBidIndex ───────────────────────────────────────────────────────────
+//
+// Per-user index of auctions they have bid on.
+// Shape: user_bid_index/{uid}/{auctionId}: { highestBid: number }
+
+export const useUserBidIndex = (uid: string) => {
   const { db } = useFirebase();
-  const auction = ref<Auction | null>(null);
+  const bidIndex = ref<Record<string, { highestBid: number }>>({});
+
+  const unsub = onValue(dbRef(db!, `user_bid_index/${uid}`), (snap) => {
+    bidIndex.value = snap.val() || {};
+  });
+
+  onUnmounted(() => unsub());
+
+  return { bidIndex };
+};
+
+// ── useAuctionDetail ──────────────────────────────────────────────────────────
+
+export const useAuctionDetail = (auctionId: string) => {
+  const { firestore, db } = useFirebase();
+
+  const productData = ref<any | null>(null);
+  const summary = ref<AuctionSummary | null>(null);
   const bids = ref<Bid[]>([]);
   const loading = ref(true);
 
-  const auctionRef = dbRef(db!, `auctions/${auctionId}`);
+  const auction = computed<Auction | null>(() => {
+    if (!productData.value) return null;
+    return {
+      ...productData.value,
+      currentPrice: summary.value?.currentPrice ?? productData.value.startingPrice,
+      endsAt: summary.value?.endsAt ?? productData.value.endsAt,
+      bidCount: summary.value?.bidCount ?? 0,
+      antiSnipeTriggered: summary.value?.antiSnipeTriggered,
+      topBidderUid: summary.value?.topBidderUid,
+      topBidder: summary.value?.topBidder,
+    };
+  });
 
-  const unsubscribe = onValue(auctionRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      auction.value = { ...data, id: auctionId };
-      if (data.bids) {
-        bids.value = Object.entries(data.bids)
-          .map(([id, bid]) => ({ ...(bid as Bid), id }))
-          .sort((a, b) => b.amount - a.amount);
-      } else {
-        bids.value = [];
-      }
-    }
+  const unsubProduct = onSnapshot(doc(firestore!, "auctions", auctionId), (snap) => {
+    productData.value = snap.exists() ? { id: snap.id, ...snap.data() } : null;
     loading.value = false;
   });
 
-  onUnmounted(() => {
-    unsubscribe();
+  const unsubSummary = onValue(dbRef(db!, `auction_summaries/${auctionId}`), (snap) => {
+    summary.value = snap.val();
   });
 
-  const placeBid = async (
+  const unsubBids = onValue(dbRef(db!, `auction_bids/${auctionId}/bids`), (snap) => {
+    const data = snap.val();
+    bids.value = data
+      ? Object.entries(data)
+          .map(([id, bid]) => ({ ...(bid as Bid), id }))
+          .sort((a, b) => b.amount - a.amount)
+      : [];
+  });
+
+  onUnmounted(() => {
+    unsubProduct();
+    unsubSummary();
+    unsubBids();
+  });
+
+  // ── Internal helpers ─────────────────────────────────────────────────────────
+
+  const writeBidSummary = async (
     bidderUid: string,
     bidder: string,
     amount: number,
+    isAntiSnipe: boolean,
+    currentEndsAt: number,
   ) => {
+    const summaryUpdate: Record<string, any> = {
+      currentPrice: amount,
+      bidCount: rtdbIncrement(1),
+      topBidderUid: bidderUid,
+      topBidder: bidder,
+    };
+    if (isAntiSnipe) {
+      summaryUpdate.endsAt = currentEndsAt + 60000;
+      summaryUpdate.antiSnipeTriggered = true;
+    }
+    await update(dbRef(db!, `auction_summaries/${auctionId}`), summaryUpdate);
+  };
+
+  const recordUserBid = async (bidderUid: string, amount: number) => {
+    await set(dbRef(db!, `user_bid_index/${bidderUid}/${auctionId}`), {
+      highestBid: amount,
+    });
+  };
+
+  // ── placeBid ─────────────────────────────────────────────────────────────────
+
+  const placeBid = async (bidderUid: string, bidder: string, amount: number) => {
     if (!auction.value) return;
 
-    // Require phone number to bid
-    const { firestore: fs } = useFirebase();
-    const userDoc = await getDoc(doc(fs!, "users", bidderUid));
-    const userData = userDoc.exists() ? userDoc.data() : null;
+    const userSnap = await getDoc(doc(firestore!, "users", bidderUid));
+    const userData = userSnap.exists() ? userSnap.data() : null;
     if (!userData?.phone && !userData?.whatsappNumber) {
-      throw new Error(
-        "Please add your contact number in your Profile before bidding.",
-      );
+      throw new Error("Please add your contact number in your Profile before bidding.");
     }
-
-    // Check trust score
-    const trustScore = userData?.trustScore ?? 100;
-    if (trustScore < 60) {
-      throw new Error(
-        "Your trust score is too low to bid. Contact support if you believe this is an error.",
-      );
+    if ((userData?.trustScore ?? 100) < 60) {
+      throw new Error("Your trust score is too low to bid. Contact support if you believe this is an error.");
     }
 
     const minIncrement = auction.value.minIncrement || 1;
     const minBid = auction.value.currentPrice + minIncrement;
-
     if (amount < minBid) {
-      throw new Error(
-        `Bid must be at least RM ${minBid.toFixed(2)} (current + RM ${minIncrement.toFixed(2)} increment)`,
-      );
+      throw new Error(`Bid must be at least RM ${minBid.toFixed(2)} (current + RM ${minIncrement.toFixed(2)} increment)`);
     }
 
-    if (Date.now() > auction.value.endsAt) {
-      throw new Error("Auction has ended");
-    }
+    const currentEndsAt = auction.value.endsAt;
+    if (Date.now() > currentEndsAt) throw new Error("Auction has ended");
 
-    // Place the bid
-    const bidsRef = dbRef(db!, `auctions/${auctionId}/bids`);
-    const timeLeft = auction.value.endsAt - Date.now();
+    const timeLeft = currentEndsAt - Date.now();
     const isAntiSnipe = timeLeft <= 60000;
 
-    const newBid: Bid = {
-      bidder,
-      bidderUid,
-      amount,
+    await push(dbRef(db!, `auction_bids/${auctionId}/bids`), {
+      bidder, bidderUid, amount,
       timestamp: Date.now(),
       isAutoBid: false,
       triggeredAntiSnipe: isAntiSnipe,
-    };
-    await push(bidsRef, newBid);
+    });
 
-    // Anti-snipe: if bid is within last 60 seconds, extend by 60 seconds
-    const updateData: Record<string, any> = { currentPrice: amount };
-    if (isAntiSnipe) {
-      updateData.endsAt = auction.value.endsAt + 60000;
-      updateData.antiSnipeTriggered = true;
-    }
-    await update(dbRef(db!, `auctions/${auctionId}`), updateData);
-
-    // Trigger auto-bid responses
+    await writeBidSummary(bidderUid, bidder, amount, isAntiSnipe, currentEndsAt);
+    await recordUserBid(bidderUid, amount);
     await processAutoBids(auctionId, bidderUid, amount);
   };
 
-  const setAutoBid = async (
-    bidderUid: string,
-    bidder: string,
-    maxAmount: number,
-  ) => {
+  // ── setAutoBid ───────────────────────────────────────────────────────────────
+
+  const setAutoBid = async (bidderUid: string, bidder: string, maxAmount: number) => {
     if (!auction.value) return;
 
-    // Require phone number to bid
-    const { firestore: fs } = useFirebase();
-    const userDoc = await getDoc(doc(fs!, "users", bidderUid));
-    const userData = userDoc.exists() ? userDoc.data() : null;
+    const userSnap = await getDoc(doc(firestore!, "users", bidderUid));
+    const userData = userSnap.exists() ? userSnap.data() : null;
     if (!userData?.phone && !userData?.whatsappNumber) {
-      throw new Error(
-        "Please add your contact number in your Profile before bidding.",
-      );
+      throw new Error("Please add your contact number in your Profile before bidding.");
     }
-
-    // Check trust score
-    const userTrustScore = userData?.trustScore ?? 100;
-    if (userTrustScore < 60) {
-      throw new Error(
-        "Your trust score is too low to bid. Contact support if you believe this is an error.",
-      );
+    if ((userData?.trustScore ?? 100) < 60) {
+      throw new Error("Your trust score is too low to bid. Contact support if you believe this is an error.");
     }
 
     const minIncrement = auction.value.minIncrement || 1;
     const minBid = auction.value.currentPrice + minIncrement;
-
     if (maxAmount < minBid) {
       throw new Error(`Max bid must be at least RM ${minBid.toFixed(2)}`);
     }
 
-    if (Date.now() > auction.value.endsAt) {
-      throw new Error("Auction has ended");
-    }
+    const currentEndsAt = auction.value.endsAt;
+    if (Date.now() > currentEndsAt) throw new Error("Auction has ended");
 
-    // Save auto-bid config
-    const autoBidsRef = dbRef(db!, `auctions/${auctionId}/autoBids`);
-    await push(autoBidsRef, {
-      bidderUid,
-      bidder,
-      maxAmount,
-      createdAt: Date.now(),
+    await push(dbRef(db!, `auction_bids/${auctionId}/autoBids`), {
+      bidderUid, bidder, maxAmount, createdAt: Date.now(),
     });
 
-    // Immediately place a bid at the minimum required amount
-    const bidsRef = dbRef(db!, `auctions/${auctionId}/bids`);
     const bidAmount = Math.min(maxAmount, minBid);
-    const timeLeft = auction.value.endsAt - Date.now();
+    const timeLeft = currentEndsAt - Date.now();
     const isAntiSnipe = timeLeft <= 60000;
 
-    const newBid: Bid = {
-      bidder,
-      bidderUid,
-      amount: bidAmount,
+    await push(dbRef(db!, `auction_bids/${auctionId}/bids`), {
+      bidder, bidderUid, amount: bidAmount,
       timestamp: Date.now(),
       isAutoBid: true,
       triggeredAntiSnipe: isAntiSnipe,
-    };
-    await push(bidsRef, newBid);
+    });
 
-    // Anti-snipe: if bid is within last 60 seconds, extend by 60 seconds
-    const updateData: Record<string, any> = { currentPrice: bidAmount };
-    if (isAntiSnipe) {
-      updateData.endsAt = auction.value.endsAt + 60000;
-      updateData.antiSnipeTriggered = true;
-    }
-    await update(dbRef(db!, `auctions/${auctionId}`), updateData);
-
-    // Process other auto-bids in response
+    await writeBidSummary(bidderUid, bidder, bidAmount, isAntiSnipe, currentEndsAt);
+    await recordUserBid(bidderUid, bidAmount);
     await processAutoBids(auctionId, bidderUid, bidAmount);
   };
+
+  // ── processAutoBids ──────────────────────────────────────────────────────────
 
   const processAutoBids = async (
     auctionId: string,
     triggerUid: string,
     currentAmount: number,
   ) => {
-    // Fetch latest auction state
-    const snapshot = await get(dbRef(db!, `auctions/${auctionId}`));
-    const data = snapshot.val();
-    if (!data || !data.autoBids) return;
+    const [bidsSnap, summarySnap] = await Promise.all([
+      get(dbRef(db!, `auction_bids/${auctionId}`)),
+      get(dbRef(db!, `auction_summaries/${auctionId}`)),
+    ]);
 
-    const minIncrement = data.minIncrement || 1;
+    const bidsData = bidsSnap.val();
+    const summaryData = summarySnap.val() as AuctionSummary | null;
+    if (!bidsData?.autoBids || !summaryData) return;
+
+    const minIncrement = productData.value?.minIncrement || 1;
+    const currentEndsAt = summaryData.endsAt;
     let price = currentAmount;
 
-    // Get all auto-bids sorted by maxAmount descending
-    const allAutoBids = Object.values(data.autoBids) as AutoBid[];
-
-    // Group by user, keep highest max for each user
+    const allAutoBids = Object.values(bidsData.autoBids) as AutoBid[];
     const userMaxBids = new Map<string, AutoBid>();
     for (const ab of allAutoBids) {
       const existing = userMaxBids.get(ab.bidderUid);
@@ -334,72 +368,39 @@ export const useAuctionDetail = (auctionId: string) => {
       }
     }
 
-    // Find competing auto-bidders (not the one who just bid)
     const competitors = Array.from(userMaxBids.values())
       .filter((ab) => ab.bidderUid !== triggerUid && ab.maxAmount > price)
       .sort((a, b) => b.maxAmount - a.maxAmount);
 
     if (competitors.length === 0) return;
 
-    // The highest competing auto-bidder responds
     const topCompetitor = competitors[0];
     const triggerAutoBid = userMaxBids.get(triggerUid);
 
     let newPrice: number;
+    let winner: AutoBid;
 
     if (triggerAutoBid && triggerAutoBid.maxAmount > price) {
-      // Both have auto-bids — bid up to the loser's max + increment
-      const lowerMax = Math.min(
-        topCompetitor.maxAmount,
-        triggerAutoBid.maxAmount,
-      );
-      const higherBidder =
-        topCompetitor.maxAmount >= triggerAutoBid.maxAmount
-          ? topCompetitor
-          : triggerAutoBid;
-      newPrice = Math.min(lowerMax + minIncrement, higherBidder.maxAmount);
-
-      const bidsRef = dbRef(db!, `auctions/${auctionId}/bids`);
-      await push(bidsRef, {
-        bidder: higherBidder.bidder,
-        bidderUid: higherBidder.bidderUid,
-        amount: newPrice,
-        timestamp: Date.now(),
-        isAutoBid: true,
-        triggeredAntiSnipe: (data.endsAt || 0) - Date.now() <= 60000,
-      });
-
-      // Anti-snipe for auto-bids
-      const autoUpdateData: Record<string, any> = { currentPrice: newPrice };
-      const endsAt = data.endsAt || 0;
-      if (endsAt - Date.now() <= 60000) {
-        autoUpdateData.endsAt = endsAt + 60000;
-        autoUpdateData.antiSnipeTriggered = true;
-      }
-      await update(dbRef(db!, `auctions/${auctionId}`), autoUpdateData);
+      const lowerMax = Math.min(topCompetitor.maxAmount, triggerAutoBid.maxAmount);
+      winner = topCompetitor.maxAmount >= triggerAutoBid.maxAmount ? topCompetitor : triggerAutoBid;
+      newPrice = Math.min(lowerMax + minIncrement, winner.maxAmount);
     } else {
-      // Only competitor has auto-bid, respond with minimum increment
+      winner = topCompetitor;
       newPrice = Math.min(price + minIncrement, topCompetitor.maxAmount);
-
-      const bidsRef = dbRef(db!, `auctions/${auctionId}/bids`);
-      await push(bidsRef, {
-        bidder: topCompetitor.bidder,
-        bidderUid: topCompetitor.bidderUid,
-        amount: newPrice,
-        timestamp: Date.now(),
-        isAutoBid: true,
-        triggeredAntiSnipe: (data.endsAt || 0) - Date.now() <= 60000,
-      });
-
-      // Anti-snipe for auto-bids
-      const autoUpdateData2: Record<string, any> = { currentPrice: newPrice };
-      const endsAt2 = data.endsAt || 0;
-      if (endsAt2 - Date.now() <= 60000) {
-        autoUpdateData2.endsAt = endsAt2 + 60000;
-        autoUpdateData2.antiSnipeTriggered = true;
-      }
-      await update(dbRef(db!, `auctions/${auctionId}`), autoUpdateData2);
     }
+
+    const isAntiSnipe = currentEndsAt - Date.now() <= 60000;
+    await push(dbRef(db!, `auction_bids/${auctionId}/bids`), {
+      bidder: winner.bidder,
+      bidderUid: winner.bidderUid,
+      amount: newPrice,
+      timestamp: Date.now(),
+      isAutoBid: true,
+      triggeredAntiSnipe: isAntiSnipe,
+    });
+
+    await writeBidSummary(winner.bidderUid, winner.bidder, newPrice, isAntiSnipe, currentEndsAt);
+    await recordUserBid(winner.bidderUid, newPrice);
   };
 
   return { auction, bids, loading, placeBid, setAutoBid };

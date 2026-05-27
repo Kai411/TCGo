@@ -25,24 +25,24 @@
 
     <template v-else>
       <!-- Hero -->
-      <section class="pt-2 pb-8 lg:pb-10">
+      <section class="pt-2 pb-4 sm:pb-8 lg:pb-10">
         <div
-          class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6"
+          class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-6"
         >
-          <div class="flex items-center gap-4 sm:gap-6 min-w-0">
+          <div class="flex items-center gap-3 sm:gap-5 min-w-0">
             <img
               :src="profile.photoURL || ''"
               :alt="profile.customName || profile.displayName"
-              class="w-20 h-20 sm:w-28 sm:h-28 rounded-full ring-4 ring-white dark:ring-canvas-inverse shadow-card object-cover shrink-0"
+              class="w-14 h-14 sm:w-20 sm:h-20 rounded-full ring-2 sm:ring-4 ring-white dark:ring-canvas-inverse shadow-card object-cover shrink-0"
             />
             <div class="min-w-0">
               <span class="eyebrow">Profile</span>
               <h1
-                class="mt-1 font-display text-3xl sm:text-display font-extrabold tracking-tightest text-ink dark:text-white truncate"
+                class="mt-0.5 font-display text-xl sm:text-3xl font-extrabold tracking-tightest text-ink dark:text-white truncate"
               >
                 {{ profile.customName || profile.displayName }}
               </h1>
-              <div class="mt-2 flex flex-wrap items-center gap-1.5">
+              <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <span
                   v-if="profile.whatsappVerified"
                   class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide uppercase bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
@@ -67,53 +67,62 @@
                   {{ getScoreBadge(profile.trustScore ?? 100)?.label }}
                 </span>
               </div>
-              <p class="mt-2 text-xs text-ink-soft dark:text-zinc-500">
+              <p class="mt-1 text-[11px] text-ink-soft dark:text-zinc-500">
                 Member since {{ formatDate(profile.createdAt) }}
               </p>
             </div>
           </div>
 
           <!-- Actions -->
-          <div v-if="isOwnProfile" class="flex gap-2 sm:self-end">
-            <NuxtLink
-              to="/profile"
-              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold border border-black/[0.08] dark:border-white/[0.08] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-            >
-              <svg
-                class="w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="12" r="3" />
-                <path
-                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
-                />
-              </svg>
-              Settings
-            </NuxtLink>
+          <div class="flex items-center gap-2 sm:self-end">
+            <!-- Share button — always visible -->
             <button
-              @click="handleSignOut"
-              class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold text-pokemon-red border border-pokemon-red/30 hover:bg-pokemon-red/[0.06] transition-colors"
+              @click="handleShare"
+              :title="copied ? 'Link copied!' : 'Share profile'"
+              class="relative inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold border border-black/[0.08] dark:border-white/[0.08] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
             >
-              Log out
+              <svg v-if="!copied" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+              <svg v-else class="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ copied ? 'Copied!' : 'Share' }}
+            </button>
+
+            <template v-if="isOwnProfile">
+              <NuxtLink
+                to="/profile"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold border border-black/[0.08] dark:border-white/[0.08] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                Settings
+              </NuxtLink>
+              <button
+                @click="handleSignOut"
+                class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold text-pokemon-red border border-pokemon-red/30 hover:bg-pokemon-red/[0.06] transition-colors"
+              >
+                Log out
+              </button>
+            </template>
+
+            <button
+              v-else-if="user"
+              @click="showReportForm = true"
+              class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold text-pokemon-red border border-pokemon-red/30 hover:bg-pokemon-red/[0.06] transition-colors"
+            >
+              Report
             </button>
           </div>
-          <button
-            v-else-if="user"
-            @click="showReportForm = true"
-            class="self-start sm:self-end inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold text-pokemon-red border border-pokemon-red/30 hover:bg-pokemon-red/[0.06] transition-colors"
-          >
-            Report user
-          </button>
         </div>
       </section>
 
       <!-- Trust score (Listed + Auctions counts now live in the tab bar) -->
-      <section class="mb-6">
+      <section class="mb-3 sm:mb-5">
         <button
           type="button"
           @click="showTrustInfo = true"
@@ -188,16 +197,9 @@
           v-else
           class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
         >
-          <ProfileItem
-            v-for="card in userCards"
-            :key="card.id"
-            :to="`/cards/${card.id}`"
-            :image="card.imageUrls?.[0] || card.imageUrl"
-            :title="card.cardName"
-            :subtitle="card.cardSet || card.condition"
-            :price="card.price"
-            :status="card.sold ? 'sold' : 'available'"
-          />
+          <div v-for="card in userCards" :key="card.id" :class="{ 'opacity-40': card.sold }">
+            <CardTile :card="card" />
+          </div>
         </div>
       </div>
 
@@ -212,16 +214,9 @@
           v-else
           class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
         >
-          <ProfileItem
-            v-for="auction in userAuctions"
-            :key="auction.id"
-            :to="`/auctions/${auction.id}`"
-            :image="auction.imageUrls?.[0] || auction.imageUrl"
-            :title="auction.cardName"
-            :subtitle="auction.cardSet"
-            :price="auction.currentPrice"
-            :status="isActive(auction) ? 'active' : 'ended'"
-          />
+          <div v-for="auction in userAuctions" :key="auction.id" :class="{ 'opacity-40': auction.endsAt <= Date.now() }">
+            <CardTile :auction="auction" />
+          </div>
         </div>
       </div>
 
@@ -238,16 +233,9 @@
             <div
               class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
             >
-              <ProfileItem
-                v-for="card in favouriteCards"
-                :key="card.id"
-                :to="`/cards/${card.id}`"
-                :image="card.imageUrls?.[0] || card.imageUrl"
-                :title="card.cardName"
-                :subtitle="card.cardSet"
-                :price="card.price"
-                :status="card.sold ? 'sold' : 'available'"
-              />
+              <div v-for="card in favouriteCards" :key="card.id" :class="{ 'opacity-40': card.sold }">
+                <CardTile :card="card" />
+              </div>
             </div>
           </section>
           <section v-if="favouriteAuctions.length">
@@ -255,16 +243,9 @@
             <div
               class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
             >
-              <ProfileItem
-                v-for="auction in favouriteAuctions"
-                :key="auction.id"
-                :to="`/auctions/${auction.id}`"
-                :image="auction.imageUrls?.[0] || auction.imageUrl"
-                :title="auction.cardName"
-                :subtitle="auction.cardSet"
-                :price="auction.currentPrice"
-                :status="isActive(auction) ? 'active' : 'ended'"
-              />
+              <div v-for="auction in favouriteAuctions" :key="auction.id" :class="{ 'opacity-40': auction.endsAt <= Date.now() }">
+                <CardTile :auction="auction" />
+              </div>
             </div>
           </section>
         </div>
@@ -518,4 +499,21 @@ const badgeChipVariant = (score: number) => {
 };
 
 const handleSignOut = () => signOut();
+
+const { origin } = useRequestURL();
+const profileUrl = computed(() => `${origin}/profile/${uid}`);
+const copied = ref(false);
+
+const handleShare = async () => {
+  const name = profile.value?.customName || profile.value?.displayName || "this seller";
+  const title = `${name} on TCGo`;
+  const text = `Check out ${name}'s cards on TCGo Marketplace`;
+  if (navigator.share) {
+    await navigator.share({ title, text, url: profileUrl.value }).catch(() => {});
+  } else {
+    await navigator.clipboard.writeText(profileUrl.value);
+    copied.value = true;
+    setTimeout(() => (copied.value = false), 2000);
+  }
+};
 </script>

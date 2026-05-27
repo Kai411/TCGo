@@ -324,34 +324,77 @@
 
                   <!-- Auction settings -->
                   <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    <input
-                      v-model.number="draftFields[item.id].startingPrice"
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      placeholder="Start price (RM)"
-                      class="border border-gray-300 dark:border-white/[0.10] rounded-lg px-2.5 py-2 text-sm"
-                    />
-                    <input
-                      v-model.number="draftFields[item.id].minIncrement"
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      placeholder="Min increment"
-                      class="border border-gray-300 dark:border-white/[0.10] rounded-lg px-2.5 py-2 text-sm"
-                    />
-                    <select
-                      v-model.number="draftFields[item.id].duration"
-                      class="border border-gray-300 dark:border-white/[0.10] rounded-lg px-2.5 py-2 text-sm"
+                    <!-- Start price -->
+                    <div
+                      class="flex items-stretch rounded-lg border border-gray-300 dark:border-white/[0.10] overflow-hidden focus-within:border-pokemon-red focus-within:ring-1 focus-within:ring-pokemon-red"
                     >
-                      <option
-                        v-for="d in durationOptions"
-                        :key="d.value"
-                        :value="d.value"
+                      <span
+                        class="flex items-center px-2 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 text-xs font-medium whitespace-nowrap select-none"
                       >
-                        {{ d.label }}
-                      </option>
-                    </select>
+                        <span class="hidden sm:inline">Start Price</span>
+                        <span class="sm:hidden">SB</span>
+                      </span>
+                      <input
+                        v-model.number="draftFields[item.id].startingPrice"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="0.00"
+                        class="flex-1 min-w-0 px-2 py-2 text-sm bg-transparent outline-none text-gray-900 dark:text-zinc-100 placeholder-gray-400"
+                      />
+                    </div>
+                    <!-- Min increment -->
+                    <div
+                      class="flex items-stretch rounded-lg border border-gray-300 dark:border-white/[0.10] overflow-hidden focus-within:border-pokemon-red focus-within:ring-1 focus-within:ring-pokemon-red"
+                    >
+                      <span
+                        class="flex items-center px-2 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 text-xs font-medium whitespace-nowrap select-none"
+                      >
+                        <span class="hidden sm:inline">Min Increment +</span>
+                        <span class="sm:hidden">Min +</span>
+                      </span>
+                      <input
+                        v-model.number="draftFields[item.id].minIncrement"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="1.00"
+                        class="flex-1 min-w-0 px-2 py-2 text-sm bg-transparent outline-none text-gray-900 dark:text-zinc-100 placeholder-gray-400"
+                      />
+                    </div>
+                    <!-- Duration -->
+                    <div
+                      class="flex items-stretch rounded-lg border border-gray-300 dark:border-white/[0.10] overflow-hidden focus-within:border-pokemon-red focus-within:ring-1 focus-within:ring-pokemon-red col-span-2 sm:col-span-1"
+                    >
+                      <span
+                        class="flex items-center pl-2.5 pr-2 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-400 select-none"
+                      >
+                        <svg
+                          class="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                      </span>
+                      <select
+                        v-model.number="draftFields[item.id].duration"
+                        class="flex-1 px-2 py-2 text-sm bg-transparent outline-none text-gray-900 dark:text-zinc-100"
+                      >
+                        <option
+                          v-for="d in durationOptions"
+                          :key="d.value"
+                          :value="d.value"
+                        >
+                          {{ d.label }}
+                        </option>
+                      </select>
+                    </div>
                   </div>
 
                   <!-- Private toggle -->
@@ -605,40 +648,72 @@
                 <label
                   class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1"
                 >
-                  Starting Price (RM) <span class="text-pokemon-red">*</span>
+                  Starting Price <span class="text-pokemon-red">*</span>
                 </label>
-                <input
-                  v-model.number="startingPrice"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  required
-                  placeholder="1.00"
-                  class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-                />
+                <div
+                  class="flex items-stretch rounded-lg border border-gray-300 dark:border-white/[0.10] overflow-hidden focus-within:border-pokemon-red focus-within:ring-1 focus-within:ring-pokemon-red"
+                >
+                  <span
+                    class="flex items-center px-3 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 text-sm font-medium whitespace-nowrap select-none"
+                  >
+                    <span class="hidden sm:inline">Start Price: MYR</span>
+                    <span class="sm:hidden">SB: MYR</span>
+                  </span>
+                  <input
+                    v-model.number="startingPrice"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    required
+                    placeholder="1.00"
+                    class="flex-1 min-w-0 px-3 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 bg-transparent outline-none"
+                  />
+                </div>
               </div>
               <div>
                 <label
                   class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1"
                 >
-                  Min Increment (RM) <span class="text-pokemon-red">*</span>
+                  Min Increment <span class="text-pokemon-red">*</span>
                 </label>
-                <input
-                  v-model.number="minIncrement"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  required
-                  placeholder="1.00"
-                  class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-                />
+                <div
+                  class="flex items-stretch rounded-lg border border-gray-300 dark:border-white/[0.10] overflow-hidden focus-within:border-pokemon-red focus-within:ring-1 focus-within:ring-pokemon-red"
+                >
+                  <span
+                    class="flex items-center px-3 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 text-sm font-medium whitespace-nowrap select-none"
+                  >
+                    <span class="hidden sm:inline">Min Increment: +</span>
+                    <span class="sm:hidden">Min +:</span>
+                  </span>
+                  <input
+                    v-model.number="minIncrement"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    required
+                    placeholder="1.00"
+                    class="flex-1 min-w-0 px-3 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 bg-transparent outline-none"
+                  />
+                </div>
               </div>
             </div>
 
             <div>
               <label
-                class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-2"
+                class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-zinc-200 mb-2"
               >
+                <svg
+                  class="w-4 h-4 text-gray-400"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
                 Duration <span class="text-pokemon-red">*</span>
               </label>
               <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">

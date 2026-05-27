@@ -30,53 +30,70 @@
           <div
             class="bg-white dark:bg-white/[0.04] rounded-xl overflow-hidden border border-gray-200 dark:border-white/[0.08] sticky top-8"
           >
-            <div
-              class="aspect-[3/4] bg-gray-100 dark:bg-white/[0.04] flex items-center justify-center relative"
-            >
-              <img
-                v-if="activeImage"
-                :src="activeImage"
-                :alt="auction.cardName"
-                class="w-full h-full object-cover"
-              />
-              <span v-else class="text-gray-400 dark:text-zinc-500">No Image</span>
+            <!-- Scroll-snap strip -->
+            <div class="relative aspect-[3/4] bg-gray-100 dark:bg-white/[0.04]">
+              <div
+                ref="scrollContainer"
+                class="absolute inset-0 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory"
+                style="scrollbar-width: none; -ms-overflow-style: none;"
+                @scroll.passive="onImageScroll"
+              >
+                <div
+                  v-if="allImages.length === 0"
+                  class="w-full h-full shrink-0 snap-start flex items-center justify-center"
+                >
+                  <span class="text-gray-400 dark:text-zinc-500">No Image</span>
+                </div>
+                <div
+                  v-for="(img, i) in allImages"
+                  :key="i"
+                  class="w-full h-full shrink-0 snap-start flex items-center justify-center"
+                >
+                  <img :src="img" :alt="auction.cardName" class="w-full h-full object-cover" />
+                </div>
+              </div>
 
-              <template v-if="allImages.length > 1">
-                <button
-                  @click="prevImage"
-                  class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm"
-                >
-                  ‹
-                </button>
-                <button
-                  @click="nextImage"
-                  class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm"
-                >
-                  ›
-                </button>
-              </template>
+              <!-- Prev arrow -->
+              <button
+                v-if="allImages.length > 1 && activeImageIndex > 0"
+                @click="prevImage"
+                class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors z-10"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </button>
+
+              <!-- Next arrow -->
+              <button
+                v-if="allImages.length > 1 && activeImageIndex < allImages.length - 1"
+                @click="nextImage"
+                class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors z-10"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+
+              <!-- Counter badge -->
+              <span
+                v-if="allImages.length > 1"
+                class="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full z-10"
+              >
+                {{ activeImageIndex + 1 }}/{{ allImages.length }}
+              </span>
             </div>
 
-            <div
-              v-if="allImages.length > 1"
-              class="flex gap-2 p-2 overflow-x-auto"
-            >
+            <!-- Thumbnails -->
+            <div v-if="allImages.length > 1" class="flex gap-2 p-2 overflow-x-auto">
               <button
                 v-for="(img, index) in allImages"
                 :key="index"
-                @click="activeImageIndex = index"
+                @click="scrollToImage(index)"
                 class="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-colors"
-                :class="
-                  activeImageIndex === index
-                    ? 'border-pokemon-red'
-                    : 'border-gray-200 dark:border-white/[0.08] hover:border-gray-400'
-                "
+                :class="activeImageIndex === index ? 'border-pokemon-red' : 'border-gray-200 dark:border-white/[0.08] hover:border-gray-400'"
               >
-                <img
-                  :src="img"
-                  :alt="`Photo ${index + 1}`"
-                  class="w-full h-full object-cover"
-                />
+                <img :src="img" :alt="`Photo ${index + 1}`" class="w-full h-full object-cover" />
               </button>
             </div>
           </div>
@@ -405,24 +422,30 @@ const { profile: myProfile } = useMyProfile();
 
 // Image gallery
 const activeImageIndex = ref(0);
+const scrollContainer = ref<HTMLElement | null>(null);
+
 const allImages = computed(() => {
   if (!auction.value) return [];
   if (auction.value.imageUrls && auction.value.imageUrls.length > 0)
     return auction.value.imageUrls;
   return auction.value.imageUrl ? [auction.value.imageUrl] : [];
 });
-const activeImage = computed(
-  () => allImages.value[activeImageIndex.value] || "",
-);
-const prevImage = () => {
-  activeImageIndex.value =
-    (activeImageIndex.value - 1 + allImages.value.length) %
-    allImages.value.length;
+
+const scrollToImage = (index: number) => {
+  activeImageIndex.value = index;
+  nextTick(() => {
+    if (!scrollContainer.value) return;
+    scrollContainer.value.scrollTo({ left: index * scrollContainer.value.offsetWidth, behavior: "smooth" });
+  });
 };
-const nextImage = () => {
-  activeImageIndex.value =
-    (activeImageIndex.value + 1) % allImages.value.length;
+
+const onImageScroll = () => {
+  if (!scrollContainer.value) return;
+  activeImageIndex.value = Math.round(scrollContainer.value.scrollLeft / scrollContainer.value.offsetWidth);
 };
+
+const prevImage = () => scrollToImage(Math.max(0, activeImageIndex.value - 1));
+const nextImage = () => scrollToImage(Math.min(allImages.value.length - 1, activeImageIndex.value + 1));
 
 const isSeller = computed(
   () =>

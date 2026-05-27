@@ -5,6 +5,7 @@ export default defineNuxtConfig({
   devtools: { enabled: false },
   features: {
     devLogs: false,
+    appManifest: false,
   },
   modules: ["@nuxtjs/tailwindcss", "@vite-pwa/nuxt"],
   tailwindcss: {

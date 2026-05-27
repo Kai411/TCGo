@@ -141,6 +141,16 @@ const timerClasses = computed(() => {
             {{ conditionLabel }}
           </span>
 
+          <!-- Sold overlay (cards only — auctions already show ENDED via the timer badge) -->
+          <div
+            v-if="card?.sold"
+            class="absolute inset-0 bg-black/40 flex items-end p-1.5"
+          >
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/60 text-white/90 tracking-wide uppercase">
+              Sold
+            </span>
+          </div>
+
           <!-- Bottom-left: language badge (cards) or photo count (auctions) -->
           <span
             v-if="!isAuction && item?.language && item.language !== 'EN'"

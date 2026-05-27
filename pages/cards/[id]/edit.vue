@@ -20,7 +20,7 @@
     <template v-else>
       <h1 class="text-2xl font-bold mb-6">Edit Listing</h1>
 
-      <form @submit.prevent="handleSubmit" class="space-y-4">
+      <form id="edit-listing-form" @submit.prevent="handleSubmit" class="space-y-4 pb-36 lg:pb-0">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <CardFormFields
             v-model="cardForm"
@@ -163,6 +163,10 @@
           {{ error }}
         </div>
 
+      </form>
+
+      <!-- Actions: fixed above bottom-nav on mobile, sticky bottom on desktop -->
+      <div class="fixed bottom-20 inset-x-0 z-30 bg-white dark:bg-zinc-900 border-t border-gray-200 dark:border-white/[0.10] px-4 py-3 space-y-2 lg:sticky lg:bottom-0 lg:inset-x-auto lg:mt-4 lg:rounded-xl lg:border lg:border-gray-200 dark:lg:border-white/[0.08] lg:px-4 lg:py-4">
         <div class="flex gap-3">
           <NuxtLink
             :to="`/cards/${cardId}`"
@@ -172,13 +176,13 @@
           </NuxtLink>
           <button
             type="submit"
+            form="edit-listing-form"
             :disabled="submitting"
             class="flex-1 bg-pokemon-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
             {{ submitting ? "Saving..." : "Save Changes" }}
           </button>
         </div>
-
         <button
           type="button"
           @click="handleDelete"
@@ -187,7 +191,7 @@
         >
           {{ deleting ? "Deleting..." : "Delete Listing" }}
         </button>
-      </form>
+      </div>
     </template>
   </div>
 </template>

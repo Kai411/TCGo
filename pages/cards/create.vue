@@ -63,11 +63,18 @@
             Use your camera (or upload photos). Each scan goes into a queue —
             fill the price + condition for each one and publish all at once.
           </p>
+          <p class="text-xs mt-1.5">
+            <span v-if="isPremium" class="text-emerald-600 dark:text-emerald-400 font-semibold">Unlimited scans</span>
+            <span v-else class="font-semibold" :class="scanRemaining === 0 ? 'text-pokemon-red' : 'text-ink dark:text-zinc-200'">
+              {{ scanRemaining }} / {{ FREE_SCAN_LIMIT }} scans left this month
+            </span>
+          </p>
         </div>
         <button
           type="button"
           @click="scannerOpen = true"
-          class="inline-flex items-center gap-1.5 bg-pokemon-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
+          :disabled="!isPremium && scanRemaining === 0"
+          class="inline-flex items-center gap-1.5 bg-pokemon-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg
             class="w-4 h-4"
@@ -454,55 +461,41 @@
           <div
             class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3 lg:col-span-2"
           >
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
-              Photos <span class="text-pokemon-red">*</span>
-            </h3>
-            <div
-              class="border-2 border-dashed border-gray-300 dark:border-white/[0.10] rounded-lg p-6 text-center hover:border-pokemon-blue transition-colors cursor-pointer"
-              @click="triggerFileInput"
-              @dragover.prevent="dragOver = true"
-              @dragleave="dragOver = false"
-              @drop.prevent="handleDrop"
-              :class="{ 'border-pokemon-blue bg-blue-50': dragOver }"
-            >
-              <input
-                ref="fileInput"
-                type="file"
-                accept="image/*"
-                multiple
-                class="hidden"
-                @change="handleFileSelect"
-              />
-              <div class="text-gray-400 dark:text-zinc-500">
-                <svg
-                  class="mx-auto h-8 w-8 mb-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                <p class="text-sm">Click or drag photos here</p>
-                <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
-                  PNG, JPG, WEBP up to 5MB each
-                </p>
-              </div>
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
+                Photos <span class="text-pokemon-red">*</span>
+              </h3>
+              <span class="text-xs text-gray-400 dark:text-zinc-500">{{ selectedFiles.length }}/3</span>
             </div>
-
-            <div v-if="selectedFiles.length > 0" class="grid grid-cols-4 gap-2">
+            <input
+              ref="fileInput"
+              type="file"
+              accept="image/*"
+              multiple
+              class="hidden"
+              @change="handleFileSelect"
+            />
+            <div class="grid grid-cols-4 gap-2">
+              <!-- Add button — leftmost, hidden when at max -->
+              <label
+                v-if="selectedFiles.length < 3"
+                class="cursor-pointer aspect-[5/7] rounded-lg border-2 border-dashed border-gray-300 dark:border-white/[0.10] flex flex-col items-center justify-center gap-1 text-gray-400 dark:text-zinc-500 hover:border-pokemon-blue hover:text-pokemon-blue transition-colors"
+                @click="triggerFileInput"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                <span class="text-[10px] font-medium">Add</span>
+              </label>
+              <!-- Photo previews -->
               <div
                 v-for="(file, index) in selectedFiles"
                 :key="index"
-                class="relative group"
+                class="relative group aspect-[5/7]"
               >
                 <img
                   :src="file.preview"
-                  class="w-full aspect-square object-cover rounded-lg border border-gray-200 dark:border-white/[0.08]"
+                  class="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-white/[0.08]"
                 />
                 <button
                   type="button"
@@ -513,6 +506,7 @@
                 </button>
               </div>
             </div>
+            <p class="text-xs text-gray-400 dark:text-zinc-500">PNG, JPG, WEBP · up to 5 MB each</p>
           </div>
 
           <!-- Card: Price -->
@@ -637,12 +631,14 @@ import {
   EDITIONS,
   getGradesForProvider,
 } from "~/composables/useCardConstants";
+import { FREE_SCAN_LIMIT } from "~/composables/useScanQuota";
 
 const router = useRouter();
 const { createCard } = useCards();
 const { uploadAuctionImages } = useStorage();
 const { user, signInWithGoogle } = useAuth();
 const { profile } = useMyProfile();
+const { isPremium, remaining: scanRemaining } = useScanQuota();
 const {
   queue,
   remove: removeFromQueue,
@@ -992,6 +988,8 @@ const handleDrop = (event: DragEvent) => {
   if (event.dataTransfer?.files) addFiles(Array.from(event.dataTransfer.files));
 };
 
+const MAX_PHOTOS = 3;
+
 const addFiles = (files: File[]) => {
   for (const file of files) {
     if (!file.type.startsWith("image/")) continue;
@@ -999,8 +997,8 @@ const addFiles = (files: File[]) => {
       error.value = `${file.name} is too large (max 5MB)`;
       continue;
     }
-    if (selectedFiles.value.length >= 10) {
-      error.value = "Maximum 10 photos";
+    if (selectedFiles.value.length >= MAX_PHOTOS) {
+      error.value = `Maximum ${MAX_PHOTOS} photos`;
       break;
     }
     selectedFiles.value.push({ file, preview: URL.createObjectURL(file) });
