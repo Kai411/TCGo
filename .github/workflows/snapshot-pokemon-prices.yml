@@ -1,0 +1,34 @@
+name: Snapshot Pokémon prices
+
+on:
+  schedule:
+    # 02:00 Asia/Kuala_Lumpur = 18:00 UTC (UTC+8, MY has no DST)
+    - cron: "0 18 * * *"
+  # Allow ad-hoc runs from the Actions tab.
+  workflow_dispatch:
+
+# Only one snapshot run at a time — if a previous run is still going,
+# skip rather than pile up.
+concurrency:
+  group: snapshot-pokemon-prices
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run price snapshot
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/snapshot-pokemon-prices.mjs
