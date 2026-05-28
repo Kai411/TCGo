@@ -23,9 +23,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
 
-      - run: npm ci
+      # package-lock.json is gitignored in this repo, so we can't use
+      # `npm ci` / `cache: npm`. The script only needs two deps so a fresh
+      # install per run is fast (~15s) and reproducible enough.
+      - run: npm install --no-audit --no-fund
 
       - name: Run price snapshot
         env:
