@@ -28,7 +28,9 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 const TCGCSV_BASE = "https://tcgcsv.com/tcgplayer";
 const POKEMON_CATEGORY_ID = 3;
 const UPSERT_BATCH_SIZE = 500;
-const CATALOG_PAGE_SIZE = 10000;
+// Must match Supabase's PostgREST default db_max_rows (1000) — otherwise
+// the catalog-id load silently stops after one page.
+const CATALOG_PAGE_SIZE = 1000;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: { persistSession: false },
