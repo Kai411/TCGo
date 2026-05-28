@@ -40,6 +40,10 @@ export interface Card {
   // Trading-card game / franchise. Defaults to "Pokemon" for back-compat
   // with the original Pokemon-only catalog.
   tcgType?: string;
+  // TCGPlayer ID — joins to Supabase cards_catalog. Populated by the
+  // scanner when a TCGo DB match is picked; lets the detail page show
+  // up-to-date market price without hitting an external API.
+  productId?: number;
 
   // ── Product metadata (auto-filled by scanner where possible) ─────────
   rarity?: string;

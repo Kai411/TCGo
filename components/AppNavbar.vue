@@ -236,6 +236,7 @@ const desktopLinks = computed(() => {
     { to: "/pricing", label: "Pricing" },
   ];
   if (user.value) {
+    links.push({ to: "/collection", label: "Collection" });
     links.push({ to: "/activity", label: "Activity" });
   }
   if (isAdmin.value) links.push({ to: "/admin/reports", label: "Admin" });
@@ -274,6 +275,13 @@ const IconActivity = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [
     h("path", { d: "M22 12h-4l-3 9L9 3l-3 9H2" }),
   ]);
+const IconCollection = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("rect", { x: "3", y: "3", width: "7", height: "7", rx: "1" }),
+    h("rect", { x: "14", y: "3", width: "7", height: "7", rx: "1" }),
+    h("rect", { x: "3", y: "14", width: "7", height: "7", rx: "1" }),
+    h("rect", { x: "14", y: "14", width: "7", height: "7", rx: "1" }),
+  ]);
 
 const mobileTabs = computed(() => {
   const tabs: {
@@ -286,6 +294,7 @@ const mobileTabs = computed(() => {
   ];
   if (user.value) {
     tabs.push(
+      { to: "/collection", label: "Collection", icon: IconCollection },
       { to: "/activity", label: "Activity", icon: IconActivity },
       {
         to: `/profile/${user.value.uid}`,

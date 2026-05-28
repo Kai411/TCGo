@@ -293,7 +293,7 @@ const emit = defineEmits<{
 }>();
 
 const { uploadImage } = useStorage();
-const { searchByNameAndNumber, searchByName } = usePokemonTcg();
+const { lookupByNameAndNumber } = useCardCatalog();
 const { queue, addProcessing, updateItem, pickMatch, processingCount } =
   useScanQueue();
 const { user, signInWithGoogle } = useAuth();
@@ -565,12 +565,11 @@ const processInBackground = async (
     artist,
   });
 
-  // 3. For non-English cards, skip the TCG API lookup — the API only indexes
-  // English prints, so matching would overwrite the JP set number with an
-  // unrelated English print's number and attach a wrong card image. Use the
-  // user's scanned image + Gemini's English-translated name + the printed
-  // (e.g. JP) set number directly. Rarity / variant / edition stay as
-  // whatever Gemini extracted from the JP face.
+  // 3. For non-English cards, skip the TCGo DB lookup — the Pokémon catalog
+  // is English-first (TCGCSV's JP coverage is partial and Gemini returns
+  // English-translated names anyway, so matching is unreliable). Use the
+  // user's scanned image + Gemini's translated name + printed set number
+  // directly. Seller can still set their own price manually.
   if (language !== "EN") {
     updateItem(id, {
       status: "ready",
@@ -578,20 +577,17 @@ const processInBackground = async (
       cardSet: "",
       cardNumber: number,
       imageUrl: undefined,
+      tcgoPrice: null,
     });
     return;
   }
 
-  // 4. Look up matches in the TCG API (English cards only).
-  let results: any[] = [];
+  // 4. Look up the card in the TCGo DB (Supabase cards_catalog + card_prices).
+  //    First tries exact-ish name + number; falls back to name-only
+  //    suggestions if nothing matches.
+  let lookup: Awaited<ReturnType<typeof lookupByNameAndNumber>>;
   try {
-    const cardNumber = number.includes("/") ? number.split("/")[0] : number;
-    if (name && cardNumber) {
-      results = await searchByNameAndNumber(name, cardNumber);
-    }
-    if (results.length === 0 && name) {
-      results = await searchByName(name);
-    }
+    lookup = await lookupByNameAndNumber(name, number, { language: "EN" });
   } catch {
     updateItem(id, {
       status: "failed",
@@ -600,19 +596,22 @@ const processInBackground = async (
     return;
   }
 
-  if (results.length === 0) {
+  // 5. Resolve to a queue item state:
+  //    - exactly one exact match → auto-pick (status: ready, price attached)
+  //    - multiple exact matches → user picks from candidate list
+  //    - no exact match but suggestions exist → show as needs-pick with hint
+  //    - nothing at all → mark failed
+  if (lookup.exact.length === 1) {
+    pickMatch(id, lookup.exact[0]);
+  } else if (lookup.exact.length > 1) {
+    updateItem(id, { status: "needs-pick", matches: lookup.exact });
+  } else if (lookup.suggestions.length > 0) {
+    updateItem(id, { status: "needs-pick", matches: lookup.suggestions });
+  } else {
     updateItem(id, {
       status: "failed",
-      error: "No matches found — search manually on the drafts page.",
+      error: "No matches found in TCGo DB — fill in manually below.",
     });
-    return;
-  }
-
-  // 5. Single match → auto-pick. Multiple matches → flag for user.
-  if (results.length === 1) {
-    pickMatch(id, results[0]);
-  } else {
-    updateItem(id, { status: "needs-pick", matches: results });
   }
 };
 </script>

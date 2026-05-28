@@ -180,6 +180,9 @@ export default defineNuxtConfig({
       adminWhatsApp: "",
       stripePublishableKey: "",
       siteUrl: "https://tcgo.shop",
+      // Supabase (browser-side anon — catalog + price reads are public).
+      supabaseUrl: "",
+      supabaseAnonKey: "",
     },
   },
 });
