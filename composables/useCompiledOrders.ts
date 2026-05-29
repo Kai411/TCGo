@@ -72,6 +72,11 @@ export interface CompiledOrder {
   stripePaymentIntentId?: string;
   payoutStatus?: "pending" | "queued" | "processing" | "paid" | "failed";
   payoutEligibleAt?: number;
+
+  // Merge bookkeeping (seller consolidating multiple confirmed orders).
+  mergedFrom?: string[]; // on the surviving order: ids it absorbed
+  mergedAt?: number;
+  mergedInto?: string; // on an absorbed (cancelled) order: surviving id
 }
 
 export interface CompiledOrderInputItem {
@@ -391,6 +396,115 @@ export const useCompiledOrders = () => {
     return { ...snap.data(), id: snap.id } as CompiledOrder;
   };
 
+  // Combine several un-shipped orders from the same buyer into one shipment.
+  // Items roll into the oldest order; the others are cancelled (tagged with
+  // mergedInto). Shipping is recomputed once for the combined parcel using
+  // the surviving order's region.
+  //
+  // Two modes, picked automatically from the orders' statuses:
+  //   · all PENDING   → survivor stays "pending", no cards touched. This is
+  //                     the automatic merge used while the buyer is still
+  //                     adding cards (seller hasn't confirmed yet).
+  //   · any CONFIRMED → survivor becomes "confirmed" and every item's card
+  //                     is marked sold. This is the seller-triggered merge.
+  //
+  // Guards: same buyer + seller, none shipped/delivered/cancelled.
+  const mergeOrders = async (orderIds: string[]): Promise<string | null> => {
+    if (!firestore || orderIds.length < 2) return null;
+
+    const snaps = await Promise.all(
+      orderIds.map((id) => getDoc(doc(firestore, "compiledOrders", id))),
+    );
+    const orders = snaps
+      .filter((s) => s.exists())
+      .map((s) => ({ ...s.data(), id: s.id }) as CompiledOrder);
+    if (orders.length < 2) return null;
+
+    const sellerUid = orders[0].sellerUid;
+    const buyerUid = orders[0].buyerUid;
+    const MERGEABLE = new Set(["pending", "confirmed"]);
+    const allValid = orders.every(
+      (o) =>
+        o.sellerUid === sellerUid &&
+        o.buyerUid === buyerUid &&
+        MERGEABLE.has(o.status),
+    );
+    if (!allValid) {
+      throw new Error(
+        "Orders must be from the same buyer & seller and not yet shipped.",
+      );
+    }
+
+    // Oldest order survives — keeps its id (the buyer's WhatsApp thread
+    // reference) and its shipping region.
+    const sorted = [...orders].sort((a, b) => a.createdAt - b.createdAt);
+    const primary = sorted[0];
+    const rest = sorted.slice(1);
+
+    // Combine + dedupe items by cardId.
+    const seen = new Set<string>();
+    const mergedItems: CompiledOrderItem[] = [];
+    for (const o of sorted) {
+      for (const item of o.items) {
+        if (seen.has(item.cardId)) continue;
+        seen.add(item.cardId);
+        mergedItems.push(item);
+      }
+    }
+
+    const subtotal = mergedItems.reduce((s, i) => s + i.price, 0);
+    const shippingWM = mergedItems.reduce((m, i) => Math.max(m, i.shippingWM ?? 0), 0);
+    const shippingEM = mergedItems.reduce((m, i) => Math.max(m, i.shippingEM ?? 0), 0);
+    const shipping = primary.region === "WM" ? shippingWM : shippingEM;
+
+    // If any order is already confirmed, the merged result is a committed
+    // (confirmed) order — every card must be locked as sold.
+    const becomesConfirmed = orders.some((o) => o.status === "confirmed");
+    const now = Date.now();
+
+    const batch = writeBatch(firestore);
+    const primaryPatch: Record<string, unknown> = {
+      items: mergedItems,
+      subtotal,
+      shippingWM,
+      shippingEM,
+      shipping,
+      total: subtotal + shipping,
+      status: becomesConfirmed ? "confirmed" : "pending",
+      mergedFrom: rest.map((o) => o.id),
+      mergedAt: now,
+    };
+    // Stamp confirmedAt if this merge is what promotes the order to confirmed.
+    if (becomesConfirmed && primary.status !== "confirmed") {
+      primaryPatch.confirmedAt = now;
+    }
+    batch.update(doc(firestore, "compiledOrders", primary.id), primaryPatch);
+
+    // Lock cards as sold only when the result is confirmed. Pending merges
+    // leave cards untouched (still listed until the seller confirms).
+    if (becomesConfirmed) {
+      for (const item of mergedItems) {
+        batch.update(doc(firestore, "cards", item.cardId), {
+          sold: true,
+          soldAt: now,
+        });
+      }
+    }
+
+    // Cancel the absorbed orders. Their cards moved into the survivor, so we
+    // never relist them here.
+    for (const o of rest) {
+      batch.update(doc(firestore, "compiledOrders", o.id), {
+        status: "cancelled",
+        cancelledAt: now,
+        cancelReason: `Merged into order ${primary.id.slice(0, 8)}`,
+        mergedInto: primary.id,
+      });
+    }
+    await batch.commit();
+    return primary.id;
+  };
+
   return {
     buyerCompiledOrders,
     sellerCompiledOrders,
@@ -405,5 +519,6 @@ export const useCompiledOrders = () => {
     cancelOrder,
     updateRegion,
     getCompiledOrder,
+    mergeOrders,
   };
 };

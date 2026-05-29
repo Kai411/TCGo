@@ -74,8 +74,8 @@
               :key="item.id"
               class="flex gap-3 items-center"
             >
-              <div class="w-14 h-14 shrink-0 bg-gray-100 dark:bg-white/[0.04] rounded-lg overflow-hidden">
-                <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.cardName" class="w-full h-full object-cover"/>
+              <div class="w-14 h-14 shrink-0 rounded-lg overflow-hidden">
+                <CardImage :src="item.imageUrl" :alt="item.cardName" />
               </div>
               <div class="flex-1 min-w-0">
                 <p class="font-medium text-sm truncate text-ink dark:text-white">{{ item.cardName }}</p>

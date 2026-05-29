@@ -21,7 +21,7 @@
             {{ count }} {{ count === 1 ? "card" : "cards" }}
             <span v-if="totalValue !== null" class="ml-2">
               · est. value
-              <span class="font-semibold text-pokemon-red">RM {{ totalValue.toLocaleString() }}</span>
+              <span class="font-semibold text-ink dark:text-white">{{ formatMyr(totalValue) }} MYR</span>
             </span>
           </p>
         </div>
@@ -365,6 +365,13 @@ const totalValue = computed<number | null>(() => {
     0,
   );
 });
+
+// Thousands separators + 2 decimals, e.g. 1234.5 → "1,234.50".
+const formatMyr = (n: number) =>
+  n.toLocaleString("en-MY", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 const handleToggle = async (productId: number) => {
   try {

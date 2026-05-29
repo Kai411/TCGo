@@ -54,6 +54,7 @@ const STORAGE_KEY = 'tcgo-premium-banner-dismissed';
 const DISMISS_DAYS = 7;
 
 const { profile } = useMyProfile();
+const { premiumEnabled } = useFeatureFlags();
 const isPremium = computed(() => profile.value?.tier === 'premium');
 
 const dismissed = ref(false);
@@ -66,7 +67,7 @@ onMounted(() => {
   }
 });
 
-const visible = computed(() => !isPremium.value && !dismissed.value);
+const visible = computed(() => premiumEnabled && !isPremium.value && !dismissed.value);
 
 const dismiss = () => {
   dismissed.value = true;

@@ -1,5 +1,5 @@
 <template>
-  <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4">
+  <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4 min-w-0">
     <!-- Header: counterparty + status -->
     <div class="flex items-center justify-between gap-3 mb-3">
       <div class="min-w-0">
@@ -28,13 +28,8 @@
         :key="item.cardId"
         class="flex items-center gap-3"
       >
-        <div class="w-12 h-12 shrink-0 bg-gray-100 dark:bg-white/[0.04] rounded-lg overflow-hidden">
-          <img
-            v-if="item.imageUrl"
-            :src="item.imageUrl"
-            :alt="item.cardName"
-            class="w-full h-full object-cover"
-          />
+        <div class="w-12 h-12 shrink-0 rounded-lg overflow-hidden">
+          <CardImage :src="item.imageUrl" :alt="item.cardName" />
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-ink dark:text-white truncate">{{ item.cardName }}</p>
@@ -67,7 +62,7 @@
     <!-- Tracking (if shipped) -->
     <div
       v-if="order.trackingNumber"
-      class="mt-3 text-xs text-gray-500 dark:text-zinc-400"
+      class="mt-3 text-xs text-gray-500 dark:text-zinc-400 break-all"
     >
       Tracking:
       <span class="font-mono font-semibold text-ink dark:text-white">{{ order.trackingNumber }}</span>

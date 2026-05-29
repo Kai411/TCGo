@@ -1,0 +1,146 @@
+<mxfile host="app.diagrams.net" agent="tcgo">
+  <diagram id="tcgo-arch" name="TCGo Architecture">
+    <mxGraphModel dx="3038" dy="1218" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1300" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="lane-client" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#888888;fillColor=none;strokeColor=none;" value="&lt;b&gt;CLIENT&lt;/b&gt;" vertex="1">
+          <mxGeometry height="20" width="100" x="-290" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-server" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#888888;fillColor=none;strokeColor=none;" value="&lt;b&gt;SERVER&lt;/b&gt;" vertex="1">
+          <mxGeometry height="20" width="100" x="-290" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-services" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#888888;fillColor=none;strokeColor=none;" value="&lt;b&gt;MANAGED SERVICES&lt;/b&gt;" vertex="1">
+          <mxGeometry height="20" width="160" x="-290" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="lane-cron" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#888888;fillColor=none;strokeColor=none;" value="&lt;b&gt;SCHEDULED &amp;amp; OFF-PLATFORM&lt;/b&gt;" vertex="1">
+          <mxGeometry height="20" width="220" x="-350" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="browser" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;align=center;verticalAlign=middle;" value="&lt;b&gt;Browser&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Nuxt 3 SPA · Vue 3 · Tailwind · PWA&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="300" x="500" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="netlify" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;align=center;verticalAlign=middle;" value="&lt;b&gt;Netlify&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Static SPA hosting · Nuxt Nitro server routes&lt;br&gt;/api/identify-card · /api/stripe/*&lt;/span&gt;" vertex="1">
+          <mxGeometry height="100" width="300" x="500" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="firebase" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" value="&lt;b&gt;Firebase (Google)&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Auth&lt;/b&gt; — Google sign-in&lt;br&gt;&lt;br&gt;&lt;b&gt;Firestore&lt;/b&gt;&lt;br&gt;· users, cards&lt;br&gt;· compiledOrders&lt;br&gt;· userCollection (pivot)&lt;br&gt;· auctions, reports&lt;br&gt;&lt;br&gt;&lt;b&gt;RTDB&lt;/b&gt; — auction bids" vertex="1">
+          <mxGeometry height="260" width="220" x="270" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="supabase" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;" value="&lt;b&gt;Supabase (Postgres)&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;cards_catalog&lt;/b&gt;&lt;br&gt;· ~32k Pokémon cards&lt;br&gt;&lt;br&gt;&lt;b&gt;card_prices&lt;/b&gt;&lt;br&gt;· daily MYR prices&lt;br&gt;· 365-day history&lt;br&gt;&lt;br&gt;&lt;b&gt;RPCs&lt;/b&gt;&lt;br&gt;· search_catalog&lt;br&gt;· snapshot_prices_today&lt;br&gt;· list_sets, list_rarities" vertex="1">
+          <mxGeometry height="260" width="220" x="20" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudinary" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;Cloudinary&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Card photo uploads + CDN&lt;/span&gt;" vertex="1">
+          <mxGeometry height="120" width="180" x="910" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="stripe" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;Stripe&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Premium subscription&lt;br&gt;Checkout + Billing Portal&lt;br&gt;Webhook → server&lt;/span&gt;" vertex="1">
+          <mxGeometry height="120" width="180" x="560" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="gemini" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;Gemini Vision&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Card recognition&lt;br&gt;Called via server proxy&lt;br&gt;to hide API key&lt;/span&gt;" vertex="1">
+          <mxGeometry height="120" width="180" x="780" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="cron" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;GitHub Actions Cron&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Daily 02:00 MYT (18:00 UTC)&lt;br&gt;&lt;br&gt;scripts/snapshot-pokemon-prices.mjs&lt;br&gt;scripts/seed-pokemon-catalog.mjs (one-off)&lt;/span&gt;" vertex="1">
+          <mxGeometry height="100" width="320" x="-30" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="tcgcsv" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;TCGCSV&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Community TCGPlayer mirror&lt;br&gt;Products + prices CSV/JSON&lt;/span&gt;" vertex="1">
+          <mxGeometry height="100" width="240" x="400" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="whatsapp" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;WhatsApp&lt;/b&gt; &lt;span style=&quot;color:#888&quot;&gt;(off-platform)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px&quot;&gt;Buyer ↔ Seller comms. TCGo deep-links to wa.me/&amp;lt;phone&amp;gt;&lt;br&gt;with pre-filled message. Payment + shipping arranged off-app.&lt;/span&gt;" vertex="1">
+          <mxGeometry height="100" width="460" x="1010" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="e-browser-netlify" edge="1" parent="1" source="browser" style="endArrow=classic;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;" target="netlify" value="HTTPS">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-browser-firebase" edge="1" parent="1" source="browser" style="endArrow=classic;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;" target="firebase" value="client SDK">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-browser-supabase" edge="1" parent="1" source="browser" style="endArrow=classic;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;" target="supabase" value="anon key, RPCs">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="130" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-browser-cloudinary" edge="1" parent="1" source="browser" style="endArrow=classic;html=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;" target="cloudinary" value="direct upload">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1000" y="140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-netlify-stripe" edge="1" parent="1" source="netlify" style="endArrow=classic;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="stripe" value="Checkout sessions">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+            <mxPoint x="800" y="320" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-netlify-gemini" edge="1" parent="1" source="netlify" style="endArrow=classic;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;" target="gemini" value="image proxy">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="870" y="265" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-stripe-netlify" edge="1" parent="1" source="stripe" style="endArrow=classic;html=1;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.25;entryY=1;entryDx=0;entryDy=0;dashed=1;fontSize=10;curved=1;" target="netlify" value="webhook">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-netlify-firebase" edge="1" parent="1" source="netlify" style="endArrow=classic;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;dashed=1;fontSize=10;rounded=0;curved=1;" target="firebase" value="Admin SDK&lt;br&gt;(webhook only)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="450" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-cron-supabase" edge="1" parent="1" source="cron" style="endArrow=classic;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=10;" target="supabase" value="service role&lt;br&gt;writes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-cron-tcgcsv" edge="1" parent="1" source="cron" style="endArrow=classic;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=10;" target="tcgcsv" value="JSON fetch">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-browser-whatsapp" edge="1" parent="1" source="browser" style="endArrow=classic;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;dashed=1;fontSize=10;" target="whatsapp" value="wa.me deep link">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1240" y="100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#cccccc;dashed=0;" value="" vertex="1">
+          <mxGeometry height="170" width="290" x="690" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fillColor=none;strokeColor=none;" value="&lt;b&gt;Legend&lt;/b&gt;" vertex="1">
+          <mxGeometry height="20" width="100" x="705" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-client" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;align=center;" value="Client / SPA" vertex="1">
+          <mxGeometry height="24" width="120" x="705" y="785" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-host" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=center;" value="Hosting / Server" vertex="1">
+          <mxGeometry height="24" width="130" x="835" y="785" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-db" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=center;" value="Data store" vertex="1">
+          <mxGeometry height="24" width="120" x="705" y="815" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-media" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;align=center;" value="Media / CDN" vertex="1">
+          <mxGeometry height="24" width="130" x="835" y="815" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-external" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;" value="External API" vertex="1">
+          <mxGeometry height="24" width="120" x="705" y="845" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-other" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=10;align=center;" value="Other / off-platform" vertex="1">
+          <mxGeometry height="24" width="130" x="835" y="845" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-dashed" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fillColor=none;strokeColor=none;" value="--- dashed arrow = webhook / event-driven" vertex="1">
+          <mxGeometry height="20" width="270" x="705" y="880" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-solid" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fillColor=none;strokeColor=none;" value="→ solid arrow = synchronous request" vertex="1">
+          <mxGeometry height="20" width="270" x="705" y="898" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

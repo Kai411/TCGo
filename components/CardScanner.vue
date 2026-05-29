@@ -11,7 +11,7 @@
         <div class="flex items-center gap-3">
           <h2 class="text-base font-semibold">Scan Card</h2>
           <span
-            v-if="user && isPremium"
+            v-if="premiumEnabled && user && isPremium"
             class="text-[11px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300"
           >
             Premium · Unlimited
@@ -90,21 +90,22 @@
           You've used all {{ FREE_SCAN_LIMIT }} scans
         </h3>
         <p class="text-sm text-white/70 mb-2 max-w-xs">
-          Quota resets {{ resetDateLabel }}. Upgrade to Premium for unlimited
-          scans.
+          Quota resets {{ resetDateLabel }}.<template v-if="premiumEnabled"> Upgrade to Premium for unlimited scans.</template>
         </p>
-        <a
-          v-if="adminWhatsAppLink"
-          :href="adminWhatsAppLink"
-          target="_blank"
-          rel="noopener"
-          class="mt-4 inline-flex items-center gap-2 bg-amber-500 text-ink px-6 py-3 rounded-full font-semibold hover:bg-amber-400 transition-colors"
-        >
-          Upgrade via WhatsApp
-        </a>
-        <p v-else class="mt-4 text-xs text-white/50">
-          Premium upgrade isn't configured yet — set NUXT_PUBLIC_ADMIN_WHATSAPP.
-        </p>
+        <template v-if="premiumEnabled">
+          <a
+            v-if="adminWhatsAppLink"
+            :href="adminWhatsAppLink"
+            target="_blank"
+            rel="noopener"
+            class="mt-4 inline-flex items-center gap-2 bg-amber-500 text-ink px-6 py-3 rounded-full font-semibold hover:bg-amber-400 transition-colors"
+          >
+            Upgrade via WhatsApp
+          </a>
+          <p v-else class="mt-4 text-xs text-white/50">
+            Premium upgrade isn't configured yet — set NUXT_PUBLIC_ADMIN_WHATSAPP.
+          </p>
+        </template>
       </div>
 
       <!-- Always-on camera viewfinder. Capture is non-blocking: each scan
@@ -299,6 +300,7 @@ const { queue, addProcessing, updateItem, pickMatch, processingCount } =
 const { user, signInWithGoogle } = useAuth();
 const { isPremium, remaining, used, tryConsumeScan } = useScanQuota();
 const { profile } = useMyProfile();
+const { premiumEnabled } = useFeatureFlags();
 
 const config = useRuntimeConfig();
 const adminWhatsAppLink = computed(() => {

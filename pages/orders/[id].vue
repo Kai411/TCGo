@@ -99,13 +99,8 @@
             :to="`/cards/${item.cardId}`"
             class="flex items-center gap-3 hover:opacity-80 transition-opacity"
           >
-            <div class="w-16 h-16 shrink-0 bg-gray-100 dark:bg-white/[0.04] rounded-lg overflow-hidden">
-              <img
-                v-if="item.imageUrl"
-                :src="item.imageUrl"
-                :alt="item.cardName"
-                class="w-full h-full object-cover"
-              />
+            <div class="w-16 h-16 shrink-0 rounded-lg overflow-hidden">
+              <CardImage :src="item.imageUrl" :alt="item.cardName" />
             </div>
             <div class="flex-1 min-w-0">
               <p class="font-medium text-sm text-ink dark:text-white truncate">{{ item.cardName }}</p>

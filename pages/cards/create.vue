@@ -249,18 +249,8 @@
                       @click="pickMatch(item.id, m)"
                       class="text-left bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded overflow-hidden hover:border-pokemon-blue transition-colors"
                     >
-                      <img
-                        v-if="m.imageUrl"
-                        :src="m.imageUrl"
-                        :alt="m.name"
-                        class="w-full aspect-[2.5/3.5] object-cover"
-                        loading="lazy"
-                      />
-                      <div
-                        v-else
-                        class="w-full aspect-[2.5/3.5] bg-gray-100 dark:bg-white/[0.04] flex items-center justify-center text-gray-400 text-[10px]"
-                      >
-                        No image
+                      <div class="w-full aspect-[2.5/3.5]">
+                        <CardImage :src="m.imageUrl" :alt="m.name" />
                       </div>
                       <p class="px-1 py-0.5 text-[10px] font-semibold truncate">
                         {{ m.name }}

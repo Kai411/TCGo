@@ -46,7 +46,7 @@
               </h1>
               <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <span
-                  v-if="profile.tier === 'premium'"
+                  v-if="premiumEnabled && profile.tier === 'premium'"
                   class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide uppercase bg-amber-400/20 text-amber-700 dark:text-amber-300"
                 >
                   <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
@@ -199,7 +199,7 @@
         </button>
 
         <NuxtLink
-          v-if="isOwnProfile && profile.tier !== 'premium'"
+          v-if="premiumEnabled && isOwnProfile && profile.tier !== 'premium'"
           to="/pricing"
           class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-amber-400/15 dark:bg-amber-400/10 border border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 hover:bg-amber-400/25 dark:hover:bg-amber-400/20 transition-colors ease-premium"
         >
@@ -480,6 +480,7 @@ const uid = route.params.uid as string;
 
 const { profile, loading: profileLoading } = useProfile(uid);
 const { user, signOut } = useAuth();
+const { premiumEnabled } = useFeatureFlags();
 const { auctions } = useAuctions();
 const { cards } = useCards();
 const { userFavourites } = useUserFavourites(uid);

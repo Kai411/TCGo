@@ -95,9 +95,34 @@ export const parseSmartQuery = (input: string): ParsedQuery => {
   };
 };
 
-// USD → MYR ballpark. Same constant useMarketPrice uses; swap in a live FX
-// feed later if it drifts too far.
-const USD_MYR = 4.7;
+// USD → MYR conversion. TCGPlayer publishes prices in USD; we multiply by a
+// live rate fetched from /api/fx/usd-myr (cached server-side for 12h). Until
+// that resolves — and if the feed ever fails — we fall back to this static
+// ballpark so prices still render.
+const USD_MYR_FALLBACK = 4.7;
+
+// Module-level so the rate is shared across every useCardCatalog() call and
+// fetched at most once per session.
+let usdMyrRate = USD_MYR_FALLBACK;
+let ratePromise: Promise<void> | null = null;
+
+// Fetch the live rate once. Subsequent calls reuse the same in-flight/settled
+// promise, so callers can `await ensureRate()` cheaply before pricing rows.
+const ensureRate = (): Promise<void> => {
+  if (ratePromise) return ratePromise;
+  ratePromise = (async () => {
+    try {
+      const res = await $fetch<{ rate: number }>("/api/fx/usd-myr");
+      if (res?.rate && res.rate > 0) usdMyrRate = res.rate;
+    } catch {
+      // Keep the fallback rate.
+    }
+  })();
+  return ratePromise;
+};
+
+// Convert a USD figure to MYR, keeping 2 decimal places (cents).
+const toMyr = (usd: number) => Math.round(usd * usdMyrRate * 100) / 100;
 
 // TCGPlayer publishes per-subtype prices. We prefer Holofoil → Normal →
 // Reverse Holofoil; for a sealed product the only key is usually "Normal".
@@ -144,10 +169,10 @@ const pickPrice = (prices: Record<string, any> | null | undefined): CatalogPrice
     const market = block.market ?? block.mid ?? null;
     if (market == null) continue;
     return {
-      market: Math.round(market * USD_MYR),
+      market: toMyr(market),
       subtype,
-      low: Math.round((block.low ?? market) * USD_MYR),
-      high: Math.round((block.high ?? market) * USD_MYR),
+      low: toMyr(block.low ?? market),
+      high: toMyr(block.high ?? market),
     };
   }
   // Fallback: any subtype with a usable market value.
@@ -157,10 +182,10 @@ const pickPrice = (prices: Record<string, any> | null | undefined): CatalogPrice
     const market = b.market ?? b.mid ?? null;
     if (market == null) continue;
     return {
-      market: Math.round(market * USD_MYR),
+      market: toMyr(market),
       subtype,
-      low: Math.round((b.low ?? market) * USD_MYR),
-      high: Math.round((b.high ?? market) * USD_MYR),
+      low: toMyr(b.low ?? market),
+      high: toMyr(b.high ?? market),
     };
   }
   return null;
@@ -235,6 +260,9 @@ export const useCardCatalog = () => {
       return { results: [], total: 0 };
     }
 
+    // Fetch the FX rate concurrently with the query.
+    const fxReady = ensureRate();
+
     const { data, error } = await supabase.rpc("search_catalog", {
       q: trimmed,
       page: opts.page ?? 0,
@@ -250,6 +278,7 @@ export const useCardCatalog = () => {
       return { results: [], total: 0 };
     }
 
+    await fxReady;
     const rows = (data ?? []) as Array<any>;
     const total = rows[0]?.total_count ? Number(rows[0].total_count) : 0;
     const results: CatalogMatch[] = rows.map((row) => ({
@@ -309,6 +338,9 @@ export const useCardCatalog = () => {
     const trimmedName = name.trim();
     if (trimmedName.length < 2) return { exact: [], suggestions: [] };
 
+    // Fetch the FX rate concurrently with the lookup.
+    const fxReady = ensureRate();
+
     const numericOnly = number?.includes("/") ? number.split("/")[0].trim() : number?.trim();
 
     // Step 1: exact-ish match (name ILIKE + matching number form).
@@ -326,6 +358,7 @@ export const useCardCatalog = () => {
       if (error) {
         console.error("[useCardCatalog] exact lookup error:", error.message);
       } else if (data && data.length > 0) {
+        await fxReady;
         return { exact: data.map(rowToMatch), suggestions: [] };
       }
     }
@@ -345,18 +378,21 @@ export const useCardCatalog = () => {
       console.error("[useCardCatalog] suggestion lookup error:", fbErr.message);
       return { exact: [], suggestions: [] };
     }
+    await fxReady;
     return { exact: [], suggestions: (fbData ?? []).map(rowToMatch) };
   };
 
   // Detail-page lookup — fetch a single catalog row + its current price.
   const getCardWithPrice = async (productId: number): Promise<CatalogMatch | null> => {
     if (!supabase) return null;
+    const fxReady = ensureRate();
     const { data, error } = await supabase
       .from("cards_catalog")
       .select(SELECT_COLUMNS)
       .eq("product_id", productId)
       .single();
     if (error || !data) return null;
+    await fxReady;
     return rowToMatch(data);
   };
 
@@ -367,6 +403,7 @@ export const useCardCatalog = () => {
   const getCardsByIds = async (productIds: number[]): Promise<CatalogMatch[]> => {
     if (!supabase) return [];
     if (productIds.length === 0) return [];
+    await ensureRate();
     // PostgREST .in() supports a few thousand IDs per call, but chunking
     // keeps URLs short and stays well under any proxy limits.
     const CHUNK = 200;

@@ -219,7 +219,7 @@
       </div>
 
       <div
-        v-if="!loading"
+        v-if="!loading && premiumEnabled"
         class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-4 mt-4"
       >
         <div class="flex items-center justify-between">
@@ -368,6 +368,7 @@ import type { UserProfile } from "~/composables/useProfile";
 const { user, signInWithGoogle } = useAuth();
 const { profile, loading, updateProfile, updateCustomName } = useMyProfile();
 const { uploadImage } = useStorage();
+const { premiumEnabled } = useFeatureFlags();
 const { isPremium, used: scansUsed, hasClaimedBonus, bonusRemaining, claimBonusScans } = useScanQuota();
 const FREE_SCAN_LIMIT = 20;
 

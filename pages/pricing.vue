@@ -112,6 +112,15 @@
 </template>
 
 <script setup lang="ts">
+import { PREMIUM_ENABLED } from "~/composables/useFeatureFlags";
+
+// Premium is hidden for now — keep the page unreachable while the flag is off.
+definePageMeta({
+  middleware: () => {
+    if (!PREMIUM_ENABLED) return navigateTo("/", { replace: true });
+  },
+});
+
 useHead({ title: 'Pricing | TCGo Marketplace' });
 
 const { user, signInWithGoogle } = useAuth();

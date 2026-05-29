@@ -229,12 +229,14 @@ const { cartCount } = useCart();
 const activeLinkClass =
   "!text-white dark:!text-ink !bg-ink dark:!bg-white shadow-card";
 
+const { premiumEnabled } = useFeatureFlags();
+
 const desktopLinks = computed(() => {
   const links = [
     { to: "/", label: "Shop" },
     { to: "/auctions", label: "Auctions" },
-    { to: "/pricing", label: "Pricing" },
   ];
+  if (premiumEnabled) links.push({ to: "/pricing", label: "Pricing" });
   if (user.value) {
     links.push({ to: "/collection", label: "Collection" });
     links.push({ to: "/activity", label: "Activity" });

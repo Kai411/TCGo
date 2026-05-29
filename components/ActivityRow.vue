@@ -1,7 +1,7 @@
 <template>
   <NuxtLink
     :to="to"
-    class="block group"
+    class="block group min-w-0"
   >
     <div
       class="flex gap-3 sm:gap-4 items-center bg-white dark:bg-white/[0.04] rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-white/[0.08] hover:border-pokemon-red/40 transition-colors"
