@@ -252,7 +252,7 @@ const handlePlaceOrders = async () => {
     if (created.length === 1) {
       router.push(`/orders/${created[0].id}?placed=1`);
     } else {
-      router.push(`/activity?tab=orders&placed=${created.length}`);
+      router.push(`/activity?tab=purchases&placed=${created.length}`);
     }
   } catch (e: any) {
     alert(e?.message || "Could not place orders. Please try again.");

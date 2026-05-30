@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-2xl mx-auto">
     <NuxtLink
-      to="/activity?tab=orders"
+      to="/activity?tab=purchases"
       class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white mb-4"
     >
       ← Back to orders

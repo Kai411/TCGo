@@ -60,7 +60,7 @@
         </p>
         <NuxtLink
           v-if="user"
-          to="/cards/create"
+          to="/inventory/listings/new"
           class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow ease-premium"
         >
           List your first card

@@ -46,19 +46,31 @@
 
       <!-- Right cluster -->
       <div class="flex items-center gap-1.5 lg:gap-2 shrink-0">
-        <!-- Desktop sell CTAs -->
+        <!-- Desktop sell CTAs → enter the inventory system -->
         <div v-if="user" class="hidden lg:flex items-center gap-2 ml-1">
           <NuxtLink
-            to="/cards/create"
+            to="/inventory/listings/new"
             class="px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
           >
             Sell
           </NuxtLink>
           <NuxtLink
-            to="/auctions/create"
+            to="/inventory/auctions/new"
             class="px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
           >
             Auction
+          </NuxtLink>
+          <NuxtLink
+            to="/inventory"
+            aria-label="Inventory"
+            title="Inventory"
+            class="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
+          >
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+              <path d="M2 12h20"/>
+            </svg>
           </NuxtLink>
         </div>
 
@@ -152,18 +164,26 @@
               class="absolute right-0 top-full mt-2 w-48 surface rounded-xl overflow-hidden py-1.5 z-50"
             >
               <NuxtLink
-                to="/cards/create"
+                to="/inventory/listings/new"
                 @click="sellMenuOpen = false"
                 class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
               >
                 Sell a card
               </NuxtLink>
               <NuxtLink
-                to="/auctions/create"
+                to="/inventory/auctions/new"
                 @click="sellMenuOpen = false"
                 class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
               >
                 Start an auction
+              </NuxtLink>
+              <div class="my-1 border-t border-black/[0.06] dark:border-white/[0.08]"/>
+              <NuxtLink
+                to="/inventory"
+                @click="sellMenuOpen = false"
+                class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
+              >
+                Inventory dashboard
               </NuxtLink>
             </div>
           </Transition>

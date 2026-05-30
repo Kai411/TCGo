@@ -26,7 +26,7 @@
         </NuxtLink>
         <NuxtLink
           v-if="isOwnListing && !card.sold"
-          :to="`/cards/${card.id}/edit`"
+          :to="`/inventory/listings/${card.id}/edit`"
           class="text-sm bg-gray-100 dark:bg-white/[0.04] hover:bg-gray-200 dark:hover:bg-white/[0.08] px-4 py-1.5 rounded-lg text-gray-700 dark:text-zinc-200 transition-colors"
         >
           Edit Listing
