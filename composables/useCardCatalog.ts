@@ -425,6 +425,42 @@ export const useCardCatalog = () => {
     return productIds.map((id) => byId.get(id)).filter(Boolean) as CatalogMatch[];
   };
 
+  // Reconcile a single CSV row (name + optional number + optional set hint)
+  // to the best catalog match. Used by the import flow. Strategy:
+  //   1. If a number is given, try exact name+number; bias suggestions by set.
+  //   2. Otherwise (or no match) fall back to name (+ set) fuzzy search.
+  // Returns null when nothing usable matches.
+  const matchRow = async (
+    name: string,
+    number?: string | null,
+    setHint?: string | null,
+  ): Promise<CatalogMatch | null> => {
+    const trimmed = (name || "").trim();
+    if (trimmed.length < 2) return null;
+    const set = setHint?.trim() || null;
+
+    if (number && number.trim()) {
+      const { exact, suggestions } = await lookupByNameAndNumber(trimmed, number);
+      if (exact.length) return exact[0];
+      if (suggestions.length) {
+        if (set) {
+          const biased = suggestions.find((m) =>
+            m.setName.toLowerCase().includes(set.toLowerCase()),
+          );
+          if (biased) return biased;
+        }
+        return suggestions[0];
+      }
+    }
+
+    const { results } = await searchCatalog(trimmed, {
+      limit: 5,
+      setMatch: set,
+      sort: "best",
+    });
+    return results[0] ?? null;
+  };
+
   return {
     searchCatalog,
     lookupByNameAndNumber,
@@ -432,5 +468,6 @@ export const useCardCatalog = () => {
     getCardsByIds,
     listSets,
     listRarities,
+    matchRow,
   };
 };

@@ -71,15 +71,18 @@
 
     <!-- Mobile bottom nav -->
     <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] pb-[16px]">
-      <div class="grid grid-cols-3 h-16 px-1">
+      <div
+        class="grid h-16 px-1"
+        :style="{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }"
+      >
         <NuxtLink
           v-for="item in navItems"
           :key="item.to"
           :to="item.to"
-          class="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
+          class="relative flex flex-col items-center justify-center gap-0.5 text-[9px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
           :class="isActive(item) ? '!text-pokemon-red' : ''"
         >
-          <component :is="item.icon" class="w-6 h-6" />
+          <component :is="item.icon" class="w-5 h-5" />
           <span>{{ item.label }}</span>
         </NuxtLink>
       </div>
@@ -126,16 +129,22 @@ const IconScan = () =>
     h("line", { x1: "3", y1: "12", x2: "21", y2: "12" }),
   ]);
 
+const IconBox = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("path", { d: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" }),
+    h("polyline", { points: "3.27 6.96 12 12.01 20.73 6.96" }),
+    h("line", { x1: "12", y1: "22.08", x2: "12", y2: "12" }),
+  ]);
+
 const navItems = [
   { to: "/inventory", label: "Dashboard", icon: IconDashboard, exact: true },
+  { to: "/inventory/items", label: "Items", icon: IconBox },
   { to: "/inventory/listings", label: "Listings", icon: IconTag },
   { to: "/inventory/auctions", label: "Auctions", icon: IconGavel },
+  { to: "/inventory/import", label: "Import", icon: IconUpload },
 ];
 
-const soonItems = [
-  { label: "Import", icon: IconUpload },
-  { label: "POS", icon: IconScan },
-];
+const soonItems = [{ label: "POS", icon: IconScan }];
 
 const isActive = (item: { to: string; exact?: boolean }) => {
   if (item.exact) return route.path === item.to;

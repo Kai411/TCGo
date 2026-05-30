@@ -66,10 +66,20 @@
             title="Inventory"
             class="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
           >
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
-              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-              <path d="M2 12h20"/>
+            <svg
+              class="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"
+              />
+              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+              <path d="M2 12h20" />
             </svg>
           </NuxtLink>
         </div>
@@ -112,7 +122,9 @@
           >
             <circle cx="9" cy="21" r="1" />
             <circle cx="20" cy="21" r="1" />
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+            <path
+              d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+            />
           </svg>
           <span
             v-if="cartCount > 0"
@@ -177,7 +189,9 @@
               >
                 Start an auction
               </NuxtLink>
-              <div class="my-1 border-t border-black/[0.06] dark:border-white/[0.08]"/>
+              <div
+                class="my-1 border-t border-black/[0.06] dark:border-white/[0.08]"
+              />
               <NuxtLink
                 to="/inventory"
                 @click="sellMenuOpen = false"
@@ -267,7 +281,7 @@ const desktopLinks = computed(() => {
   ];
   if (premiumEnabled) links.push({ to: "/pricing", label: "Pricing" });
   if (user.value) {
-    links.push({ to: "/collection", label: "Add Cards" });
+    links.push({ to: "/collection", label: "Collection" });
     links.push({ to: "/activity", label: "Activity" });
   }
   if (isAdmin.value) links.push({ to: "/admin/reports", label: "Admin" });
@@ -325,7 +339,7 @@ const mobileTabs = computed(() => {
   ];
   if (user.value) {
     tabs.push(
-      { to: "/collection", label: "Add", icon: IconCollection },
+      { to: "/collection", label: "Collection", icon: IconCollection },
       { to: "/activity", label: "Activity", icon: IconActivity },
       {
         to: `/profile/${user.value.uid}`,
