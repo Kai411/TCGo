@@ -109,6 +109,7 @@ useHead({ title: "Inventory · Listings | TCGo" });
 
 const { user, signInWithGoogle } = useAuth();
 const { cards, loading: cardsLoading, markAsSold } = useCards();
+const { markSoldByListingId } = useInventory();
 
 const tab = ref<"active" | "sold">("active");
 
@@ -131,6 +132,8 @@ const handleMarkAsSold = async (cardId: string) => {
   markingAsSold.value = cardId;
   try {
     await markAsSold(cardId);
+    // Keep the linked inventory item (if any) in sync.
+    await markSoldByListingId(cardId);
   } finally {
     markingAsSold.value = null;
   }

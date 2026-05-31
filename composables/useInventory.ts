@@ -18,6 +18,8 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
+  getDocs,
   writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
@@ -70,6 +72,17 @@ export interface InventoryItemInput {
   photos?: string[];
   source?: InventorySource;
   notes?: string;
+}
+
+export interface ListOptions {
+  sellerName: string;
+  sellerUid: string;
+  price: number;
+  condition: string;
+  shippingWM: number;
+  shippingEM: number;
+  description?: string;
+  productType?: string;
 }
 
 const items = ref<InventoryItem[]>([]);
@@ -176,6 +189,158 @@ export const useInventory = () => {
     await deleteDoc(doc(firestore, "inventory", id));
   };
 
+  // ── Bridge: inventory ↔ marketplace listings ────────────────────────
+
+  // List an inventory item on the marketplace: create a `cards` doc from the
+  // item's denormalized data, then link both (item.status → listed,
+  // item.listingId → card; card.inventoryId → item). Returns the new card id.
+  const listItem = async (
+    itemId: string,
+    opts: ListOptions,
+  ): Promise<string | null> => {
+    if (!firestore) return null;
+    const item = items.value.find((i) => i.id === itemId);
+    if (!item) return null;
+
+    const cardRef = await addDoc(collection(firestore, "cards"), {
+      cardName: item.cardName,
+      cardSet: item.setName,
+      cardNumber: item.number,
+      productType: opts.productType || "Ungraded",
+      condition: opts.condition || item.condition || "",
+      gradingProvider: "",
+      grade: "",
+      customGradingProvider: "",
+      description: opts.description || "",
+      price: opts.price,
+      shippingWM: opts.shippingWM,
+      shippingEM: opts.shippingEM,
+      imageUrl: item.primaryImage,
+      imageUrls: item.primaryImage ? [item.primaryImage] : [],
+      seller: opts.sellerName,
+      sellerUid: opts.sellerUid,
+      createdAt: Date.now(),
+      sold: false,
+      interestedCount: 0,
+      favouriteCount: 0,
+      language: "EN",
+      tcgType: "Pokemon",
+      rarity: item.rarity || "",
+      variant: "",
+      edition: "",
+      artist: "",
+      quantity: item.quantity || 1,
+      status: "active",
+      inventoryId: itemId,
+      ...(item.productId ? { productId: item.productId } : {}),
+    });
+
+    await updateDoc(doc(firestore, "inventory", itemId), {
+      status: "listed",
+      listingId: cardRef.id,
+      listPrice: opts.price,
+      condition: opts.condition || item.condition || "",
+      updatedAt: Date.now(),
+    });
+    return cardRef.id;
+  };
+
+  // Remove an item's marketplace listing — delete the card, return the item
+  // to in_stock.
+  const unlistItem = async (itemId: string) => {
+    if (!firestore) return;
+    const item = items.value.find((i) => i.id === itemId);
+    if (!item) return;
+    if (item.listingId) {
+      try {
+        await deleteDoc(doc(firestore, "cards", item.listingId));
+      } catch {}
+    }
+    await updateDoc(doc(firestore, "inventory", itemId), {
+      status: "in_stock",
+      listingId: deleteField(),
+      updatedAt: Date.now(),
+    });
+  };
+
+  // Mark an item sold (POS or online). Syncs the linked listing if any.
+  const markItemSold = async (itemId: string, soldPrice?: number) => {
+    if (!firestore) return;
+    const item = items.value.find((i) => i.id === itemId);
+    if (!item) return;
+    const now = Date.now();
+    await updateDoc(doc(firestore, "inventory", itemId), {
+      status: "sold",
+      soldAt: now,
+      ...(soldPrice != null ? { soldPrice } : {}),
+      updatedAt: now,
+    });
+    if (item.listingId) {
+      try {
+        await updateDoc(doc(firestore, "cards", item.listingId), {
+          sold: true,
+          status: "sold",
+        });
+      } catch {}
+    }
+  };
+
+  // Called from the listings side when a card is marked sold — find and sync
+  // its linked inventory item (if any).
+  const markSoldByListingId = async (cardId: string) => {
+    if (!firestore) return;
+    const q = query(
+      collection(firestore, "inventory"),
+      where("listingId", "==", cardId),
+    );
+    const snap = await getDocs(q);
+    const now = Date.now();
+    await Promise.all(
+      snap.docs.map((d) =>
+        updateDoc(d.ref, { status: "sold", soldAt: now, updatedAt: now }),
+      ),
+    );
+  };
+
+  // Reverse bridge: when a card is listed via the Sell form, create a linked
+  // inventory item so the listing also shows up in inventory.
+  const createListedFromCard = async (
+    cardId: string,
+    data: {
+      productId?: number | null;
+      cardName: string;
+      setName?: string;
+      number?: string;
+      rarity?: string;
+      condition?: string;
+      price?: number;
+      imageUrl?: string;
+      quantity?: number;
+    },
+  ) => {
+    if (!user.value || !firestore) return;
+    const base = buildItem(
+      {
+        productId: data.productId ?? null,
+        cardName: data.cardName,
+        setName: data.setName,
+        number: data.number,
+        rarity: data.rarity,
+        condition: data.condition,
+        quantity: data.quantity,
+        listPrice: data.price,
+        stockImageUrl: data.imageUrl,
+        source: "manual",
+      },
+      user.value.uid,
+    );
+    await addDoc(collection(firestore, "inventory"), {
+      ...base,
+      status: "listed",
+      listingId: cardId,
+    });
+  };
+
   const count = computed(() => items.value.length);
   const totalUnits = computed(() =>
     items.value.reduce((s, i) => s + (i.quantity || 0), 0),
@@ -195,5 +360,10 @@ export const useInventory = () => {
     addMany,
     updateItem,
     removeItem,
+    listItem,
+    unlistItem,
+    markItemSold,
+    markSoldByListingId,
+    createListedFromCard,
   };
 };

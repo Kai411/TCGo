@@ -137,16 +137,78 @@
                 class="w-14 text-sm text-right px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums"
               />
             </div>
-            <button @click="handleRemove(item.id)" class="text-[11px] text-red-500 hover:text-red-700">Remove</button>
+            <div class="flex items-center gap-2">
+              <template v-if="item.status === 'in_stock'">
+                <button @click="openListDialog(item)" class="text-[11px] font-semibold text-pokemon-red hover:underline">List</button>
+                <span class="text-gray-300 dark:text-zinc-700">·</span>
+                <button @click="handleMarkSold(item.id)" class="text-[11px] text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">Sold</button>
+              </template>
+              <template v-else-if="item.status === 'listed'">
+                <NuxtLink v-if="item.listingId" :to="`/cards/${item.listingId}`" class="text-[11px] text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">View</NuxtLink>
+                <span class="text-gray-300 dark:text-zinc-700">·</span>
+                <button @click="handleUnlist(item.id)" class="text-[11px] text-amber-600 dark:text-amber-400 hover:underline">Unlist</button>
+              </template>
+              <button @click="handleRemove(item.id)" class="text-[11px] text-red-500 hover:text-red-700">Remove</button>
+            </div>
           </div>
         </div>
       </div>
     </template>
+
+    <!-- List-for-sale dialog -->
+    <div
+      v-if="listing"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+      @click.self="listing = null"
+    >
+      <div class="surface rounded-2xl w-full max-w-sm p-5 border border-black/[0.06] dark:border-white/[0.08]">
+        <h3 class="text-base font-bold text-ink dark:text-white mb-1">List for sale</h3>
+        <p class="text-xs text-gray-500 dark:text-zinc-400 mb-4 truncate">{{ listing.cardName }}</p>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Price (RM)</label>
+            <input v-model.number="listForm.price" type="number" min="0.01" step="0.01" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"/>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Condition</label>
+            <select v-model="listForm.condition" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white">
+              <option value="">Condition…</option>
+              <option v-for="c in CONDITIONS" :key="c" :value="c">{{ c }}</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Ship WM (RM)</label>
+              <input v-model.number="listForm.shippingWM" type="number" min="0" step="0.01" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"/>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Ship EM (RM)</label>
+              <input v-model.number="listForm.shippingEM" type="number" min="0" step="0.01" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"/>
+            </div>
+          </div>
+        </div>
+        <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-3">
+          Lists with the catalog image. Add a real photo from the listing later for graded/played cards.
+        </p>
+        <div class="flex gap-2 mt-4">
+          <button @click="listing = null" class="flex-1 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200">Cancel</button>
+          <button
+            @click="confirmList"
+            :disabled="listingBusy || !listForm.price"
+            class="flex-1 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            <span v-if="listingBusy" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
+            List it
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { CatalogMatch } from "~/composables/useCardCatalog";
+import type { InventoryItem } from "~/composables/useInventory";
 
 definePageMeta({ layout: "inventory" });
 useHead({ title: "Inventory · Items | TCGo" });
@@ -160,6 +222,7 @@ const CONDITIONS = [
 ];
 
 const { user, signInWithGoogle } = useAuth();
+const { profile } = useMyProfile();
 const {
   items,
   loading,
@@ -170,6 +233,9 @@ const {
   addItem,
   updateItem,
   removeItem,
+  listItem,
+  unlistItem,
+  markItemSold,
 } = useInventory();
 const { searchCatalog } = useCardCatalog();
 
@@ -211,6 +277,60 @@ const quickAdd = async (card: CatalogMatch) => {
 const handleRemove = async (id: string) => {
   if (!confirm("Remove this item from inventory?")) return;
   await removeItem(id);
+};
+
+const handleMarkSold = async (id: string) => {
+  if (!confirm("Mark this item as sold?")) return;
+  await markItemSold(id);
+};
+
+const handleUnlist = async (id: string) => {
+  if (!confirm("Remove this listing from the marketplace? The item stays in your inventory.")) return;
+  await unlistItem(id);
+};
+
+// ── List-for-sale dialog ──────────────────────────────────────────────
+const listing = ref<InventoryItem | null>(null);
+const listingBusy = ref(false);
+const listForm = ref({
+  price: 0,
+  condition: "",
+  shippingWM: 0,
+  shippingEM: 0,
+});
+
+const openListDialog = (item: InventoryItem) => {
+  listing.value = item;
+  listForm.value = {
+    price: item.listPrice || 0,
+    condition: item.condition || CONDITIONS[0],
+    shippingWM: profile.value?.shippingWM ?? 8,
+    shippingEM: profile.value?.shippingEM ?? 12,
+  };
+};
+
+const confirmList = async () => {
+  if (!listing.value || !user.value || listingBusy.value) return;
+  if (!profile.value?.phone && !profile.value?.whatsappNumber) {
+    alert("Add your contact number in your profile before listing.");
+    return;
+  }
+  listingBusy.value = true;
+  try {
+    await listItem(listing.value.id, {
+      sellerName: profile.value?.customName || user.value.displayName || "Anonymous",
+      sellerUid: user.value.uid,
+      price: listForm.value.price,
+      condition: listForm.value.condition,
+      shippingWM: listForm.value.shippingWM,
+      shippingEM: listForm.value.shippingEM,
+    });
+    listing.value = null;
+  } catch (e: any) {
+    alert(e?.message || "Could not list this item.");
+  } finally {
+    listingBusy.value = false;
+  }
 };
 
 const formatMyr = (n: number) =>

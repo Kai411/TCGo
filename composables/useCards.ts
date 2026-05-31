@@ -44,6 +44,8 @@ export interface Card {
   // scanner when a TCGo DB match is picked; lets the detail page show
   // up-to-date market price without hitting an external API.
   productId?: number;
+  // Back-link to the inventory item this listing was created from (bridge).
+  inventoryId?: string;
 
   // ── Product metadata (auto-filled by scanner where possible) ─────────
   rarity?: string;

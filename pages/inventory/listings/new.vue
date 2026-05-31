@@ -648,6 +648,7 @@ import { FREE_SCAN_LIMIT } from "~/composables/useScanQuota";
 
 const router = useRouter();
 const { createCard } = useCards();
+const { createListedFromCard } = useInventory();
 const { uploadAuctionImages } = useStorage();
 const { user, signInWithGoogle } = useAuth();
 const { profile } = useMyProfile();
@@ -850,7 +851,7 @@ const publishDrafts = async () => {
       if (item.scannedImageUrl) baseUrls.push(item.scannedImageUrl);
       const imageUrls = [...baseUrls, ...extraUrls];
 
-      await createCard({
+      const cardId = await createCard({
         cardName: item.cardName!,
         cardSet: item.cardSet || "",
         cardNumber: item.cardNumber || "",
@@ -878,6 +879,20 @@ const publishDrafts = async () => {
         quantity: 1,
         status: "active",
       });
+      // Bridge: mirror the listing into inventory so it shows up there too.
+      try {
+        await createListedFromCard(cardId, {
+          productId: item.productId ?? null,
+          cardName: item.cardName!,
+          setName: item.cardSet || "",
+          number: item.cardNumber || "",
+          rarity: item.rarity || "",
+          condition: f.productType === "Ungraded" ? f.condition : "",
+          price: f.price!,
+          imageUrl: imageUrls[0],
+          quantity: 1,
+        });
+      } catch {}
       // Remove the published item from the queue so unresolved ones remain
       // for the user to handle separately.
       removeFromQueue(item.id);
@@ -1066,7 +1081,7 @@ const handleSubmit = async () => {
     }
     uploading.value = false;
 
-    await createCard({
+    const cardId = await createCard({
       cardName: cardForm.value.cardName,
       cardSet: cardForm.value.cardSet,
       cardNumber: cardForm.value.cardNumber,
@@ -1096,6 +1111,19 @@ const handleSubmit = async () => {
       pickupAvailable: cardForm.value.pickupAvailable === true,
       status: "active",
     });
+    // Bridge: mirror the listing into inventory.
+    try {
+      await createListedFromCard(cardId, {
+        cardName: cardForm.value.cardName,
+        setName: cardForm.value.cardSet,
+        number: cardForm.value.cardNumber,
+        rarity: cardForm.value.rarity || "",
+        condition: cardForm.value.condition,
+        price: price.value,
+        imageUrl: imageUrls[0] || "",
+        quantity: cardForm.value.quantity || 1,
+      });
+    } catch {}
 
     selectedFiles.value.forEach((f: any) => URL.revokeObjectURL(f.preview));
     submitted.value = true;
