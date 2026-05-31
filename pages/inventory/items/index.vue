@@ -87,20 +87,37 @@
       </div>
 
       <template v-else>
-        <!-- Status filter + count -->
+        <!-- Status filter + count + select all -->
         <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
           <TabStrip v-model="statusFilter" :tabs="filterTabs" />
-          <p class="text-xs text-gray-400 dark:text-zinc-500">
-            {{ filteredItems.length }} {{ filteredItems.length === 1 ? "item" : "items" }}
-          </p>
+          <div class="flex items-center gap-3">
+            <button
+              @click="toggleSelectAllFiltered"
+              class="text-xs font-semibold text-pokemon-red hover:underline"
+            >
+              {{ allFilteredSelected ? "Clear selection" : `Select all ${filteredItems.length}` }}
+            </button>
+            <p class="text-xs text-gray-400 dark:text-zinc-500">
+              {{ filteredItems.length }} {{ filteredItems.length === 1 ? "item" : "items" }}
+            </p>
+          </div>
         </div>
 
         <!-- Bulk action bar -->
         <div
           v-if="selected.size"
-          class="flex items-center justify-between gap-2 mb-3 px-3 py-2 rounded-xl border border-pokemon-red/30 bg-pokemon-red/[0.06]"
+          class="flex items-center justify-between gap-2 mb-3 px-3 py-2 rounded-xl border border-pokemon-red/30 bg-pokemon-red/[0.06] flex-wrap"
         >
-          <span class="text-sm font-semibold text-ink dark:text-white">{{ selected.size }} selected</span>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-semibold text-ink dark:text-white">{{ selected.size }} selected</span>
+            <button
+              v-if="selected.size < filteredItems.length"
+              @click="selectAllFiltered"
+              class="text-xs font-semibold text-pokemon-red hover:underline"
+            >
+              Select all {{ filteredItems.length }}
+            </button>
+          </div>
           <div class="flex items-center gap-1.5">
             <button @click="bulkList" :disabled="bulkBusy" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-50">List</button>
             <button @click="bulkMarkSold" :disabled="bulkBusy" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 disabled:opacity-50">Mark sold</button>
@@ -389,6 +406,20 @@ const toggleSelectAllPage = () => {
 };
 const clearSelection = () => (selected.value = new Set());
 const selectedItems = computed(() => items.value.filter((i) => selected.value.has(i.id)));
+
+// Select across all pages of the current filter (not just the visible page).
+const allFilteredSelected = computed(
+  () =>
+    filteredItems.value.length > 0 &&
+    filteredItems.value.every((i) => selected.value.has(i.id)),
+);
+const selectAllFiltered = () => {
+  selected.value = new Set(filteredItems.value.map((i) => i.id));
+};
+const toggleSelectAllFiltered = () => {
+  if (allFilteredSelected.value) clearSelection();
+  else selectAllFiltered();
+};
 
 const bulkBusy = ref(false);
 
