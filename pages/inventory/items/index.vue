@@ -86,73 +86,137 @@
         </div>
       </div>
 
-      <div v-else class="space-y-2">
-        <div
-          v-for="item in items"
-          :key="item.id"
-          class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] p-3 flex items-center gap-3"
-        >
-          <div class="w-12 h-16 shrink-0 rounded-lg overflow-hidden">
-            <CardImage :src="item.primaryImage" :alt="item.cardName" />
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-ink dark:text-white truncate">{{ item.cardName }}</p>
-            <p class="text-xs text-gray-500 dark:text-zinc-400 truncate">
-              {{ [item.setName, item.number].filter(Boolean).join(" · ") }}
-            </p>
-            <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-              <select
-                :value="item.condition"
-                @change="updateItem(item.id, { condition: ($event.target as HTMLSelectElement).value })"
-                class="text-xs px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white"
-              >
-                <option value="">Condition…</option>
-                <option v-for="c in CONDITIONS" :key="c" :value="c">{{ c }}</option>
-              </select>
-              <span
-                v-if="item.status !== 'in_stock'"
-                class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                :class="item.status === 'sold' ? 'bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-zinc-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'"
-              >
-                {{ item.status === "sold" ? "Sold" : "Listed" }}
-              </span>
-            </div>
-          </div>
-          <div class="shrink-0 flex flex-col items-end gap-1.5">
-            <div class="flex items-center gap-1">
-              <span class="text-[10px] text-gray-400">RM</span>
-              <input
-                type="number" min="0" step="0.01"
-                :value="item.listPrice"
-                @change="updateItem(item.id, { listPrice: Number(($event.target as HTMLInputElement).value) })"
-                class="w-20 text-sm text-right px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums"
-              />
-            </div>
-            <div class="flex items-center gap-1">
-              <span class="text-[10px] text-gray-400">Qty</span>
-              <input
-                type="number" min="1" step="1"
-                :value="item.quantity"
-                @change="updateItem(item.id, { quantity: Math.max(1, Number(($event.target as HTMLInputElement).value)) })"
-                class="w-14 text-sm text-right px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums"
-              />
-            </div>
-            <div class="flex items-center gap-2">
-              <template v-if="item.status === 'in_stock'">
-                <button @click="openListDialog(item)" class="text-[11px] font-semibold text-pokemon-red hover:underline">List</button>
-                <span class="text-gray-300 dark:text-zinc-700">·</span>
-                <button @click="handleMarkSold(item.id)" class="text-[11px] text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">Sold</button>
-              </template>
-              <template v-else-if="item.status === 'listed'">
-                <NuxtLink v-if="item.listingId" :to="`/cards/${item.listingId}`" class="text-[11px] text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">View</NuxtLink>
-                <span class="text-gray-300 dark:text-zinc-700">·</span>
-                <button @click="handleUnlist(item.id)" class="text-[11px] text-amber-600 dark:text-amber-400 hover:underline">Unlist</button>
-              </template>
-              <button @click="handleRemove(item.id)" class="text-[11px] text-red-500 hover:text-red-700">Remove</button>
-            </div>
+      <template v-else>
+        <!-- Status filter + count -->
+        <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
+          <TabStrip v-model="statusFilter" :tabs="filterTabs" />
+          <p class="text-xs text-gray-400 dark:text-zinc-500">
+            {{ filteredItems.length }} {{ filteredItems.length === 1 ? "item" : "items" }}
+          </p>
+        </div>
+
+        <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-zinc-500 border-b border-black/[0.06] dark:border-white/[0.08]">
+                <tr>
+                  <th class="px-3 py-2 w-12"></th>
+                  <th class="text-left font-semibold px-2 py-2">Card</th>
+                  <th class="text-right font-semibold px-2 py-2">Price</th>
+                  <th class="text-right font-semibold px-2 py-2">Qty</th>
+                  <th class="text-left font-semibold px-2 py-2 hidden sm:table-cell">Status</th>
+                  <th class="px-2 py-2"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+                <tr v-for="item in pagedItems" :key="item.id">
+                  <!-- Thumbnail — click to add/replace photo -->
+                  <td class="px-3 py-2">
+                    <button
+                      type="button"
+                      @click="openPhotoPicker(item)"
+                      class="relative block w-10 h-14 rounded overflow-hidden group/photo bg-gray-100 dark:bg-white/[0.04]"
+                      :title="item.primaryImage ? 'Replace photo' : 'Add photo'"
+                    >
+                      <CardImage :src="item.primaryImage" :alt="item.cardName" />
+                      <span
+                        v-if="!item.primaryImage"
+                        class="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-pokemon-blue"
+                      >+ Photo</span>
+                      <span
+                        v-else
+                        class="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/photo:bg-black/40 opacity-0 group-hover/photo:opacity-100 transition-all"
+                      >
+                        <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                      </span>
+                      <span v-if="uploadingPhotoId === item.id" class="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
+                      </span>
+                    </button>
+                  </td>
+                  <!-- Card -->
+                  <td class="px-2 py-2 min-w-[150px]">
+                    <p class="font-medium text-ink dark:text-white truncate max-w-[200px]">{{ item.cardName }}</p>
+                    <p class="text-[11px] text-gray-500 dark:text-zinc-400 truncate max-w-[200px]">
+                      {{ [item.setName, item.number].filter(Boolean).join(" · ") }}
+                    </p>
+                    <select
+                      :value="item.condition"
+                      @change="updateItem(item.id, { condition: ($event.target as HTMLSelectElement).value })"
+                      class="mt-1 text-[11px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white"
+                    >
+                      <option value="">Condition…</option>
+                      <option v-for="c in CONDITIONS" :key="c" :value="c">{{ c }}</option>
+                    </select>
+                  </td>
+                  <!-- Price -->
+                  <td class="px-2 py-2 text-right">
+                    <input
+                      type="number" min="0" step="0.01"
+                      :value="item.listPrice"
+                      @change="updateItem(item.id, { listPrice: Number(($event.target as HTMLInputElement).value) })"
+                      class="w-20 text-sm text-right px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums"
+                    />
+                  </td>
+                  <!-- Qty -->
+                  <td class="px-2 py-2 text-right">
+                    <input
+                      type="number" min="1" step="1"
+                      :value="item.quantity"
+                      @change="updateItem(item.id, { quantity: Math.max(1, Number(($event.target as HTMLInputElement).value)) })"
+                      class="w-12 text-sm text-right px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums"
+                    />
+                  </td>
+                  <!-- Status -->
+                  <td class="px-2 py-2 hidden sm:table-cell">
+                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="statusClass(item.status)">
+                      {{ statusLabel(item.status) }}
+                    </span>
+                  </td>
+                  <!-- Actions -->
+                  <td class="px-2 py-2">
+                    <div class="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                      <template v-if="item.status === 'in_stock'">
+                        <button @click="openListDialog(item)" class="text-[11px] font-semibold text-pokemon-red hover:underline">List</button>
+                        <span class="text-gray-300 dark:text-zinc-700">·</span>
+                        <button @click="handleMarkSold(item.id)" class="text-[11px] text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">Sold</button>
+                      </template>
+                      <template v-else-if="item.status === 'listed'">
+                        <NuxtLink v-if="item.listingId" :to="`/cards/${item.listingId}`" class="text-[11px] text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">View</NuxtLink>
+                        <span class="text-gray-300 dark:text-zinc-700">·</span>
+                        <button @click="handleUnlist(item.id)" class="text-[11px] text-amber-600 dark:text-amber-400 hover:underline">Unlist</button>
+                      </template>
+                      <span class="text-gray-300 dark:text-zinc-700">·</span>
+                      <button @click="handleRemove(item.id)" class="text-[11px] text-red-500 hover:text-red-700">Remove</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
+
+        <!-- Pagination -->
+        <div v-if="totalPages > 1" class="flex items-center justify-between mt-3">
+          <p class="text-xs text-gray-400 dark:text-zinc-500 tabular-nums">{{ rangeStart }}–{{ rangeEnd }} of {{ filteredItems.length }}</p>
+          <div class="flex items-center gap-1">
+            <button
+              @click="page = Math.max(0, page - 1)"
+              :disabled="page === 0"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200 disabled:opacity-40"
+            >Prev</button>
+            <span class="text-xs px-2 tabular-nums text-gray-500 dark:text-zinc-400">{{ page + 1 }} / {{ totalPages }}</span>
+            <button
+              @click="page = Math.min(totalPages - 1, page + 1)"
+              :disabled="page >= totalPages - 1"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200 disabled:opacity-40"
+            >Next</button>
+          </div>
+        </div>
+      </template>
+
+      <!-- Hidden file input for inline photo upload -->
+      <input ref="photoInput" type="file" accept="image/*" class="hidden" @change="onPhotoSelected" />
     </template>
 
     <!-- List-for-sale dialog -->
@@ -223,6 +287,7 @@ const CONDITIONS = [
 
 const { user, signInWithGoogle } = useAuth();
 const { profile } = useMyProfile();
+const { uploadImage } = useStorage();
 const {
   items,
   loading,
@@ -245,6 +310,75 @@ onMounted(() => {
 watch(user, (u) => {
   if (u) listenMyInventory();
 });
+
+// ── Filter + pagination ───────────────────────────────────────────────
+const PAGE_SIZE = 20;
+const statusFilter = ref<string>("all");
+const page = ref(0);
+
+const filterTabs = computed(() => [
+  { id: "all", label: "All", count: items.value.length },
+  { id: "in_stock", label: "In stock", count: items.value.filter((i) => i.status === "in_stock").length },
+  { id: "listed", label: "Listed", count: items.value.filter((i) => i.status === "listed").length },
+  { id: "sold", label: "Sold", count: items.value.filter((i) => i.status === "sold").length },
+]);
+
+const filteredItems = computed(() =>
+  statusFilter.value === "all"
+    ? items.value
+    : items.value.filter((i) => i.status === statusFilter.value),
+);
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredItems.value.length / PAGE_SIZE)));
+const pagedItems = computed(() =>
+  filteredItems.value.slice(page.value * PAGE_SIZE, page.value * PAGE_SIZE + PAGE_SIZE),
+);
+const rangeStart = computed(() => (filteredItems.value.length === 0 ? 0 : page.value * PAGE_SIZE + 1));
+const rangeEnd = computed(() => Math.min(filteredItems.value.length, (page.value + 1) * PAGE_SIZE));
+
+watch(statusFilter, () => (page.value = 0));
+// Clamp page if the list shrinks (e.g. items sold/removed/filtered).
+watch(totalPages, (tp) => {
+  if (page.value > tp - 1) page.value = Math.max(0, tp - 1);
+});
+
+const statusLabel = (s: string) =>
+  s === "in_stock" ? "In stock" : s === "listed" ? "Listed" : "Sold";
+const statusClass = (s: string) =>
+  s === "listed"
+    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+    : s === "sold"
+      ? "bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-zinc-400"
+      : "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300";
+
+// ── Inline photo upload ───────────────────────────────────────────────
+const photoInput = ref<HTMLInputElement | null>(null);
+const photoTargetId = ref<string | null>(null);
+const uploadingPhotoId = ref<string | null>(null);
+
+const openPhotoPicker = (item: { id: string }) => {
+  photoTargetId.value = item.id;
+  photoInput.value?.click();
+};
+
+const onPhotoSelected = async (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  const id = photoTargetId.value;
+  input.value = "";
+  if (!file || !id) return;
+  uploadingPhotoId.value = id;
+  try {
+    const url = await uploadImage(file);
+    const item = items.value.find((i) => i.id === id);
+    // Prepend so the real photo becomes the primary image everywhere.
+    await updateItem(id, { photos: [url, ...(item?.photos ?? [])] });
+  } catch (err: any) {
+    alert(err?.message || "Photo upload failed.");
+  } finally {
+    uploadingPhotoId.value = null;
+    photoTargetId.value = null;
+  }
+};
 
 // ── Manual add via catalog search ─────────────────────────────────────
 const addOpen = ref(false);
