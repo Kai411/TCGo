@@ -31,7 +31,7 @@ Status legend: ✅ done · 🎯 next · 🔜 then · 🗓️ later · 🧹 clean
 ---
 
 ## 🎯 Next — POS (original goal)
-- [ ] QR printing **v1** — batch PDF sheet (QR + name + price + condition); doubles as a scan-menu
+- [x] QR printing **v1** — batch printable label sheet (`/inventory/labels`): QR (encodes `tcgo:inv:<id>`) + name + set·number + condition + price; print / Save-as-PDF; entry points from Items (selected or all)
 - [ ] POS scanner — continuous phone QR decode → stash (beep/haptic/dedup), resolve vs cached inventory
 - [ ] Checkout — editable **sold price** (negotiation) → Mark paid → inventory `sold` + sales dashboard
 - [ ] QR printing **v2** (thermal label export: Niimbot/Brother/Phomemo), **v3** (Web Bluetooth direct print)

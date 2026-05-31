@@ -18,7 +18,16 @@
             est. value <span class="font-semibold text-pokemon-red tabular-nums">{{ formatMyr(totalValue) }} MYR</span>
           </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <button
+            v-if="count > 0"
+            @click="printAll"
+            title="Print QR labels for the current view"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Labels
+          </button>
           <NuxtLink
             to="/inventory/import"
             class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
@@ -119,6 +128,7 @@
             </button>
           </div>
           <div class="flex items-center gap-1.5">
+            <button @click="printSelected" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200">Labels</button>
             <button @click="bulkList" :disabled="bulkBusy" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-50">List</button>
             <button @click="bulkMarkSold" :disabled="bulkBusy" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 disabled:opacity-50">Mark sold</button>
             <button @click="bulkRemove" :disabled="bulkBusy" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-white/[0.10] text-red-600 disabled:opacity-50">Remove</button>
@@ -343,8 +353,21 @@ const {
   listItem,
   unlistItem,
   markItemSold,
+  setLabelQueue,
 } = useInventory();
 const { searchCatalog } = useCardCatalog();
+const router = useRouter();
+
+// ── Label printing entry points ───────────────────────────────────────
+const printSelected = () => {
+  if (!selected.value.size) return;
+  setLabelQueue([...selected.value]);
+  router.push("/inventory/labels");
+};
+const printAll = () => {
+  setLabelQueue(filteredItems.value.map((i) => i.id));
+  router.push("/inventory/labels");
+};
 
 onMounted(() => {
   if (user.value) listenMyInventory();

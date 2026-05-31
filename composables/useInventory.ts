@@ -90,6 +90,10 @@ const loading = ref(false);
 let unsub: Unsubscribe | null = null;
 let lastUid: string | null = null;
 
+// Cross-page selection for label printing (set on the Items page, read on
+// the Labels page). Empty = print everything.
+const labelQueue = ref<string[]>([]);
+
 const buildItem = (
   input: InventoryItemInput,
   userUid: string,
@@ -349,6 +353,10 @@ export const useInventory = () => {
     items.value.reduce((s, i) => s + i.listPrice * (i.quantity || 1), 0),
   );
 
+  const setLabelQueue = (ids: string[]) => {
+    labelQueue.value = ids;
+  };
+
   return {
     items,
     loading,
@@ -365,5 +373,7 @@ export const useInventory = () => {
     markItemSold,
     markSoldByListingId,
     createListedFromCard,
+    labelQueue,
+    setLabelQueue,
   };
 };
