@@ -17,6 +17,7 @@
     "firebase": "^12.13.0",
     "firebase-admin": "^13.0.0",
     "jsqr": "^1.4.0",
+    "jszip": "^3.10.1",
     "nuxt": "3.13.2",
     "qrcode": "^1.5.4",
     "stripe": "^17.0.0",
