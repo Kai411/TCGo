@@ -34,7 +34,7 @@ Status legend: ✅ done · 🎯 next · 🔜 then · 🗓️ later · 🧹 clean
 - [x] QR printing **v1** — batch printable label sheet (`/inventory/labels`): QR (encodes `tcgo:inv:<id>`) + name + set·number + condition + price; print / Save-as-PDF; entry points from Items (selected or all)
 - [x] POS scanner — `/inventory/pos`: continuous phone QR decode (jsQR) → stash (beep/haptic/dedup), resolves vs cached inventory; manual search fallback
 - [x] Checkout — editable **sold price** per line → Mark paid → `markItemSold(soldPrice)` on inventory (+ syncs linked listing)
-- [ ] Surface POS sales in the sales dashboard (dashboard is currently compiledOrders-only; POS records on the inventory item) — needs a unified sales source
+- [x] Surface POS sales in the sales dashboard — dashboard now folds in direct/POS inventory sales (sales value, items sold, completed, weekly trend, recent), tagged `saleChannel` to avoid double-counting online orders
 - [ ] POS: qty-aware selling for lots (qty > 1 currently sells the whole item)
 - [ ] **POS: generate a payment QR after scanning** (long shot) — research DuitNow QR / payment-gateway QR for the cart total so the buyer can scan to pay at the table
 - [x] QR printing **v2** — thermal label export: `/inventory/labels` "Thermal" mode renders one PNG per label at mm sizes (40×30 / 50×30 / 50×40), downloads as a ZIP for Niimbot/Brother/Phomemo apps

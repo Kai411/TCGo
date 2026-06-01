@@ -21,8 +21,13 @@
         >Thermal</button>
       </div>
 
-      <div class="flex items-center gap-3 shrink-0">
-        <span class="text-xs text-gray-500 tabular-nums hidden sm:inline">{{ labelCards.length }} label{{ labelCards.length === 1 ? "" : "s" }}</span>
+      <div class="flex items-center gap-2 shrink-0">
+        <span class="text-xs text-gray-500 tabular-nums hidden md:inline">{{ labelCards.length }} label{{ labelCards.length === 1 ? "" : "s" }}</span>
+        <button
+          v-if="mode === 'sheet'"
+          @click="sheetFit = !sheetFit"
+          class="px-2.5 py-2 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600"
+        >{{ sheetFit ? "Actual size" : "Fit width" }}</button>
         <button
           v-if="mode === 'sheet'"
           @click="print"
@@ -53,20 +58,25 @@
     </div>
 
     <!-- A4 SHEET MODE -->
-    <div v-else-if="mode === 'sheet'" class="print-sheet p-4 mx-auto" style="max-width: 210mm;">
-      <div class="grid grid-cols-3 gap-2">
-        <div
-          v-for="l in labelCards"
-          :key="l.id"
-          class="label flex gap-2 items-center border border-gray-300 rounded p-2 break-inside-avoid"
-        >
-          <img :src="l.qr" :alt="`QR ${l.id}`" class="w-[64px] h-[64px] shrink-0" />
-          <div class="min-w-0 flex-1">
-            <p class="text-[11px] font-bold leading-tight line-clamp-2 break-words">{{ l.cardName }}</p>
-            <p class="text-[9px] text-gray-600 truncate">{{ l.sub }}</p>
-            <div class="flex items-center justify-between mt-0.5">
-              <span class="text-[9px] text-gray-500">{{ l.condition || "—" }}</span>
-              <span class="text-[11px] font-extrabold tabular-nums">RM {{ l.price }}</span>
+    <div v-else-if="mode === 'sheet'" class="sheet-scroll overflow-auto">
+      <div
+        class="print-sheet p-4 mx-auto"
+        :style="sheetFit ? 'width:100%;max-width:210mm' : 'width:210mm'"
+      >
+        <div class="grid grid-cols-3 gap-2">
+          <div
+            v-for="l in labelCards"
+            :key="l.id"
+            class="label flex gap-2 items-center border border-gray-300 rounded p-2 break-inside-avoid"
+          >
+            <img :src="l.qr" :alt="`QR ${l.id}`" class="w-[64px] h-[64px] shrink-0" />
+            <div class="min-w-0 flex-1">
+              <p class="text-[11px] font-bold leading-tight line-clamp-2 break-words">{{ l.cardName }}</p>
+              <p class="text-[9px] text-gray-600 truncate">{{ l.sub }}</p>
+              <div class="flex items-center justify-between mt-0.5">
+                <span class="text-[9px] text-gray-500">{{ l.condition || "—" }}</span>
+                <span class="text-[11px] font-extrabold tabular-nums">RM {{ l.price }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -122,6 +132,10 @@ watch(user, (u) => {
 });
 
 const mode = ref<"sheet" | "thermal">("sheet");
+// On-screen sizing for the A4 preview: fit the device width by default, or
+// show it at actual size (scrollable) for close inspection. Print is forced
+// to full page width regardless (see print CSS).
+const sheetFit = ref(true);
 
 // Items to print: the queue set from the Items page, else everything.
 const targetItems = computed<InventoryItem[]>(() => {
@@ -218,6 +232,17 @@ const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxW: number, max
   return lines.slice(0, maxLines);
 };
 
+// Shrink a font until the text fits maxW (down to a floor).
+const fitFont = (ctx: CanvasRenderingContext2D, text: string, maxW: number, startPx: number, weight = "bold"): number => {
+  let px = startPx;
+  ctx.font = `${weight} ${px}px sans-serif`;
+  while (px > 9 && ctx.measureText(text).width > maxW) {
+    px -= 1;
+    ctx.font = `${weight} ${px}px sans-serif`;
+  }
+  return px;
+};
+
 const renderThermal = async (card: LabelCard, mmW: number, mmH: number): Promise<string> => {
   const DPMM = 8; // ~203 dpi (thermal native)
   const W = Math.round(mmW * DPMM);
@@ -229,46 +254,56 @@ const renderThermal = async (card: LabelCard, mmW: number, mmH: number): Promise
   if (!ctx) return "";
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = "#000";
   ctx.textBaseline = "top";
 
-  const pad = Math.round(H * 0.07);
-  const qrSize = H - pad * 2;
+  const pad = Math.round(Math.min(W, H) * 0.06);
+  // QR capped to ~38% of width so text has room (was eating the whole label).
+  const qrSize = Math.min(H - pad * 2, Math.round(W * 0.38));
+  const qrY = Math.round((H - qrSize) / 2);
   if (card.qr) {
     const img = await loadImage(card.qr);
-    ctx.drawImage(img, pad, pad, qrSize, qrSize);
+    ctx.drawImage(img, pad, qrY, qrSize, qrSize);
   }
   const tx = pad + qrSize + pad;
   const tw = W - tx - pad;
 
-  // Name (up to 2 lines)
-  const nameFont = Math.round(H * 0.13);
-  ctx.font = `bold ${nameFont}px sans-serif`;
+  // Price (auto-sized to fit) reserved for the bottom row.
+  const priceStr = `RM ${card.price}`;
+  const priceFont = fitFont(ctx, priceStr, tw, Math.round(H * 0.18));
+  const priceTop = H - pad - priceFont;
+
+  // Name — up to 2 lines, in the space above the price row.
   ctx.fillStyle = "#000";
+  const nameFont = Math.round(H * 0.12);
+  ctx.font = `bold ${nameFont}px sans-serif`;
   const lines = wrapText(ctx, card.cardName, tw, 2);
   let y = pad;
   for (const ln of lines) {
     ctx.fillText(ln, tx, y);
-    y += Math.round(nameFont * 1.1);
+    y += Math.round(nameFont * 1.12);
   }
-  // Sub
-  const subFont = Math.round(H * 0.085);
-  ctx.font = `${subFont}px sans-serif`;
-  ctx.fillStyle = "#555";
+  // Sub (set · number)
   if (card.sub) {
+    const subFont = Math.round(H * 0.085);
+    ctx.font = `${subFont}px sans-serif`;
+    ctx.fillStyle = "#555";
     ctx.fillText(fitText(ctx, card.sub, tw), tx, y);
-    y += Math.round(subFont * 1.3);
   }
-  if (card.condition) {
-    ctx.fillText(fitText(ctx, card.condition, tw), tx, y);
-  }
-  // Price (bottom-right)
-  const priceFont = Math.round(H * 0.17);
+
+  // Bottom row: price (right, bold) + condition (left, if room).
   ctx.font = `bold ${priceFont}px sans-serif`;
   ctx.fillStyle = "#000";
-  const priceStr = `RM ${card.price}`;
   const pw = ctx.measureText(priceStr).width;
-  ctx.fillText(priceStr, Math.max(tx, W - pad - pw), H - pad - priceFont);
+  ctx.fillText(priceStr, W - pad - pw, priceTop);
+  if (card.condition) {
+    const condFont = Math.round(H * 0.075);
+    ctx.font = `${condFont}px sans-serif`;
+    ctx.fillStyle = "#777";
+    const condMax = W - pad - pw - tx - 6;
+    if (condMax > 28) {
+      ctx.fillText(fitText(ctx, card.condition, condMax), tx, H - pad - condFont);
+    }
+  }
 
   return cv.toDataURL("image/png");
 };
@@ -342,8 +377,13 @@ const downloadAllThermal = async () => {
   body {
     background: #fff !important;
   }
+  .sheet-scroll {
+    overflow: visible !important;
+  }
   .print-sheet {
     padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
   }
   .label {
     break-inside: avoid;

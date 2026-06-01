@@ -81,7 +81,8 @@
 
         <div class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] p-3">
           <p class="text-[11px] text-gray-500 dark:text-zinc-400">Completed</p>
-          <p class="text-lg font-extrabold text-ink dark:text-white tabular-nums mt-0.5">{{ deliveredOrders.length }}</p>
+          <p class="text-lg font-extrabold text-ink dark:text-white tabular-nums mt-0.5">{{ completedCount }}</p>
+          <p v-if="posCount > 0" class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">incl. {{ posCount }} in-person</p>
         </div>
       </div>
     </div>
@@ -133,25 +134,30 @@
         No sales yet.
       </p>
       <div v-else class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06]">
-        <NuxtLink
-          v-for="order in recentSales"
-          :key="order.id"
-          :to="`/orders/${order.id}`"
-          class="flex items-center gap-3 px-3 py-2.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
+        <component
+          :is="sale.href ? 'NuxtLink' : 'div'"
+          v-for="sale in recentSales"
+          :key="sale.id"
+          :to="sale.href || undefined"
+          class="flex items-center gap-3 px-3 py-2.5"
+          :class="sale.href ? 'hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors' : ''"
         >
           <div class="w-9 h-9 shrink-0 rounded-lg overflow-hidden">
-            <CardImage :src="order.items[0]?.imageUrl" :alt="order.items[0]?.cardName" />
+            <CardImage :src="sale.image" :alt="sale.name" />
           </div>
           <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-ink dark:text-white truncate">{{ order.buyerName }}</p>
+            <p class="text-sm font-medium text-ink dark:text-white truncate">{{ sale.name }}</p>
             <p class="text-[11px] text-gray-500 dark:text-zinc-400">
-              {{ order.items.length }} {{ order.items.length === 1 ? "item" : "items" }} · {{ formatMyr(order.total) }} MYR
+              {{ sale.itemsCount }} {{ sale.itemsCount === 1 ? "item" : "items" }} · {{ formatMyr(sale.value) }} MYR
             </p>
           </div>
-          <span class="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full" :class="statusColor(order.status)">
-            {{ statusLabel(order.status) }}
+          <span
+            class="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+            :class="sale.source === 'pos' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300' : statusColor('delivered')"
+          >
+            {{ sale.source === "pos" ? "In-person" : "Delivered" }}
           </span>
-        </NuxtLink>
+        </component>
       </div>
     </div>
   </div>
@@ -164,12 +170,18 @@ import {
   compiledOrderStatusLabel,
   compiledOrderStatusColor,
 } from "~/composables/useCompiledOrders";
+import type { InventoryItem } from "~/composables/useInventory";
 
-const props = defineProps<{
-  orders: CompiledOrder[];
-  // Count of mergeable groups (buyers with 2+ confirmed unshipped orders).
-  mergeableCount: number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    orders: CompiledOrder[];
+    // Count of mergeable groups (buyers with 2+ confirmed unshipped orders).
+    mergeableCount: number;
+    // Direct (POS / manual) inventory sales — folded into the sales stats.
+    posSales?: InventoryItem[];
+  }>(),
+  { posSales: () => [] },
+);
 
 defineEmits<{
   (e: "select", filter: string): void;
@@ -217,15 +229,47 @@ const statusTiles = computed(() => [
   { key: "cancelled", label: "Cancelled", count: byStatus("cancelled").length },
 ]);
 
-// ── Completed-sales metrics (delivered only) ──────────────────────────
-const salesValue = computed(() =>
-  deliveredOrders.value.reduce((s, o) => s + o.subtotal, 0),
-);
-const itemsSold = computed(() =>
-  deliveredOrders.value.reduce((s, o) => s + o.items.length, 0),
-);
+// ── Unified completed sales (online delivered orders + direct/POS sales) ──
+interface SaleEntry {
+  id: string;
+  name: string;
+  itemsCount: number;
+  value: number;
+  ts: number;
+  image: string;
+  source: "online" | "pos";
+  href: string | null;
+}
+const unifiedSales = computed<SaleEntry[]>(() => {
+  const online: SaleEntry[] = deliveredOrders.value.map((o) => ({
+    id: o.id,
+    name: o.buyerName,
+    itemsCount: o.items.length,
+    value: o.subtotal,
+    ts: o.deliveredAt ?? o.createdAt,
+    image: o.items[0]?.imageUrl ?? "",
+    source: "online",
+    href: `/orders/${o.id}`,
+  }));
+  const pos: SaleEntry[] = (props.posSales ?? []).map((i) => ({
+    id: i.id,
+    name: i.cardName,
+    itemsCount: 1,
+    value: i.soldPrice ?? i.listPrice ?? 0,
+    ts: i.soldAt ?? i.updatedAt ?? 0,
+    image: i.primaryImage ?? "",
+    source: "pos",
+    href: null,
+  }));
+  return [...online, ...pos];
+});
+
+const salesValue = computed(() => unifiedSales.value.reduce((s, e) => s + e.value, 0));
+const itemsSold = computed(() => unifiedSales.value.reduce((s, e) => s + e.itemsCount, 0));
+const completedCount = computed(() => unifiedSales.value.length);
+const posCount = computed(() => (props.posSales ?? []).length);
 const avgOrder = computed(() =>
-  deliveredOrders.value.length ? salesValue.value / deliveredOrders.value.length : 0,
+  completedCount.value ? salesValue.value / completedCount.value : 0,
 );
 
 // Value sitting in the pipeline (confirmed/paid/shipped, not yet delivered).
@@ -235,17 +279,16 @@ const pipelineValue = computed(() =>
     .reduce((s, o) => s + o.subtotal, 0),
 );
 
-// Month-over-month momentum on delivered value, keyed by deliveredAt.
+// Month-over-month momentum on completed-sale value, keyed by sale timestamp.
 const momDelta = computed<number | null>(() => {
   const now = new Date();
   const thisStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
   const lastStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
   let thisVal = 0;
   let lastVal = 0;
-  for (const o of deliveredOrders.value) {
-    const t = o.deliveredAt ?? 0;
-    if (t >= thisStart) thisVal += o.subtotal;
-    else if (t >= lastStart && t < thisStart) lastVal += o.subtotal;
+  for (const e of unifiedSales.value) {
+    if (e.ts >= thisStart) thisVal += e.value;
+    else if (e.ts >= lastStart && e.ts < thisStart) lastVal += e.value;
   }
   if (lastVal <= 0) return null;
   return Math.round(((thisVal - lastVal) / lastVal) * 100);
@@ -271,11 +314,10 @@ const weeklyBuckets = computed<Bucket[]>(() => {
       short: d.toLocaleDateString("en-MY", { day: "numeric", month: "numeric" }),
     });
   }
-  for (const o of deliveredOrders.value) {
-    const t = o.deliveredAt ?? 0;
-    const weeksAgo = Math.floor((now - t) / WEEK);
+  for (const e of unifiedSales.value) {
+    const weeksAgo = Math.floor((now - e.ts) / WEEK);
     if (weeksAgo >= 0 && weeksAgo < 8) {
-      buckets[7 - weeksAgo].value += o.subtotal;
+      buckets[7 - weeksAgo].value += e.value;
     }
   }
   return buckets;
@@ -289,9 +331,9 @@ const barHeight = (value: number) => {
   return `${Math.max(6, (value / chartMax.value) * 100)}%`;
 };
 
-// ── Recent sales ──────────────────────────────────────────────────────
+// ── Recent sales (online + in-person, newest first) ──────────────────
 const recentSales = computed(() =>
-  [...props.orders].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5),
+  [...unifiedSales.value].sort((a, b) => b.ts - a.ts).slice(0, 5),
 );
 
 const formatMyr = (n: number) =>

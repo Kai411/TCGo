@@ -22,6 +22,7 @@
           v-if="salesView === 'dashboard'"
           :orders="sellerCompiledOrders"
           :mergeable-count="mergeableGroups.length"
+          :pos-sales="posSales"
           @select="openSalesList"
         />
 
@@ -157,12 +158,26 @@ const {
   markShipped,
   mergeOrders,
 } = useCompiledOrders();
+const { items: inventoryItems, listenMyInventory } = useInventory();
+
+// Direct (POS / manual) sales — folded into the dashboard's sales stats.
+const posSales = computed(() =>
+  inventoryItems.value.filter(
+    (i) => i.status === "sold" && i.saleChannel === "direct",
+  ),
+);
 
 onMounted(() => {
-  if (user.value) listenSellerCompiledOrders();
+  if (user.value) {
+    listenSellerCompiledOrders();
+    listenMyInventory();
+  }
 });
 watch(user, (u) => {
-  if (u) listenSellerCompiledOrders();
+  if (u) {
+    listenSellerCompiledOrders();
+    listenMyInventory();
+  }
 });
 
 // ── Ship dialog ───────────────────────────────────────────────────────

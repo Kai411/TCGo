@@ -52,6 +52,10 @@ export interface InventoryItem {
   // Set when sold via POS / online.
   soldPrice?: number;
   soldAt?: number;
+  // How it was sold: "direct" = POS / manual mark-sold (counted in stats from
+  // inventory); "online" = synced from a marketplace order (counted via the
+  // order, so excluded from POS stats to avoid double-counting).
+  saleChannel?: "direct" | "online";
   // Link to a marketplace listing once listed online (future bridge).
   listingId?: string;
   createdAt: number;
@@ -276,6 +280,7 @@ export const useInventory = () => {
     await updateDoc(doc(firestore, "inventory", itemId), {
       status: "sold",
       soldAt: now,
+      saleChannel: "direct",
       ...(soldPrice != null ? { soldPrice } : {}),
       updatedAt: now,
     });
@@ -301,7 +306,12 @@ export const useInventory = () => {
     const now = Date.now();
     await Promise.all(
       snap.docs.map((d) =>
-        updateDoc(d.ref, { status: "sold", soldAt: now, updatedAt: now }),
+        updateDoc(d.ref, {
+          status: "sold",
+          soldAt: now,
+          saleChannel: "online",
+          updatedAt: now,
+        }),
       ),
     );
   };
