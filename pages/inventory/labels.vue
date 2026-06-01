@@ -126,6 +126,9 @@ const { items, listenMyInventory, labelQueue } = useInventory();
 
 onMounted(() => {
   if (user.value) listenMyInventory();
+  // On phones the A4 sheet is unreadable shrunk to fit — default to actual
+  // size (scrollable). Desktop is wide enough, so keep fit-width there.
+  if (import.meta.client && window.innerWidth < 1024) sheetFit.value = false;
 });
 watch(user, (u) => {
   if (u) listenMyInventory();
