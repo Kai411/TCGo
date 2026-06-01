@@ -137,13 +137,15 @@ const mode = ref<"sheet" | "thermal">("sheet");
 // to full page width regardless (see print CSS).
 const sheetFit = ref(true);
 
-// Items to print: the queue set from the Items page, else everything.
+// Labels are only for in-stock items (listed = already on the shop, sold = gone).
+// Narrowed further by the queue set from the Items page, if any.
 const targetItems = computed<InventoryItem[]>(() => {
+  let base = items.value.filter((i) => i.status === "in_stock");
   if (labelQueue.value.length) {
     const set = new Set(labelQueue.value);
-    return items.value.filter((i) => set.has(i.id));
+    base = base.filter((i) => set.has(i.id));
   }
-  return items.value;
+  return base;
 });
 
 interface LabelCard {
@@ -190,12 +192,14 @@ watch(targetItems, (list) => generate(list), { immediate: true });
 const print = () => window.print();
 
 // ── Thermal label rendering ──────────────────────────────────────────
+// Portrait labels (taller than wide) — applied vertically on the card to
+// maximise the QR and give name/price the full width.
 const THERMAL_SIZES = [
-  { id: "40x30", label: "40 × 30 mm", w: 40, h: 30 },
-  { id: "50x30", label: "50 × 30 mm", w: 50, h: 30 },
-  { id: "50x40", label: "50 × 40 mm", w: 50, h: 40 },
+  { id: "30x40", label: "30 × 40 mm", w: 30, h: 40 },
+  { id: "40x50", label: "40 × 50 mm", w: 40, h: 50 },
+  { id: "30x50", label: "30 × 50 mm", w: 30, h: 50 },
 ];
-const thermalSize = ref("40x30");
+const thermalSize = ref("30x40");
 const thermalImages = ref<{ id: string; name: string; file: string; dataUrl: string }[]>([]);
 const thermalReady = ref(false);
 const zipping = ref(false);
@@ -243,6 +247,8 @@ const fitFont = (ctx: CanvasRenderingContext2D, text: string, maxW: number, star
   return px;
 };
 
+// Portrait label: QR full-width on top, then name / set / condition / price
+// stacked and centred using the full width.
 const renderThermal = async (card: LabelCard, mmW: number, mmH: number): Promise<string> => {
   const DPMM = 8; // ~203 dpi (thermal native)
   const W = Math.round(mmW * DPMM);
@@ -256,55 +262,53 @@ const renderThermal = async (card: LabelCard, mmW: number, mmH: number): Promise
   ctx.fillRect(0, 0, W, H);
   ctx.textBaseline = "top";
 
-  const pad = Math.round(Math.min(W, H) * 0.06);
-  // QR capped to ~38% of width so text has room (was eating the whole label).
-  const qrSize = Math.min(H - pad * 2, Math.round(W * 0.38));
-  const qrY = Math.round((H - qrSize) / 2);
+  const pad = Math.round(Math.min(W, H) * 0.07);
+  const innerW = W - pad * 2;
+  const cx = Math.round(W / 2);
+
+  // QR — full width at top (capped so the text below has room).
+  const qrSize = Math.min(innerW, Math.round(H * 0.5));
+  const qrX = Math.round((W - qrSize) / 2);
   if (card.qr) {
     const img = await loadImage(card.qr);
-    ctx.drawImage(img, pad, qrY, qrSize, qrSize);
+    ctx.drawImage(img, qrX, pad, qrSize, qrSize);
   }
-  const tx = pad + qrSize + pad;
-  const tw = W - tx - pad;
 
-  // Price (auto-sized to fit) reserved for the bottom row.
-  const priceStr = `RM ${card.price}`;
-  const priceFont = fitFont(ctx, priceStr, tw, Math.round(H * 0.18));
-  const priceTop = H - pad - priceFont;
+  ctx.textAlign = "center";
+  let y = pad + qrSize + Math.round(H * 0.025);
 
-  // Name — up to 2 lines, in the space above the price row.
+  // Name — full width, up to 2 lines.
   ctx.fillStyle = "#000";
-  const nameFont = Math.round(H * 0.12);
+  const nameFont = Math.round(H * 0.075);
   ctx.font = `bold ${nameFont}px sans-serif`;
-  const lines = wrapText(ctx, card.cardName, tw, 2);
-  let y = pad;
-  for (const ln of lines) {
-    ctx.fillText(ln, tx, y);
+  for (const ln of wrapText(ctx, card.cardName, innerW, 2)) {
+    ctx.fillText(ln, cx, y);
     y += Math.round(nameFont * 1.12);
   }
-  // Sub (set · number)
+  // Sub (set · number).
   if (card.sub) {
-    const subFont = Math.round(H * 0.085);
+    const subFont = Math.round(H * 0.05);
     ctx.font = `${subFont}px sans-serif`;
     ctx.fillStyle = "#555";
-    ctx.fillText(fitText(ctx, card.sub, tw), tx, y);
+    ctx.fillText(fitText(ctx, card.sub, innerW), cx, y);
   }
 
-  // Bottom row: price (right, bold) + condition (left, if room).
-  ctx.font = `bold ${priceFont}px sans-serif`;
-  ctx.fillStyle = "#000";
-  const pw = ctx.measureText(priceStr).width;
-  ctx.fillText(priceStr, W - pad - pw, priceTop);
+  // Price — full width, large, pinned near the bottom (auto-fit).
+  const priceStr = `RM ${card.price}`;
+  const priceFont = fitFont(ctx, priceStr, innerW, Math.round(H * 0.11));
+  const priceTop = H - pad - priceFont;
+  // Condition just above the price, if present.
   if (card.condition) {
-    const condFont = Math.round(H * 0.075);
+    const condFont = Math.round(H * 0.05);
     ctx.font = `${condFont}px sans-serif`;
     ctx.fillStyle = "#777";
-    const condMax = W - pad - pw - tx - 6;
-    if (condMax > 28) {
-      ctx.fillText(fitText(ctx, card.condition, condMax), tx, H - pad - condFont);
-    }
+    ctx.fillText(fitText(ctx, card.condition, innerW), cx, priceTop - condFont - 4);
   }
+  ctx.font = `bold ${priceFont}px sans-serif`;
+  ctx.fillStyle = "#000";
+  ctx.fillText(priceStr, cx, priceTop);
 
+  ctx.textAlign = "left";
   return cv.toDataURL("image/png");
 };
 
