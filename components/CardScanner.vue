@@ -567,12 +567,12 @@ const processInBackground = async (
     artist,
   });
 
-  // 3. For non-English cards, skip the TCGo DB lookup — the Pokémon catalog
-  // is English-first (TCGCSV's JP coverage is partial and Gemini returns
-  // English-translated names anyway, so matching is unreliable). Use the
-  // user's scanned image + Gemini's translated name + printed set number
-  // directly. Seller can still set their own price manually.
-  if (language !== "EN") {
+  // 3. Languages with no TCGo DB coverage (KR, ZH, …) keep the old behavior:
+  // use the scanned image + Gemini's translated name + printed number, and
+  // the seller prices it manually. EN and JP both have catalog coverage —
+  // the JP catalog (TCGCSV "Pokemon Japan") uses English product names, so
+  // Gemini's translated name + the printed number match it directly.
+  if (language !== "EN" && language !== "JP") {
     updateItem(id, {
       status: "ready",
       cardName: name,
@@ -584,12 +584,14 @@ const processInBackground = async (
     return;
   }
 
-  // 4. Look up the card in the TCGo DB (Supabase cards_catalog + card_prices).
-  //    First tries exact-ish name + number; falls back to name-only
-  //    suggestions if nothing matches.
+  // 4. Look up the card in the TCGo DB (Supabase cards_catalog + card_prices),
+  //    scoped to the detected print language. First tries exact-ish
+  //    name + number; falls back to name-only suggestions.
   let lookup: Awaited<ReturnType<typeof lookupByNameAndNumber>>;
   try {
-    lookup = await lookupByNameAndNumber(name, number, { language: "EN" });
+    lookup = await lookupByNameAndNumber(name, number, {
+      language: language as "EN" | "JP",
+    });
   } catch {
     updateItem(id, {
       status: "failed",
@@ -602,13 +604,24 @@ const processInBackground = async (
   //    - exactly one exact match → auto-pick (status: ready, price attached)
   //    - multiple exact matches → user picks from candidate list
   //    - no exact match but suggestions exist → show as needs-pick with hint
-  //    - nothing at all → mark failed
+  //    - nothing at all: EN → failed (manual search below); JP → fall back
+  //      to the scanned data (JP coverage is strongest SV-era onward, so a
+  //      miss is expected for older prints — don't block the seller).
   if (lookup.exact.length === 1) {
     pickMatch(id, lookup.exact[0]);
   } else if (lookup.exact.length > 1) {
     updateItem(id, { status: "needs-pick", matches: lookup.exact });
   } else if (lookup.suggestions.length > 0) {
     updateItem(id, { status: "needs-pick", matches: lookup.suggestions });
+  } else if (language === "JP") {
+    updateItem(id, {
+      status: "ready",
+      cardName: name,
+      cardSet: "",
+      cardNumber: number,
+      imageUrl: undefined,
+      tcgoPrice: null,
+    });
   } else {
     updateItem(id, {
       status: "failed",

@@ -70,15 +70,14 @@ Status legend: ✅ done · 🎯 next · 🔜 then · 🗓️ later · 🧹 clean
 ---
 
 ## 🗓️ Later / backlog
-- [ ] **Japanese cards — seed from TCGCSV category 85 ("Pokemon Japan")** *(researched 2026-06; supersedes the old TCGdex plan)*:
-  TCGPlayer added a dedicated JP category → same pipeline as EN gives **catalog + daily prices in one source**.
-  Verified: ~448 groups (~35k est. products), full extendedData (Rarity/Number/attacks), TCGPlayer CDN images,
-  live price rows (e.g. JP 151: 520 products / 488 price rows), **English product names** (so the scanner's
-  Gemini-translated names can match JP cards too). Native BIGINT productIds — no hash scheme needed.
-  - [ ] Parametrize seed + snapshot scripts for categories [3, 85]; tag `language='JP'` for cat-85 rows (schema unchanged)
-  - [ ] Language toggle (EN / JP / All) in collection + bulk-add search (RPC already supports `lang`)
-  - [ ] Scanner: attempt TCGo DB match for JP cards (was skipped when catalog had no JP)
-  - Caveats: prices are TCGPlayer **US-market USD** for JP cards (international reference, not Japan-domestic yuyutei prices); coverage strongest SV-era onward, vintage JP may be spotty — verify during seed
+- [x] **Japanese cards — seeded from TCGCSV category 85 ("Pokemon Japan")** *(shipped 2026-06; superseded the old TCGdex plan)*:
+  Same pipeline as EN — catalog + daily prices in one source. Seeded **62k total products** (EN + ~30k JP),
+  coverage back to vintage (Expansion Pack '96, Jungle, vending series). English product names → scanner's
+  Gemini-translated names match JP directly. Native BIGINT productIds, schema unchanged.
+  - [x] Seed + snapshot scripts parametrized for categories [3, 85]; cat-85 rows tagged `language='JP'`
+  - [x] Scanner + bulk-add photo scan: JP cards now attempt TCGo DB match (language-scoped), graceful fallback to scanned data on miss
+  - [ ] Language toggle (EN / JP / All) in collection + bulk-add search UI (RPC already supports `lang`; search still defaults EN)
+  - Caveat: JP prices are TCGPlayer **US-market USD** (international reference, not Japan-domestic yuyutei prices)
 - [x] Seller payouts / escrow gateway — **decided: Billplz-only** (see Payments & fulfillment above); Curlec Route is the scale-up path
 - [ ] Re-enable Premium (flip the flag) when ready
 - [ ] Multi-sheet `.xlsx` picker on import

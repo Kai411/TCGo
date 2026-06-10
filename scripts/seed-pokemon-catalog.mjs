@@ -1,13 +1,15 @@
-// Seed the Supabase `cards_catalog` table from TCGCSV's Pokémon dataset.
+// Seed the Supabase `cards_catalog` table from TCGCSV's Pokémon datasets:
+// category 3 (Pokemon, EN-first) and category 85 (Pokemon Japan).
 //
 // Usage:
 //   1. Run `supabase/schema.sql` against your Supabase project once.
 //   2. Set SUPABASE_URL and SUPABASE_SERVICE_KEY in .env.
 //   3. node scripts/seed-pokemon-catalog.mjs
 //
-// The script is idempotent — it upserts on product_id, so re-running picks
-// up new sets and edits without duplicating rows. Run again whenever new
-// sets release. Prices are NOT touched here; that's a separate cron.
+// The script is idempotent — it upserts on product_id (TCGPlayer ids are
+// globally unique across categories), so re-running picks up new sets and
+// edits without duplicating rows. Run again whenever new sets release.
+// Prices are NOT touched here; that's the snapshot cron's job.
 
 import { createClient } from "@supabase/supabase-js";
 import "dotenv/config";
@@ -20,7 +22,12 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 }
 
 const TCGCSV_BASE = "https://tcgcsv.com/tcgplayer";
-const POKEMON_CATEGORY_ID = 3;
+// Each category seeds with its own language rule: category 85 is entirely
+// Japanese; category 3 is EN with a name heuristic for stray JP groups.
+const CATEGORIES = [
+  { id: 3, label: "Pokemon (EN)", language: null }, // null → heuristic
+  { id: 85, label: "Pokemon Japan", language: "JP" },
+];
 const UPSERT_BATCH_SIZE = 500;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
@@ -50,16 +57,16 @@ function extractField(extendedData, name) {
   return entry?.value ?? null;
 }
 
-// JP sets in TCGCSV are flagged by name/abbreviation containing Japanese
-// hints. This is best-effort — adjust if you need finer control.
+// Heuristic for category 3 only — JP-named groups that predate the
+// dedicated Pokemon Japan category.
 function detectLanguage(group) {
   const text = `${group.name || ""} ${group.abbreviation || ""}`.toLowerCase();
   if (/japan|japanese|\bjp\b|ポケモン/.test(text)) return "JP";
   return "EN";
 }
 
-async function fetchGroups() {
-  const url = `${TCGCSV_BASE}/${POKEMON_CATEGORY_ID}/groups`;
+async function fetchGroups(categoryId) {
+  const url = `${TCGCSV_BASE}/${categoryId}/groups`;
   const payload = await fetchJson(url);
   // TCGCSV envelope: { totalItems, success, errors, results: [...] }
   const groups = payload?.results ?? payload;
@@ -69,20 +76,20 @@ async function fetchGroups() {
   return groups;
 }
 
-async function fetchProducts(groupId) {
-  const url = `${TCGCSV_BASE}/${POKEMON_CATEGORY_ID}/${groupId}/products`;
+async function fetchProducts(categoryId, groupId) {
+  const url = `${TCGCSV_BASE}/${categoryId}/${groupId}/products`;
   const payload = await fetchJson(url);
   const products = payload?.results ?? payload;
   return Array.isArray(products) ? products : [];
 }
 
-function buildRow(product, group, language) {
+function buildRow(product, group, categoryId, language) {
   return {
     product_id: product.productId,
     name: product.name,
     clean_name: product.cleanName ?? null,
     image_url: product.imageUrl ?? null,
-    category_id: product.categoryId ?? POKEMON_CATEGORY_ID,
+    category_id: product.categoryId ?? categoryId,
     group_id: product.groupId ?? group.groupId,
     group_name: group.name ?? null,
     url: product.url ?? null,
@@ -107,10 +114,9 @@ async function upsertBatched(rows) {
   }
 }
 
-async function main() {
-  const startedAt = Date.now();
-  console.log("Fetching Pokémon groups from TCGCSV…");
-  const groups = await fetchGroups();
+async function seedCategory(category) {
+  console.log(`\n=== ${category.label} (category ${category.id}) ===`);
+  const groups = await fetchGroups(category.id);
   console.log(`Found ${groups.length} groups (sets).`);
 
   let totalProducts = 0;
@@ -120,29 +126,40 @@ async function main() {
     const group = groups[i];
     const tag = `[${i + 1}/${groups.length}] ${group.groupId} ${group.name}`;
     try {
-      const products = await fetchProducts(group.groupId);
+      const products = await fetchProducts(category.id, group.groupId);
       if (!products.length) {
         console.log(`${tag} — (empty)`);
         continue;
       }
-      const language = detectLanguage(group);
-      const rows = products.map((p) => buildRow(p, group, language));
+      const language = category.language ?? detectLanguage(group);
+      const rows = products.map((p) => buildRow(p, group, category.id, language));
       await upsertBatched(rows);
       totalProducts += rows.length;
-      console.log(`${tag} — ${rows.length} ${language === "JP" ? "JP" : "EN"} ✓`);
+      console.log(`${tag} — ${rows.length} ${language} ✓`);
     } catch (err) {
       failures.push({ group, error: err.message });
       console.log(`${tag} — ERROR: ${err.message}`);
     }
   }
+  return { totalProducts, failures, groupCount: groups.length };
+}
+
+async function main() {
+  const startedAt = Date.now();
+  let grandTotal = 0;
+  const allFailures = [];
+
+  for (const category of CATEGORIES) {
+    const { totalProducts, failures } = await seedCategory(category);
+    grandTotal += totalProducts;
+    allFailures.push(...failures);
+  }
 
   const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
-  console.log(
-    `\nDone in ${seconds}s. ${totalProducts} products upserted across ${groups.length - failures.length} groups.`,
-  );
-  if (failures.length) {
-    console.log(`\n${failures.length} groups failed:`);
-    for (const f of failures) {
+  console.log(`\nDone in ${seconds}s. ${grandTotal} products upserted.`);
+  if (allFailures.length) {
+    console.log(`\n${allFailures.length} groups failed:`);
+    for (const f of allFailures) {
       console.log(`  - ${f.group.groupId} ${f.group.name}: ${f.error}`);
     }
     process.exit(1);

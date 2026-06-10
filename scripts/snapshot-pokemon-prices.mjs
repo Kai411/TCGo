@@ -26,7 +26,9 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 }
 
 const TCGCSV_BASE = "https://tcgcsv.com/tcgplayer";
-const POKEMON_CATEGORY_ID = 3;
+// Category 3 = Pokemon (EN), category 85 = Pokemon Japan — both carry daily
+// TCGPlayer prices and both are seeded into cards_catalog.
+const CATEGORY_IDS = [3, 85];
 const UPSERT_BATCH_SIZE = 500;
 // Must match Supabase's PostgREST default db_max_rows (1000) — otherwise
 // the catalog-id load silently stops after one page.
@@ -66,16 +68,16 @@ async function loadKnownProductIds() {
   return ids;
 }
 
-async function fetchGroups() {
-  const url = `${TCGCSV_BASE}/${POKEMON_CATEGORY_ID}/groups`;
+async function fetchGroups(categoryId) {
+  const url = `${TCGCSV_BASE}/${categoryId}/groups`;
   const payload = await fetchJson(url);
   const groups = payload?.results ?? payload;
   if (!Array.isArray(groups)) throw new Error(`Unexpected groups shape from ${url}`);
   return groups;
 }
 
-async function fetchPrices(groupId) {
-  const url = `${TCGCSV_BASE}/${POKEMON_CATEGORY_ID}/${groupId}/prices`;
+async function fetchPrices(categoryId, groupId) {
+  const url = `${TCGCSV_BASE}/${categoryId}/${groupId}/prices`;
   const payload = await fetchJson(url);
   const prices = payload?.results ?? payload;
   return Array.isArray(prices) ? prices : [];
@@ -120,40 +122,42 @@ async function main() {
   const knownIds = await loadKnownProductIds();
   console.log(`Found ${knownIds.size.toLocaleString()} catalog rows.`);
 
-  console.log("Fetching Pokémon groups from TCGCSV…");
-  const groups = await fetchGroups();
-  console.log(`Found ${groups.length} groups.\n`);
-
   let totalUpserted = 0;
   let totalOrphaned = 0;
   const failures = [];
 
-  for (let i = 0; i < groups.length; i++) {
-    const group = groups[i];
-    const tag = `[${i + 1}/${groups.length}] ${group.groupId} ${group.name}`;
-    try {
-      const rawPrices = await fetchPrices(group.groupId);
-      if (!rawPrices.length) {
-        console.log(`${tag} — (empty)`);
-        continue;
-      }
-      const aggregated = aggregatePrices(rawPrices);
-      const valid = aggregated.filter((r) => knownIds.has(r.product_id));
-      const skipped = aggregated.length - valid.length;
-      totalOrphaned += skipped;
+  for (const categoryId of CATEGORY_IDS) {
+    console.log(`\n=== Category ${categoryId} ===`);
+    const groups = await fetchGroups(categoryId);
+    console.log(`Found ${groups.length} groups.\n`);
 
-      if (valid.length === 0) {
-        console.log(`${tag} — 0 known products (skipped ${skipped} orphans)`);
-        continue;
+    for (let i = 0; i < groups.length; i++) {
+      const group = groups[i];
+      const tag = `[cat ${categoryId} ${i + 1}/${groups.length}] ${group.groupId} ${group.name}`;
+      try {
+        const rawPrices = await fetchPrices(categoryId, group.groupId);
+        if (!rawPrices.length) {
+          console.log(`${tag} — (empty)`);
+          continue;
+        }
+        const aggregated = aggregatePrices(rawPrices);
+        const valid = aggregated.filter((r) => knownIds.has(r.product_id));
+        const skipped = aggregated.length - valid.length;
+        totalOrphaned += skipped;
+
+        if (valid.length === 0) {
+          console.log(`${tag} — 0 known products (skipped ${skipped} orphans)`);
+          continue;
+        }
+        await upsertBatched(valid);
+        totalUpserted += valid.length;
+        console.log(
+          `${tag} — ${valid.length} ✓${skipped ? ` (${skipped} orphans)` : ""}`,
+        );
+      } catch (err) {
+        failures.push({ group, error: err.message });
+        console.log(`${tag} — ERROR: ${err.message}`);
       }
-      await upsertBatched(valid);
-      totalUpserted += valid.length;
-      console.log(
-        `${tag} — ${valid.length} ✓${skipped ? ` (${skipped} orphans)` : ""}`,
-      );
-    } catch (err) {
-      failures.push({ group, error: err.message });
-      console.log(`${tag} — ERROR: ${err.message}`);
     }
   }
 

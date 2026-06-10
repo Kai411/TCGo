@@ -575,9 +575,11 @@ const identifyPhotos = async () => {
       }
 
       let match: CatalogMatch | null = null;
-      if (name && language === "EN") {
+      // EN and JP both have catalog coverage (JP product names are English,
+      // so the translated name + printed number match directly).
+      if (name && (language === "EN" || language === "JP")) {
         try {
-          match = await matchRow(name, number, null);
+          match = await matchRow(name, number, null, language as "EN" | "JP");
         } catch {
           match = null;
         }
