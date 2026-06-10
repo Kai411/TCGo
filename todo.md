@@ -45,12 +45,20 @@ Status legend: ✅ done · 🎯 next · 🔜 then · 🗓️ later · 🧹 clean
 ## 🔜 Then
 
 ### Payments & fulfillment
-- [ ] **Payment gateway** for orders (prerequisite for the items below — current flow is manual WhatsApp)
+> **DECISION (locked 2026-06): Billplz-only stack.** FPX collections via Billplz bills
+> (flat RM 0.70–1.10/txn, no monthly fee) → funds in platform Billplz balance →
+> custom scripts compute `platformFee` / `sellerPayout` on the order → payouts via
+> Billplz **Payment Order API** to seller banks (manual admin payouts as fallback
+> until API tier approved). Stripe stays for Premium subs only. DuitNow QR (Billplz/
+> toyyibPay channel) is the path for the POS payment-QR idea. If volume outgrows DIY
+> payouts → graduate to **Curlec Route**. Prereq: SSM business registration for
+> gateway onboarding (start first — long pole).
+- [ ] **Billplz integration** — bill creation for compiled orders, webhook → `paid`, payout queue/script
 - [ ] **Parcel waybill creation for paid orders** — auto-generate a shipping waybill once an order is paid
   - [ ] Integrate **EasyParcel API** (MY aggregator: rate calc + waybill + multi-courier)
   - [ ] **Disable seller shipping-fee preference** (sellers no longer set `shippingWM` / `shippingEM`)
   - [ ] **System-calculated shipping** — charge buyer based on our rates (via EasyParcel), not seller-set fees
-  - [ ] Tie into seller payout/escrow thread (see Later)
+  - [ ] Payouts: `platformFee` / `sellerPayout` / `payoutStatus` fields + hold window after delivery
 
 ### Catalog / UX
 - [ ] Detail-page market price (productId already stored — surface it + 30-day change)
@@ -62,8 +70,16 @@ Status legend: ✅ done · 🎯 next · 🔜 then · 🗓️ later · 🧹 clean
 ---
 
 ## 🗓️ Later / backlog
-- [ ] Japanese cards seeding via TCGdex (catalog only; JP prices later)
-- [ ] Seller payouts / escrow — MY blocks Stripe Connect (options: Billplz / Curlec / SG incorporation) — **decision deferred**
+- [ ] **Japanese cards — seed from TCGCSV category 85 ("Pokemon Japan")** *(researched 2026-06; supersedes the old TCGdex plan)*:
+  TCGPlayer added a dedicated JP category → same pipeline as EN gives **catalog + daily prices in one source**.
+  Verified: ~448 groups (~35k est. products), full extendedData (Rarity/Number/attacks), TCGPlayer CDN images,
+  live price rows (e.g. JP 151: 520 products / 488 price rows), **English product names** (so the scanner's
+  Gemini-translated names can match JP cards too). Native BIGINT productIds — no hash scheme needed.
+  - [ ] Parametrize seed + snapshot scripts for categories [3, 85]; tag `language='JP'` for cat-85 rows (schema unchanged)
+  - [ ] Language toggle (EN / JP / All) in collection + bulk-add search (RPC already supports `lang`)
+  - [ ] Scanner: attempt TCGo DB match for JP cards (was skipped when catalog had no JP)
+  - Caveats: prices are TCGPlayer **US-market USD** for JP cards (international reference, not Japan-domestic yuyutei prices); coverage strongest SV-era onward, vintage JP may be spotty — verify during seed
+- [x] Seller payouts / escrow gateway — **decided: Billplz-only** (see Payments & fulfillment above); Curlec Route is the scale-up path
 - [ ] Re-enable Premium (flip the flag) when ready
 - [ ] Multi-sheet `.xlsx` picker on import
 
