@@ -21,7 +21,7 @@ Status legend: ✅ done · 🎯 next · 🔜 then · 🗓️ later · 🧹 clean
 **Seller / inventory**
 - [x] Sales stats dashboard (tiles → drill-down, weekly trend)
 - [x] Inventory system split into `/inventory` + own layout; Activity slimmed to buyer-only
-- [x] Inventory data model + Bulk add (CSV / Excel / ODS / paste, smart mapping, reconciliation, review, template)
+- [x] Inventory data model + Bulk add (CSV / Excel / ODS / paste / **photo scan via AI + TCGo DB match**, smart mapping, reconciliation, review, template)
 - [x] Inventory ↔ listing bridge (list / unlist / sold sync both ways)
 - [x] Items table: filter, pagination, select-all, bulk actions, inline photo upload
 

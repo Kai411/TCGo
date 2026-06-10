@@ -62,7 +62,7 @@
         </div>
 
         <!-- Method: paste -->
-        <div v-else class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
+        <div v-else-if="uploadMethod === 'paste'" class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
           <div>
             <p class="text-sm font-semibold text-ink dark:text-white">Paste your rows</p>
             <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
@@ -94,6 +94,53 @@
               class="shrink-0 px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-50"
             >
               Continue
+            </button>
+          </div>
+        </div>
+
+        <!-- Method: scan photos -->
+        <div v-else class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
+          <div>
+            <p class="text-sm font-semibold text-ink dark:text-white">Scan card photos</p>
+            <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+              Upload photos of your cards (one card per photo). The AI identifies each card and matches it to the catalog —
+              your photo is kept as the item's image.
+            </p>
+          </div>
+
+          <label class="block">
+            <div class="border-2 border-dashed border-gray-300 dark:border-white/[0.12] rounded-xl py-8 text-center cursor-pointer hover:border-pokemon-blue transition-colors">
+              <svg class="w-9 h-9 mx-auto text-gray-400 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <p class="text-sm font-semibold text-ink dark:text-white">Choose photos</p>
+              <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">JPG / PNG · select multiple at once</p>
+            </div>
+            <input type="file" accept="image/*" multiple class="hidden" @change="handlePhotoSelect" />
+          </label>
+
+          <div v-if="photoFiles.length" class="grid grid-cols-4 sm:grid-cols-6 gap-2">
+            <div v-for="(p, i) in photoFiles" :key="i" class="relative group aspect-[2.5/3.5]">
+              <img :src="p.preview" class="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-white/[0.08]" />
+              <button
+                type="button"
+                @click="removePhoto(i)"
+                class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pokemon-red text-white text-[10px] flex items-center justify-center"
+                aria-label="Remove photo"
+              >✕</button>
+            </div>
+          </div>
+
+          <p v-if="parseError" class="text-sm text-red-500">{{ parseError }}</p>
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-[11px] text-gray-400 dark:text-zinc-500">
+              Identification takes a few seconds per card.
+            </p>
+            <button
+              type="button"
+              @click="identifyPhotos"
+              :disabled="!photoFiles.length"
+              class="shrink-0 px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              Identify {{ photoFiles.length }} card{{ photoFiles.length === 1 ? "" : "s" }}
             </button>
           </div>
         </div>
@@ -161,10 +208,12 @@
       <!-- Reconciling progress -->
       <div v-else-if="step === 'reviewing'" class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-8 text-center">
         <div class="animate-spin rounded-full h-7 w-7 border-2 border-ink/10 border-t-pokemon-red mx-auto mb-4"/>
-        <p class="text-sm font-semibold text-ink dark:text-white">Matching to catalog…</p>
-        <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1 tabular-nums">{{ progress }} / {{ parsedRows.length }}</p>
+        <p class="text-sm font-semibold text-ink dark:text-white">
+          {{ flow === "photos" ? "Identifying cards…" : "Matching to catalog…" }}
+        </p>
+        <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1 tabular-nums">{{ progress }} / {{ reviewTotal }}</p>
         <div class="w-full h-1.5 rounded-full bg-gray-100 dark:bg-white/[0.06] overflow-hidden mt-3 max-w-xs mx-auto">
-          <div class="h-full bg-pokemon-red transition-all" :style="{ width: `${parsedRows.length ? (progress / parsedRows.length) * 100 : 0}%` }"/>
+          <div class="h-full bg-pokemon-red transition-all" :style="{ width: `${reviewTotal ? (progress / reviewTotal) * 100 : 0}%` }"/>
         </div>
       </div>
 
@@ -191,7 +240,7 @@
           >
             <input type="checkbox" v-model="row.include" class="shrink-0 rounded"/>
             <div class="w-9 h-12 shrink-0 rounded overflow-hidden">
-              <CardImage :src="row.match?.imageUrl" :alt="row.match?.name || row.rawName" />
+              <CardImage :src="row.match?.imageUrl || row.photoPreview" :alt="row.match?.name || row.rawName" />
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium text-ink dark:text-white truncate">
@@ -213,7 +262,7 @@
         </div>
 
         <div class="flex gap-2">
-          <button @click="step = 'map'" class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200">Back</button>
+          <button @click="step = flow === 'photos' ? 'upload' : 'map'" class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200">Back</button>
           <button
             @click="doImport"
             :disabled="importing || includedCount === 0"
@@ -246,17 +295,25 @@ const router = useRouter();
 const { user, signInWithGoogle } = useAuth();
 const { matchRow } = useCardCatalog();
 const { addMany } = useInventory();
+const { uploadImage } = useStorage();
 
 type Step = "upload" | "map" | "reviewing" | "review";
 const step = ref<Step>("upload");
 
-// Upload method: a file (CSV/Excel/ODS) or pasted rows.
-const uploadMethod = ref<"file" | "paste">("file");
+// Upload method: a file (CSV/Excel/ODS), pasted rows, or card photos.
+const uploadMethod = ref<"file" | "paste" | "photos">("file");
 const methodTabs = [
   { id: "file", label: "Upload file" },
   { id: "paste", label: "Paste rows" },
+  { id: "photos", label: "Scan photos" },
 ];
 const pasteText = ref("");
+
+// Which pipeline produced the review rows — "rows" (file/paste, has a map
+// step to go Back to) or "photos" (no map step; Back returns to upload).
+const flow = ref<"rows" | "photos">("rows");
+// Total for the progress bar (parsedRows for rows flow, photo count for photos).
+const reviewTotal = ref(0);
 
 // ── CSV parsing ───────────────────────────────────────────────────────
 const headers = ref<string[]>([]);
@@ -411,6 +468,142 @@ const handleFile = async (e: Event) => {
   }
 };
 
+// ── Photo scan (AI identify → TCGo DB match) ─────────────────────────
+interface PhotoEntry {
+  file: File;
+  preview: string;
+}
+const photoFiles = ref<PhotoEntry[]>([]);
+
+const handlePhotoSelect = (e: Event) => {
+  parseError.value = "";
+  const input = e.target as HTMLInputElement;
+  for (const file of Array.from(input.files ?? [])) {
+    if (!file.type.startsWith("image/")) continue;
+    photoFiles.value.push({ file, preview: URL.createObjectURL(file) });
+  }
+  input.value = "";
+};
+
+const removePhoto = (i: number) => {
+  const p = photoFiles.value[i];
+  if (p) URL.revokeObjectURL(p.preview);
+  photoFiles.value.splice(i, 1);
+};
+
+// Same downscale the listing scanner uses — keeps the Gemini payload small.
+const MAX_DIM = 1600;
+const resizeImage = (file: File): Promise<Blob> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width <= MAX_DIM && height <= MAX_DIM) {
+        resolve(file);
+        return;
+      }
+      const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+      width = Math.round(width * ratio);
+      height = Math.round(height * ratio);
+      const cv = document.createElement("canvas");
+      cv.width = width;
+      cv.height = height;
+      const ctx = cv.getContext("2d");
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(img, 0, 0, width, height);
+      cv.toBlob((out) => resolve(out || file), "image/jpeg", 0.85);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+    img.src = url;
+  });
+
+const blobToBase64 = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(new Error("Failed to read image"));
+    reader.readAsDataURL(blob);
+  });
+
+// Each photo: Gemini identify (same /api/identify-card the listing scanner
+// uses) → TCGo DB match by name+number (EN only; the catalog is EN-first).
+// Failures still produce a row (photo attached, deselected) so the seller
+// can decide rather than lose the card silently.
+const identifyPhotos = async () => {
+  if (!photoFiles.value.length) return;
+  flow.value = "photos";
+  step.value = "reviewing";
+  progress.value = 0;
+  reviewTotal.value = photoFiles.value.length;
+  const entries = [...photoFiles.value];
+  const out: ReviewRow[] = new Array(entries.length);
+
+  let idx = 0;
+  const CONCURRENCY = 2; // gentle on the Gemini endpoint (429s)
+  const worker = async () => {
+    while (idx < entries.length) {
+      const myIdx = idx++;
+      const entry = entries[myIdx];
+      let name = "";
+      let number = "";
+      let language = "EN";
+      try {
+        const resized = await resizeImage(entry.file);
+        const imageBase64 = await blobToBase64(resized);
+        const res = await $fetch<{ name: string; number: string; language: string }>(
+          "/api/identify-card",
+          { method: "POST", body: { imageBase64, mimeType: "image/jpeg" } },
+        );
+        name = res.name || "";
+        number = res.number || "";
+        language = res.language || "EN";
+      } catch {
+        // identify failed — fall through with empty name
+      }
+
+      let match: CatalogMatch | null = null;
+      if (name && language === "EN") {
+        try {
+          match = await matchRow(name, number, null);
+        } catch {
+          match = null;
+        }
+      }
+
+      out[myIdx] = {
+        rawName: name || "Unidentified card",
+        number,
+        setHint: "",
+        condition: defaultCondition.value,
+        quantity: 1,
+        price: match?.price?.market || 0,
+        match,
+        include: !!name, // deselect identify-failures by default
+        photoFile: entry.file,
+        photoPreview: entry.preview,
+      };
+      progress.value++;
+    }
+  };
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  reviewRows.value = out.filter(Boolean);
+  step.value = "review";
+};
+
 // ── Column mapping ────────────────────────────────────────────────────
 type FieldKey = "name" | "set" | "number" | "condition" | "quantity" | "price";
 const mapFields: { key: FieldKey; label: string; required?: boolean }[] = [
@@ -453,6 +646,10 @@ interface ReviewRow {
   price: number;
   match: CatalogMatch | null;
   include: boolean;
+  // Photos flow only — the seller's own shot, uploaded to Cloudinary at
+  // import time and kept as the item's primary image.
+  photoFile?: File;
+  photoPreview?: string;
 }
 const reviewRows = ref<ReviewRow[]>([]);
 const progress = ref(0);
@@ -465,8 +662,10 @@ const toNumber = (s: string) => {
 
 const reconcile = async () => {
   if (mapping.value.name === -1) return;
+  flow.value = "rows";
   step.value = "reviewing";
   progress.value = 0;
+  reviewTotal.value = parsedRows.value.length;
   const out: ReviewRow[] = new Array(parsedRows.value.length);
 
   let idx = 0;
@@ -526,6 +725,23 @@ const doImport = async () => {
   if (!chosen.length) return;
   importing.value = true;
   try {
+    // Photo rows: upload the seller's shot to Cloudinary first so it lands
+    // in photos[] (and becomes primaryImage). Concurrency-limited.
+    const photoUrls = new Map<ReviewRow, string>();
+    const photoRows = chosen.filter((r) => r.photoFile);
+    let pIdx = 0;
+    const uploadWorker = async () => {
+      while (pIdx < photoRows.length) {
+        const row = photoRows[pIdx++];
+        try {
+          photoUrls.set(row, await uploadImage(row.photoFile!));
+        } catch {
+          // Upload failed — import without the photo rather than blocking.
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: 3 }, uploadWorker));
+
     await addMany(
       chosen.map((r) => ({
         productId: r.match?.productId ?? null,
@@ -537,7 +753,8 @@ const doImport = async () => {
         quantity: r.quantity,
         listPrice: r.price || 0,
         stockImageUrl: r.match?.imageUrl || "",
-        source: "csv" as const,
+        photos: photoUrls.has(r) ? [photoUrls.get(r)!] : [],
+        source: r.photoFile ? ("scan" as const) : ("csv" as const),
       })),
     );
     router.push("/inventory/items");
@@ -552,5 +769,7 @@ const resetUpload = () => {
   headers.value = [];
   parsedRows.value = [];
   reviewRows.value = [];
+  for (const p of photoFiles.value) URL.revokeObjectURL(p.preview);
+  photoFiles.value = [];
 };
 </script>
