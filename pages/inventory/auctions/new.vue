@@ -840,6 +840,18 @@ const { createAuction } = useAuctions();
 const { uploadAuctionImages } = useStorage();
 const { user, signInWithGoogle } = useAuth();
 const { profile } = useMyProfile();
+
+// Selling requires seller verification (contact + bank + pickup address).
+const { sellerReady, kycLoading } = useSellerKyc();
+watch(
+  [kycLoading, sellerReady],
+  ([loading, ready]) => {
+    if (!loading && !ready && user.value) {
+      navigateTo("/inventory/verify");
+    }
+  },
+  { immediate: true },
+);
 const {
   queue,
   remove: removeFromQueue,

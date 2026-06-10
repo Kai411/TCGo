@@ -167,6 +167,15 @@ export default defineNuxtConfig({
     stripeWebhookSecret: "",
     stripePricePremium: "",
     firebaseServiceAccount: "", // base64-encoded service account JSON
+    // Billplz (FPX order payments). Sandbox: set billplzSandbox=true and use
+    // billplz-sandbox.com credentials.
+    billplzApiKey: "",
+    billplzCollectionId: "",
+    billplzXSignatureKey: "",
+    billplzSandbox: "",
+    // EasyParcel (shipping labels). Sandbox: set easyparcelSandbox=true (demo host).
+    easyparcelApiKey: "",
+    easyparcelSandbox: "",
     public: {
       firebaseApiKey: "",
       firebaseAuthDomain: "",

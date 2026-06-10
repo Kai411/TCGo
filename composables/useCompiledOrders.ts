@@ -26,7 +26,7 @@ export type CompiledOrderStatus =
   | "delivered"
   | "cancelled";
 
-export type CompiledPaymentMethod = "manual" | "stripe";
+export type CompiledPaymentMethod = "manual" | "stripe" | "billplz";
 
 export interface CompiledOrderItem {
   cardId: string;
@@ -72,6 +72,28 @@ export interface CompiledOrder {
   stripePaymentIntentId?: string;
   payoutStatus?: "pending" | "queued" | "processing" | "paid" | "failed";
   payoutEligibleAt?: number;
+
+  // ── Online payment (Billplz) ────────────────────────────────────────
+  billplzBillId?: string;
+  billplzPaidAt?: string | null;
+  platformFee?: number;
+  sellerPayout?: number;
+
+  // Buyer's delivery address — required before online payment; feeds the
+  // EasyParcel shipment as the receiver.
+  deliveryAddress?: {
+    name: string;
+    phone: string;
+    address1: string;
+    address2?: string;
+    postcode: string;
+    city: string;
+    state: string; // EasyParcel state code
+  };
+
+  // EasyParcel shipment bookkeeping.
+  easyparcelOrderNo?: string;
+  awbLink?: string;
 
   // Merge bookkeeping (seller consolidating multiple confirmed orders).
   mergedFrom?: string[]; // on the surviving order: ids it absorbed

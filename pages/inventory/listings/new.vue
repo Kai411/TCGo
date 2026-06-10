@@ -650,6 +650,18 @@ const router = useRouter();
 const { createCard } = useCards();
 const { createListedFromCard } = useInventory();
 const { uploadAuctionImages } = useStorage();
+
+// Selling requires seller verification (contact + bank + pickup address).
+const { sellerReady, kycLoading } = useSellerKyc();
+watch(
+  [kycLoading, sellerReady],
+  ([loading, ready]) => {
+    if (!loading && !ready && useAuth().user.value) {
+      navigateTo("/inventory/verify");
+    }
+  },
+  { immediate: true },
+);
 const { user, signInWithGoogle } = useAuth();
 const { profile } = useMyProfile();
 const { isPremium, remaining: scanRemaining } = useScanQuota();

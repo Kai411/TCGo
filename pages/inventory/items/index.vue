@@ -356,6 +356,7 @@ const {
   setLabelQueue,
 } = useInventory();
 const { searchCatalog } = useCardCatalog();
+const { sellerReady } = useSellerKyc();
 const router = useRouter();
 
 // ── Label printing entry points ───────────────────────────────────────
@@ -478,8 +479,9 @@ const bulkList = async () => {
     alert("Selected items need a price (> 0) before they can be listed.");
     return;
   }
-  if (!profile.value?.phone && !profile.value?.whatsappNumber) {
-    alert("Add your contact number in your profile before listing.");
+  if (!sellerReady.value) {
+    alert("Complete seller verification before listing.");
+    router.push("/inventory/verify");
     return;
   }
   const skipped = targets.length - priced.length;
@@ -610,8 +612,9 @@ const openListDialog = (item: InventoryItem) => {
 
 const confirmList = async () => {
   if (!listing.value || !user.value || listingBusy.value) return;
-  if (!profile.value?.phone && !profile.value?.whatsappNumber) {
-    alert("Add your contact number in your profile before listing.");
+  if (!sellerReady.value) {
+    alert("Complete seller verification before listing.");
+    router.push("/inventory/verify");
     return;
   }
   listingBusy.value = true;

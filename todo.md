@@ -53,12 +53,12 @@ Status legend: ✅ done · 🎯 next · 🔜 then · 🗓️ later · 🧹 clean
 > toyyibPay channel) is the path for the POS payment-QR idea. If volume outgrows DIY
 > payouts → graduate to **Curlec Route**. Prereq: SSM business registration for
 > gateway onboarding (start first — long pole).
-- [ ] **Billplz integration** — bill creation for compiled orders, webhook → `paid`, payout queue/script
-- [ ] **Parcel waybill creation for paid orders** — auto-generate a shipping waybill once an order is paid
-  - [ ] Integrate **EasyParcel API** (MY aggregator: rate calc + waybill + multi-courier)
-  - [ ] **Disable seller shipping-fee preference** (sellers no longer set `shippingWM` / `shippingEM`)
-  - [ ] **System-calculated shipping** — charge buyer based on our rates (via EasyParcel), not seller-set fees
-  - [ ] Payouts: `platformFee` / `sellerPayout` / `payoutStatus` fields + hold window after delivery
+- [x] **Seller KYC** — `/inventory/verify`: contact + bank account (payouts) + pickup address (shipments); gates listing/auction creation and List actions (no document uploads — bank account is the identity anchor)
+- [x] **Billplz integration (v1)** — `/api/billplz/create-bill` (server-computed amount, bill linked to order) + webhook (X-Signature verified → order `paid` + cards sold + inventory synced + `platformFee`/`sellerPayout`/`payoutStatus` written; fee 0% during beta). Buyer "Pay online (FPX)" + delivery-address capture on the order page. **Needs sandbox testing + env keys.**
+- [x] **EasyParcel integration (v1)** — `/api/easyparcel/rate` + `/api/easyparcel/shipment` (submit + pay → AWB; tracking + label link written to order, status → shipped). Seller "Create shipment" dialog (weight → rates → pick courier → book) on paid/confirmed orders. **Needs demo-account testing + env key + credit top-up.**
+- [ ] Payout execution — Billplz Payment Order API (or manual admin queue) using `sellerPayout`/`payoutStatus` + hold window after delivery
+- [ ] **Disable seller shipping-fee preference** (sellers no longer set `shippingWM` / `shippingEM`)
+- [ ] **System-calculated shipping** — quote EasyParcel rates at checkout instead of seller-set fees
 
 ### Catalog / UX
 - [ ] Detail-page market price (productId already stored — surface it + 30-day change)

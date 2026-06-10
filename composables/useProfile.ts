@@ -43,6 +43,19 @@ export interface UserProfile {
   // Card-free preview — set when user claims the +5 bonus scans.
   bonusScansRemaining?: number;
   bonusScansClaimedAt?: number;
+
+  // ── Seller KYC ──────────────────────────────────────────────────────
+  // Bank account for payouts (Billplz Payment Orders / manual transfer).
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankAccountHolder?: string;
+  // Pickup address for shipments (EasyParcel sender details).
+  pickupAddress1?: string;
+  pickupAddress2?: string;
+  pickupPostcode?: string;
+  pickupCity?: string;
+  pickupState?: string; // EasyParcel state code, e.g. "sgr"
+  sellerKycCompletedAt?: number;
 }
 
 export const useProfile = (uid?: string) => {
