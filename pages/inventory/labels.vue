@@ -155,6 +155,8 @@ interface LabelCard {
   id: string;
   cardName: string;
   sub: string;
+  setName: string;
+  number: string;
   condition: string;
   price: string;
   qr: string;
@@ -181,6 +183,8 @@ const generate = async (list: InventoryItem[]) => {
       id: item.id,
       cardName: item.cardName,
       sub: [item.setName, item.number].filter(Boolean).join(" · "),
+      setName: item.setName || "",
+      number: item.number || "",
       condition: item.condition,
       price: (item.listPrice || 0).toFixed(2),
       qr,
@@ -250,8 +254,21 @@ const fitFont = (ctx: CanvasRenderingContext2D, text: string, maxW: number, star
   return px;
 };
 
-// Portrait label: QR full-width on top, then name / set / condition / price
-// stacked and centred using the full width.
+// Strip TCGPlayer's " - 222/193" style suffix from product names — the
+// number is shown on its own line, and the suffix wastes a whole name line
+// on small labels.
+const stripNumberSuffix = (name: string): string =>
+  name.replace(/\s+-\s+\S*\d\S*$/, "").trim() || name;
+
+// Condensed condition for labels: "Near Mint (NM)" → "NM".
+const condShort = (condition: string): string => {
+  const m = condition.match(/\(([^)]+)\)/);
+  return m ? m[1] : condition;
+};
+
+// Portrait label, strict top-to-bottom flow so nothing can overlap:
+// the text block (name / number·set / condition / price) is measured first,
+// then the QR flexes to fill whatever height remains above it.
 const renderThermal = async (card: LabelCard, mmW: number, mmH: number): Promise<string> => {
   const DPMM = 8; // ~203 dpi (thermal native)
   const W = Math.round(mmW * DPMM);
@@ -264,52 +281,75 @@ const renderThermal = async (card: LabelCard, mmW: number, mmH: number): Promise
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, W, H);
   ctx.textBaseline = "top";
+  ctx.textAlign = "center";
 
-  const pad = Math.round(Math.min(W, H) * 0.07);
+  const pad = Math.round(Math.min(W, H) * 0.06);
   const innerW = W - pad * 2;
   const cx = Math.round(W / 2);
+  const gap = Math.round(H * 0.012);
 
-  // QR — full width at top (capped so the text below has room).
-  const qrSize = Math.min(innerW, Math.round(H * 0.5));
+  // ── Measure the text block ──────────────────────────────────────────
+  const name = stripNumberSuffix(card.cardName);
+  const nameFont = Math.round(H * 0.07);
+  ctx.font = `bold ${nameFont}px sans-serif`;
+  const nameLines = wrapText(ctx, name, innerW, 2);
+  const nameLineH = Math.round(nameFont * 1.15);
+
+  // Number leads so end-truncation eats the set name, never the number.
+  const infoStr = [card.number, card.setName].filter(Boolean).join(" · ");
+  const infoFont = Math.round(H * 0.048);
+  const condStr = card.condition ? condShort(card.condition) : "";
+  const condFont = infoFont;
+
+  const priceStr = `RM ${card.price}`;
+  const priceFont = fitFont(ctx, priceStr, innerW, Math.round(H * 0.115));
+
+  let textH = nameLines.length * nameLineH;
+  if (infoStr) textH += gap + Math.round(infoFont * 1.15);
+  if (condStr) textH += gap + Math.round(condFont * 1.15);
+  textH += gap * 2 + Math.round(priceFont * 1.1);
+
+  // ── QR flexes into the remaining height ─────────────────────────────
+  const qrAvail = H - pad * 2 - textH - gap * 2;
+  const qrSize = Math.max(48, Math.min(innerW, qrAvail));
   const qrX = Math.round((W - qrSize) / 2);
+  // Center the QR within its available band.
+  const qrY = pad + Math.max(0, Math.round((qrAvail - qrSize) / 2));
   if (card.qr) {
     const img = await loadImage(card.qr);
-    ctx.drawImage(img, qrX, pad, qrSize, qrSize);
+    ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
   }
 
-  ctx.textAlign = "center";
-  let y = pad + qrSize + Math.round(H * 0.025);
+  // ── Text flow, top-down from below the QR band ──────────────────────
+  let y = pad + Math.max(qrAvail, qrSize) + gap * 2;
 
-  // Name — full width, up to 2 lines.
   ctx.fillStyle = "#000";
-  const nameFont = Math.round(H * 0.075);
   ctx.font = `bold ${nameFont}px sans-serif`;
-  for (const ln of wrapText(ctx, card.cardName, innerW, 2)) {
+  for (const ln of nameLines) {
     ctx.fillText(ln, cx, y);
-    y += Math.round(nameFont * 1.12);
-  }
-  // Sub (set · number).
-  if (card.sub) {
-    const subFont = Math.round(H * 0.05);
-    ctx.font = `${subFont}px sans-serif`;
-    ctx.fillStyle = "#555";
-    ctx.fillText(fitText(ctx, card.sub, innerW), cx, y);
+    y += nameLineH;
   }
 
-  // Price — full width, large, pinned near the bottom (auto-fit).
-  const priceStr = `RM ${card.price}`;
-  const priceFont = fitFont(ctx, priceStr, innerW, Math.round(H * 0.11));
-  const priceTop = H - pad - priceFont;
-  // Condition just above the price, if present.
-  if (card.condition) {
-    const condFont = Math.round(H * 0.05);
+  if (infoStr) {
+    y += gap;
+    ctx.font = `${infoFont}px sans-serif`;
+    ctx.fillStyle = "#555";
+    ctx.fillText(fitText(ctx, infoStr, innerW), cx, y);
+    y += Math.round(infoFont * 1.15);
+  }
+
+  if (condStr) {
+    y += gap;
     ctx.font = `${condFont}px sans-serif`;
     ctx.fillStyle = "#777";
-    ctx.fillText(fitText(ctx, card.condition, innerW), cx, priceTop - condFont - 4);
+    ctx.fillText(fitText(ctx, condStr, innerW), cx, y);
+    y += Math.round(condFont * 1.15);
   }
+
+  y += gap * 2;
   ctx.font = `bold ${priceFont}px sans-serif`;
   ctx.fillStyle = "#000";
-  ctx.fillText(priceStr, cx, priceTop);
+  ctx.fillText(priceStr, cx, y);
 
   ctx.textAlign = "left";
   return cv.toDataURL("image/png");
