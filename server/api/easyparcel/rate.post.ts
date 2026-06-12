@@ -1,9 +1,9 @@
-// Rate check for an order's shipment: seller pickup → buyer delivery.
-// Returns a simplified list of courier services with prices, used by the
-// seller's "Create shipment" dialog to pick a courier.
+// Rate check for an order's shipment: seller pickup → buyer delivery, via
+// the Developer Hub quotations endpoint. Returns a simplified list of
+// courier services used by the seller's "Create shipment" dialog.
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
-import { easyparcelApiKey, easyparcelPost } from "~/server/utils/easyparcel";
+import { epPost, toSubdivision } from "~/server/utils/easyparcel";
 
 export default defineEventHandler(async (event) => {
   const { orderId, weight } = (await readBody(event)) as {
@@ -28,29 +28,43 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: "Seller pickup address incomplete — complete seller verification" });
   }
 
-  const data = await easyparcelPost("EPRateCheckingBulk", {
-    api: easyparcelApiKey(),
-    "bulk[0][pick_code]": seller.pickupPostcode,
-    "bulk[0][pick_state]": seller.pickupState,
-    "bulk[0][pick_country]": "MY",
-    "bulk[0][send_code]": addr.postcode,
-    "bulk[0][send_state]": addr.state,
-    "bulk[0][send_country]": "MY",
-    "bulk[0][weight]": String(kg),
+  const data = await epPost("shipment/quotations", {
+    shipment: [
+      {
+        sender: {
+          postcode: seller.pickupPostcode,
+          // NOTE: the quotations endpoint spells this key "subdivison_code"
+          // (sic) in EasyParcel's own collection; submit_orders spells it
+          // "subdivision_code". Keep each endpoint's exact key.
+          subdivison_code: toSubdivision(seller.pickupState),
+          country: "MY",
+        },
+        receiver: {
+          postcode: addr.postcode,
+          subdivison_code: toSubdivision(addr.state),
+          country: "MY",
+        },
+        parcel_value: order.subtotal || 1,
+        weight: kg,
+        width: 25,
+        length: 18,
+        height: 3,
+      },
+    ],
   });
 
-  const result = data?.result?.[0];
-  const rates = (result?.rates ?? []).map((r: any) => ({
-    serviceId: r.service_id,
-    courier: r.courier_name,
-    serviceName: r.service_name,
-    price: Number(r.price ?? r.shipment_price ?? 0),
-    etd: r.delivery ?? "",
-  }));
+  const entry = data?.data?.[0];
+  const rates = (entry?.quotations ?? []).map((q: any) => ({
+    serviceId: q?.courier?.service_id ?? "",
+    courier: q?.courier?.courier_name ?? "",
+    serviceName: q?.courier?.service_name ?? "",
+    price: Number(q?.pricing?.total_amount ?? 0),
+    etd: q?.courier?.delivery_duration ?? "",
+  })).filter((r: any) => r.serviceId);
   rates.sort((a: any, b: any) => a.price - b.price);
 
   if (!rates.length) {
-    const reason = result?.status || data?.error_remark || "No couriers available for this route";
+    const reason = entry?.message || entry?.status || data?.message || "No couriers available for this route";
     return { rates: [], error: String(reason) };
   }
   return { rates };

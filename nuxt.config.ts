@@ -173,9 +173,11 @@ export default defineNuxtConfig({
     billplzCollectionId: "",
     billplzXSignatureKey: "",
     billplzSandbox: "",
-    // EasyParcel (shipping labels). Sandbox: set easyparcelSandbox=true (demo host).
-    easyparcelApiKey: "",
-    easyparcelSandbox: "",
+    // EasyParcel Developer Hub (OAuth app — shipping labels). Connect once via
+    // /api/easyparcel/connect; tokens persist in Firestore appSettings.
+    easyparcelClientId: "",
+    easyparcelClientSecret: "",
+    easyparcelApiVersion: "2025-09",
     public: {
       firebaseApiKey: "",
       firebaseAuthDomain: "",

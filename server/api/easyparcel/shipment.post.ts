@@ -1,12 +1,10 @@
-// Create + pay an EasyParcel shipment for a paid order, producing a waybill
-// (AWB). Writes the tracking number / AWB link back to the order and flips
-// it to shipped.
-//
-// Cost note: paying the shipment draws from the platform's EasyParcel credit
-// balance — top up the EasyParcel account before going live.
+// Book a shipment for a paid/confirmed order via the Developer Hub
+// submit_orders endpoint. Submitting auto-pays from the EasyParcel wallet
+// and returns the AWB + label PDF in the same response. The tracking number
+// and label link are written to the order, which flips to shipped.
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
-import { easyparcelApiKey, easyparcelPost } from "~/server/utils/easyparcel";
+import { epPost, toSubdivision, epPhone } from "~/server/utils/easyparcel";
 
 export default defineEventHandler(async (event) => {
   const { orderId, serviceId, weight } = (await readBody(event)) as {
@@ -37,56 +35,66 @@ export default defineEventHandler(async (event) => {
   }
 
   // Collection tomorrow (couriers won't collect same-day after cutoff).
-  const collect = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  const collectDate = collect.toISOString().slice(0, 10);
-  const sellerPhone = (seller.whatsappNumber || seller.phone || "").replace(/[^0-9+]/g, "");
+  const collectDate = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
 
-  // 1. Submit the order.
-  const submit = await easyparcelPost("EPSubmitOrderBulk", {
-    api: easyparcelApiKey(),
-    "bulk[0][content]": "Trading cards",
-    "bulk[0][value]": String(order.subtotal || 1),
-    "bulk[0][weight]": String(kg),
-    "bulk[0][service_id]": serviceId,
-    "bulk[0][collect_date]": collectDate,
-    "bulk[0][sms]": "false",
-    "bulk[0][pick_name]": seller.customName || seller.displayName || "TCGo Seller",
-    "bulk[0][pick_contact]": sellerPhone,
-    "bulk[0][pick_addr1]": seller.pickupAddress1,
-    "bulk[0][pick_addr2]": seller.pickupAddress2 || "",
-    "bulk[0][pick_code]": seller.pickupPostcode,
-    "bulk[0][pick_city]": seller.pickupCity || "",
-    "bulk[0][pick_state]": seller.pickupState,
-    "bulk[0][pick_country]": "MY",
-    "bulk[0][send_name]": addr.name,
-    "bulk[0][send_contact]": (addr.phone || "").replace(/[^0-9+]/g, ""),
-    "bulk[0][send_addr1]": addr.address1,
-    "bulk[0][send_addr2]": addr.address2 || "",
-    "bulk[0][send_code]": addr.postcode,
-    "bulk[0][send_city]": addr.city,
-    "bulk[0][send_state]": addr.state,
-    "bulk[0][send_country]": "MY",
+  const data = await epPost("shipment/submit_orders", {
+    shipment: [
+      {
+        service_id: serviceId,
+        collection_date: collectDate,
+        weight: kg,
+        length: 25,
+        width: 18,
+        height: 3,
+        item: [
+          {
+            content: "Trading cards",
+            weight: kg,
+            currency_code: "MYR",
+            value: order.subtotal || 1,
+            quantity: 1,
+          },
+        ],
+        sender: {
+          name: seller.customName || seller.displayName || "TCGo Seller",
+          phone_number_country_code: "MY",
+          phone_number: epPhone(seller.whatsappNumber || seller.phone),
+          email: "support@tcgo.shop",
+          address_1: seller.pickupAddress1,
+          address_2: seller.pickupAddress2 || "",
+          city: seller.pickupCity || "",
+          subdivision_code: toSubdivision(seller.pickupState),
+          postcode: seller.pickupPostcode,
+          country_code: "MY",
+        },
+        receiver: {
+          name: addr.name,
+          phone_number_country_code: "MY",
+          phone_number: epPhone(addr.phone),
+          email: order.buyerEmail || "buyer@tcgo.shop",
+          address_1: addr.address1,
+          address_2: addr.address2 || "",
+          city: addr.city,
+          subdivision_code: toSubdivision(addr.state),
+          postcode: addr.postcode,
+          country_code: "MY",
+        },
+      },
+    ],
   });
 
-  const submitted = submit?.result?.[0];
-  const orderNo = submitted?.order_number ?? submitted?.order_no;
-  if (!orderNo) {
-    const reason = submitted?.remarks || submitted?.status || submit?.error_remark || "submission rejected";
-    throw createError({ statusCode: 502, message: `EasyParcel: ${reason}` });
-  }
-
-  // 2. Pay it (draws from the platform's EasyParcel credit) → AWB.
-  const pay = await easyparcelPost("EPPayOrderBulk", {
-    api: easyparcelApiKey(),
-    "bulk[0][order_no]": String(orderNo),
-  });
-  const paid = pay?.result?.[0];
-  const parcel = paid?.parcel?.[0] ?? paid?.parcels?.[0] ?? null;
-  const awb = parcel?.awb ?? "";
-  const awbLink = parcel?.awb_id_link ?? "";
-  const courier = parcel?.courier ?? submitted?.courier ?? "";
+  const entry = data?.data?.[0];
+  const shipment = entry?.shipments?.[0];
+  const awb = shipment?.awb_number ?? "";
+  const awbLink = shipment?.awb_url ?? "";
+  const courier = shipment?.courier ?? "";
+  const orderNo = entry?.order_details?.order_number ?? "";
   if (!awb) {
-    const reason = paid?.messagenow || paid?.remarks || pay?.error_remark || "payment failed (check EasyParcel credit)";
+    const reason =
+      shipment?.message || shipment?.status || entry?.message || data?.message ||
+      "booking failed (check EasyParcel wallet credit)";
     throw createError({ statusCode: 502, message: `EasyParcel: ${reason}` });
   }
 
