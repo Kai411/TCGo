@@ -72,6 +72,8 @@ export interface CompiledOrder {
   stripePaymentIntentId?: string;
   payoutStatus?: "pending" | "queued" | "processing" | "paid" | "failed";
   payoutEligibleAt?: number;
+  payoutRequestedAt?: number; // seller requested payout of available funds
+  payoutPaidAt?: number; // admin executed the payout
 
   // ── Online payment (Billplz) ────────────────────────────────────────
   billplzBillId?: string;

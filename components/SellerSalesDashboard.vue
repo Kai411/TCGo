@@ -1,5 +1,24 @@
 <template>
   <div class="space-y-6">
+    <!-- ── Funds ───────────────────────────────────────────────────── -->
+    <NuxtLink
+      to="/inventory/funds"
+      class="flex items-center gap-4 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] surface p-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
+    >
+      <div class="w-10 h-10 shrink-0 rounded-full bg-pokemon-red/10 flex items-center justify-center">
+        <svg class="w-5 h-5 text-pokemon-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">Funds</p>
+        <p class="text-lg font-extrabold text-ink dark:text-white tabular-nums leading-tight">
+          RM {{ formatMyr(fundsAvailable) }}
+          <span class="text-xs font-semibold text-gray-400">available</span>
+        </p>
+        <p v-if="fundsHeld > 0" class="text-[11px] text-gray-400 dark:text-zinc-500">+ RM {{ formatMyr(fundsHeld) }} pending / locked</p>
+      </div>
+      <svg class="w-4 h-4 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    </NuxtLink>
+
     <!-- ── Needs attention ─────────────────────────────────────────── -->
     <div>
       <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
@@ -171,6 +190,7 @@ import {
   compiledOrderStatusColor,
 } from "~/composables/useCompiledOrders";
 import type { InventoryItem } from "~/composables/useInventory";
+import { categorizeFunds } from "~/composables/useSellerFunds";
 
 const props = withDefaults(
   defineProps<{
@@ -338,4 +358,15 @@ const recentSales = computed(() =>
 
 const formatMyr = (n: number) =>
   n.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// ── Funds summary (online/Billplz payments held by the platform) ──────
+const fundEntries = computed(() => categorizeFunds(props.orders));
+const fundsAvailable = computed(() =>
+  fundEntries.value.filter((e) => e.state === "available").reduce((t, e) => t + e.amount, 0),
+);
+const fundsHeld = computed(() =>
+  fundEntries.value
+    .filter((e) => e.state === "locked" || e.state === "queued")
+    .reduce((t, e) => t + e.amount, 0),
+);
 </script>

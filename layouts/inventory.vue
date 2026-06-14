@@ -136,12 +136,19 @@ const IconBox = () =>
     h("line", { x1: "12", y1: "22.08", x2: "12", y2: "12" }),
   ]);
 
+const IconWallet = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("rect", { x: "2", y: "5", width: "20", height: "14", rx: "2" }),
+    h("line", { x1: "2", y1: "10", x2: "22", y2: "10" }),
+  ]);
+
 const navItems = [
   { to: "/inventory", label: "Dashboard", icon: IconDashboard, exact: true },
   { to: "/inventory/pos", label: "POS", icon: IconScan },
   { to: "/inventory/items", label: "Items", icon: IconBox },
   { to: "/inventory/listings", label: "Listings", icon: IconTag },
   { to: "/inventory/auctions", label: "Auctions", icon: IconGavel },
+  { to: "/inventory/funds", label: "Funds", icon: IconWallet },
   { to: "/inventory/import", label: "Bulk add", icon: IconUpload },
 ];
 
