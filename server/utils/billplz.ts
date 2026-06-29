@@ -6,12 +6,18 @@
 
 import crypto from "node:crypto";
 
-export const billplzBaseUrl = () => {
-  const config = useRuntimeConfig();
-  return config.billplzSandbox
+// Sandbox only when the flag is explicitly "true" (or "1"). Anything else —
+// "false", empty, unset — means production. (A bare `if (config.billplzSandbox)`
+// would treat the string "false" as truthy and wrongly pick sandbox.)
+export const isBillplzSandbox = () => {
+  const v = String(useRuntimeConfig().billplzSandbox ?? "").trim().toLowerCase();
+  return v === "true" || v === "1";
+};
+
+export const billplzBaseUrl = () =>
+  isBillplzSandbox()
     ? "https://www.billplz-sandbox.com/api"
     : "https://www.billplz.com/api";
-};
 
 export const billplzAuthHeader = () => {
   const config = useRuntimeConfig();
