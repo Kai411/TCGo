@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "graphify": {
+      "command": "graphify-mcp",
+      "args": ["graphify-out/graph.json"]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    }
+  }
+}
