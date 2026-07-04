@@ -161,6 +161,14 @@ export default defineNuxtConfig({
       ],
     },
   },
+  // Dev-server only: allow Cloudflare/ngrok tunnel hosts so the Billplz
+  // webhook can reach localhost during payment testing. No effect on the
+  // production build.
+  vite: {
+    server: {
+      allowedHosts: [".trycloudflare.com", ".ngrok-free.app", ".ngrok.io"],
+    },
+  },
   runtimeConfig: {
     // Server-only secrets (no NUXT_PUBLIC_ prefix)
     stripeSecretKey: "",
