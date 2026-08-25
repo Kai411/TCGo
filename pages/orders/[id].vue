@@ -166,8 +166,10 @@
             </div>
           </div>
 
-          <!-- Actions -->
-          <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+          <!-- Actions. Hidden entirely when there's nothing to do — a
+               delivered order leaves every button and hint false, which
+               rendered an empty card. -->
+          <div v-if="hasActions" class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
             <div class="flex flex-wrap gap-2">
               <!-- Buyer actions -->
               <template v-if="role === 'buyer'">
@@ -522,6 +524,45 @@ const role = computed<"buyer" | "seller" | null>(() => {
   if (order.value.sellerUid === user.value.uid) return "seller";
   return null;
 });
+
+// Mirrors the v-ifs inside the actions card. Kept adjacent to them so a new
+// button added there without updating this shows up as a missing card rather
+// than silently reintroducing the empty one.
+const buyerActions = computed(() => {
+  const o = order.value;
+  if (!o || role.value !== "buyer") return false;
+  return (
+    isPayable.value ||
+    o.status === "shipped" ||
+    o.status === "pending" ||
+    o.status === "confirmed"
+  );
+});
+
+const sellerActions = computed(() => {
+  const o = order.value;
+  if (!o || role.value !== "seller") return false;
+  return (
+    (o.status === "paid" && !!o.deliveryAddress && !o.shipmentOrderNo) ||
+    !!o.shipmentOrderNo ||
+    o.status === "confirmed" ||
+    o.status === "paid"
+  );
+});
+
+const actionHints = computed(() => {
+  const o = order.value;
+  if (!o) return false;
+  return (
+    (!!o.shipmentError && role.value === "seller") ||
+    (role.value === "buyer" && isPayable.value) ||
+    !!o.paymentAmountMismatch
+  );
+});
+
+const hasActions = computed(
+  () => buyerActions.value || sellerActions.value || actionHints.value,
+);
 
 const statusLabel = computed(() =>
   order.value ? compiledOrderStatusLabel(order.value.status) : "",
