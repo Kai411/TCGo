@@ -13,7 +13,9 @@ import { computeSellerPayout, platformFeeFor } from "~/shared/payouts";
 
 export default defineEventHandler(async (event) => {
   const body = (await readBody(event)) as Record<string, string>;
-  const get = (k: string) => body[`billplz[${k}]`] ?? "";
+  // Callbacks arrive with plain keys (`id`, `paid`); the browser redirect uses
+  // `billplz[id]`. Accept either so this handler works for both.
+  const get = (k: string) => body[k] ?? body[`billplz[${k}]`] ?? "";
 
   const config = useRuntimeConfig();
   const xSignatureKey = config.billplzXSignatureKey as string;

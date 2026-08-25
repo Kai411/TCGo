@@ -129,13 +129,37 @@ export const verifyBillplzSignature = (
 ): boolean => {
   const provided = params["billplz[x_signature]"] ?? params["x_signature"] ?? "";
   if (!provided) return false;
+
+  // Billplz signs the two payloads differently, and getting this wrong fails
+  // closed — the callback is rejected and a paid order never settles.
+  //
+  //   callback (POST to callback_url): plain keys, source part is `<key><value>`
+  //     amount100|collection_idyhx5t1pp|idzq0tm2wc|paid_at...|paidtrue|statepaid
+  //
+  //   redirect (browser return):       billplz[...] keys, part is `billplz<key><value>`
+  //     billplzidzq0tm2wc|billplzpaid_at...|billplzpaidtrue
+  const bracketed = Object.keys(params).some((k) => /^billplz\[.+\]$/.test(k));
+
   const parts: string[] = [];
   for (const [rawKey, value] of Object.entries(params)) {
-    const m = rawKey.match(/^billplz\[(.+)\]$/);
-    if (!m || m[1] === "x_signature") continue;
-    parts.push(`billplz${m[1]}${value ?? ""}`);
+    if (bracketed) {
+      const m = rawKey.match(/^billplz\[(.+)\]$/);
+      if (!m || m[1] === "x_signature") continue;
+      parts.push(`billplz${m[1]}${value ?? ""}`);
+    } else {
+      if (rawKey === "x_signature") continue;
+      parts.push(`${rawKey}${value ?? ""}`);
+    }
   }
-  parts.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+
+  // Sort the *concatenated* strings, not the keys. Billplz's own example puts
+  // `paid_amount…|paid_at…|paidtrue` — key order would give paid, paid_amount,
+  // paid_at. Compared on code units so `_` (0x5F) sorts before `t` (0x74).
+  parts.sort((a, b) => {
+    const x = a.toLowerCase();
+    const y = b.toLowerCase();
+    return x < y ? -1 : x > y ? 1 : 0;
+  });
   const digest = crypto
     .createHmac("sha256", xSignatureKey)
     .update(parts.join("|"))
