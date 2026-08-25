@@ -267,8 +267,60 @@ export const delyvaCancelOrder = async (orderId: string) =>
 export const delyvaOrder = async (orderId: string) =>
   await delyvaGet<any>(`/order/${orderId}`);
 
-export const delyvaTrack = async (consignmentNo: string) => {
+// Tracking with ETA.
+//
+// POST /order/track (resultType=latestFirst) returns the latest status plus
+// the full `histories` array, and — only when statusCode is 400 (in transit to
+// pickup) or 600 (in transit for dropoff) — an `arrival` estimate. Delyva
+// returns arrival: null otherwise, and distance/duration of -1 when it can't
+// calculate. `arrival.accuracy` is 1 for a confident estimate, 0 for a rough
+// one, so we surface that rather than presenting every estimate as equal.
+export interface DelyvaTrackEvent {
+  statusCode: number;
+  statusText: string | null;
+  description: string | null;
+  location: string | null;
+  createdAt: string;
+}
+
+export interface DelyvaTracking {
+  consignmentNo: string;
+  statusCode: number;
+  statusText: string | null;
+  description: string | null;
+  origin: string | null;
+  destination: string | null;
+  events: DelyvaTrackEvent[];
+  /** Seconds until arrival, when Delyva can estimate one. */
+  etaSeconds: number | null;
+  etaAccurate: boolean;
+}
+
+export const delyvaTrack = async (consignmentNo: string): Promise<DelyvaTracking> => {
   const { companyId } = delyvaConfig();
-  const q = companyId ? `?companyId=${encodeURIComponent(companyId)}` : "";
-  return await delyvaGet<any>(`/order/track/${encodeURIComponent(consignmentNo)}${q}`);
+  const res = await delyvaPost<any>("/order/track", {
+    ...(companyId ? { companyId } : {}),
+    consignmentNo,
+    resultType: "latestFirst",
+  });
+  const d = res?.data ?? {};
+  const durationValue = Number(d?.arrival?.duration?.value ?? -1);
+  return {
+    consignmentNo: String(d.consignmentNo ?? consignmentNo),
+    statusCode: Number(d.statusCode ?? 0),
+    statusText: d.statusText ?? null,
+    description: d.description ?? null,
+    origin: d.origin ?? null,
+    destination: d.destination ?? null,
+    events: (d.histories ?? []).map((h: any) => ({
+      statusCode: Number(h.statusCode ?? 0),
+      statusText: h.statusText ?? null,
+      description: h.description ?? null,
+      location: h.location && h.location !== "-" ? h.location : null,
+      createdAt: String(h.createdAt ?? ""),
+    })),
+    // -1 is Delyva's "couldn't calculate", not a real duration.
+    etaSeconds: durationValue > 0 ? durationValue : null,
+    etaAccurate: Number(d?.arrival?.accuracy ?? 0) === 1,
+  };
 };

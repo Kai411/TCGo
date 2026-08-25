@@ -257,44 +257,78 @@
             </h2>
 
             <template v-if="order.trackingNumber || order.shipmentOrderNo">
-              <p v-if="order.trackingNumber" class="font-mono font-semibold text-sm text-ink dark:text-white break-all">
-                {{ order.trackingNumber }}
-              </p>
-              <p v-if="order.shippingCarrier" class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                via {{ order.shippingCarrier }}
-              </p>
-
-              <!-- Minimised label preview. The PDF is fetched with auth and
-                   held as a blob URL — an <iframe src> can't send headers. -->
-              <div v-if="labelUrl" class="mt-3">
+              <!-- Waybill number — the thing buyers copy into a courier site -->
+              <div v-if="order.trackingNumber" class="flex items-start gap-2">
+                <div class="min-w-0">
+                  <p class="font-mono font-semibold text-sm text-ink dark:text-white break-all">
+                    {{ order.trackingNumber }}
+                  </p>
+                  <p v-if="order.shippingCarrier" class="text-xs text-gray-500 dark:text-zinc-400">
+                    via {{ order.shippingCarrier }}
+                  </p>
+                </div>
                 <button
-                  @click="openLabel"
-                  class="block w-full rounded-lg border border-gray-200 dark:border-white/[0.10] overflow-hidden bg-gray-50 dark:bg-white/[0.04] hover:border-pokemon-red transition-colors group"
-                  title="Open full size"
+                  @click="copyTracking"
+                  class="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 hover:border-pokemon-red hover:text-pokemon-red transition-colors"
                 >
-                  <iframe
-                    :src="`${labelUrl}#toolbar=0&navpanes=0&view=FitH`"
-                    class="w-full h-44 pointer-events-none"
-                    title="Waybill preview"
-                  />
-                  <span class="block text-[11px] font-semibold text-gray-600 dark:text-zinc-300 py-1.5 group-hover:text-pokemon-red">
-                    Open full size ↗
-                  </span>
+                  {{ copied ? "Copied" : "Copy" }}
                 </button>
               </div>
-
-              <button
-                v-if="order.shipmentOrderNo && role === 'seller'"
-                @click="fetchLabel"
-                :disabled="labelBusy"
-                class="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-pokemon-red hover:underline disabled:opacity-60"
-              >
-                <span v-if="labelBusy" class="animate-spin rounded-full h-3 w-3 border-b-2 border-pokemon-red"/>
-                {{ labelBusy ? "Fetching…" : labelUrl ? "Refresh label" : "Get consignment note" }}
-              </button>
-              <p v-if="labelError" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                {{ labelError }}
+              <p v-else class="text-sm text-gray-500 dark:text-zinc-400">
+                Booked — waiting for the courier to assign a waybill number.
               </p>
+
+              <!-- Delivery progress -->
+              <div class="mt-4 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                  <h3 class="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                    Delivery progress
+                  </h3>
+                  <button
+                    @click="loadTracking"
+                    :disabled="trackingBusy"
+                    class="text-[11px] font-semibold text-pokemon-red hover:underline disabled:opacity-50"
+                  >
+                    {{ trackingBusy ? "Refreshing…" : "Refresh" }}
+                  </button>
+                </div>
+                <ShipmentTimeline
+                  :tracking="tracking"
+                  :empty-message="trackingMessage"
+                />
+              </div>
+
+              <!-- Seller-only: the printable consignment note -->
+              <template v-if="role === 'seller'">
+                <div v-if="labelUrl" class="mt-4">
+                  <button
+                    @click="openLabel"
+                    class="block w-full rounded-lg border border-gray-200 dark:border-white/[0.10] overflow-hidden bg-gray-50 dark:bg-white/[0.04] hover:border-pokemon-red transition-colors group"
+                    title="Open full size"
+                  >
+                    <iframe
+                      :src="`${labelUrl}#toolbar=0&navpanes=0&view=FitH`"
+                      class="w-full h-44 pointer-events-none"
+                      title="Waybill preview"
+                    />
+                    <span class="block text-[11px] font-semibold text-gray-600 dark:text-zinc-300 py-1.5 group-hover:text-pokemon-red">
+                      Open full size ↗
+                    </span>
+                  </button>
+                </div>
+                <button
+                  v-if="order.shipmentOrderNo"
+                  @click="fetchLabel"
+                  :disabled="labelBusy"
+                  class="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-pokemon-red hover:underline disabled:opacity-60"
+                >
+                  <span v-if="labelBusy" class="animate-spin rounded-full h-3 w-3 border-b-2 border-pokemon-red"/>
+                  {{ labelBusy ? "Fetching…" : labelUrl ? "Refresh label" : "Get consignment note" }}
+                </button>
+                <p v-if="labelError" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                  {{ labelError }}
+                </p>
+              </template>
             </template>
 
             <template v-else>
@@ -543,15 +577,52 @@ const addr = ref({
 
 const { profile: myProfile } = useMyProfile();
 
-const startPayment = () => {
+// The delivery address saved in settings, if it's complete enough to ship to.
+// Postcode and state are the two the courier quote actually needs.
+const profileAddress = computed(() => {
+  const p = myProfile.value;
+  if (!p?.deliveryAddress1 || !p?.deliveryPostcode || !p?.deliveryState) return null;
+  return {
+    name: p.deliveryName || p.customName || p.displayName || "",
+    phone: p.deliveryPhone || p.whatsappNumber || p.phone || "",
+    address1: p.deliveryAddress1,
+    address2: p.deliveryAddress2 || "",
+    postcode: p.deliveryPostcode,
+    city: p.deliveryCity || "",
+    state: p.deliveryState,
+  };
+});
+
+const startPayment = async () => {
   if (!order.value) return;
+
+  // Already captured on the order — nothing to ask for.
   if (order.value.deliveryAddress) {
     void createBillAndRedirect();
     return;
   }
-  // Prefill what we can from the buyer's profile/order.
+
+  // Otherwise use the address from settings rather than asking again. It's
+  // the same address the cart quoted shipping against, so re-prompting was
+  // both redundant and a chance to enter something that doesn't match.
+  if (profileAddress.value) {
+    paying.value = true;
+    try {
+      const { doc: docRef, updateDoc } = await import("firebase/firestore");
+      await updateDoc(docRef(firestore!, "compiledOrders", order.value.id), {
+        deliveryAddress: profileAddress.value,
+      });
+      await createBillAndRedirect();
+    } catch (e: any) {
+      paying.value = false;
+      alert(e?.data?.message || e?.message || "Couldn't start the payment.");
+    }
+    return;
+  }
+
+  // No saved address anywhere — ask, prefilled with whatever we do know.
   addr.value = {
-    name: order.value.buyerName || myProfile.value?.customName || "",
+    name: myProfile.value?.customName || order.value.buyerName || "",
     phone: myProfile.value?.whatsappNumber || myProfile.value?.phone || "",
     address1: "",
     address2: "",
@@ -635,6 +706,59 @@ const cancelShipment = async () => {
     alert(e?.data?.message || "Couldn't cancel the shipment.");
   } finally {
     cancelling.value = false;
+  }
+};
+
+// ── Courier tracking ──────────────────────────────────────────────────
+// Loaded on demand and on arrival, for buyer and seller alike — the buyer is
+// the one who actually wants to know where the parcel is.
+const tracking = ref<any>(null);
+const trackingBusy = ref(false);
+const trackingMessage = ref("No courier updates yet.");
+
+const loadTracking = async () => {
+  if (!order.value?.trackingNumber || trackingBusy.value) return;
+  trackingBusy.value = true;
+  try {
+    const res = await authedFetch<{ available: boolean; reason?: string; tracking?: any }>(
+      "/api/shipping/track",
+      { method: "POST", body: { orderId: order.value.id } },
+    );
+    if (res.available && res.tracking) {
+      tracking.value = res.tracking;
+    } else {
+      tracking.value = null;
+      trackingMessage.value =
+        res.reason || "The courier hasn't scanned this parcel yet.";
+    }
+  } catch (e: any) {
+    tracking.value = null;
+    trackingMessage.value =
+      e?.data?.message || "Couldn't load tracking just now.";
+  } finally {
+    trackingBusy.value = false;
+  }
+};
+
+// Fetch once a tracking number exists (it appears after booking).
+watch(
+  () => order.value?.trackingNumber,
+  (n) => {
+    if (n) void loadTracking();
+  },
+  { immediate: true },
+);
+
+const copied = ref(false);
+const copyTracking = async () => {
+  const n = order.value?.trackingNumber;
+  if (!n) return;
+  try {
+    await navigator.clipboard.writeText(n);
+    copied.value = true;
+    setTimeout(() => (copied.value = false), 1500);
+  } catch {
+    /* clipboard blocked — the number is selectable on screen anyway */
   }
 };
 
