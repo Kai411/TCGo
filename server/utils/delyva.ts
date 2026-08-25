@@ -225,12 +225,40 @@ export const delyvaCreateOrder = async (input: {
   };
 };
 
-// The consignment note / AWB. Returns whatever Delyva serves — usually a URL
-// in `data`, sometimes the document itself.
-export const delyvaLabel = async (orderId: string): Promise<string> => {
-  const res = await delyvaGet<any>(`/order/${orderId}/label`);
-  if (typeof res === "string") return res;
-  return res?.data?.url || res?.data?.label || res?.url || res?.data || "";
+// The consignment note / AWB.
+//
+// This endpoint returns the PDF *document*, not a link to one — verified
+// against a live booking (content-type: application/pdf). An earlier version
+// of this treated the response as a URL, so the browser navigated to a
+// megabyte of PDF bytes as if they were a path. Always stream the bytes.
+export const delyvaLabelPdf = async (
+  orderId: string,
+): Promise<{ body: Buffer; contentType: string }> => {
+  const { apiKey } = delyvaConfig();
+  const res = await fetch(`${DELYVA_BASE}/order/${orderId}/label`, {
+    headers: { "X-Delyvax-Access-Token": apiKey },
+  });
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (!res.ok) {
+    let message = "Label not available";
+    try {
+      message = JSON.parse(buf.toString("utf8"))?.error?.message || message;
+    } catch {}
+    console.error("[delyva] label", orderId, res.status, message);
+    throw createError({ statusCode: 502, message: `Delyva: ${message}` });
+  }
+  return {
+    body: buf,
+    contentType: res.headers.get("content-type") || "application/pdf",
+  };
+};
+
+// The consignment number is the courier's tracking number. Delyva queues
+// orders, so it isn't in the create response — it appears on the order a few
+// seconds later.
+export const delyvaConsignmentNo = async (orderId: string): Promise<string> => {
+  const res = await delyvaGet<any>(`/order/${orderId}`);
+  return String(res?.data?.consignmentNo ?? "");
 };
 
 export const delyvaCancelOrder = async (orderId: string) =>

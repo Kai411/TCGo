@@ -10,7 +10,11 @@
 // and seller clicking at the same moment) can't buy two labels.
 
 import type { Firestore } from "firebase-admin/firestore";
-import { delyvaCreateOrder, delyvaLabel, delyvaCancelOrder } from "~/server/utils/delyva";
+import {
+  delyvaCreateOrder,
+  delyvaCancelOrder,
+  delyvaConsignmentNo,
+} from "~/server/utils/delyva";
 import { quoteOrderShipping } from "~/server/utils/shipping";
 import { stateName } from "~/shared/my-states";
 import { PARCEL_DIMS, parcelWeightKg } from "~/shared/parcel";
@@ -28,7 +32,8 @@ export interface BookResult {
   booked: boolean;
   reason?: string;
   shipmentOrderNo?: string;
-  awbLink?: string;
+  /** Courier tracking number, once Delyva has assigned one. */
+  consignmentNo?: string;
   status?: string;
 }
 
@@ -118,14 +123,19 @@ export const bookShipmentForOrder = async (
       },
     });
 
-    // Delyva queues orders — the consignment number and label usually appear
-    // within seconds, not instantly. A missing label is not a failure; the
-    // order page re-fetches it on demand.
-    let awbLink = "";
-    try {
-      awbLink = await delyvaLabel(result.orderId);
-    } catch {
-      console.warn("[delyva] label not ready yet for", result.orderId);
+    // Delyva queues orders, so the consignment number — which is the courier's
+    // tracking number — isn't in the create response. Give it a moment, then
+    // read it off the order. Not fatal if it isn't ready: the label route
+    // backfills it later.
+    let consignmentNo = "";
+    for (const waitMs of [1200, 2500]) {
+      try {
+        consignmentNo = await delyvaConsignmentNo(result.orderId);
+        if (consignmentNo) break;
+      } catch {
+        /* keep the booking; tracking can be backfilled */
+      }
+      await new Promise((r) => setTimeout(r, waitMs));
     }
 
     await orderRef.update({
@@ -134,10 +144,16 @@ export const bookShipmentForOrder = async (
       shipmentOrderNo: result.orderId,
       shipmentStatus: result.status || null,
       shippingCarrier: order.shippingCourier || "Delyva",
-      ...(awbLink ? { awbLink, awbLinkFetchedAt: Date.now() } : {}),
+      ...(consignmentNo ? { trackingNumber: consignmentNo } : {}),
+      shipmentError: null,
     });
 
-    return { booked: true, shipmentOrderNo: result.orderId, awbLink, status: result.status };
+    return {
+      booked: true,
+      shipmentOrderNo: result.orderId,
+      consignmentNo,
+      status: result.status,
+    };
   } catch (e: any) {
     // Nothing was booked — release the claim so it can be retried.
     await orderRef.update({
@@ -175,7 +191,6 @@ export const cancelShipmentForOrder = async (
     shipmentOrderNo: null,
     shipmentClaimedAt: null,
     shipmentStatus: "cancelled",
-    awbLink: null,
     trackingNumber: null,
   });
   return { cancelled: true };

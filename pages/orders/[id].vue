@@ -264,21 +264,19 @@
                 via {{ order.shippingCarrier }}
               </p>
 
-              <!-- Minimised label preview; click to open full size -->
-              <div v-if="order.awbLink && role === 'seller'" class="mt-3">
+              <!-- Minimised label preview. The PDF is fetched with auth and
+                   held as a blob URL — an <iframe src> can't send headers. -->
+              <div v-if="labelUrl" class="mt-3">
                 <button
                   @click="openLabel"
                   class="block w-full rounded-lg border border-gray-200 dark:border-white/[0.10] overflow-hidden bg-gray-50 dark:bg-white/[0.04] hover:border-pokemon-red transition-colors group"
                   title="Open full size"
                 >
                   <iframe
-                    v-if="isPdf(order.awbLink)"
-                    :src="`${order.awbLink}#toolbar=0&navpanes=0&view=FitH`"
+                    :src="`${labelUrl}#toolbar=0&navpanes=0&view=FitH`"
                     class="w-full h-44 pointer-events-none"
-                    loading="lazy"
                     title="Waybill preview"
                   />
-                  <img v-else :src="order.awbLink" alt="Waybill" class="w-full h-44 object-contain" loading="lazy"/>
                   <span class="block text-[11px] font-semibold text-gray-600 dark:text-zinc-300 py-1.5 group-hover:text-pokemon-red">
                     Open full size ↗
                   </span>
@@ -292,8 +290,11 @@
                 class="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-pokemon-red hover:underline disabled:opacity-60"
               >
                 <span v-if="labelBusy" class="animate-spin rounded-full h-3 w-3 border-b-2 border-pokemon-red"/>
-                {{ labelBusy ? "Fetching…" : order.awbLink ? "Refresh label" : "Get consignment note" }}
+                {{ labelBusy ? "Fetching…" : labelUrl ? "Refresh label" : "Get consignment note" }}
               </button>
+              <p v-if="labelError" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                {{ labelError }}
+              </p>
             </template>
 
             <template v-else>
@@ -593,11 +594,12 @@ const bookShipment = async () => {
   if (!confirm("Book the courier for this order? This charges the platform's shipping account.")) return;
   booking.value = true;
   try {
-    const res = await authedFetch<{ awbLink: string }>("/api/shipping/book", {
+    await authedFetch("/api/shipping/book", {
       method: "POST",
       body: { orderId: order.value.id },
     });
-    if (res.awbLink) window.open(res.awbLink, "_blank", "noopener");
+    // The label is a PDF, fetched separately as a blob.
+    await fetchLabel();
   } catch (e: any) {
     alert(e?.data?.message || "Couldn't book the courier.");
   } finally {
@@ -612,12 +614,6 @@ const invoiceAvailable = computed(
 const openInvoice = () => {
   if (!order.value || !invoiceAvailable.value) return;
   window.open(`/invoices/${order.value.id}`, "_blank", "noopener");
-};
-
-// Delyva serves labels as PDFs, but not always — fall back to an <img>.
-const isPdf = (url: string) => /\.pdf(\?|$)/i.test(url) || /pdf/i.test(url);
-const openLabel = () => {
-  if (order.value?.awbLink) window.open(order.value.awbLink, "_blank", "noopener");
 };
 
 const cancelling = ref(false);
@@ -642,22 +638,43 @@ const cancelShipment = async () => {
   }
 };
 
+// Delyva returns the label as a PDF document, so it's fetched as a blob and
+// held as an object URL. Never treat the response as a link — an earlier
+// version did, and the browser navigated to a megabyte of PDF bytes.
 const labelBusy = ref(false);
+const labelError = ref("");
+const labelUrl = ref("");
+
+const revokeLabel = () => {
+  if (labelUrl.value) URL.revokeObjectURL(labelUrl.value);
+  labelUrl.value = "";
+};
+
 const fetchLabel = async () => {
   if (!order.value || labelBusy.value) return;
   labelBusy.value = true;
+  labelError.value = "";
   try {
-    const res = await authedFetch<{ awbLink: string }>("/api/shipping/label", {
+    const blob = await authedFetch<Blob>("/api/shipping/label", {
       method: "POST",
       body: { orderId: order.value.id },
+      responseType: "blob",
     });
-    if (res.awbLink) window.open(res.awbLink, "_blank", "noopener");
+    revokeLabel();
+    labelUrl.value = URL.createObjectURL(blob);
   } catch (e: any) {
-    alert(e?.data?.message || "Couldn't fetch the label.");
+    labelError.value =
+      e?.data?.message || "The label isn't ready yet — try again in a moment.";
   } finally {
     labelBusy.value = false;
   }
 };
+
+const openLabel = () => {
+  if (labelUrl.value) window.open(labelUrl.value, "_blank", "noopener");
+};
+
+onBeforeUnmount(revokeLabel);
 
 const createBillAndRedirect = async () => {
   if (!order.value) return;

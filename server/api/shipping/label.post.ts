@@ -1,12 +1,15 @@
-// Fetch the consignment note / AWB for a booked shipment.
+// Stream the consignment note / AWB for a booked shipment.
 //
-// Fetched on demand rather than trusting the copy stored at booking time —
-// hosted label links expire, and the label often isn't ready in the same
-// instant the order is confirmed.
+// Delyva's label endpoint returns the PDF *document*, not a link to one, so
+// this proxies the bytes rather than handing the client a URL. It also stays
+// authenticated: the label carries both parties' addresses.
+//
+// Fetched on demand rather than cached — Delyva queues orders, so the label
+// often isn't ready in the same second the booking is confirmed.
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
-import { delyvaLabel } from "~/server/utils/delyva";
+import { delyvaLabelPdf, delyvaConsignmentNo } from "~/server/utils/delyva";
 
 export default defineEventHandler(async (event) => {
   const caller = await requireUser(event);
@@ -29,14 +32,20 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const awbLink = await delyvaLabel(order.shipmentOrderNo);
-  if (!awbLink) {
-    throw createError({
-      statusCode: 502,
-      message: "The label isn't ready yet — try again in a moment.",
-    });
+  const { body, contentType } = await delyvaLabelPdf(order.shipmentOrderNo);
+
+  // If tracking wasn't ready when the booking was made, it will be by now.
+  if (!order.trackingNumber) {
+    try {
+      const consignmentNo = await delyvaConsignmentNo(order.shipmentOrderNo);
+      if (consignmentNo) await orderRef.update({ trackingNumber: consignmentNo });
+    } catch {
+      /* non-fatal — the label is what was asked for */
+    }
   }
 
-  await orderRef.update({ awbLink, awbLinkFetchedAt: Date.now() });
-  return { awbLink };
+  setHeader(event, "Content-Type", contentType);
+  setHeader(event, "Content-Disposition", `inline; filename="waybill-${orderId.slice(0, 8)}.pdf"`);
+  setHeader(event, "Cache-Control", "no-store");
+  return body;
 });
