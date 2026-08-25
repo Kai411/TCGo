@@ -131,6 +131,10 @@ export interface CompiledOrder {
   shipmentOrderNo?: string | null;
   shipmentStatus?: string | null;
   shipmentClaimedAt?: number | null;
+  // Set when the courier label was bought. This is NOT the same as shipped:
+  // the label exists but the parcel hasn't been handed over yet, so the order
+  // stays in "To ship" with a "Waybill ready" hint until the seller dispatches.
+  shipmentBookedAt?: number | null;
   // Set when automatic booking failed; the seller can retry from the order.
   shipmentError?: string | null;
   // Kept for the audit trail after a shipment is cancelled.

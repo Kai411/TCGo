@@ -138,9 +138,15 @@ export const bookShipmentForOrder = async (
       await new Promise((r) => setTimeout(r, waitMs));
     }
 
+    // NOTE: deliberately does NOT set status to "shipped". Booking a waybill
+    // only buys the label — the parcel is still sitting on the seller's desk.
+    // Marking it shipped here dropped the order out of "To ship" the instant
+    // payment settled, so sellers never saw the thing they still had to do and
+    // buyers were told it was on its way before anyone had packed it.
+    // The seller moves it to "shipped" on handover (markShipped), or courier
+    // tracking does it once the parcel is actually scanned.
     await orderRef.update({
-      status: "shipped",
-      shippedAt: Date.now(),
+      shipmentBookedAt: Date.now(),
       shipmentOrderNo: result.orderId,
       shipmentStatus: result.status || null,
       shippingCarrier: order.shippingCourier || "Delyva",

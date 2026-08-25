@@ -53,9 +53,22 @@
     </div>
 
     <div v-else-if="labelCards.length === 0" class="text-center py-24 text-gray-500">
-      <p class="text-sm">No items to print.</p>
+      <p class="text-sm">
+        <template v-if="skippedCount">
+          Nothing to print — {{ skippedCount }} selected
+          {{ skippedCount === 1 ? "item has" : "items have" }} already sold.
+        </template>
+        <template v-else>No items to print.</template>
+      </p>
       <NuxtLink to="/inventory/items" class="text-pokemon-red hover:underline text-sm">Back to items</NuxtLink>
     </div>
+
+    <p
+      v-if="ready && labelCards.length && skippedCount"
+      class="no-print text-center text-xs text-amber-600 pt-3"
+    >
+      {{ skippedCount }} sold {{ skippedCount === 1 ? "item was" : "items were" }} skipped.
+    </p>
 
     <!-- A4 SHEET MODE -->
     <div v-else-if="mode === 'sheet'" class="sheet-scroll overflow-auto">
@@ -140,15 +153,29 @@ const mode = ref<"sheet" | "thermal">("sheet");
 // to full page width regardless (see print CSS).
 const sheetFit = ref(true);
 
-// Labels are only for in-stock items (listed = already on the shop, sold = gone).
+// Anything the seller still physically holds can be labelled. That includes
+// `listed` items — being on the shop doesn't mean the card has left the
+// drawer, and a listed card is exactly the one you want a price/QR label on.
+// Only `sold` is genuinely gone.
+const isLabelable = (i: InventoryItem) => i.status !== "sold";
+
 // Narrowed further by the queue set from the Items page, if any.
 const targetItems = computed<InventoryItem[]>(() => {
-  let base = items.value.filter((i) => i.status === "in_stock");
+  let base = items.value.filter(isLabelable);
   if (labelQueue.value.length) {
     const set = new Set(labelQueue.value);
     base = base.filter((i) => set.has(i.id));
   }
   return base;
+});
+
+// The Items page lets you select any row, so a queue can contain sold items.
+// They used to be dropped silently, which looked like the label feature was
+// broken rather than the selection being ineligible.
+const skippedCount = computed(() => {
+  if (!labelQueue.value.length) return 0;
+  const set = new Set(labelQueue.value);
+  return items.value.filter((i) => set.has(i.id) && !isLabelable(i)).length;
 });
 
 interface LabelCard {
