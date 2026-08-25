@@ -3,7 +3,7 @@
     <!-- Current state + ETA -->
     <div v-if="tracking" class="mb-3">
       <p class="text-sm font-semibold text-ink dark:text-white">
-        {{ tracking.statusText || tracking.description || "In progress" }}
+        {{ label(tracking.statusText) || label(tracking.description) || "In progress" }}
       </p>
       <p v-if="etaLabel" class="text-xs mt-0.5" :class="tracking.etaAccurate
         ? 'text-emerald-600 dark:text-emerald-400'
@@ -40,10 +40,13 @@
               ? 'font-semibold text-ink dark:text-white'
               : 'text-gray-600 dark:text-zinc-300'"
           >
-            {{ e.statusText || e.description || "Update" }}
+            {{ label(e.statusText) || label(e.description) || "Update" }}
           </p>
-          <p v-if="e.description && e.description !== e.statusText" class="text-xs text-gray-500 dark:text-zinc-400">
-            {{ e.description }}
+          <p
+            v-if="e.description && label(e.description) !== label(e.statusText)"
+            class="text-xs text-gray-500 dark:text-zinc-400"
+          >
+            {{ label(e.description) }}
           </p>
           <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">
             {{ fmt(e.createdAt) }}<template v-if="e.location"> · {{ e.location }}</template>
@@ -81,6 +84,19 @@ const props = defineProps<{
   tracking: Tracking | null;
   emptyMessage?: string;
 }>();
+
+// Delyva's own wording is written for logistics operators. Relabel the few
+// phrases that read oddly to a buyer; anything unmapped passes through
+// untouched, so a status we haven't seen still displays sensibly.
+const LABEL_OVERRIDES: Record<string, string> = {
+  "record created": "Order created",
+};
+
+const label = (text: string | null | undefined) => {
+  const t = (text || "").trim();
+  if (!t) return "";
+  return LABEL_OVERRIDES[t.toLowerCase()] || t;
+};
 
 // Delyva returns histories newest-first already, but don't rely on it.
 const events = computed(() =>

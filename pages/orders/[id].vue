@@ -278,8 +278,10 @@
                 Booked — waiting for the courier to assign a waybill number.
               </p>
 
-              <!-- Delivery progress -->
-              <div class="mt-4 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
+              <!-- Delivery progress — buyers only. Sellers dispatch the parcel
+                   and care about the consignment note, not the courier's
+                   scan-by-scan progress. -->
+              <div v-if="role === 'buyer'" class="mt-4 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
                 <div class="flex items-center justify-between gap-2 mb-3">
                   <h3 class="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
                     Delivery progress
@@ -717,6 +719,7 @@ const trackingBusy = ref(false);
 const trackingMessage = ref("No courier updates yet.");
 
 const loadTracking = async () => {
+  if (role.value !== "buyer") return;
   if (!order.value?.trackingNumber || trackingBusy.value) return;
   trackingBusy.value = true;
   try {
@@ -740,11 +743,12 @@ const loadTracking = async () => {
   }
 };
 
-// Fetch once a tracking number exists (it appears after booking).
+// Fetch once a tracking number exists (it appears after booking) and we know
+// the viewer is the buyer — role resolves asynchronously with the order.
 watch(
-  () => order.value?.trackingNumber,
-  (n) => {
-    if (n) void loadTracking();
+  [() => order.value?.trackingNumber, role],
+  ([n, r]) => {
+    if (n && r === "buyer") void loadTracking();
   },
   { immediate: true },
 );
