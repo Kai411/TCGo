@@ -14,7 +14,7 @@
       </div>
       <h1 class="text-2xl font-bold text-ink dark:text-white mb-1">Your funds</h1>
       <p class="text-sm text-gray-500 dark:text-zinc-400 mb-6">
-        Money collected from your online (FPX) sales, held by TCGo until payout. In-person and WhatsApp sales aren't shown here — you receive those directly.
+        Money collected from your online (FPX) sales, held by TCGo until payout. In-person (POS) sales aren't shown here — you receive those directly.
       </p>
 
       <!-- Available — the hero card -->
@@ -34,6 +34,9 @@
         </div>
         <p v-if="!bankLine" class="text-xs text-white/80 mt-2">
           <NuxtLink to="/inventory/verify" class="underline font-semibold">Add your bank account</NuxtLink> to receive payouts.
+        </p>
+        <p v-if="lastFailureReason" class="text-xs text-white/90 mt-2 bg-black/20 rounded-lg px-3 py-2">
+          A previous transfer didn't go through ({{ lastFailureReason }}). The funds are available again — check your bank details and request once more.
         </p>
       </div>
 
@@ -94,6 +97,8 @@
 
 <script setup lang="ts">
 import { PAYOUT_HOLD_DAYS, type FundEntry } from "~/composables/useSellerFunds";
+import { bankName, resolveBankCode } from "~/shared/banks";
+import { payoutDetailsComplete } from "~/shared/payout-details";
 
 definePageMeta({ layout: "inventory" });
 useHead({ title: "Inventory · Funds | TCGo" });
@@ -109,6 +114,7 @@ const {
   availableTotal,
   lockedTotal,
   queuedTotal,
+  lastFailureReason,
   requestPayout,
 } = useSellerFunds();
 
@@ -126,11 +132,13 @@ const fmt = (n: number) =>
 const fmtDate = (ms: number) =>
   new Date(ms).toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" });
 
+// Empty unless we have *everything* Billplz needs to transfer — a partially
+// filled bank section must not read as "ready to be paid".
 const bankLine = computed(() => {
   const p = profile.value;
-  if (!p?.bankName || !p?.bankAccountNumber) return "";
-  const tail = p.bankAccountNumber.slice(-4);
-  return `${p.bankName} ••••${tail}`;
+  if (!payoutDetailsComplete(p)) return "";
+  const tail = p!.bankAccountNumber!.slice(-4);
+  return `${bankName(resolveBankCode(p!.bankCode, p!.bankName))} ••••${tail}`;
 });
 
 const lockReason = (e: FundEntry): string => {
@@ -143,7 +151,7 @@ const requesting = ref(false);
 const doRequestPayout = async () => {
   if (requesting.value || availableTotal.value <= 0) return;
   if (!bankLine.value) {
-    if (confirm("Add your bank account first to receive payouts. Go to verification?")) {
+    if (confirm("Add your bank account and IC number first to receive payouts. Go to verification?")) {
       navigateTo("/inventory/verify");
     }
     return;
@@ -151,10 +159,12 @@ const doRequestPayout = async () => {
   if (!confirm(`Request payout of RM ${fmt(availableTotal.value)} to ${bankLine.value}?`)) return;
   requesting.value = true;
   try {
-    const n = await requestPayout();
-    alert(`Payout requested for ${n} order${n === 1 ? "" : "s"}. We'll transfer to your bank shortly.`);
+    const res = await requestPayout();
+    alert(
+      `Payout of RM ${fmt(res.amount)} requested for ${res.orders} order${res.orders === 1 ? "" : "s"}. We'll transfer to your bank shortly.`,
+    );
   } catch (e: any) {
-    alert(e?.message || "Couldn't request payout. Please try again.");
+    alert(e?.data?.message || e?.message || "Couldn't request payout. Please try again.");
   } finally {
     requesting.value = false;
   }

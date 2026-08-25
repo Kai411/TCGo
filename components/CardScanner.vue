@@ -93,18 +93,12 @@
           Quota resets {{ resetDateLabel }}.<template v-if="premiumEnabled"> Upgrade to Premium for unlimited scans.</template>
         </p>
         <template v-if="premiumEnabled">
-          <a
-            v-if="adminWhatsAppLink"
-            :href="adminWhatsAppLink"
-            target="_blank"
-            rel="noopener"
+          <NuxtLink
+            to="/pricing"
             class="mt-4 inline-flex items-center gap-2 bg-amber-500 text-ink px-6 py-3 rounded-full font-semibold hover:bg-amber-400 transition-colors"
           >
-            Upgrade via WhatsApp
-          </a>
-          <p v-else class="mt-4 text-xs text-white/50">
-            Premium upgrade isn't configured yet — set NUXT_PUBLIC_ADMIN_WHATSAPP.
-          </p>
+            Upgrade to Premium
+          </NuxtLink>
         </template>
       </div>
 
@@ -301,16 +295,6 @@ const { user, signInWithGoogle } = useAuth();
 const { isPremium, remaining, used, tryConsumeScan } = useScanQuota();
 const { profile } = useMyProfile();
 const { premiumEnabled } = useFeatureFlags();
-
-const config = useRuntimeConfig();
-const adminWhatsAppLink = computed(() => {
-  const num = config.public.adminWhatsApp;
-  if (!num) return "";
-  const msg = encodeURIComponent(
-    `Hi! I'd like to upgrade to TCGo Premium (user: ${user.value?.email || user.value?.uid || "anon"}).`,
-  );
-  return `https://wa.me/${num}?text=${msg}`;
-});
 
 const resetDateLabel = computed(() => {
   if (!profile.value?.scansResetAt) return "next month";

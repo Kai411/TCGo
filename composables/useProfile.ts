@@ -25,8 +25,11 @@ export interface UserProfile {
   whatsappNumber: string;
   usePhoneAsWhatsapp: boolean;
   whatsappVerified: boolean;
-  shippingWM: number;
-  shippingEM: number;
+  // Legacy: per-seller default shipping prices, seeded onto new listings.
+  // Superseded by live quoting at checkout — kept so old listings and orders
+  // still read correctly, but no longer editable and not used for new orders.
+  shippingWM?: number;
+  shippingEM?: number;
   favouritesPublic: boolean;
   trustScore: number;
   createdAt: number;
@@ -44,17 +47,35 @@ export interface UserProfile {
   bonusScansRemaining?: number;
   bonusScansClaimedAt?: number;
 
+  // ── Buyer delivery address ──────────────────────────────────────────
+  // Where this user's purchases get shipped. Saved here so the cart can quote
+  // live shipping before checkout — without a destination there's nothing to
+  // quote against. Still editable per-order at payment time.
+  deliveryName?: string;
+  deliveryPhone?: string;
+  deliveryAddress1?: string;
+  deliveryAddress2?: string;
+  deliveryPostcode?: string;
+  deliveryCity?: string;
+  deliveryState?: string; // state code, e.g. "sgr"
+
   // ── Seller KYC ──────────────────────────────────────────────────────
   // Bank account for payouts (Billplz Payment Orders / manual transfer).
-  bankName?: string;
+  bankCode?: string; // Billplz bank_code (SWIFT) — see shared/banks.ts
+  bankName?: string; // display only, denormalised from bankCode
   bankAccountNumber?: string;
   bankAccountHolder?: string;
-  // Pickup address for shipments (EasyParcel sender details).
+  identityNumber?: string; // IC/passport — required by Billplz Mass Payment
+  // Pickup address for shipments — the origin we quote shipping from.
   pickupAddress1?: string;
   pickupAddress2?: string;
   pickupPostcode?: string;
   pickupCity?: string;
-  pickupState?: string; // EasyParcel state code, e.g. "sgr"
+  pickupState?: string; // state code, e.g. "sgr"
+  // How this seller hands parcels to the courier. Decides which services we're
+  // allowed to quote — the cheapest rate is usually drop-off only, and quoting
+  // it to a seller who expects collection gives a price they can't book at.
+  handoverPreference?: "dropoff" | "pickup";
   sellerKycCompletedAt?: number;
 }
 
@@ -154,8 +175,6 @@ export const useMyProfile = () => {
                   whatsappNumber: "",
                   usePhoneAsWhatsapp: true,
                   whatsappVerified: false,
-                  shippingWM: 8,
-                  shippingEM: 12,
                   favouritesPublic: true,
                   trustScore: 100,
                   createdAt: Date.now(),

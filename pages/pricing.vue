@@ -134,7 +134,7 @@ const claimingBonus = ref(false);
 const freeFeatures = [
   'List cards & auctions',
   '20 AI card scans / month',
-  'WhatsApp seller contact',
+  'Secure FPX checkout',
   'Stripe-protected purchases',
 ];
 

@@ -30,7 +30,7 @@
         <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
           <p class="text-sm font-bold text-ink dark:text-white">Contact</p>
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">WhatsApp / phone number <span class="text-pokemon-red">*</span></label>
+            <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Mobile number <span class="text-pokemon-red">*</span></label>
             <input v-model="form.whatsappNumber" type="tel" placeholder="e.g. 0123456789" required class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"/>
             <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">Buyers contact you here; also used as the shipment contact number.</p>
           </div>
@@ -41,10 +41,13 @@
           <p class="text-sm font-bold text-ink dark:text-white">Bank account <span class="font-normal text-xs text-gray-400">— for payouts</span></p>
           <div>
             <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Bank <span class="text-pokemon-red">*</span></label>
-            <select v-model="form.bankName" required class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white">
+            <select v-model="form.bankCode" required class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white">
               <option value="">Select bank…</option>
-              <option v-for="b in BANKS" :key="b" :value="b">{{ b }}</option>
+              <option v-for="b in MY_BANKS" :key="b.code" :value="b.code">{{ b.name }}</option>
             </select>
+            <p v-if="selectedBank && !selectedBank.payoutSupported" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+              Automatic payouts to {{ selectedBank.name }} aren't enabled yet — we'll transfer manually and it may take an extra working day.
+            </p>
           </div>
           <div class="grid sm:grid-cols-2 gap-3">
             <div>
@@ -55,6 +58,13 @@
               <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Account holder name <span class="text-pokemon-red">*</span></label>
               <input v-model="form.bankAccountHolder" type="text" required placeholder="As per bank records" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"/>
             </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">IC / passport number <span class="text-pokemon-red">*</span></label>
+            <input v-model="form.identityNumber" type="text" required placeholder="e.g. 900101101234" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white tabular-nums"/>
+            <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">
+              Required by the bank to verify the transfer recipient. We never display this to buyers.
+            </p>
           </div>
           <p class="text-[11px] text-gray-400 dark:text-zinc-500">
             Payouts are transferred to this account after your orders are delivered. The holder name must match your bank records.
@@ -107,32 +117,10 @@
 
 <script setup lang="ts">
 import { MY_STATES } from "~/composables/useSellerKyc";
+import { MY_BANKS, bankByCode, bankName, resolveBankCode } from "~/shared/banks";
 
 definePageMeta({ layout: "inventory" });
 useHead({ title: "Inventory · Seller verification | TCGo" });
-
-const BANKS = [
-  "Maybank",
-  "CIMB Bank",
-  "Public Bank",
-  "RHB Bank",
-  "Hong Leong Bank",
-  "AmBank",
-  "Bank Islam",
-  "Bank Rakyat",
-  "BSN",
-  "OCBC Bank",
-  "UOB Bank",
-  "HSBC Bank",
-  "Standard Chartered",
-  "Affin Bank",
-  "Alliance Bank",
-  "Bank Muamalat",
-  "Agrobank",
-  "GXBank",
-  "Boost Bank",
-  "AEON Bank",
-];
 
 const { user, signInWithGoogle } = useAuth();
 const { profile, updateProfile } = useMyProfile();
@@ -140,9 +128,10 @@ const { sellerReady, missing, kycLoading } = useSellerKyc();
 
 const form = ref({
   whatsappNumber: "",
-  bankName: "",
+  bankCode: "",
   bankAccountNumber: "",
   bankAccountHolder: "",
+  identityNumber: "",
   pickupAddress1: "",
   pickupAddress2: "",
   pickupPostcode: "",
@@ -157,9 +146,12 @@ watch(
     if (!p) return;
     form.value = {
       whatsappNumber: p.whatsappNumber || p.phone || "",
-      bankName: p.bankName || "",
+      // Sellers verified before bank codes existed only have a display name
+      // stored — map it back to a code so they aren't asked to re-pick.
+      bankCode: resolveBankCode(p.bankCode, p.bankName) || "",
       bankAccountNumber: p.bankAccountNumber || "",
       bankAccountHolder: p.bankAccountHolder || "",
+      identityNumber: p.identityNumber || "",
       pickupAddress1: p.pickupAddress1 || "",
       pickupAddress2: p.pickupAddress2 || "",
       pickupPostcode: p.pickupPostcode || "",
@@ -170,6 +162,8 @@ watch(
   { immediate: true },
 );
 
+const selectedBank = computed(() => bankByCode(form.value.bankCode));
+
 const saving = ref(false);
 const saved = ref(false);
 
@@ -179,9 +173,13 @@ const save = async () => {
   try {
     await updateProfile({
       whatsappNumber: form.value.whatsappNumber.trim(),
-      bankName: form.value.bankName,
+      bankCode: form.value.bankCode,
+      // Denormalised for display (order pages, admin console) so they don't
+      // all have to resolve the code.
+      bankName: bankName(form.value.bankCode),
       bankAccountNumber: form.value.bankAccountNumber.replace(/\s/g, ""),
       bankAccountHolder: form.value.bankAccountHolder.trim(),
+      identityNumber: form.value.identityNumber.replace(/[\s-]/g, ""),
       pickupAddress1: form.value.pickupAddress1.trim(),
       pickupAddress2: form.value.pickupAddress2.trim(),
       pickupPostcode: form.value.pickupPostcode.trim(),

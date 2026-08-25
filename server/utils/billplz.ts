@@ -26,6 +26,99 @@ export const billplzAuthHeader = () => {
   return `Basic ${Buffer.from(`${key}:`).toString("base64")}`;
 };
 
+// ── Mass Payment (seller payouts) ─────────────────────────────────────
+// Bills live on /api/v3; mass payment instructions live on /api/v4.
+
+const billplzForm = async <T>(path: string, params: Record<string, string>): Promise<T> => {
+  const res = await fetch(`${billplzBaseUrl()}${path}`, {
+    method: "POST",
+    headers: {
+      Authorization: billplzAuthHeader(),
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams(params).toString(),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    console.error("[billplz]", path, res.status, text);
+    throw createError({
+      statusCode: 502,
+      message: `Billplz error (${res.status}): ${text.slice(0, 300)}`,
+    });
+  }
+  return JSON.parse(text) as T;
+};
+
+export interface MassPaymentInstruction {
+  id: string;
+  status: string;
+  total?: number;
+  reference_id?: string | null;
+  recipient_name?: string;
+}
+
+// A collection groups instructions — we create one per payout batch so the
+// Billplz dashboard mirrors our ledger one-to-one.
+export const createMassPaymentCollection = async (title: string) =>
+  await billplzForm<{ id: string; title: string }>(
+    "/v4/mass_payment_instruction_collections",
+    { title },
+  );
+
+export const createMassPaymentInstruction = async (input: {
+  collectionId: string;
+  bankCode: string;
+  bankAccountNumber: string;
+  identityNumber: string;
+  name: string;
+  description: string;
+  /** Ringgit, converted to sen here. */
+  amount: number;
+  email?: string;
+}) => {
+  const params: Record<string, string> = {
+    mass_payment_instruction_collection_id: input.collectionId,
+    bank_code: input.bankCode,
+    bank_account_number: input.bankAccountNumber,
+    identity_number: input.identityNumber,
+    name: input.name,
+    description: input.description.slice(0, 120),
+    total: String(Math.round(input.amount * 100)),
+  };
+  if (input.email) {
+    params.email = input.email;
+    params.notification = "email";
+  }
+  return await billplzForm<MassPaymentInstruction>(
+    "/v4/mass_payment_instructions",
+    params,
+  );
+};
+
+export const getMassPaymentInstruction = async (id: string) => {
+  const res = await fetch(`${billplzBaseUrl()}/v4/mass_payment_instructions/${id}`, {
+    headers: { Authorization: billplzAuthHeader() },
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    console.error("[billplz] get instruction", res.status, text);
+    throw createError({ statusCode: 502, message: "Couldn't read payout status" });
+  }
+  return JSON.parse(text) as MassPaymentInstruction;
+};
+
+// Billplz's instruction statuses aren't a stable closed set across accounts, so
+// map the ones we know and treat anything unrecognised as still in flight —
+// never as success. A payout only reaches "paid" on an explicit success value.
+export const mapInstructionStatus = (
+  raw: string | undefined,
+): "processing" | "paid" | "failed" => {
+  const s = String(raw || "").toLowerCase();
+  if (["completed", "processed", "success", "successful", "paid"].includes(s)) return "paid";
+  if (["rejected", "failed", "cancelled", "canceled", "returned"].includes(s)) return "failed";
+  return "processing";
+};
+
 // Verify Billplz's X-Signature on callback payloads.
 // Source string: every `billplz[...]` param except x_signature, formatted as
 // `billplz<key><value>`, sorted case-insensitively, joined with "|", then

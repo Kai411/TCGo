@@ -35,7 +35,7 @@
                 {{ route.query.placed }} {{ Number(route.query.placed) === 1 ? "order" : "orders" }} placed
               </p>
               <p class="text-xs text-emerald-700 dark:text-emerald-300">
-                Tap WhatsApp on each order to arrange payment &amp; shipping with the seller.
+                Open an order to pay online (FPX) and track its progress.
               </p>
             </div>
           </div>

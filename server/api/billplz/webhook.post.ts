@@ -9,10 +9,7 @@
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { verifyBillplzSignature } from "~/server/utils/billplz";
-
-// Platform commission on the item subtotal. 0 during beta — the field
-// plumbing exists so turning this on later is a one-line change.
-const PLATFORM_FEE_PERCENT = 0;
+import { computeSellerPayout, platformFeeFor } from "~/shared/payouts";
 
 export default defineEventHandler(async (event) => {
   const body = (await readBody(event)) as Record<string, string>;
@@ -47,15 +44,35 @@ export default defineEventHandler(async (event) => {
   const orderRef = orders.docs[0].ref;
   const order = orders.docs[0].data() as any;
 
-  // Idempotent — callbacks can retry.
-  if (order.status !== "pending") return { ok: true, ignored: `status ${order.status}` };
+  // Idempotent — callbacks can retry. `pending` and `confirmed` are both
+  // pre-payment states (the seller may have confirmed a manual order before
+  // the buyer paid online); anything further along is already settled.
+  if (order.status !== "pending" && order.status !== "confirmed") {
+    return { ok: true, ignored: `status ${order.status}` };
+  }
+
+  // Billplz reports what it actually collected. If that doesn't match the
+  // amount we priced the bill at, do NOT settle the order — flag it instead
+  // and let an admin look. Underpayment must never mark cards sold.
+  const expectedSen = Number(order.billplzAmountSen ?? 0);
+  const paidSen = Number(get("amount") || 0);
+  if (expectedSen > 0 && paidSen !== expectedSen) {
+    console.error(
+      "[billplz webhook] amount mismatch",
+      { billId, expectedSen, paidSen },
+    );
+    await orderRef.update({
+      paymentAmountMismatch: { expectedSen, paidSen, at: Date.now() },
+    });
+    return { ok: true, ignored: "amount mismatch" };
+  }
 
   const now = Date.now();
-  // PLATFORM_FEE_PERCENT is a fraction (e.g. 0.08 = 8%) applied to the item
-  // subtotal; shipping passes through to the seller untouched.
-  const platformFee =
-    Math.round((order.subtotal || 0) * PLATFORM_FEE_PERCENT * 100) / 100;
-  const sellerPayout = Math.round(((order.total || 0) - platformFee) * 100) / 100;
+  // Provisional payout figure for the seller's funds page. It is recomputed
+  // from the same shared helper at payout time, once we know whether the
+  // platform or the seller ended up paying for postage.
+  const platformFee = platformFeeFor(order);
+  const sellerPayout = computeSellerPayout(order);
 
   const batch = db.batch();
   batch.update(orderRef, {
@@ -66,14 +83,25 @@ export default defineEventHandler(async (event) => {
     payoutStatus: "pending",
     billplzPaidAt: get("paid_at") || null,
   });
-  // Lock the sold cards (mirrors the client-side markConfirmed behavior).
-  for (const item of order.items ?? []) {
-    if (item?.cardId) {
-      batch.update(db.collection("cards").doc(item.cardId), {
-        sold: true,
-        soldAt: now,
-        status: "sold",
-      });
+
+  if (order.auctionId) {
+    // Auction order: the "item" is the auction itself, not a card listing.
+    batch.update(db.collection("auctions").doc(order.auctionId), {
+      status: "sold",
+      soldAt: now,
+    });
+  } else {
+    // Marketplace order — lock the sold cards. `update` on a missing doc fails
+    // the whole batch, so only touch listings that actually exist.
+    const cardIds = (order.items ?? [])
+      .map((i: any) => i?.cardId)
+      .filter((id: unknown): id is string => typeof id === "string" && !!id);
+    const cardSnaps = await Promise.all(
+      cardIds.map((id: string) => db.collection("cards").doc(id).get()),
+    );
+    for (const cardSnap of cardSnaps) {
+      if (!cardSnap.exists) continue;
+      batch.update(cardSnap.ref, { sold: true, soldAt: now, status: "sold" });
     }
   }
   await batch.commit();

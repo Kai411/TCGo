@@ -5,19 +5,26 @@
 //   paid/shipped            → LOCKED  ("awaiting delivery")
 //   delivered, within hold  → LOCKED  (eligible date shown)
 //   delivered + hold passed → AVAILABLE (seller can request payout)
-//   payout requested        → QUEUED  (pending payout — admin executes)
-//   payout executed         → PAID    (history)
+//   payout requested        → QUEUED  (admin executes the batch)
+//   transfer in flight      → QUEUED  (Billplz processing)
+//   Billplz confirmed       → PAID    (history)
 //
-// Manual/WhatsApp orders and POS sales never appear here — the seller already
-// holds that money directly.
+// In-person (POS) sales never appear here — the seller already holds that
+// money directly.
+//
+// The amounts shown here come from the same shared helpers the payout routes
+// use, so what the seller is quoted is what the server will actually send.
 
-import { doc, updateDoc } from "firebase/firestore";
 import { computed } from "vue";
 import type { CompiledOrder } from "~/composables/useCompiledOrders";
+import {
+  PAYOUT_HOLD_DAYS,
+  computeSellerPayout,
+  isPayoutTrackable,
+  payoutEligibleAt,
+} from "~/shared/payouts";
 
-// Hold window after delivery before funds unlock (dispute buffer).
-export const PAYOUT_HOLD_DAYS = 3;
-const HOLD_MS = PAYOUT_HOLD_DAYS * 24 * 60 * 60 * 1000;
+export { PAYOUT_HOLD_DAYS };
 
 export type FundState = "locked" | "available" | "queued" | "paid";
 
@@ -29,38 +36,40 @@ export interface FundEntry {
   eligibleAt: number | null;
 }
 
-export const categorizeFunds = (orders: CompiledOrder[]): FundEntry[] => {
-  const now = Date.now();
+export const categorizeFunds = (
+  orders: CompiledOrder[],
+  now: number = Date.now(),
+): FundEntry[] => {
   const out: FundEntry[] = [];
   for (const o of orders) {
-    if (o.paymentMethod !== "billplz") continue;
-    if (!["paid", "shipped", "delivered"].includes(o.status)) continue;
-    const amount = o.sellerPayout ?? o.total ?? 0;
+    if (!isPayoutTrackable(o)) continue;
+    // Recompute rather than trusting a stored figure, except once a payout has
+    // been requested — at that point the amount is frozen on the order.
+    const ps = o.payoutStatus ?? "pending";
+    const frozen = ps === "queued" || ps === "processing" || ps === "paid";
+    const amount = frozen ? (o.sellerPayout ?? 0) : computeSellerPayout(o);
     if (amount <= 0) continue;
 
-    const ps = o.payoutStatus ?? "pending";
     if (ps === "paid") {
       out.push({ order: o, amount, state: "paid", eligibleAt: null });
     } else if (ps === "queued" || ps === "processing") {
       out.push({ order: o, amount, state: "queued", eligibleAt: null });
-    } else if (o.status === "delivered" && o.deliveredAt) {
-      const eligibleAt = o.deliveredAt + HOLD_MS;
+    } else {
+      const eligibleAt = payoutEligibleAt(o);
       out.push({
         order: o,
         amount,
-        state: now >= eligibleAt ? "available" : "locked",
+        state: eligibleAt !== null && now >= eligibleAt ? "available" : "locked",
         eligibleAt,
       });
-    } else {
-      out.push({ order: o, amount, state: "locked", eligibleAt: null });
     }
   }
   return out;
 };
 
 export const useSellerFunds = () => {
-  const { firestore } = useFirebase();
   const { sellerCompiledOrders } = useCompiledOrders();
+  const { authedFetch } = useAuthedFetch();
 
   const entries = computed(() => categorizeFunds(sellerCompiledOrders.value));
 
@@ -85,20 +94,22 @@ export const useSellerFunds = () => {
     () => availableTotal.value + lockedTotal.value + queuedTotal.value,
   );
 
-  // Seller requests payout of everything currently available.
+  // Most recent failure surfaced to the seller so a rejected transfer doesn't
+  // silently look like it never happened.
+  const lastFailureReason = computed(
+    () =>
+      entries.value
+        .map((e) => e.order.payoutFailureReason)
+        .find((r) => !!r) || "",
+  );
+
+  // Seller requests payout of everything currently available. The server
+  // re-derives eligibility and amounts — this is a request, not an instruction.
   const requestPayout = async () => {
-    if (!firestore) return 0;
-    const targets = available.value;
-    const now = Date.now();
-    await Promise.all(
-      targets.map((e) =>
-        updateDoc(doc(firestore, "compiledOrders", e.order.id), {
-          payoutStatus: "queued",
-          payoutRequestedAt: now,
-        }),
-      ),
+    return await authedFetch<{ payoutId: string; orders: number; amount: number }>(
+      "/api/payouts/request",
+      { method: "POST" },
     );
-    return targets.length;
   };
 
   return {
@@ -111,6 +122,7 @@ export const useSellerFunds = () => {
     lockedTotal,
     queuedTotal,
     fundsTotal,
+    lastFailureReason,
     requestPayout,
   };
 };

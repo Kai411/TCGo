@@ -100,4 +100,22 @@
   .hairline {
     @apply border-t border-black/[0.06] dark:border-white/[0.06];
   }
+
+  /* Landing scroll-reveal resting state. Declared in CSS rather than as inline
+     styles so elements are already hidden on first paint — otherwise there's a
+     visible flash of the finished layout before GSAP attaches its timeline. */
+  .reveal-init {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  /* Reduced motion never sees the animation, so it must never see the hidden
+     state either. useReveal() also snaps these inline, but this covers the gap
+     before JS runs. */
+  @media (prefers-reduced-motion: reduce) {
+    .reveal-init {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }

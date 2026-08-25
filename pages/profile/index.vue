@@ -115,7 +115,7 @@
         <!-- Contact Number -->
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-            Contact Number (WhatsApp)
+            Mobile Number
           </label>
           <div class="flex gap-2">
             <select
@@ -168,53 +168,133 @@
         v-if="!loading"
         class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
       >
-        <p class="text-xl font-bold">Shipping</p>
+        <p class="text-xl font-bold">Delivery address</p>
+        <p class="text-sm text-gray-500 dark:text-zinc-400 -mt-4">
+          Where your purchases get shipped. We use it to calculate live shipping
+          rates in your cart before you pay. You can still change it per order.
+        </p>
 
-        <!-- Shipping Defaults -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-2">
-            Default Shipping (RM)
-          </label>
-          <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-3">
+          <div class="grid sm:grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1"
-                >West Malaysia</label
-              >
-              <input
-                v-model.number="editShippingWM"
-                type="number"
-                min="0"
-                step="0.01"
-                class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-              />
+              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">Recipient name</label>
+              <input v-model="addr.name" type="text" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"/>
             </div>
             <div>
-              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1"
-                >East Malaysia</label
-              >
-              <input
-                v-model.number="editShippingEM"
-                type="number"
-                min="0"
-                step="0.01"
-                class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-              />
+              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">Mobile number</label>
+              <input v-model="addr.phone" type="tel" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"/>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">Address line 1</label>
+            <input v-model="addr.address1" type="text" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"/>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">Address line 2</label>
+            <input v-model="addr.address2" type="text" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"/>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">Postcode</label>
+              <input v-model="addr.postcode" type="text" inputmode="numeric" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white tabular-nums focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"/>
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">City</label>
+              <input v-model="addr.city" type="text" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"/>
+            </div>
+            <div class="col-span-2 sm:col-span-1">
+              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">State</label>
+              <select v-model="addr.state" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red">
+                <option value="">Select…</option>
+                <option v-for="st in MY_STATES" :key="st.code" :value="st.code">{{ st.name }}</option>
+              </select>
             </div>
           </div>
           <button
-            v-if="
-              editShippingWM !== profile?.shippingWM ||
-              editShippingEM !== profile?.shippingEM
-            "
-            @click="saveShipping"
-            :disabled="savingShipping"
-            class="mt-2 bg-pokemon-red text-white text-sm px-4 py-1.5 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+            v-if="addressDirty"
+            @click="saveAddress"
+            :disabled="savingAddress"
+            class="bg-pokemon-red text-white text-sm px-4 py-1.5 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
           >
-            {{ savingShipping ? "Saving..." : "Save Shipping" }}
+            {{ savingAddress ? "Saving..." : "Save address" }}
           </button>
-          <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
-            Used as default when creating new listings.
+        </div>
+      </div>
+
+      <!-- Seller settings -->
+      <div
+        v-if="!loading"
+        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
+      >
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-xl font-bold">Seller</p>
+          <span
+            class="text-[11px] font-semibold px-2 py-1 rounded-full"
+            :class="sellerReady
+              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+              : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'"
+          >
+            {{ sellerReady ? "Verified" : "Not verified" }}
+          </span>
+        </div>
+
+        <!-- Pickup address -->
+        <div>
+          <p class="text-sm font-semibold text-gray-800 dark:text-zinc-100 mb-1">Pickup address</p>
+          <p class="text-sm text-gray-500 dark:text-zinc-400 mb-2">
+            Where couriers collect your parcels from. This is the origin we
+            quote shipping against, so buyers can't see accurate rates without it.
           </p>
+          <p v-if="pickupLine" class="text-sm text-gray-700 dark:text-zinc-200">{{ pickupLine }}</p>
+          <p v-else class="text-sm text-amber-600 dark:text-amber-400">Not set yet.</p>
+          <NuxtLink
+            to="/inventory/verify"
+            class="inline-block mt-2 text-sm font-semibold text-pokemon-red hover:underline"
+          >
+            {{ pickupLine ? "Edit in seller verification →" : "Add pickup address →" }}
+          </NuxtLink>
+        </div>
+
+        <!-- Handover preference -->
+        <div>
+          <p class="text-sm font-semibold text-gray-800 dark:text-zinc-100 mb-1">Parcel handover</p>
+          <p class="text-sm text-gray-500 dark:text-zinc-400 mb-2">
+            The cheapest couriers are drop-off only. Pick collection and we'll
+            quote buyers the cheaper pickup services instead.
+          </p>
+          <div class="flex gap-2">
+            <button
+              v-for="opt in HANDOVER_OPTIONS"
+              :key="opt.value"
+              @click="setHandover(opt.value)"
+              :disabled="savingHandover"
+              class="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors disabled:opacity-50"
+              :class="handover === opt.value
+                ? 'border-pokemon-red bg-pokemon-red/[0.06] text-pokemon-red'
+                : 'border-gray-300 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200'"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Staff — placeholder -->
+        <div class="opacity-60">
+          <div class="flex items-center gap-2 mb-1">
+            <p class="text-sm font-semibold text-gray-800 dark:text-zinc-100">Manage staff</p>
+            <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-200 dark:bg-white/[0.10] text-gray-600 dark:text-zinc-300">
+              Coming soon
+            </span>
+          </div>
+          <p class="text-sm text-gray-500 dark:text-zinc-400">
+            Invite staff to help manage listings, orders and shipments on your behalf.
+          </p>
+          <button
+            disabled
+            class="mt-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 cursor-not-allowed"
+          >
+            Invite staff
+          </button>
         </div>
       </div>
 
@@ -364,6 +444,7 @@
 
 <script setup lang="ts">
 import type { UserProfile } from "~/composables/useProfile";
+import { MY_STATES, stateName } from "~/shared/my-states";
 
 const { user, signInWithGoogle } = useAuth();
 const { profile, loading, updateProfile, updateCustomName } = useMyProfile();
@@ -438,12 +519,29 @@ const editName = ref("");
 const phonePrefix = ref("60");
 const phoneNumber = ref("");
 const phoneError = ref("");
-const editShippingWM = ref(8);
-const editShippingEM = ref(12);
 const editFavouritesPublic = ref(true);
+
+// Buyer delivery address — feeds the live shipping quote in the cart.
+const emptyAddr = () => ({
+  name: "", phone: "", address1: "", address2: "",
+  postcode: "", city: "", state: "",
+});
+const addr = ref(emptyAddr());
+const savedAddr = ref(emptyAddr());
+const savingAddress = ref(false);
+const addressDirty = computed(
+  () => JSON.stringify(addr.value) !== JSON.stringify(savedAddr.value),
+);
+
+// Seller handover preference.
+const HANDOVER_OPTIONS = [
+  { value: "dropoff" as const, label: "I drop off" },
+  { value: "pickup" as const, label: "Courier collects" },
+];
+const handover = ref<"dropoff" | "pickup">("dropoff");
+const savingHandover = ref(false);
 const saving = ref(false);
 const savingPhone = ref(false);
-const savingShipping = ref(false);
 const saveSuccess = ref(false);
 const uploadingPhoto = ref(false);
 
@@ -457,9 +555,19 @@ watch(
   (p: UserProfile | null) => {
     if (p) {
       editName.value = p.customName || p.displayName;
-      editShippingWM.value = p.shippingWM ?? 8;
-      editShippingEM.value = p.shippingEM ?? 12;
       editFavouritesPublic.value = p.favouritesPublic ?? true;
+      const loaded = {
+        name: p.deliveryName || p.customName || p.displayName || "",
+        phone: p.deliveryPhone || p.whatsappNumber || p.phone || "",
+        address1: p.deliveryAddress1 || "",
+        address2: p.deliveryAddress2 || "",
+        postcode: p.deliveryPostcode || "",
+        city: p.deliveryCity || "",
+        state: p.deliveryState || "",
+      };
+      addr.value = { ...loaded };
+      savedAddr.value = { ...loaded };
+      handover.value = p.handoverPreference === "pickup" ? "pickup" : "dropoff";
 
       // Parse existing phone into prefix + number
       const existing = p.whatsappNumber || p.phone || "";
@@ -522,22 +630,53 @@ const savePhone = async () => {
   }
 };
 
-const saveShipping = async () => {
-  savingShipping.value = true;
+const saveAddress = async () => {
+  savingAddress.value = true;
   saveSuccess.value = false;
   try {
+    const a = addr.value;
     await updateProfile({
-      shippingWM: editShippingWM.value,
-      shippingEM: editShippingEM.value,
+      deliveryName: a.name.trim(),
+      deliveryPhone: a.phone.trim(),
+      deliveryAddress1: a.address1.trim(),
+      deliveryAddress2: a.address2.trim(),
+      deliveryPostcode: a.postcode.trim(),
+      deliveryCity: a.city.trim(),
+      deliveryState: a.state,
     });
+    savedAddr.value = { ...a };
     saveSuccess.value = true;
     setTimeout(() => {
       saveSuccess.value = false;
     }, 3000);
   } finally {
-    savingShipping.value = false;
+    savingAddress.value = false;
   }
 };
+
+const setHandover = async (value: "dropoff" | "pickup") => {
+  if (handover.value === value || savingHandover.value) return;
+  const previous = handover.value;
+  handover.value = value;
+  savingHandover.value = true;
+  try {
+    await updateProfile({ handoverPreference: value });
+  } catch {
+    handover.value = previous;
+  } finally {
+    savingHandover.value = false;
+  }
+};
+
+const { sellerReady } = useSellerKyc();
+
+const pickupLine = computed(() => {
+  const p = profile.value;
+  if (!p?.pickupAddress1 || !p?.pickupPostcode) return "";
+  return [p.pickupAddress1, p.pickupAddress2, `${p.pickupPostcode} ${p.pickupCity || ""}`.trim(), stateName(p.pickupState)]
+    .filter(Boolean)
+    .join(", ");
+});
 
 const toggleFavouritesPublic = async () => {
   editFavouritesPublic.value = !editFavouritesPublic.value;

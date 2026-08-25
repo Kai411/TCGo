@@ -71,16 +71,20 @@
                 <span v-else class="text-gray-400 dark:text-zinc-500 ml-2">No bids</span>
               </template>
               <template #actions>
-                <a
-                  v-if="getWinner(auction)"
-                  :href="getContactBuyerLink(auction)"
-                  target="_blank"
-                  rel="noopener"
-                  class="text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg font-medium"
+                <NuxtLink
+                  v-if="auction.orderId"
+                  :to="`/orders/${auction.orderId}`"
+                  class="text-xs bg-gray-900 dark:bg-white/[0.10] hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg font-medium"
                   @click.stop
                 >
-                  Contact buyer
-                </a>
+                  {{ auction.status === "sold" ? "View order" : "Awaiting payment" }}
+                </NuxtLink>
+                <span
+                  v-else-if="getWinner(auction)"
+                  class="text-xs text-gray-500 dark:text-zinc-400 px-1"
+                >
+                  Finalising…
+                </span>
               </template>
             </ActivityRow>
           </div>
@@ -143,39 +147,35 @@ const getWinner = (auction: Auction) => {
   return { bidder: auction.topBidder ?? "", bidderUid: auction.topBidderUid };
 };
 
-// Winner phones for the WhatsApp contact buttons.
-const buyerPhones = ref<Record<string, string>>({});
-const fetchBuyerPhone = async (uid: string) => {
-  if (buyerPhones.value[uid]) return;
-  try {
-    const { doc, getDoc } = await import("firebase/firestore");
-    const { firestore } = useFirebase();
-    const userDoc = await getDoc(doc(firestore!, "users", uid));
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      buyerPhones.value[uid] = (data.whatsappNumber || data.phone || "") as string;
+// Ended auctions settle lazily — opening this dashboard finalises any that
+// the clock has run out on, creating the winner's order (or voiding a result
+// whose payment window lapsed). The route is idempotent.
+const { authedFetch } = useAuthedFetch();
+const settled = ref<Set<string>>(new Set());
+
+const settleEnded = async (list: Auction[]) => {
+  for (const auction of list) {
+    if (settled.value.has(auction.id)) continue;
+    if (!getWinner(auction)) continue;
+    if (auction.status === "sold" || auction.status === "expired") continue;
+    settled.value.add(auction.id);
+    try {
+      await authedFetch("/api/auctions/settle", {
+        method: "POST",
+        body: { auctionId: auction.id },
+      });
+    } catch {
+      // Non-fatal: the auction page will retry when either party opens it.
+      settled.value.delete(auction.id);
     }
-  } catch {}
+  }
 };
+
 watch(
   endedAuctions,
   (list) => {
-    for (const auction of list) {
-      const winner = getWinner(auction);
-      if (winner?.bidderUid) fetchBuyerPhone(winner.bidderUid);
-    }
+    if (user.value) void settleEnded(list);
   },
   { immediate: true },
 );
-
-const getContactBuyerLink = (auction: Auction): string => {
-  const winner = getWinner(auction);
-  if (!winner) return "#";
-  let cleanPhone = (buyerPhones.value[winner.bidderUid] || "").replace(/[^0-9]/g, "");
-  if (cleanPhone.startsWith("0")) cleanPhone = "60" + cleanPhone.slice(1);
-  const message = encodeURIComponent(
-    `Hi ${winner.bidder}, you won the auction for ${auction.cardName} at RM ${auction.currentPrice.toFixed(2)} on TCGo Marketplace. Let's arrange the deal!`,
-  );
-  return cleanPhone ? `https://wa.me/${cleanPhone}?text=${message}` : `https://wa.me/?text=${message}`;
-};
 </script>

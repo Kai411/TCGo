@@ -8,8 +8,17 @@
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { billplzBaseUrl, billplzAuthHeader } from "~/server/utils/billplz";
+import { requireUser } from "~/server/utils/auth";
+import { regionForState, totalForRegion } from "~/shared/shipping";
+import { quoteOrderShipping } from "~/server/utils/shipping";
+
+// An order is payable while the seller hasn't shipped it. `pending` and
+// `confirmed` both mean "money not collected yet" — the seller confirming a
+// manual order must not strand a buyer who chose to pay online.
+const PAYABLE_STATUSES = ["pending", "confirmed"];
 
 export default defineEventHandler(async (event) => {
+  const caller = await requireUser(event);
   const { orderId } = (await readBody(event)) as { orderId?: string };
   if (!orderId) throw createError({ statusCode: 400, message: "orderId required" });
 
@@ -24,7 +33,11 @@ export default defineEventHandler(async (event) => {
   const snap = await orderRef.get();
   if (!snap.exists) throw createError({ statusCode: 404, message: "Order not found" });
   const order = snap.data() as any;
-  if (order.status !== "pending") {
+  // Only the buyer pays, and only for their own order.
+  if (order.buyerUid !== caller.uid) {
+    throw createError({ statusCode: 403, message: "Not your order" });
+  }
+  if (!PAYABLE_STATUSES.includes(order.status)) {
     throw createError({ statusCode: 400, message: "Order is not awaiting payment" });
   }
   if (!order.deliveryAddress?.postcode) {
@@ -33,7 +46,56 @@ export default defineEventHandler(async (event) => {
 
   const requestUrl = getRequestURL(event);
   const siteUrl = (config.public.siteUrl as string) || requestUrl.origin;
-  const amount = Math.round((order.total || 0) * 100); // MYR sen
+
+  // Region always comes from the delivery address, never from what the buyer
+  // picked earlier — you can't ship to Sabah at West Malaysia rates.
+  const region = regionForState(order.deliveryAddress.state);
+
+  // Orders placed through the cart already carry a live courier quote, frozen
+  // at the price the buyer was shown. Anything else — auction wins, legacy
+  // orders priced off seller-set figures — gets quoted now, against the
+  // address they just entered.
+  let shipping: number;
+  let total: number;
+  const patch: Record<string, unknown> = {};
+
+  if (order.shippingQuoted) {
+    ({ shipping, total } = totalForRegion(order, region));
+  } else {
+    const quote = await quoteOrderShipping(db, { ...order, sellerUid: order.sellerUid });
+    if (!quote) {
+      throw createError({
+        statusCode: 400,
+        message:
+          "We couldn't get a shipping rate for this order. The seller may not have set a pickup address yet.",
+      });
+    }
+    shipping = quote.shipping;
+    total = Math.round(((order.subtotal || 0) + shipping) * 100) / 100;
+    Object.assign(patch, {
+      shippingQuoted: true,
+      shippingWM: shipping,
+      shippingEM: shipping,
+      shippingCourier: quote.courier,
+      shippingQuotedRate: quote.quotedRate,
+      shippingServiceId: quote.serviceId,
+      shippingServiceCode: quote.serviceCode,
+      shippingWeightKg: quote.weightKg,
+    });
+  }
+
+  if (
+    Object.keys(patch).length ||
+    region !== order.region ||
+    shipping !== order.shipping ||
+    total !== order.total
+  ) {
+    await orderRef.update({ ...patch, region, shipping, total });
+    order.region = region;
+    order.shipping = shipping;
+    order.total = total;
+  }
+  const amount = Math.round(total * 100); // MYR sen
 
   const form = new URLSearchParams({
     collection_id: collectionId,
@@ -64,6 +126,10 @@ export default defineEventHandler(async (event) => {
 
   await orderRef.update({
     billplzBillId: bill.id,
+    // Recorded in sen so the webhook can verify Billplz reports the same
+    // amount it collected — without this, a bill created against a since-
+    // changed order would settle at the wrong price.
+    billplzAmountSen: amount,
     paymentMethod: "billplz",
   });
 

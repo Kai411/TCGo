@@ -13,35 +13,25 @@
     </div>
 
     <template v-else>
-      <!-- Shipping region picker (applies to all groups) -->
+      <!-- Delivery address — shipping can't be quoted without it -->
       <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4 mb-4">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
-          Shipping region
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1">
+          Deliver to
         </p>
-        <div class="flex gap-2">
-          <button
-            @click="shippingRegion = 'WM'"
-            :class="[
-              'flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors',
-              shippingRegion === 'WM'
-                ? 'bg-pokemon-red text-white border-pokemon-red'
-                : 'border-gray-300 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200',
-            ]"
-          >
-            West Malaysia
-          </button>
-          <button
-            @click="shippingRegion = 'EM'"
-            :class="[
-              'flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors',
-              shippingRegion === 'EM'
-                ? 'bg-pokemon-red text-white border-pokemon-red'
-                : 'border-gray-300 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200',
-            ]"
-          >
-            East Malaysia
-          </button>
-        </div>
+        <template v-if="hasAddress">
+          <p class="text-sm text-ink dark:text-white">{{ addressLine }}</p>
+          <NuxtLink to="/profile" class="text-xs font-semibold text-pokemon-red hover:underline">
+            Change address →
+          </NuxtLink>
+        </template>
+        <template v-else>
+          <p class="text-sm text-gray-500 dark:text-zinc-400">
+            Add a delivery address to see shipping costs.
+          </p>
+          <NuxtLink to="/profile" class="text-xs font-semibold text-pokemon-red hover:underline">
+            Add delivery address →
+          </NuxtLink>
+        </template>
       </div>
 
       <!-- Compiled-order previews (one per seller) -->
@@ -103,9 +93,19 @@
               <span class="tabular-nums">RM {{ group.subtotal.toFixed(2) }}</span>
             </div>
             <div class="flex justify-between text-gray-600 dark:text-zinc-300">
-              <span>Shipping ({{ shippingRegion }}, combined)</span>
-              <span class="tabular-nums">RM {{ groupShipping(group).toFixed(2) }}</span>
+              <span>
+                Shipping<template v-if="quoteFor(group.sellerUid)?.courier">
+                  · {{ quoteFor(group.sellerUid)!.courier }}</template>
+              </span>
+              <span v-if="quotesLoading" class="text-gray-400 dark:text-zinc-500">Calculating…</span>
+              <span v-else-if="quoteFor(group.sellerUid)" class="tabular-nums">
+                RM {{ groupShipping(group).toFixed(2) }}
+              </span>
+              <span v-else class="text-gray-400 dark:text-zinc-500">—</span>
             </div>
+            <p v-if="quoteError(group.sellerUid)" class="text-[11px] text-amber-600 dark:text-amber-400">
+              {{ quoteError(group.sellerUid) }}
+            </p>
             <div class="flex justify-between font-bold text-sm pt-1 border-t border-gray-100 dark:border-white/[0.06]">
               <span class="text-ink dark:text-white">Order total</span>
               <span class="text-pokemon-red tabular-nums">
@@ -146,16 +146,14 @@
         <div v-else>
           <button
             @click="handlePlaceOrders"
-            :disabled="placing"
+            :disabled="placing || !canCheckout"
             class="w-full bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             <span v-if="placing" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
-            {{ placing
-              ? "Creating orders..."
-              : `Place ${groupedBySeller.length} ${groupedBySeller.length === 1 ? "order" : "orders"}` }}
+            {{ checkoutLabel }}
           </button>
           <p class="text-xs text-gray-500 dark:text-zinc-400 text-center mt-2">
-            You'll contact each seller via WhatsApp to arrange payment & shipping.
+            You'll pay each seller securely online (FPX) after placing the order.
           </p>
         </div>
       </div>
@@ -172,6 +170,8 @@
 
 <script setup lang="ts">
 import type { CartItem } from "~/composables/useCart";
+import { stateName } from "~/shared/my-states";
+import { regionForState } from "~/shared/shipping";
 
 useHead({ title: "Cart | TCGo Marketplace" });
 
@@ -181,8 +181,100 @@ const { user, signInWithGoogle } = useAuth();
 const { profile } = useMyProfile();
 const { createCompiledOrders } = useCompiledOrders();
 
-const shippingRegion = ref<"WM" | "EM">("WM");
+const { authedFetch } = useAuthedFetch();
+
 const placing = ref(false);
+
+// ── Delivery address ──────────────────────────────────────────────────
+// Shipping is quoted live from each seller's pickup postcode to the buyer's
+// address, so without an address there is nothing to quote.
+const destination = computed(() => {
+  const p = profile.value;
+  if (!p?.deliveryPostcode || !p?.deliveryState) return null;
+  return {
+    address1: p.deliveryAddress1 || "",
+    city: p.deliveryCity || "",
+    state: p.deliveryState,
+    postcode: p.deliveryPostcode,
+  };
+});
+const hasAddress = computed(() => !!destination.value);
+const addressLine = computed(() => {
+  const p = profile.value;
+  if (!p) return "";
+  return [p.deliveryAddress1, p.deliveryAddress2, `${p.deliveryPostcode || ""} ${p.deliveryCity || ""}`.trim(), stateName(p.deliveryState)]
+    .filter(Boolean)
+    .join(", ");
+});
+
+// ── Live shipping quotes, one per seller ──────────────────────────────
+interface GroupQuote {
+  shipping: number;
+  courier: string;
+  serviceId: string;
+  serviceCode: string;
+  quotedRate: number;
+}
+const quotes = ref<Record<string, GroupQuote>>({});
+const quoteErrors = ref<Record<string, string>>({});
+const quotesLoading = ref(false);
+
+const quoteFor = (sellerUid: string): GroupQuote | undefined => quotes.value[sellerUid];
+const quoteError = (sellerUid: string): string => quoteErrors.value[sellerUid] || "";
+
+const refreshQuotes = async () => {
+  const dest = destination.value;
+  if (!dest || !user.value || !groupedBySeller.value.length) {
+    quotes.value = {};
+    quoteErrors.value = {};
+    return;
+  }
+  quotesLoading.value = true;
+  const nextQuotes: Record<string, GroupQuote> = {};
+  const nextErrors: Record<string, string> = {};
+  try {
+    await Promise.all(
+      groupedBySeller.value.map(async (g) => {
+        try {
+          const res = await authedFetch<{
+            available: boolean;
+            reason?: string;
+            shipping?: number;
+            courier?: string;
+            serviceId?: string;
+            serviceCode?: string;
+            quotedRate?: number;
+          }>("/api/shipping/quote", {
+            method: "POST",
+            body: {
+              sellerUid: g.sellerUid,
+              itemCount: g.items.length,
+              destination: dest,
+            },
+          });
+          if (res.available && res.shipping != null) {
+            nextQuotes[g.sellerUid] = {
+              shipping: res.shipping,
+              courier: res.courier || "",
+              serviceId: res.serviceId || "",
+              serviceCode: res.serviceCode || "",
+              quotedRate: res.quotedRate ?? 0,
+            };
+          } else {
+            nextErrors[g.sellerUid] = res.reason || "Shipping unavailable for this seller.";
+          }
+        } catch (e: any) {
+          nextErrors[g.sellerUid] =
+            e?.data?.message || "Couldn't get a shipping rate for this seller.";
+        }
+      }),
+    );
+  } finally {
+    quotes.value = nextQuotes;
+    quoteErrors.value = nextErrors;
+    quotesLoading.value = false;
+  }
+};
 
 interface SellerGroup {
   sellerUid: string;
@@ -215,8 +307,41 @@ const groupedBySeller = computed<SellerGroup[]>(() => {
   return [...map.values()];
 });
 
-const groupShipping = (g: SellerGroup) =>
-  shippingRegion.value === "WM" ? g.shippingWM : g.shippingEM;
+// Re-quote when the cart composition, the address, or sign-in state changes.
+// Declared after groupedBySeller: `immediate: true` evaluates the getter during
+// setup, so referencing it any earlier is a temporal-dead-zone ReferenceError.
+watch(
+  [
+    () => groupedBySeller.value.map((g) => `${g.sellerUid}:${g.items.length}`).join("|"),
+    destination,
+    user,
+  ],
+  () => {
+    void refreshQuotes();
+  },
+  { immediate: true },
+);
+
+const groupShipping = (g: SellerGroup) => quotes.value[g.sellerUid]?.shipping ?? 0;
+
+// Every group must have a live quote before we let anyone check out — a
+// missing quote means we'd create an order with RM 0 shipping.
+const canCheckout = computed(
+  () =>
+    hasAddress.value &&
+    !quotesLoading.value &&
+    groupedBySeller.value.length > 0 &&
+    groupedBySeller.value.every((g) => !!quotes.value[g.sellerUid]),
+);
+
+const checkoutLabel = computed(() => {
+  if (placing.value) return "Creating orders...";
+  if (!hasAddress.value) return "Add a delivery address";
+  if (quotesLoading.value) return "Calculating shipping...";
+  if (!canCheckout.value) return "Shipping unavailable";
+  const n = groupedBySeller.value.length;
+  return `Place ${n} ${n === 1 ? "order" : "orders"}`;
+});
 
 const totalShipping = computed(() =>
   groupedBySeller.value.reduce((sum, g) => sum + groupShipping(g), 0),
@@ -225,9 +350,16 @@ const totalShipping = computed(() =>
 const grandTotal = computed(() => cartTotal.value + totalShipping.value);
 
 const handlePlaceOrders = async () => {
-  if (!user.value || !items.value.length) return;
+  if (!user.value || !items.value.length || !canCheckout.value) return;
   placing.value = true;
   try {
+    // Freeze the quotes the buyer was just shown onto the orders.
+    const quotedShipping: Record<string, number> = {};
+    for (const g of groupedBySeller.value) {
+      const q = quotes.value[g.sellerUid];
+      if (q) quotedShipping[g.sellerUid] = q.shipping;
+    }
+
     const created = await createCompiledOrders(
       items.value.map((it) => ({
         cardId: it.id,
@@ -241,8 +373,9 @@ const handlePlaceOrders = async () => {
         sellerUid: it.sellerUid,
         sellerName: it.seller,
       })),
-      shippingRegion.value,
+      regionForState(profile.value?.deliveryState),
       profile.value?.customName || profile.value?.displayName || user.value.displayName || "Buyer",
+      quotedShipping,
     );
 
     clearCart();

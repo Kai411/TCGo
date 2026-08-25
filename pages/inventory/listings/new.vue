@@ -545,48 +545,21 @@
             </div>
           </div>
 
-          <!-- Card: Shipping -->
+          <!-- Shipping is quoted live from your pickup address at checkout,
+               so there's nothing to set per listing. -->
           <div
-            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3"
+            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5"
           >
-            <div class="flex items-center justify-between">
-              <h3
-                class="text-sm font-semibold text-gray-900 dark:text-zinc-100"
-              >
-                Shipping
-              </h3>
-              <span class="text-xs text-gray-400 dark:text-zinc-500"
-                >Profile defaults</span
-              >
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label
-                  class="block text-xs text-gray-600 dark:text-zinc-300 mb-1"
-                  >West Malaysia (RM)</label
-                >
-                <input
-                  v-model.number="cardForm.shippingWM"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-                />
-              </div>
-              <div>
-                <label
-                  class="block text-xs text-gray-600 dark:text-zinc-300 mb-1"
-                  >East Malaysia (RM)</label
-                >
-                <input
-                  v-model.number="cardForm.shippingEM"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-                />
-              </div>
-            </div>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-1">
+              Shipping
+            </h3>
+            <p class="text-xs text-gray-500 dark:text-zinc-400">
+              Buyers are quoted a live courier rate from your pickup address to
+              theirs at checkout — you don't set a price here.
+              <NuxtLink to="/inventory/verify" class="text-pokemon-red hover:underline">
+                Check your pickup address →
+              </NuxtLink>
+            </p>
           </div>
         </div>
 
@@ -847,8 +820,6 @@ const publishDrafts = async () => {
     const sellerName =
       profile.value?.customName || user.value!.displayName || "Anonymous";
     const sellerUid = user.value!.uid;
-    const shippingWM = profile.value?.shippingWM ?? 8;
-    const shippingEM = profile.value?.shippingEM ?? 12;
 
     for (const item of [...readyDrafts.value]) {
       const f = draftFields.value[item.id];
@@ -874,8 +845,6 @@ const publishDrafts = async () => {
         customGradingProvider: "",
         description: f.description,
         price: f.price!,
-        shippingWM,
-        shippingEM,
         imageUrl: imageUrls[0],
         imageUrls,
         seller: sellerName,
@@ -982,8 +951,6 @@ const cardForm = ref<CardFormData>({
   grade: "",
   customGradingProvider: "",
   description: "",
-  shippingWM: 8,
-  shippingEM: 12,
   language: "EN",
   tcgType: "Pokemon",
   rarity: "",
@@ -1005,8 +972,6 @@ watch(
   profile,
   (p: any) => {
     if (p) {
-      cardForm.value.shippingWM = p.shippingWM ?? 8;
-      cardForm.value.shippingEM = p.shippingEM ?? 12;
     }
   },
   { immediate: true },
@@ -1104,8 +1069,6 @@ const handleSubmit = async () => {
       customGradingProvider: cardForm.value.customGradingProvider,
       description: cardForm.value.description,
       price: price.value,
-      shippingWM: cardForm.value.shippingWM,
-      shippingEM: cardForm.value.shippingEM,
       imageUrl: imageUrls[0] || "",
       imageUrls,
       seller:

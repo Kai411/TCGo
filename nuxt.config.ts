@@ -89,7 +89,7 @@ export default defineNuxtConfig({
         {
           name: "description",
           content:
-            "TCGo Marketplace is Malaysia's trusted community for buying, selling, and auctioning Pokemon TCG cards. List your cards, place bids, and connect with collectors via WhatsApp.",
+            "TCGo Marketplace is Malaysia's trusted community for buying, selling, and auctioning Pokemon TCG cards. List your cards, place bids, and pay securely online with FPX.",
         },
         {
           name: "keywords",
@@ -181,11 +181,10 @@ export default defineNuxtConfig({
     billplzCollectionId: "",
     billplzXSignatureKey: "",
     billplzSandbox: "",
-    // EasyParcel Developer Hub (OAuth app — shipping labels). Connect once via
-    // /api/easyparcel/connect; tokens persist in Firestore appSettings.
-    easyparcelClientId: "",
-    easyparcelClientSecret: "",
-    easyparcelApiVersion: "2025-09",
+    // Delyva (courier aggregator) — live shipping quotes at checkout.
+    delyvaApiKey: "",
+    delyvaCustomerId: "",
+    delyvaCompanyId: "",
     public: {
       firebaseApiKey: "",
       firebaseAuthDomain: "",
@@ -196,7 +195,6 @@ export default defineNuxtConfig({
       firebaseAppId: "",
       cloudinaryCloudName: "",
       cloudinaryUploadPreset: "",
-      adminWhatsApp: "",
       stripePublishableKey: "",
       siteUrl: "https://tcgo.shop",
       // Supabase (browser-side anon — catalog + price reads are public).

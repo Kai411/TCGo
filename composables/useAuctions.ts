@@ -16,6 +16,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { ref, computed, onUnmounted } from "vue";
+import type { AuctionStatus } from "~/shared/auctions";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -56,8 +57,17 @@ export interface Auction {
   negotiable?: boolean;
   pickupAvailable?: boolean;
   quantity?: number;
-  status?: "active" | "reserved" | "pending_payment" | "sold" | "cancelled" | "expired";
+  status?: AuctionStatus;
   viewCount?: number;
+  // ── Settlement (written by /api/auctions/settle) ──────────────────────
+  orderId?: string; // compiled order the winner pays
+  winnerUid?: string;
+  winnerName?: string;
+  winningBid?: number;
+  endedAt?: number;
+  paymentDueAt?: number; // winner must pay before this or the result is voided
+  soldAt?: number;
+  expiredAt?: number;
   // From RTDB auction_summaries (merged in at read time)
   bidCount?: number;
   antiSnipeTriggered?: boolean;

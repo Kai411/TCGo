@@ -78,7 +78,6 @@
                   :key="order.id"
                   :order="order"
                   role="seller"
-                  @confirm="markConfirmed(order.id)"
                   @ship="openShipDialog(order.id)"
                 />
               </div>
@@ -90,7 +89,6 @@
                 :key="order.id"
                 :order="order"
                 role="seller"
-                @confirm="markConfirmed(order.id)"
                 @ship="openShipDialog(order.id)"
               />
             </div>
@@ -107,7 +105,6 @@
                 :key="order.id"
                 :order="order"
                 role="seller"
-                @confirm="markConfirmed(order.id)"
                 @ship="openShipDialog(order.id)"
               />
             </div>
@@ -154,7 +151,6 @@ const {
   sellerCompiledOrders,
   loadingSeller,
   listenSellerCompiledOrders,
-  markConfirmed,
   markShipped,
   mergeOrders,
 } = useCompiledOrders();

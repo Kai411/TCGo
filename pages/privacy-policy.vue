@@ -77,8 +77,9 @@ useHead({
         <div class="list-container">
           <br />
           <p>
-            Buyers and sellers may communicate externally through WhatsApp or
-            other third-party messaging services.
+            Orders, payment and delivery all happen on TCGo. We share a buyer's
+            delivery address and contact number with the seller only as needed
+            to fulfil an order, and vice versa.
           </p>
           <br />
 
@@ -89,7 +90,8 @@ useHead({
               controlled by us.
             </li>
             <li>
-              We do not store private WhatsApp conversations between users.
+              If users choose to contact each other outside TCGo, those
+              conversations are not stored or monitored by us.
             </li>
             <li>
               Users are solely responsible for their own transactions,
@@ -143,7 +145,8 @@ useHead({
               Firebase for authentication, database, and backend infrastructure
             </li>
             <li>Cloudinary for image storage and delivery</li>
-            <li>WhatsApp for buyer and seller communication</li>
+            <li>Billplz for FPX payments and seller payouts</li>
+            <li>EasyParcel for shipping labels and delivery</li>
             <li>
               Collectr for optional public link imports used to help
               auto-populate listing details

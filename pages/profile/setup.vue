@@ -61,7 +61,7 @@
       <!-- Contact Number -->
       <div class="mb-5">
         <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-          Contact Number (WhatsApp)
+          Mobile Number
         </label>
         <input
           v-model="phone"

@@ -286,87 +286,23 @@
 
             <!-- Contact Seller + Buy Now + Add to cart -->
             <div v-if="!card.sold && !isOwnListing" class="mt-6 space-y-3">
-              <a
-                :href="whatsappLink"
-                target="_blank"
-                rel="noopener"
-                @click="handleContactClick"
-                class="w-full inline-flex items-center justify-center gap-2 bg-green-500 text-white py-3 rounded-lg font-medium hover:bg-green-600 transition-colors"
+              <!-- Buy Now · adds to cart and jumps to checkout, so shipping is
+                   quoted live in one place instead of two. -->
+              <button
+                v-if="!user"
+                @click="signInWithGoogle"
+                class="w-full bg-gray-900 text-white py-3 rounded-lg text-sm font-bold hover:bg-gray-700 transition-colors"
               >
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path
-                    d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
-                  />
-                </svg>
-                Contact Seller
-              </a>
-
-              <!-- Buy Now · creates a Compiled Order, payment arranged with seller via WhatsApp -->
-              <div class="border border-gray-200 dark:border-white/[0.08] rounded-xl overflow-hidden">
-                <button
-                  @click="buyNowOpen = !buyNowOpen"
-                  class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-ink dark:text-white hover:bg-black/[0.02] dark:hover:bg-white/[0.04] transition-colors"
-                >
-                  <span class="flex items-center gap-2">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9"/><path d="M9 13h6"/></svg>
-                    Buy Now
-                  </span>
-                  <svg class="w-4 h-4 transition-transform" :class="buyNowOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-                </button>
-
-                <Transition enter-active-class="transition-all duration-200" enter-from-class="opacity-0 -translate-y-1" leave-active-class="transition-all duration-150" leave-to-class="opacity-0 -translate-y-1">
-                  <div v-if="buyNowOpen" class="border-t border-gray-200 dark:border-white/[0.08] p-4 space-y-4">
-                    <!-- Shipping region -->
-                    <div>
-                      <p class="text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1.5">Shipping region</p>
-                      <div class="flex gap-2">
-                        <button
-                          @click="buyNowRegion = 'WM'"
-                          :class="['flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors', buyNowRegion === 'WM' ? 'bg-pokemon-red text-white border-pokemon-red' : 'border-gray-300 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200']"
-                        >WM (RM {{ card.shippingWM?.toFixed(2) ?? '0.00' }})</button>
-                        <button
-                          @click="buyNowRegion = 'EM'"
-                          :class="['flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors', buyNowRegion === 'EM' ? 'bg-pokemon-red text-white border-pokemon-red' : 'border-gray-300 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200']"
-                        >EM (RM {{ card.shippingEM?.toFixed(2) ?? '0.00' }})</button>
-                      </div>
-                    </div>
-
-                    <!-- Price breakdown -->
-                    <div class="text-sm space-y-1">
-                      <div class="flex justify-between text-gray-600 dark:text-zinc-300">
-                        <span>Item</span><span>RM {{ card.price.toFixed(2) }}</span>
-                      </div>
-                      <div class="flex justify-between text-gray-600 dark:text-zinc-300">
-                        <span>Shipping</span>
-                        <span>RM {{ buyNowShipping.toFixed(2) }}</span>
-                      </div>
-                      <div class="flex justify-between font-bold pt-1 border-t border-gray-100 dark:border-white/[0.06]">
-                        <span>Total</span><span class="text-pokemon-red">RM {{ buyNowTotal.toFixed(2) }}</span>
-                      </div>
-                    </div>
-
-                    <p class="text-xs text-gray-400 dark:text-zinc-500">
-                      You'll arrange payment & shipping details with the seller via WhatsApp after placing the order.
-                    </p>
-
-                    <div v-if="!user">
-                      <button @click="signInWithGoogle" class="w-full bg-gray-900 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-gray-700 transition-colors">
-                        Sign in to buy
-                      </button>
-                    </div>
-                    <div v-else>
-                      <button
-                        @click="handleBuyNow"
-                        :disabled="buyNowLoading"
-                        class="w-full bg-pokemon-red text-white py-2.5 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-                      >
-                        <span v-if="buyNowLoading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
-                        {{ buyNowLoading ? 'Placing order...' : 'Place order' }}
-                      </button>
-                    </div>
-                  </div>
-                </Transition>
-              </div>
+                Sign in to buy
+              </button>
+              <button
+                v-else
+                @click="handleBuyNow"
+                class="w-full inline-flex items-center justify-center gap-2 bg-pokemon-red text-white py-3 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9"/><path d="M9 13h6"/></svg>
+                Buy Now
+              </button>
 
               <!-- Add to cart -->
               <button
@@ -416,13 +352,32 @@ const { cards, loading, markInterested } = useCards();
 const { firestore } = useFirebase();
 const { user, signInWithGoogle } = useAuth();
 const { profile: myProfile } = useMyProfile();
-const { createCompiledOrders } = useCompiledOrders();
 const { addToCart, isInCart } = useCart();
 
 const inCart = computed(() => (card.value ? isInCart(card.value.id) : false));
 
+// Buyer-interest signal. Originally fired on "Contact Seller"; with that gone
+// and Buy Now no longer a panel to open, adding to cart is the equivalent
+// intent. Fires once per page view.
+const hasClicked = ref(false);
+const markIntent = () => {
+  if (hasClicked.value || !card.value) return;
+  hasClicked.value = true;
+  markInterested(card.value.id).catch(() => {});
+};
+
+// Buy Now is a shortcut, not a second checkout: add to cart, then go there.
+// The cart is the only place that holds the delivery address, the live courier
+// quote and the guard that blocks checkout when shipping can't be priced.
+const handleBuyNow = () => {
+  if (!card.value) return;
+  if (!isInCart(card.value.id)) handleAddToCart();
+  router.push("/cart");
+};
+
 const handleAddToCart = () => {
   if (!card.value || inCart.value) return;
+  markIntent();
   addToCart({
     id: card.value.id,
     cardName: card.value.cardName,
@@ -437,48 +392,6 @@ const handleAddToCart = () => {
   });
 };
 
-// Buy Now state
-const buyNowOpen = ref(false);
-const buyNowRegion = ref<'WM' | 'EM'>('WM');
-const buyNowLoading = ref(false);
-
-const buyNowShipping = computed(() => {
-  if (!card.value) return 0;
-  return buyNowRegion.value === 'WM' ? (card.value.shippingWM ?? 0) : (card.value.shippingEM ?? 0);
-});
-
-const buyNowTotal = computed(() => {
-  if (!card.value) return 0;
-  return card.value.price + buyNowShipping.value;
-});
-
-const handleBuyNow = async () => {
-  if (!user.value || !card.value) return;
-  buyNowLoading.value = true;
-  try {
-    const [order] = await createCompiledOrders(
-      [{
-        cardId: card.value.id,
-        cardName: card.value.cardName,
-        cardSet: card.value.cardSet || '',
-        condition: card.value.condition || '',
-        imageUrl: card.value.imageUrls?.[0] || card.value.imageUrl || '',
-        price: card.value.price,
-        shippingWM: card.value.shippingWM ?? 0,
-        shippingEM: card.value.shippingEM ?? 0,
-        sellerUid: card.value.sellerUid,
-        sellerName: card.value.seller,
-      }],
-      buyNowRegion.value,
-      myProfile.value?.customName || myProfile.value?.displayName || user.value.displayName || 'Buyer',
-    );
-    router.push(`/orders/${order.id}?placed=1`);
-  } catch (e: any) {
-    alert(e?.message || 'Could not place order. Please try again.');
-  } finally {
-    buyNowLoading.value = false;
-  }
-};
 
 const card = computed(
   () => cards.value.find((c: Card) => c.id === cardId) || null,
@@ -574,11 +487,10 @@ const activeImage = computed(
   () => allImages.value[activeImageIndex.value] || "",
 );
 
-// Fetch seller phone for WhatsApp link
-const sellerPhone = ref("");
+// Seller avatar for the listing header.
 const sellerPhotoURL = ref("");
 
-const fetchSellerPhone = async () => {
+const fetchSellerProfile = async () => {
   if (!card.value) return;
   try {
     const { doc, getDoc } = await import("firebase/firestore");
@@ -586,9 +498,7 @@ const fetchSellerPhone = async () => {
       doc(firestore!, "users", card.value.sellerUid),
     );
     if (userDoc.exists()) {
-      const data = userDoc.data();
-      sellerPhone.value = (data.whatsappNumber || data.phone || "") as string;
-      sellerPhotoURL.value = (data.photoURL || "") as string;
+      sellerPhotoURL.value = (userDoc.data().photoURL || "") as string;
     }
   } catch {}
 };
@@ -596,35 +506,9 @@ const fetchSellerPhone = async () => {
 watch(
   card,
   (c: any) => {
-    if (c) fetchSellerPhone();
+    if (c) fetchSellerProfile();
   },
   { immediate: true },
 );
 
-const whatsappLink = computed(() => {
-  if (!card.value) return "#";
-  let cleanPhone = sellerPhone.value.replace(/[^0-9]/g, "");
-  // Fix: strip leading 0 and prepend 60 if no country code
-  if (cleanPhone.startsWith("0")) {
-    cleanPhone = "60" + cleanPhone.slice(1);
-  }
-  const message = encodeURIComponent(
-    `Hi, I'm interested in your listing on TCGo:\n${card.value.cardName} (${card.value.cardSet}${card.value.condition ? `, ${card.value.condition}` : ""}) — RM ${card.value.price.toFixed(2)}\n${pageUrl.value}`,
-  );
-  if (cleanPhone) {
-    return `https://wa.me/${cleanPhone}?text=${message}`;
-  }
-  return `https://wa.me/?text=${message}`;
-});
-
-// Track interest when contact is clicked
-const hasClicked = ref(false);
-
-const handleContactClick = async () => {
-  if (hasClicked.value || !card.value) return;
-  hasClicked.value = true;
-  try {
-    await markInterested(card.value.id);
-  } catch {}
-};
 </script>
