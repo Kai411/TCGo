@@ -1,3 +1,8 @@
+// Marketing surfaces are light-only. Listed here (rather than only in the
+// landing layout) because the pre-paint script below has to know before Vue
+// mounts — otherwise a dark-mode visitor gets a dark flash on these routes.
+const LIGHT_ONLY_ROUTES = ["/landing", "/privacy-policy", "/update-notice"];
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
@@ -77,8 +82,14 @@ export default defineNuxtConfig({
         {
           // Apply theme synchronously before paint to avoid a light→dark flash.
           // Mirrors the logic in composables/useTheme.ts; keep in sync.
-          innerHTML:
-            "(function(){try{var t=localStorage.getItem('tcgo-theme');var d=t==='dark'||((!t||t==='system')&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();",
+          //
+          // Two rules, both deliberate:
+          //  1. Light-only routes never get `dark`, whatever the visitor chose.
+          //  2. An ABSENT key resolves to light, not to the OS preference —
+          //     dark is opt-in. Only an explicit "system" follows the OS.
+          innerHTML: `(function(){try{var L=${JSON.stringify(
+            LIGHT_ONLY_ROUTES
+          )};var p=location.pathname.replace(/\\/+$/,'')||'/';if(L.indexOf(p)!==-1)return;var t=localStorage.getItem('tcgo-theme');var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,
           type: "text/javascript",
           tagPosition: "head",
         },
