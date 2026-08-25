@@ -1,14 +1,13 @@
-// Seller-triggered courier booking.
+// Cancel a booked shipment.
 //
-// Normally the webhook books automatically the moment payment settles; this
-// exists for the cases where that couldn't run — the seller's pickup address
-// was incomplete at the time, or the courier call failed and they want to
-// retry. The shared implementation is idempotent, so calling it after an
-// automatic booking is a no-op rather than a second charge.
+// Delyva's cancellation policy: only while the order's status code is between
+// 0 and 110. Once a courier is assigned (status 200) it cannot be cancelled.
+// Delyva does not document whether cancelling credits the wallet back, so this
+// is "stop the collection", not a guaranteed refund.
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
-import { bookShipmentForOrder } from "~/server/utils/book-shipment";
+import { cancelShipmentForOrder } from "~/server/utils/book-shipment";
 
 export default defineEventHandler(async (event) => {
   const caller = await requireUser(event);
@@ -22,7 +21,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: "Not your order" });
   }
 
-  const result = await bookShipmentForOrder(db, orderId);
-  if (!result.booked) throw createError({ statusCode: 400, message: result.reason });
+  const result = await cancelShipmentForOrder(db, orderId);
+  if (!result.cancelled) throw createError({ statusCode: 400, message: result.reason });
   return result;
 });

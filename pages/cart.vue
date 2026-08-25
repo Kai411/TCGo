@@ -170,6 +170,7 @@
 
 <script setup lang="ts">
 import type { CartItem } from "~/composables/useCart";
+import type { QuotedShipping } from "~/composables/useCompiledOrders";
 import { stateName } from "~/shared/my-states";
 import { regionForState } from "~/shared/shipping";
 
@@ -353,11 +354,21 @@ const handlePlaceOrders = async () => {
   if (!user.value || !items.value.length || !canCheckout.value) return;
   placing.value = true;
   try {
-    // Freeze the quotes the buyer was just shown onto the orders.
-    const quotedShipping: Record<string, number> = {};
+    // Freeze the quotes the buyer was just shown onto the orders — the price
+    // *and* which courier it was for, so booking uses the service they paid
+    // for rather than re-quoting later and possibly picking a different one.
+    const quotedShipping: Record<string, QuotedShipping> = {};
     for (const g of groupedBySeller.value) {
       const q = quotes.value[g.sellerUid];
-      if (q) quotedShipping[g.sellerUid] = q.shipping;
+      if (q) {
+        quotedShipping[g.sellerUid] = {
+          shipping: q.shipping,
+          courier: q.courier,
+          serviceId: q.serviceId,
+          serviceCode: q.serviceCode,
+          quotedRate: q.quotedRate,
+        };
+      }
     }
 
     const created = await createCompiledOrders(

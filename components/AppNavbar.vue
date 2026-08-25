@@ -282,7 +282,7 @@ const desktopLinks = computed(() => {
   if (premiumEnabled) links.push({ to: "/pricing", label: "Pricing" });
   if (user.value) {
     links.push({ to: "/collection", label: "Collection" });
-    links.push({ to: "/activity", label: "Activity" });
+    links.push({ to: "/activity", label: "Orders" });
   }
   if (isAdmin.value) links.push({ to: "/admin/reports", label: "Admin" });
   return links;
@@ -340,7 +340,7 @@ const mobileTabs = computed(() => {
   if (user.value) {
     tabs.push(
       { to: "/collection", label: "Collection", icon: IconCollection },
-      { to: "/activity", label: "Activity", icon: IconActivity },
+      { to: "/activity", label: "Orders", icon: IconActivity },
       {
         to: `/profile/${user.value.uid}`,
         label: "Profile",

@@ -174,6 +174,14 @@ export interface DelyvaOrderResult {
   invoiceId: string | null;
 }
 
+// The published example shows `data.orderId`, but the live API returns
+// `data.id` and no `orderId` key at all (verified against a real draft).
+// Reading only `orderId` would mean booking succeeds, the wallet is charged,
+// and we then throw — releasing the idempotency claim so the seller can book
+// a second time. Accept either.
+const orderIdOf = (d: any): string =>
+  String(d?.id ?? d?.orderId ?? "");
+
 // Create AND confirm a shipment. Charges the Delyva wallet — never call this
 // without an idempotency guard upstream.
 export const delyvaCreateOrder = async (input: {
@@ -183,13 +191,15 @@ export const delyvaCreateOrder = async (input: {
   inventory: DelyvaInventoryItem[];
   /** ISO8601 with offset, e.g. 2026-08-26T12:00:00+0800 */
   scheduledAt: string;
+  /** false saves a draft — no courier, no charge. Used to validate payloads. */
+  process?: boolean;
 }): Promise<DelyvaOrderResult> => {
   const { customerId } = delyvaConfig();
   const res = await delyvaPost<{ data?: DelyvaOrderResult }>("/order", {
     customerId,
     // Create and confirm in one call. Without this the order sits as a draft
     // and no courier is booked.
-    process: true,
+    process: input.process !== false,
     serviceCode: input.serviceCode,
     origin: {
       scheduledAt: input.scheduledAt,
@@ -201,11 +211,18 @@ export const delyvaCreateOrder = async (input: {
       contact: input.destination,
     },
   });
-  const data = res?.data;
-  if (!data?.orderId) {
+  const data: any = res?.data;
+  const orderId = orderIdOf(data);
+  if (!orderId) {
+    console.error("[delyva] order response missing id:", JSON.stringify(data).slice(0, 300));
     throw createError({ statusCode: 502, message: "Delyva did not return an order id" });
   }
-  return data;
+  return {
+    orderId,
+    status: String(data?.status ?? ""),
+    statusCode: Number(data?.statusCode ?? 0),
+    invoiceId: data?.invoiceId ?? null,
+  };
 };
 
 // The consignment note / AWB. Returns whatever Delyva serves — usually a URL

@@ -10,6 +10,7 @@
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { verifyBillplzSignature } from "~/server/utils/billplz";
 import { computeSellerPayout, platformFeeFor } from "~/shared/payouts";
+import { bookShipmentForOrder } from "~/server/utils/book-shipment";
 
 export default defineEventHandler(async (event) => {
   const body = (await readBody(event)) as Record<string, string>;
@@ -127,5 +128,27 @@ export default defineEventHandler(async (event) => {
     );
   }
 
-  return { ok: true };
+  // Book the courier now that the money is in, so the seller has a waybill
+  // waiting rather than a button to press.
+  //
+  // Deliberately after everything else and deliberately non-fatal: this spends
+  // from the Delyva wallet and calls a third party, and neither may break
+  // payment settlement. Billplz retries non-2xx callbacks, so throwing here
+  // would re-run the whole settlement. A failure leaves the order `paid` with
+  // `shipmentError` set, and the seller can retry from the order page.
+  let shipment: { booked: boolean; reason?: string } = {
+    booked: false,
+    reason: "not attempted",
+  };
+  try {
+    shipment = await bookShipmentForOrder(db, orderRef.id);
+    if (!shipment.booked) {
+      console.warn("[billplz webhook] shipment not booked:", shipment.reason);
+    }
+  } catch (e: any) {
+    console.error("[billplz webhook] shipment booking failed:", e?.message || e);
+    shipment = { booked: false, reason: e?.message || "Booking failed" };
+  }
+
+  return { ok: true, shipmentBooked: shipment.booked };
 });

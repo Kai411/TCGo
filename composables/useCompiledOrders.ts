@@ -121,9 +121,13 @@ export interface CompiledOrder {
   // Shipment bookkeeping. Only set once a platform-booked label exists —
   // today sellers ship themselves and only trackingNumber/shippingCarrier
   // are filled in via markShipped.
-  shipmentOrderNo?: string;
+  shipmentOrderNo?: string | null;
   shipmentStatus?: string | null;
   shipmentClaimedAt?: number | null;
+  // Set when automatic booking failed; the seller can retry from the order.
+  shipmentError?: string | null;
+  // Kept for the audit trail after a shipment is cancelled.
+  cancelledShipmentOrderNo?: string;
   awbLink?: string;
   awbLinkFetchedAt?: number;
 
@@ -131,6 +135,15 @@ export interface CompiledOrder {
   mergedFrom?: string[]; // on the surviving order: ids it absorbed
   mergedAt?: number;
   mergedInto?: string; // on an absorbed (cancelled) order: surviving id
+}
+
+// A frozen courier quote, carried from the cart onto the order.
+export interface QuotedShipping {
+  shipping: number;
+  courier: string;
+  serviceId: string;
+  serviceCode: string;
+  quotedRate: number;
 }
 
 export interface CompiledOrderInputItem {
@@ -254,7 +267,7 @@ export const useCompiledOrders = () => {
     // replaces the per-listing shipping figures entirely — written to both the
     // WM and EM fields so the region recompute in create-bill is a no-op and
     // the buyer is charged exactly what the cart showed.
-    quotedShippingBySeller: Record<string, number> = {},
+    quotedShippingBySeller: Record<string, QuotedShipping> = {},
   ): Promise<CompiledOrder[]> => {
     if (!user.value || !firestore) throw new Error("Not authenticated");
     if (!items.length) return [];
@@ -299,10 +312,10 @@ export const useCompiledOrders = () => {
         const subtotal = mergedItems.reduce((s, i) => s + i.price, 0);
         const quoted = quotedShippingBySeller[sellerUid];
         const shippingWM =
-          quoted ??
+          quoted?.shipping ??
           mergedItems.reduce((m, i) => Math.max(m, i.shippingWM ?? 0), 0);
         const shippingEM =
-          quoted ??
+          quoted?.shipping ??
           mergedItems.reduce((m, i) => Math.max(m, i.shippingEM ?? 0), 0);
         // Preserve the region the original order was placed under. It's
         // recomputed from the delivery address at payment time anyway.
@@ -317,6 +330,14 @@ export const useCompiledOrders = () => {
           // Adding items changes the parcel, so a previously frozen quote no
           // longer describes it — re-flag unless this merge carried a fresh one.
           shippingQuoted: quoted != null,
+          ...(quoted
+            ? {
+                shippingCourier: quoted.courier,
+                shippingServiceId: quoted.serviceId,
+                shippingServiceCode: quoted.serviceCode,
+                shippingQuotedRate: quoted.quotedRate,
+              }
+            : {}),
         };
         await updateDoc(doc(firestore, "compiledOrders", openOrder.id), patch);
         results.push({ ...openOrder, ...patch });
@@ -328,9 +349,9 @@ export const useCompiledOrders = () => {
       const subtotal = newItems.reduce((s, i) => s + i.price, 0);
       const quoted = quotedShippingBySeller[sellerUid];
       const shippingWM =
-        quoted ?? newItems.reduce((m, i) => Math.max(m, i.shippingWM ?? 0), 0);
+        quoted?.shipping ?? newItems.reduce((m, i) => Math.max(m, i.shippingWM ?? 0), 0);
       const shippingEM =
-        quoted ?? newItems.reduce((m, i) => Math.max(m, i.shippingEM ?? 0), 0);
+        quoted?.shipping ?? newItems.reduce((m, i) => Math.max(m, i.shippingEM ?? 0), 0);
       const shipping = region === "WM" ? shippingWM : shippingEM;
       const order: CompiledOrder = {
         id: ref.id,
@@ -347,6 +368,14 @@ export const useCompiledOrders = () => {
         shipping,
         total: subtotal + shipping,
         shippingQuoted: quoted != null,
+        ...(quoted
+          ? {
+              shippingCourier: quoted.courier,
+              shippingServiceId: quoted.serviceId,
+              shippingServiceCode: quoted.serviceCode,
+              shippingQuotedRate: quoted.quotedRate,
+            }
+          : {}),
         status: "pending",
         paymentMethod: "billplz",
         createdAt: Date.now(),

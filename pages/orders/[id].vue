@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-2xl mx-auto">
+  <div class="max-w-5xl mx-auto">
     <NuxtLink
       to="/activity?tab=purchases"
       class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white mb-4"
@@ -49,207 +49,268 @@
         </NuxtLink>
       </div>
 
-      <!-- Header -->
-      <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 mb-4">
-        <div class="flex items-center justify-between mb-2">
-          <div class="min-w-0">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
-              Compiled order
-            </p>
-            <p class="text-xs text-gray-400 dark:text-zinc-500 font-mono">#{{ order.id.slice(0, 8) }}</p>
-          </div>
-          <span
-            class="text-[11px] font-semibold px-2 py-1 rounded-full"
-            :class="statusColor"
-          >
-            {{ statusLabel }}
-          </span>
-        </div>
+      <div class="grid lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-4 items-start">
 
-        <div class="grid grid-cols-2 gap-4 mt-4 text-sm">
-          <div>
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-0.5">
-              Buyer
-            </p>
-            <NuxtLink
-              :to="`/profile/${order.buyerUid}`"
-              class="font-semibold text-ink dark:text-white hover:underline"
-            >
-              {{ order.buyerName }}
-            </NuxtLink>
-          </div>
-          <div>
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-0.5">
-              Seller
-            </p>
-            <NuxtLink
-              :to="`/profile/${order.sellerUid}`"
-              class="font-semibold text-ink dark:text-white hover:underline"
-            >
-              {{ order.sellerName }}
-            </NuxtLink>
-          </div>
-          <div>
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-0.5">
-              Placed
-            </p>
-            <p class="text-ink dark:text-white">{{ formatDate(order.createdAt) }}</p>
-          </div>
-          <div>
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-0.5">
-              Shipping
-            </p>
-            <p class="text-ink dark:text-white">
-              {{ order.region === "WM" ? "West Malaysia" : "East Malaysia" }}
-            </p>
-          </div>
-        </div>
-      </div>
+        <!-- ═══ LEFT: what was bought, and what it cost ═══ -->
+        <div class="space-y-4 min-w-0">
 
-      <!-- Items -->
-      <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 mb-4">
-        <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-3">
-          Items ({{ order.items.length }})
-        </h2>
-        <div class="space-y-3">
-          <NuxtLink
-            v-for="item in order.items"
-            :key="item.cardId"
-            :to="`/cards/${item.cardId}`"
-            class="flex items-center gap-3 hover:opacity-80 transition-opacity"
-          >
-            <div class="w-16 h-16 shrink-0 rounded-lg overflow-hidden">
-              <CardImage :src="item.imageUrl" :alt="item.cardName" />
+          <!-- Header -->
+          <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+            <div class="flex items-start justify-between gap-3 mb-4">
+              <div class="min-w-0">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                  Order
+                </p>
+                <p class="text-sm text-ink dark:text-white font-mono">#{{ order.id.slice(0, 8) }}</p>
+                <p class="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">{{ formatDate(order.createdAt) }}</p>
+              </div>
+              <span class="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-full" :class="statusColor">
+                {{ statusLabel }}
+              </span>
             </div>
-            <div class="flex-1 min-w-0">
-              <p class="font-medium text-sm text-ink dark:text-white truncate">{{ item.cardName }}</p>
-              <p class="text-xs text-gray-500 dark:text-zinc-400 truncate">
-                {{ [item.cardSet, item.condition].filter(Boolean).join(" · ") }}
+
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div class="min-w-0">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-0.5">Buyer</p>
+                <NuxtLink :to="`/profile/${order.buyerUid}`" class="font-semibold text-ink dark:text-white hover:underline truncate block">
+                  {{ order.buyerName }}
+                </NuxtLink>
+              </div>
+              <div class="min-w-0">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-0.5">Seller</p>
+                <NuxtLink :to="`/profile/${order.sellerUid}`" class="font-semibold text-ink dark:text-white hover:underline truncate block">
+                  {{ order.sellerName }}
+                </NuxtLink>
+              </div>
+            </div>
+          </div>
+
+          <!-- Items + money -->
+          <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-3">
+              Items ({{ order.items.length }})
+            </h2>
+            <div class="space-y-3">
+              <NuxtLink
+                v-for="item in order.items"
+                :key="item.cardId"
+                :to="`/cards/${item.cardId}`"
+                class="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              >
+                <div class="w-14 h-14 shrink-0 rounded-lg overflow-hidden">
+                  <CardImage :src="item.imageUrl" :alt="item.cardName" />
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium text-sm text-ink dark:text-white truncate">{{ item.cardName }}</p>
+                  <p class="text-xs text-gray-500 dark:text-zinc-400 truncate">
+                    {{ [item.cardSet, item.condition].filter(Boolean).join(" · ") }}
+                  </p>
+                </div>
+                <p class="font-semibold text-sm tabular-nums text-ink dark:text-white">
+                  RM {{ item.price.toFixed(2) }}
+                </p>
+              </NuxtLink>
+            </div>
+
+            <div class="border-t border-gray-100 dark:border-white/[0.06] mt-4 pt-3 space-y-1 text-sm">
+              <div class="flex justify-between text-gray-600 dark:text-zinc-300">
+                <span>Subtotal</span>
+                <span class="tabular-nums">RM {{ order.subtotal.toFixed(2) }}</span>
+              </div>
+              <div class="flex justify-between text-gray-600 dark:text-zinc-300">
+                <span>
+                  Shipping<template v-if="order.shippingCourier"> · {{ order.shippingCourier }}</template>
+                </span>
+                <span class="tabular-nums">RM {{ order.shipping.toFixed(2) }}</span>
+              </div>
+              <div class="flex justify-between font-bold text-base pt-2 border-t border-gray-100 dark:border-white/[0.06]">
+                <span class="text-ink dark:text-white">Total</span>
+                <span class="text-pokemon-red tabular-nums">RM {{ order.total.toFixed(2) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Invoice -->
+          <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">Invoice</h2>
+                <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+                  <template v-if="invoiceAvailable">
+                    Tax invoice for order #{{ order.id.slice(0, 8) }}.
+                  </template>
+                  <template v-else>
+                    Available once payment has cleared.
+                  </template>
+                </p>
+              </div>
+              <button
+                @click="openInvoice"
+                :disabled="!invoiceAvailable"
+                class="shrink-0 px-3 py-2 rounded-lg text-xs font-bold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                View / print
+              </button>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+            <div class="flex flex-wrap gap-2">
+              <!-- Buyer actions -->
+              <template v-if="role === 'buyer'">
+                <button
+                  v-if="isPayable"
+                  @click="startPayment"
+                  :disabled="paying"
+                  class="px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center gap-2"
+                >
+                  <span v-if="paying" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
+                  Pay online (FPX) · RM {{ order.total.toFixed(2) }}
+                </button>
+                <button
+                  v-if="order.status === 'shipped'"
+                  @click="handleMarkDelivered"
+                  class="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+                >
+                  Mark received
+                </button>
+                <button
+                  v-if="order.status === 'pending' || order.status === 'confirmed'"
+                  @click="handleCancel"
+                  class="px-4 py-2 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-500/10 transition-colors"
+                >
+                  Cancel order
+                </button>
+              </template>
+
+              <!-- Seller actions -->
+              <template v-if="role === 'seller'">
+                <button
+                  v-if="order.status === 'paid' && order.deliveryAddress && !order.shipmentOrderNo"
+                  @click="bookShipment"
+                  :disabled="booking"
+                  class="px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center gap-2"
+                >
+                  <span v-if="booking" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
+                  {{ booking ? "Booking courier…" : "Book courier" }}
+                </button>
+                <button
+                  v-if="order.shipmentOrderNo"
+                  @click="cancelShipment"
+                  :disabled="cancelling"
+                  class="px-4 py-2 rounded-lg text-sm font-semibold border border-red-200 dark:border-red-500/30 text-red-600 hover:bg-red-500/10 transition-colors disabled:opacity-60"
+                >
+                  {{ cancelling ? "Cancelling…" : "Cancel shipment" }}
+                </button>
+                <button
+                  v-if="order.status === 'confirmed' || order.status === 'paid'"
+                  @click="shipDialogOpen = true"
+                  class="px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+                >
+                  Mark shipped
+                </button>
+              </template>
+            </div>
+
+            <p v-if="order.shipmentError && role === 'seller'" class="text-xs text-amber-600 dark:text-amber-400 mt-3">
+              Automatic booking didn't go through: {{ order.shipmentError }}
+            </p>
+            <p v-if="role === 'buyer' && isPayable" class="text-xs text-gray-500 dark:text-zinc-400 mt-3">
+              Pay securely online via FPX. Your order is confirmed to the seller the moment payment clears.
+            </p>
+            <p v-if="order.paymentAmountMismatch" class="text-xs text-red-600 dark:text-red-400 mt-3 font-medium">
+              We couldn't match the amount received against this order's total. It hasn't been settled — please contact support before paying again.
+            </p>
+          </div>
+        </div>
+
+        <!-- ═══ RIGHT: where it's going ═══ -->
+        <div class="space-y-4 min-w-0">
+
+          <!-- Delivery address -->
+          <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
+              Delivery address
+            </h2>
+            <template v-if="order.deliveryAddress">
+              <p class="text-sm font-medium text-ink dark:text-white">{{ order.deliveryAddress.name }}</p>
+              <p class="text-sm text-gray-600 dark:text-zinc-300">{{ order.deliveryAddress.phone }}</p>
+              <p class="text-sm text-gray-600 dark:text-zinc-300 mt-1 leading-relaxed">
+                {{ order.deliveryAddress.address1 }}<template v-if="order.deliveryAddress.address2">, {{ order.deliveryAddress.address2 }}</template><br/>
+                {{ order.deliveryAddress.postcode }} {{ order.deliveryAddress.city }}<br/>
+                {{ stateName(order.deliveryAddress.state) }}
               </p>
-            </div>
-            <p class="font-semibold text-sm tabular-nums text-ink dark:text-white">
-              RM {{ item.price.toFixed(2) }}
+              <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-2">
+                {{ order.region === "WM" ? "West Malaysia" : "East Malaysia" }}
+              </p>
+            </template>
+            <p v-else class="text-sm text-gray-500 dark:text-zinc-400">
+              No address yet — added at payment.
             </p>
-          </NuxtLink>
-        </div>
-
-        <div class="border-t border-gray-100 dark:border-white/[0.06] mt-4 pt-3 space-y-1 text-sm">
-          <div class="flex justify-between text-gray-600 dark:text-zinc-300">
-            <span>Subtotal</span>
-            <span class="tabular-nums">RM {{ order.subtotal.toFixed(2) }}</span>
           </div>
-          <div class="flex justify-between text-gray-600 dark:text-zinc-300">
-            <span>Shipping ({{ order.region }})</span>
-            <span class="tabular-nums">RM {{ order.shipping.toFixed(2) }}</span>
-          </div>
-          <div class="flex justify-between font-bold text-base pt-2 border-t border-gray-100 dark:border-white/[0.06]">
-            <span class="text-ink dark:text-white">Total</span>
-            <span class="text-pokemon-red tabular-nums">RM {{ order.total.toFixed(2) }}</span>
+
+          <!-- Waybill / tracking -->
+          <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
+              Waybill
+            </h2>
+
+            <template v-if="order.trackingNumber || order.shipmentOrderNo">
+              <p v-if="order.trackingNumber" class="font-mono font-semibold text-sm text-ink dark:text-white break-all">
+                {{ order.trackingNumber }}
+              </p>
+              <p v-if="order.shippingCarrier" class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                via {{ order.shippingCarrier }}
+              </p>
+
+              <!-- Minimised label preview; click to open full size -->
+              <div v-if="order.awbLink && role === 'seller'" class="mt-3">
+                <button
+                  @click="openLabel"
+                  class="block w-full rounded-lg border border-gray-200 dark:border-white/[0.10] overflow-hidden bg-gray-50 dark:bg-white/[0.04] hover:border-pokemon-red transition-colors group"
+                  title="Open full size"
+                >
+                  <iframe
+                    v-if="isPdf(order.awbLink)"
+                    :src="`${order.awbLink}#toolbar=0&navpanes=0&view=FitH`"
+                    class="w-full h-44 pointer-events-none"
+                    loading="lazy"
+                    title="Waybill preview"
+                  />
+                  <img v-else :src="order.awbLink" alt="Waybill" class="w-full h-44 object-contain" loading="lazy"/>
+                  <span class="block text-[11px] font-semibold text-gray-600 dark:text-zinc-300 py-1.5 group-hover:text-pokemon-red">
+                    Open full size ↗
+                  </span>
+                </button>
+              </div>
+
+              <button
+                v-if="order.shipmentOrderNo && role === 'seller'"
+                @click="fetchLabel"
+                :disabled="labelBusy"
+                class="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-pokemon-red hover:underline disabled:opacity-60"
+              >
+                <span v-if="labelBusy" class="animate-spin rounded-full h-3 w-3 border-b-2 border-pokemon-red"/>
+                {{ labelBusy ? "Fetching…" : order.awbLink ? "Refresh label" : "Get consignment note" }}
+              </button>
+            </template>
+
+            <template v-else>
+              <p class="text-sm text-gray-500 dark:text-zinc-400">
+                <template v-if="order.status === 'pending' || order.status === 'confirmed'">
+                  Generated automatically once payment clears.
+                </template>
+                <template v-else-if="role === 'seller'">
+                  Not booked yet — use "Book courier".
+                </template>
+                <template v-else>
+                  The seller hasn't dispatched this yet.
+                </template>
+              </p>
+            </template>
           </div>
         </div>
-      </div>
-
-      <!-- Delivery address -->
-      <div
-        v-if="order.deliveryAddress"
-        class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 mb-4"
-      >
-        <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
-          Delivery address
-        </h2>
-        <p class="text-sm font-medium text-ink dark:text-white">{{ order.deliveryAddress.name }} · {{ order.deliveryAddress.phone }}</p>
-        <p class="text-sm text-gray-600 dark:text-zinc-300">
-          {{ order.deliveryAddress.address1 }}<template v-if="order.deliveryAddress.address2">, {{ order.deliveryAddress.address2 }}</template>,
-          {{ order.deliveryAddress.postcode }} {{ order.deliveryAddress.city }}, {{ stateName(order.deliveryAddress.state) }}
-        </p>
-      </div>
-
-      <!-- Tracking -->
-      <div
-        v-if="order.trackingNumber"
-        class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 mb-4"
-      >
-        <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
-          Tracking
-        </h2>
-        <p class="font-mono font-semibold text-ink dark:text-white">{{ order.trackingNumber }}</p>
-        <p v-if="order.shippingCarrier" class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-          via {{ order.shippingCarrier }}
-        </p>
-        <button
-          v-if="order.shipmentOrderNo && role === 'seller'"
-          @click="fetchLabel"
-          :disabled="labelBusy"
-          class="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-pokemon-red hover:underline disabled:opacity-60"
-        >
-          <span v-if="labelBusy" class="animate-spin rounded-full h-3 w-3 border-b-2 border-pokemon-red"/>
-          {{ labelBusy ? "Fetching label…" : "Download consignment note →" }}
-        </button>
-      </div>
-
-      <!-- Actions -->
-      <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-        <div class="flex flex-wrap gap-2">
-          <!-- Buyer actions -->
-          <template v-if="role === 'buyer'">
-            <button
-              v-if="isPayable"
-              @click="startPayment"
-              :disabled="paying"
-              class="px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center gap-2"
-            >
-              <span v-if="paying" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
-              Pay online (FPX) · RM {{ order.total.toFixed(2) }}
-            </button>
-            <button
-              v-if="order.status === 'shipped'"
-              @click="handleMarkDelivered"
-              class="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
-            >
-              Mark received
-            </button>
-            <button
-              v-if="order.status === 'pending' || order.status === 'confirmed'"
-              @click="handleCancel"
-              class="px-4 py-2 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-500/10 transition-colors"
-            >
-              Cancel order
-            </button>
-          </template>
-
-          <!-- Seller actions -->
-          <template v-if="role === 'seller'">
-            <button
-              v-if="order.status === 'paid' && order.deliveryAddress"
-              @click="bookShipment"
-              :disabled="booking"
-              class="px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center gap-2"
-            >
-              <span v-if="booking" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
-              {{ booking ? "Booking courier…" : "Book courier & get label" }}
-            </button>
-            <button
-              v-if="order.status === 'confirmed' || order.status === 'paid'"
-              @click="shipDialogOpen = true"
-              class="px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
-            >
-              Mark shipped
-            </button>
-          </template>
-        </div>
-
-        <p v-if="role === 'buyer' && isPayable" class="text-xs text-gray-500 dark:text-zinc-400 mt-3">
-          Pay securely online via FPX. Your order is confirmed to the seller the moment payment clears.
-        </p>
-        <p v-if="role === 'seller' && (order.status === 'confirmed' || order.status === 'paid')" class="text-xs text-gray-500 dark:text-zinc-400 mt-3">
-          "Book courier & get label" books the courier the buyer already paid for and gives you the consignment note. Or ship it yourself and use "Mark shipped" with your own tracking number.
-        </p>
-        <p v-if="role === 'seller' && order.status === 'pending'" class="text-xs text-gray-500 dark:text-zinc-400 mt-3">
-          The buyer can pay online (you'll see the order flip to Paid automatically), or after a manual payment tap "Confirm order".
-        </p>
-        <p v-if="order.paymentAmountMismatch" class="text-xs text-red-600 dark:text-red-400 mt-3 font-medium">
-          We couldn't match the amount received against this order's total. It hasn't been settled — please contact support before paying again.
-        </p>
       </div>
     </template>
 
@@ -541,6 +602,43 @@ const bookShipment = async () => {
     alert(e?.data?.message || "Couldn't book the courier.");
   } finally {
     booking.value = false;
+  }
+};
+
+// Invoice is only meaningful once money has actually changed hands.
+const invoiceAvailable = computed(
+  () => !!order.value && ["paid", "shipped", "delivered"].includes(order.value.status),
+);
+const openInvoice = () => {
+  if (!order.value || !invoiceAvailable.value) return;
+  window.open(`/invoices/${order.value.id}`, "_blank", "noopener");
+};
+
+// Delyva serves labels as PDFs, but not always — fall back to an <img>.
+const isPdf = (url: string) => /\.pdf(\?|$)/i.test(url) || /pdf/i.test(url);
+const openLabel = () => {
+  if (order.value?.awbLink) window.open(order.value.awbLink, "_blank", "noopener");
+};
+
+const cancelling = ref(false);
+const cancelShipment = async () => {
+  if (!order.value || cancelling.value) return;
+  if (
+    !confirm(
+      "Cancel this shipment with the courier?\n\nOnly possible before a courier is assigned. Delyva does not guarantee the shipping charge is credited back.",
+    )
+  )
+    return;
+  cancelling.value = true;
+  try {
+    await authedFetch("/api/shipping/cancel", {
+      method: "POST",
+      body: { orderId: order.value.id },
+    });
+  } catch (e: any) {
+    alert(e?.data?.message || "Couldn't cancel the shipment.");
+  } finally {
+    cancelling.value = false;
   }
 };
 
