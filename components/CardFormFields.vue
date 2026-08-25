@@ -362,8 +362,9 @@ export interface CardFormData {
   grade: string;
   customGradingProvider: string;
   description: string;
-  shippingWM: number;
-  shippingEM: number;
+  // Legacy — no longer edited; shipping is quoted live at checkout.
+  shippingWM?: number;
+  shippingEM?: number;
   language: string;
   tcgType: string;
   // Visual metadata — scanner auto-fills these; users can correct.

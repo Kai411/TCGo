@@ -125,34 +125,13 @@
             <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
               Shipping
             </h3>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label
-                  class="block text-xs text-gray-600 dark:text-zinc-300 mb-1"
-                  >West Malaysia (RM)</label
-                >
-                <input
-                  v-model.number="cardForm.shippingWM"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-                />
-              </div>
-              <div>
-                <label
-                  class="block text-xs text-gray-600 dark:text-zinc-300 mb-1"
-                  >East Malaysia (RM)</label
-                >
-                <input
-                  v-model.number="cardForm.shippingEM"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-                />
-              </div>
-            </div>
+            <p class="text-xs text-gray-500 dark:text-zinc-400">
+              Buyers are quoted a live courier rate from your pickup address to
+              theirs at checkout — there's no price to set per listing.
+              <NuxtLink to="/inventory/verify" class="text-pokemon-red hover:underline">
+                Check your pickup address →
+              </NuxtLink>
+            </p>
           </div>
         </div>
 
@@ -229,8 +208,6 @@ const cardForm = ref<CardFormData>({
   grade: "",
   customGradingProvider: "",
   description: "",
-  shippingWM: 8,
-  shippingEM: 12,
   language: "EN",
   tcgType: "Pokemon",
   rarity: "",
@@ -266,8 +243,6 @@ watch(
         grade: c.grade || "",
         customGradingProvider: c.customGradingProvider || "",
         description: c.description || "",
-        shippingWM: c.shippingWM ?? 8,
-        shippingEM: c.shippingEM ?? 12,
         language: c.language || "EN",
         tcgType: c.tcgType || "Pokemon",
         rarity: c.rarity || "",
@@ -347,8 +322,6 @@ const handleSubmit = async () => {
       customGradingProvider: cardForm.value.customGradingProvider,
       description: cardForm.value.description,
       price: price.value,
-      shippingWM: cardForm.value.shippingWM,
-      shippingEM: cardForm.value.shippingEM,
       imageUrl: allImages[0] || "",
       imageUrls: allImages,
       language: cardForm.value.language || "EN",

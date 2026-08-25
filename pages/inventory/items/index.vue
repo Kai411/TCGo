@@ -292,19 +292,10 @@
               <option v-for="c in CONDITIONS" :key="c" :value="c">{{ c }}</option>
             </select>
           </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Ship WM (RM)</label>
-              <input v-model.number="listForm.shippingWM" type="number" min="0" step="0.01" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"/>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Ship EM (RM)</label>
-              <input v-model.number="listForm.shippingEM" type="number" min="0" step="0.01" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"/>
-            </div>
-          </div>
         </div>
         <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-3">
           Lists with the catalog image. Add a real photo from the listing later for graded/played cards.
+          Shipping is quoted live from your pickup address at checkout — you don't set a price here.
         </p>
         <div class="flex gap-2 mt-4">
           <button @click="listing = null" class="flex-1 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200">Cancel</button>
@@ -496,8 +487,6 @@ const bulkList = async () => {
         sellerUid: user.value!.uid,
         price: i.listPrice,
         condition: i.condition || CONDITIONS[0],
-        shippingWM: profile.value?.shippingWM ?? 8,
-        shippingEM: profile.value?.shippingEM ?? 12,
       });
     }
     clearSelection();
@@ -596,8 +585,6 @@ const listingBusy = ref(false);
 const listForm = ref({
   price: 0,
   condition: "",
-  shippingWM: 0,
-  shippingEM: 0,
 });
 
 const openListDialog = (item: InventoryItem) => {
@@ -605,8 +592,6 @@ const openListDialog = (item: InventoryItem) => {
   listForm.value = {
     price: item.listPrice || 0,
     condition: item.condition || CONDITIONS[0],
-    shippingWM: profile.value?.shippingWM ?? 8,
-    shippingEM: profile.value?.shippingEM ?? 12,
   };
 };
 
@@ -624,8 +609,6 @@ const confirmList = async () => {
       sellerUid: user.value.uid,
       price: listForm.value.price,
       condition: listForm.value.condition,
-      shippingWM: listForm.value.shippingWM,
-      shippingEM: listForm.value.shippingEM,
     });
     listing.value = null;
   } catch (e: any) {

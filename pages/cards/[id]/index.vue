@@ -225,12 +225,8 @@
               <p class="text-pokemon-red text-2xl font-bold mt-4">
                 RM {{ card.price.toFixed(2) }}
               </p>
-              <p
-                v-if="card.shippingWM || card.shippingEM"
-                class="text-xs text-gray-500 dark:text-zinc-400 mt-1"
-              >
-                Shipping: WM RM {{ (card.shippingWM ?? 0).toFixed(2) }} · EM RM
-                {{ (card.shippingEM ?? 0).toFixed(2) }}
+              <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+                + shipping, quoted at checkout for your address
               </p>
 
               <div v-if="card.description" class="mt-4">

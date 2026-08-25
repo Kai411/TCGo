@@ -24,8 +24,10 @@ export interface Card {
   customGradingProvider: string;
   description: string;
   price: number;
-  shippingWM: number;
-  shippingEM: number;
+  // Legacy per-listing shipping. Superseded by live courier quotes at
+  // checkout; retained so existing listings keep the same document shape.
+  shippingWM?: number;
+  shippingEM?: number;
   imageUrl: string;
   imageUrls: string[];
   seller: string;
@@ -123,6 +125,9 @@ export const useCards = () => {
   ) => {
     const newCard = {
       ...card,
+      // Firestore rejects undefined, and these are no longer collected.
+      shippingWM: card.shippingWM ?? 0,
+      shippingEM: card.shippingEM ?? 0,
       createdAt: Date.now(),
       sold: false,
       interestedCount: 0,

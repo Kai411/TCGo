@@ -83,8 +83,11 @@ export interface ListOptions {
   sellerUid: string;
   price: number;
   condition: string;
-  shippingWM: number;
-  shippingEM: number;
+  // Legacy per-listing shipping. Shipping is quoted live from the seller's
+  // pickup address at checkout, so callers no longer supply these — kept
+  // optional so older listings keep the same document shape.
+  shippingWM?: number;
+  shippingEM?: number;
   description?: string;
   productType?: string;
 }
@@ -221,8 +224,9 @@ export const useInventory = () => {
       customGradingProvider: "",
       description: opts.description || "",
       price: opts.price,
-      shippingWM: opts.shippingWM,
-      shippingEM: opts.shippingEM,
+      // Never write undefined — Firestore rejects it.
+      shippingWM: opts.shippingWM ?? 0,
+      shippingEM: opts.shippingEM ?? 0,
       imageUrl: item.primaryImage,
       imageUrls: item.primaryImage ? [item.primaryImage] : [],
       seller: opts.sellerName,
