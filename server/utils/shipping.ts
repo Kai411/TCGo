@@ -62,7 +62,7 @@ export const quoteOrderShipping = async (
 
   const preference: HandoverPreference =
     seller.handoverPreference === "pickup" ? "pickup" : "dropoff";
-  const quote = quoteForOrder(rates, preference);
+  const quote = quoteForOrder(rates, preference, seller.preferredCouriers ?? []);
   if (!quote) return null;
 
   return {

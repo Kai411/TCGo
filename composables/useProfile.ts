@@ -76,6 +76,10 @@ export interface UserProfile {
   // allowed to quote — the cheapest rate is usually drop-off only, and quoting
   // it to a seller who expects collection gives a price they can't book at.
   handoverPreference?: "dropoff" | "pickup";
+  // Courier brands this seller would rather ship with, e.g. ["J&T Express"].
+  // Best-effort: if none serve a given route, quoting falls back to the
+  // cheapest available rather than blocking the sale.
+  preferredCouriers?: string[];
   sellerKycCompletedAt?: number;
 }
 

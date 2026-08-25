@@ -108,7 +108,11 @@ export const delyvaQuote = async (input: {
       return {
         serviceId: String(s.service?.id ?? ""),
         serviceCode: s.service?.code ?? "",
-        courier: s.service?.serviceCompany?.name || name.replace(/\s*\(DROP\)\s*/i, "").trim(),
+        // Brand comes from the service name with the "(DROP)" suffix removed.
+        // serviceCompany.name is unreliable for this: it keeps the suffix and
+        // sometimes names the parent ("KEX" for ABX Express), which is not
+        // what a seller or buyer recognises.
+        courier: name.replace(/\s*\(\s*DROP\s*\)\s*/i, " ").trim(),
         serviceName: name,
         price: Number(s.price?.amount ?? 0),
         dropoffOnly: isDropoffOnly(name),

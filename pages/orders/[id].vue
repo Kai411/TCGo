@@ -863,6 +863,20 @@ const openLabel = () => {
   if (labelUrl.value) window.open(labelUrl.value, "_blank", "noopener");
 };
 
+// Pull the label in as soon as a seller opens a booked order. Bookings now
+// happen automatically in the payment webhook, so there's no client-side
+// moment to fetch it — without this the seller just sees a button and
+// reasonably concludes no label was generated.
+watch(
+  [() => order.value?.shipmentOrderNo, role],
+  ([shipmentNo, r]) => {
+    if (shipmentNo && r === "seller" && !labelUrl.value && !labelBusy.value) {
+      void fetchLabel();
+    }
+  },
+  { immediate: true },
+);
+
 onBeforeUnmount(revokeLabel);
 
 const createBillAndRedirect = async () => {

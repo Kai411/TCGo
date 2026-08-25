@@ -62,7 +62,7 @@ export default defineEventHandler(async (event) => {
 
   const preference: HandoverPreference =
     seller.handoverPreference === "pickup" ? "pickup" : "dropoff";
-  const quote = quoteForOrder(rates, preference);
+  const quote = quoteForOrder(rates, preference, seller.preferredCouriers ?? []);
   if (!quote) {
     return { available: false, reason: "No courier serves this route right now." };
   }

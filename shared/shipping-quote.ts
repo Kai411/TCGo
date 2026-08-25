@@ -66,13 +66,37 @@ export const usableRates = (
   return [...usable].sort((a, b) => a.price - b.price);
 };
 
-// The quote we commit to the order. Cheapest usable service plus buffer.
+// The quote we commit to the order.
+//
+// Cheapest usable service, unless the seller has named couriers they prefer
+// and at least one serves this route — then it's the cheapest of those. A
+// preference is not a guarantee: courier availability varies by destination
+// (J&T reaches Penang but not every Sabah postcode), so an unavailable
+// preference silently falls back rather than blocking the sale.
 export const quoteForOrder = (
   rates: CourierRate[],
   preference: HandoverPreference,
-): { rate: CourierRate; buyerPrice: number } | null => {
+  preferredCouriers: string[] = [],
+): { rate: CourierRate; buyerPrice: number; preferredUsed: boolean } | null => {
   const usable = usableRates(rates, preference);
-  const cheapest = usable[0];
-  if (!cheapest) return null;
-  return { rate: cheapest, buyerPrice: buyerShippingPrice(cheapest.price) };
+  if (!usable.length) return null;
+
+  const wanted = preferredCouriers.map((c) => c.trim().toLowerCase()).filter(Boolean);
+  const preferred = wanted.length
+    ? usable.filter((r) => wanted.includes(r.courier.trim().toLowerCase()))
+    : [];
+
+  const chosen = preferred[0] ?? usable[0]!;
+  return {
+    rate: chosen,
+    buyerPrice: buyerShippingPrice(chosen.price),
+    preferredUsed: preferred.length > 0,
+  };
+};
+
+// Distinct courier brands in a set of rates, cheapest-first order preserved.
+export const courierBrands = (rates: CourierRate[]): string[] => {
+  const seen: string[] = [];
+  for (const r of rates) if (r.courier && !seen.includes(r.courier)) seen.push(r.courier);
+  return seen;
 };

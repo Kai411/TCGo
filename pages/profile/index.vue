@@ -278,6 +278,40 @@
           </div>
         </div>
 
+        <!-- Preferred couriers -->
+        <div>
+          <p class="text-sm font-semibold text-gray-800 dark:text-zinc-100 mb-1">Preferred couriers</p>
+          <p class="text-sm text-gray-500 dark:text-zinc-400 mb-2">
+            We'll use the cheapest of these when one serves the buyer's address.
+            Coverage varies by destination, so if none reach a buyer we fall back
+            to the cheapest available rather than blocking the sale. Pick none to
+            always take the cheapest.
+          </p>
+
+          <p v-if="couriersLoading" class="text-sm text-gray-400 dark:text-zinc-500">Loading couriers…</p>
+          <p v-else-if="courierNotice" class="text-sm text-amber-600 dark:text-amber-400">
+            {{ courierNotice }}
+          </p>
+          <div v-else class="flex flex-wrap gap-2">
+            <button
+              v-for="c in availableCouriers"
+              :key="c"
+              @click="toggleCourier(c)"
+              :disabled="savingCouriers"
+              class="px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors disabled:opacity-50"
+              :class="preferredCouriers.includes(c)
+                ? 'border-pokemon-red bg-pokemon-red/[0.08] text-pokemon-red'
+                : 'border-gray-300 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:border-gray-400'"
+            >
+              {{ c }}
+            </button>
+          </div>
+          <p v-if="!couriersLoading && !courierNotice && !preferredCouriers.length"
+             class="text-[11px] text-gray-400 dark:text-zinc-500 mt-2">
+            None selected — always using the cheapest available.
+          </p>
+        </div>
+
         <!-- Staff — placeholder -->
         <div class="opacity-60">
           <div class="flex items-center gap-2 mb-1">
@@ -669,6 +703,54 @@ const setHandover = async (value: "dropoff" | "pickup") => {
 };
 
 const { sellerReady } = useSellerKyc();
+
+// ── Preferred couriers ────────────────────────────────────────────────
+// The list comes from Delyva, quoted against this seller's own pickup
+// address, so it only offers couriers that actually serve them.
+const { authedFetch } = useAuthedFetch();
+const availableCouriers = ref<string[]>([]);
+const preferredCouriers = ref<string[]>([]);
+const couriersLoading = ref(false);
+const courierNotice = ref("");
+const savingCouriers = ref(false);
+
+const loadCouriers = async () => {
+  if (!user.value || couriersLoading.value) return;
+  couriersLoading.value = true;
+  courierNotice.value = "";
+  try {
+    const res = await authedFetch<{ available: string[]; selected?: string[]; reason?: string }>(
+      "/api/shipping/couriers",
+    );
+    availableCouriers.value = res.available || [];
+    preferredCouriers.value = res.selected || [];
+    if (!availableCouriers.value.length) {
+      courierNotice.value = res.reason || "No couriers available from your pickup address yet.";
+    }
+  } catch (e: any) {
+    courierNotice.value = e?.data?.message || "Couldn't load couriers.";
+  } finally {
+    couriersLoading.value = false;
+  }
+};
+
+watch(user, (u) => { if (u) void loadCouriers(); }, { immediate: true });
+
+const toggleCourier = async (courier: string) => {
+  if (savingCouriers.value) return;
+  const before = [...preferredCouriers.value];
+  preferredCouriers.value = before.includes(courier)
+    ? before.filter((c) => c !== courier)
+    : [...before, courier];
+  savingCouriers.value = true;
+  try {
+    await updateProfile({ preferredCouriers: preferredCouriers.value });
+  } catch {
+    preferredCouriers.value = before;
+  } finally {
+    savingCouriers.value = false;
+  }
+};
 
 const pickupLine = computed(() => {
   const p = profile.value;
