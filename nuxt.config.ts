@@ -192,6 +192,12 @@ export default defineNuxtConfig({
     billplzCollectionId: "",
     billplzXSignatureKey: "",
     billplzSandbox: "",
+    // Mailtrap. mailtrapInboxId set = sandbox (captured, not delivered);
+    // clear it once a sending domain is verified to deliver for real.
+    mailtrapApiToken: "",
+    mailtrapInboxId: "",
+    mailFrom: "",
+    mailFromName: "",
     // Delyva (courier aggregator) — live shipping quotes at checkout.
     delyvaApiKey: "",
     delyvaCustomerId: "",

@@ -143,14 +143,26 @@
                     Available once payment has cleared.
                   </template>
                 </p>
+                <p v-if="invoiceStatus" class="text-xs mt-1" :class="invoiceStatusTone">
+                  {{ invoiceStatus }}
+                </p>
               </div>
-              <button
-                @click="openInvoice"
-                :disabled="!invoiceAvailable"
-                class="shrink-0 px-3 py-2 rounded-lg text-xs font-bold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                View / print
-              </button>
+              <div class="shrink-0 flex gap-2">
+                <button
+                  @click="emailInvoice"
+                  :disabled="!invoiceAvailable || emailingInvoice"
+                  class="px-3 py-2 rounded-lg text-xs font-bold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {{ emailingInvoice ? "Sending…" : order.invoiceEmailedAt ? "Resend email" : "Email to me" }}
+                </button>
+                <button
+                  @click="openInvoice"
+                  :disabled="!invoiceAvailable"
+                  class="px-3 py-2 rounded-lg text-xs font-bold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  View / print
+                </button>
+              </div>
             </div>
           </div>
 
@@ -684,6 +696,55 @@ const bookShipment = async () => {
 const invoiceAvailable = computed(
   () => !!order.value && ["paid", "shipped", "delivered"].includes(order.value.status),
 );
+// Emailing the invoice. Sandbox sends are captured by Mailtrap and never
+// reach the buyer, so that's said plainly rather than reported as "sent".
+const emailingInvoice = ref(false);
+const invoiceSendResult = ref<{ sent: boolean; sandbox?: boolean; error?: string } | null>(null);
+
+const emailInvoice = async () => {
+  if (!order.value || emailingInvoice.value) return;
+  emailingInvoice.value = true;
+  invoiceSendResult.value = null;
+  try {
+    const res = await authedFetch<{ sent: boolean; sandbox?: boolean }>(
+      "/api/invoices/send",
+      { method: "POST", body: { orderId: order.value.id } },
+    );
+    invoiceSendResult.value = { sent: res.sent, sandbox: res.sandbox };
+  } catch (e: any) {
+    invoiceSendResult.value = {
+      sent: false,
+      error: e?.data?.message || "Couldn't send the invoice.",
+    };
+  } finally {
+    emailingInvoice.value = false;
+  }
+};
+
+const invoiceStatus = computed(() => {
+  const r = invoiceSendResult.value;
+  if (r?.error) return r.error;
+  if (r?.sent) {
+    return r.sandbox
+      ? "Captured in the Mailtrap sandbox — not delivered to a real inbox."
+      : "Sent. Check your inbox.";
+  }
+  const o = order.value;
+  if (!o?.invoiceEmailedAt) return "";
+  const when = formatDate(o.invoiceEmailedAt);
+  return o.invoiceEmailSandbox
+    ? `Captured in the sandbox on ${when} — not delivered.`
+    : `Emailed to ${o.invoiceEmailedTo || "you"} on ${when}.`;
+});
+
+const invoiceStatusTone = computed(() => {
+  const r = invoiceSendResult.value;
+  if (r?.error) return "text-red-600 dark:text-red-400";
+  if (order.value?.invoiceEmailSandbox || r?.sandbox)
+    return "text-amber-600 dark:text-amber-400";
+  return "text-emerald-600 dark:text-emerald-400";
+});
+
 const openInvoice = () => {
   if (!order.value || !invoiceAvailable.value) return;
   window.open(`/invoices/${order.value.id}`, "_blank", "noopener");

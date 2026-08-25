@@ -112,6 +112,13 @@ export interface CompiledOrder {
     state: string; // EasyParcel state code
   };
 
+  // Invoice email bookkeeping. `invoiceEmailSandbox` records that the message
+  // was captured by Mailtrap's sandbox rather than delivered, so a "sent"
+  // timestamp can't be mistaken for the buyer having received it.
+  invoiceEmailedAt?: number;
+  invoiceEmailedTo?: string;
+  invoiceEmailSandbox?: boolean;
+
   // Set when this order was created by winning an auction, rather than from
   // the cart. The single item's cardId is the auction id.
   auctionId?: string;

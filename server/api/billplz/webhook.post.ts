@@ -11,6 +11,7 @@ import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { verifyBillplzSignature } from "~/server/utils/billplz";
 import { computeSellerPayout, platformFeeFor } from "~/shared/payouts";
 import { bookShipmentForOrder } from "~/server/utils/book-shipment";
+import { sendInvoiceForOrder } from "~/server/utils/send-invoice";
 
 export default defineEventHandler(async (event) => {
   const body = (await readBody(event)) as Record<string, string>;
@@ -150,5 +151,17 @@ export default defineEventHandler(async (event) => {
     shipment = { booked: false, reason: e?.message || "Booking failed" };
   }
 
-  return { ok: true, shipmentBooked: shipment.booked };
+  // Email the invoice. Non-fatal for the same reason as booking: Billplz
+  // retries non-2xx callbacks, and a mail provider hiccup must not re-run
+  // settlement. The buyer can resend it from the order page.
+  let invoiceEmailed = false;
+  try {
+    const mail = await sendInvoiceForOrder(db, orderRef.id);
+    invoiceEmailed = mail.sent;
+    if (!mail.sent) console.warn("[billplz webhook] invoice not emailed:", mail.reason);
+  } catch (e: any) {
+    console.error("[billplz webhook] invoice email failed:", e?.message || e);
+  }
+
+  return { ok: true, shipmentBooked: shipment.booked, invoiceEmailed };
 });
