@@ -7,7 +7,11 @@
 // listens live).
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
-import { billplzBaseUrl, billplzAuthHeader } from "~/server/utils/billplz";
+import {
+  billplzBaseUrl,
+  billplzAuthHeader,
+  billplzDeleteBill,
+} from "~/server/utils/billplz";
 import { requireUser } from "~/server/utils/auth";
 import { regionForState, totalForRegion } from "~/shared/shipping";
 import { quoteOrderShipping } from "~/server/utils/shipping";
@@ -96,6 +100,14 @@ export default defineEventHandler(async (event) => {
     order.total = total;
   }
   const amount = Math.round(total * 100); // MYR sen
+
+  // A re-created bill supersedes the previous one. Void the old bill so a
+  // stale payment tab can't collect an out-of-date amount for this order —
+  // Billplz refuses to delete a paid bill, and anything else that slips
+  // through is caught by the webhook's amount check.
+  if (order.billplzBillId) {
+    await billplzDeleteBill(order.billplzBillId).catch(() => {});
+  }
 
   const form = new URLSearchParams({
     collection_id: collectionId,

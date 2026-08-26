@@ -7,7 +7,7 @@
 
     <template v-else>
       <div class="flex items-center gap-2 mb-1">
-        <NuxtLink to="/inventory" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">
+        <NuxtLink to="/seller" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           Dashboard
         </NuxtLink>
@@ -17,27 +17,51 @@
         Money collected from your online (FPX) sales, held by TCGo until payout. In-person (POS) sales aren't shown here — you receive those directly.
       </p>
 
-      <!-- Available — the hero card -->
-      <div class="rounded-2xl bg-gradient-to-br from-pokemon-red to-red-700 text-white p-5 mb-3 shadow-sm">
-        <p class="text-xs font-semibold uppercase tracking-wide text-white/70">Available for payout</p>
-        <p class="text-3xl font-extrabold tabular-nums mt-1">RM {{ fmt(availableTotal) }}</p>
-        <div class="mt-4 flex items-center gap-3">
-          <button
-            @click="doRequestPayout"
-            :disabled="availableTotal <= 0 || requesting"
-            class="px-4 py-2 rounded-lg text-sm font-bold bg-white text-pokemon-red hover:bg-white/90 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+      <!-- Available — the hero card.
+           Deliberately NOT the brand red: money you're owed is good news, and a
+           red gradient made the primary balance read like an error banner. Dark
+           ink keeps the hero weight; emerald carries the "ready" meaning. -->
+      <div
+        class="relative overflow-hidden rounded-2xl p-5 mb-3 bg-ink dark:bg-[#202027] border border-transparent dark:border-white/[0.08]"
+      >
+        <!-- Soft emerald wash, purely decorative -->
+        <div
+          class="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-40"
+          style="background: radial-gradient(50% 50% at 50% 50%, rgba(16,185,129,0.55) 0%, rgba(16,185,129,0) 100%)"
+          aria-hidden="true"
+        />
+        <div class="relative">
+          <p class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-white/60">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            Available for payout
+          </p>
+          <p class="text-3xl sm:text-4xl font-bold tabular-price text-white mt-2 tracking-tightest">
+            RM {{ fmt(availableTotal) }}
+          </p>
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              @click="doRequestPayout"
+              :disabled="availableTotal <= 0 || requesting"
+              class="px-4 py-2 rounded-lg text-sm font-bold bg-white text-ink hover:bg-white/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
+            >
+              <span v-if="requesting" class="animate-spin rounded-full h-4 w-4 border-b-2 border-ink" />
+              Request payout
+            </button>
+            <p v-if="bankLine" class="text-xs text-white/70 min-w-0 truncate">to {{ bankLine }}</p>
+          </div>
+          <p v-if="!bankLine" class="text-xs text-white/70 mt-2">
+            <NuxtLink to="/seller/verify" class="underline font-semibold text-white">Add your bank account</NuxtLink>
+            to receive payouts.
+          </p>
+          <!-- A failed transfer IS a problem, so this one keeps a warning tone. -->
+          <p
+            v-if="lastFailureReason"
+            class="text-xs text-amber-100 mt-3 bg-amber-500/20 border border-amber-400/30 rounded-lg px-3 py-2"
           >
-            <span v-if="requesting" class="animate-spin rounded-full h-4 w-4 border-b-2 border-pokemon-red"/>
-            Request payout
-          </button>
-          <p v-if="bankLine" class="text-xs text-white/80 min-w-0 truncate">to {{ bankLine }}</p>
+            A previous transfer didn't go through ({{ lastFailureReason }}). The funds are
+            available again — check your bank details and request once more.
+          </p>
         </div>
-        <p v-if="!bankLine" class="text-xs text-white/80 mt-2">
-          <NuxtLink to="/inventory/verify" class="underline font-semibold">Add your bank account</NuxtLink> to receive payouts.
-        </p>
-        <p v-if="lastFailureReason" class="text-xs text-white/90 mt-2 bg-black/20 rounded-lg px-3 py-2">
-          A previous transfer didn't go through ({{ lastFailureReason }}). The funds are available again — check your bank details and request once more.
-        </p>
       </div>
 
       <!-- Pending + Locked -->
@@ -100,8 +124,8 @@ import { PAYOUT_HOLD_DAYS, type FundEntry } from "~/composables/useSellerFunds";
 import { bankName, resolveBankCode } from "~/shared/banks";
 import { payoutDetailsComplete } from "~/shared/payout-details";
 
-definePageMeta({ layout: "inventory" });
-useHead({ title: "Inventory · Funds | TCGo" });
+definePageMeta({ layout: "seller" });
+useHead({ title: "Seller · Funds | TCGo" });
 
 const { user, signInWithGoogle } = useAuth();
 const { profile } = useMyProfile();
@@ -152,7 +176,7 @@ const doRequestPayout = async () => {
   if (requesting.value || availableTotal.value <= 0) return;
   if (!bankLine.value) {
     if (confirm("Add your bank account and IC number first to receive payouts. Go to verification?")) {
-      navigateTo("/inventory/verify");
+      navigateTo("/seller/verify");
     }
     return;
   }

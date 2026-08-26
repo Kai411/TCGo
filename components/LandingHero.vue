@@ -48,9 +48,10 @@
         ref="sub"
         class="mx-auto mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-ink-muted"
       >
-        TCGo is the point-of-sale and inventory system built for card shops —
-        counter sales and online orders on one stock ledger, live market pricing,
-        and shipping labels straight from the platform.
+        TCGo is Malaysia's marketplace for trading cards — backed by a
+        point-of-sale and inventory system that keeps your counter sales and
+        online orders on one stock ledger, with live market pricing and
+        shipping labels built in.
       </p>
 
       <div
@@ -110,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-const nodes = ["POS", "Inventory", "Pricing", "Shipping"];
+const nodes = ["POS", "Inventory", "Pricing", "Reports", "Shipping"];
 const games = ["Pokémon", "One Piece", "Lorcana", "Yu-Gi-Oh!", "Digimon"];
 
 const root = ref<HTMLElement>();

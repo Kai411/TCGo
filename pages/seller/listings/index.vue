@@ -11,7 +11,7 @@
       <div class="flex items-center justify-between gap-3 mb-5">
         <h1 class="text-2xl font-bold text-ink dark:text-white">Listings</h1>
         <NuxtLink
-          to="/inventory/listings/new"
+          to="/seller/listings/new"
           class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors"
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -30,7 +30,7 @@
         <div v-if="tab === 'active'" class="mt-5">
           <p v-if="!activeCards.length" class="text-sm text-gray-400 dark:text-zinc-500 py-3">
             No cards listed.
-            <NuxtLink to="/inventory/listings/new" class="text-pokemon-red hover:underline ml-1">List one →</NuxtLink>
+            <NuxtLink to="/seller/listings/new" class="text-pokemon-red hover:underline ml-1">List one →</NuxtLink>
           </p>
           <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
             <ActivityRow
@@ -47,7 +47,7 @@
               <template #actions>
                 <div class="flex items-center gap-1.5">
                   <NuxtLink
-                    :to="`/inventory/listings/${card.id}/edit`"
+                    :to="`/seller/listings/${card.id}/edit`"
                     @click.stop
                     class="text-xs bg-gray-100 dark:bg-white/[0.06] text-gray-700 dark:text-zinc-200 hover:bg-gray-200 dark:hover:bg-white/[0.10] px-3 py-1.5 rounded-lg font-medium"
                   >
@@ -104,8 +104,8 @@ interface TabItem {
   count?: number;
 }
 
-definePageMeta({ layout: "inventory" });
-useHead({ title: "Inventory · Listings | TCGo" });
+definePageMeta({ layout: "seller" });
+useHead({ title: "Seller · Listings | TCGo" });
 
 const { user, signInWithGoogle } = useAuth();
 const { cards, loading: cardsLoading, markAsSold } = useCards();

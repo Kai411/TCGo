@@ -170,3 +170,31 @@ export const verifyBillplzSignature = (
     return false;
   }
 };
+
+// ── Bills ─────────────────────────────────────────────────────────────
+
+// Void an unpaid (due) bill. Billplz refuses once the bill has been paid —
+// callers use that refusal as the signal to stop (e.g. a merge must not
+// absorb an order the buyer just paid). Throws on any non-2xx.
+export const billplzDeleteBill = async (billId: string): Promise<void> => {
+  const res = await fetch(`${billplzBaseUrl()}/v3/bills/${billId}`, {
+    method: "DELETE",
+    headers: { Authorization: billplzAuthHeader() },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Billplz bill ${billId} not deleted (${res.status}): ${text}`);
+  }
+};
+
+// Read a bill's state ("due" | "paid" | "deleted" | "hidden"). Used to decide
+// whether a failed delete means "already paid" (abort) or "already gone"
+// (safe to continue).
+export const billplzBillState = async (billId: string): Promise<string> => {
+  const res = await fetch(`${billplzBaseUrl()}/v3/bills/${billId}`, {
+    headers: { Authorization: billplzAuthHeader() },
+  });
+  if (!res.ok) return "unknown";
+  const data = (await res.json().catch(() => null)) as { state?: string } | null;
+  return String(data?.state || "unknown");
+};

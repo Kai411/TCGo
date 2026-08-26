@@ -11,7 +11,7 @@
       <div class="flex items-center justify-between gap-3 mb-5">
         <h1 class="text-2xl font-bold text-ink dark:text-white">Auctions</h1>
         <NuxtLink
-          to="/inventory/auctions/new"
+          to="/seller/auctions/new"
           class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors"
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -30,7 +30,7 @@
         <div v-if="tab === 'active'" class="mt-5">
           <p v-if="!activeAuctions.length" class="text-sm text-gray-400 dark:text-zinc-500 py-3">
             No active auctions.
-            <NuxtLink to="/inventory/auctions/new" class="text-pokemon-red hover:underline ml-1">Create one →</NuxtLink>
+            <NuxtLink to="/seller/auctions/new" class="text-pokemon-red hover:underline ml-1">Create one →</NuxtLink>
           </p>
           <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
             <ActivityRow
@@ -103,8 +103,8 @@ interface TabItem {
   count?: number;
 }
 
-definePageMeta({ layout: "inventory" });
-useHead({ title: "Inventory · Auctions | TCGo" });
+definePageMeta({ layout: "seller" });
+useHead({ title: "Seller · Auctions | TCGo" });
 
 const { user, signInWithGoogle } = useAuth();
 const { auctions, loading } = useAuctions();

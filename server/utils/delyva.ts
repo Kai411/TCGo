@@ -22,7 +22,15 @@
 // nothing is booked or charged. That's why a malformed POST /order looks like
 // a success — it quietly banks a draft.
 
+// Production base. Point NUXT_DELYVA_API_BASE at the sandbox
+// (https://trydx.delyva.app portal) to test bookings without spending real
+// wallet credit — sandbox credentials are separate from production ones.
 export const DELYVA_BASE = "https://api.delyva.app/v1.0";
+
+const delyvaBase = (): string => {
+  const config = useRuntimeConfig();
+  return ((config.delyvaApiBase as string) || DELYVA_BASE).replace(/\/+$/, "");
+};
 
 export interface DelyvaAddress {
   address1: string;
@@ -46,7 +54,7 @@ const delyvaConfig = () => {
 
 const delyvaPost = async <T>(path: string, body: unknown): Promise<T> => {
   const { apiKey } = delyvaConfig();
-  const res = await fetch(`${DELYVA_BASE}${path}`, {
+  const res = await fetch(`${delyvaBase()}${path}`, {
     method: "POST",
     headers: {
       "X-Delyvax-Access-Token": apiKey,
@@ -129,7 +137,7 @@ export const delyvaQuote = async (input: {
 
 const delyvaGet = async <T>(path: string): Promise<T> => {
   const { apiKey } = delyvaConfig();
-  const res = await fetch(`${DELYVA_BASE}${path}`, {
+  const res = await fetch(`${delyvaBase()}${path}`, {
     headers: { "X-Delyvax-Access-Token": apiKey },
   });
   const text = await res.text();
@@ -239,7 +247,7 @@ export const delyvaLabelPdf = async (
   orderId: string,
 ): Promise<{ body: Buffer; contentType: string }> => {
   const { apiKey } = delyvaConfig();
-  const res = await fetch(`${DELYVA_BASE}/order/${orderId}/label`, {
+  const res = await fetch(`${delyvaBase()}/order/${orderId}/label`, {
     headers: { "X-Delyvax-Access-Token": apiKey },
   });
   const buf = Buffer.from(await res.arrayBuffer());

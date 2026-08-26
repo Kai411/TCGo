@@ -96,9 +96,34 @@
     @apply bg-amber-500/[0.10] text-amber-700 dark:text-amber-300;
   }
 
+  /* One input shape for every seller form. Fields used to carry their own
+     ad-hoc padding/border/focus classes, which is why the same control looked
+     different on Listings, Auctions and Inventory. */
+  .tcgo-input {
+    @apply w-full px-3 py-2.5 rounded-lg text-sm
+           border border-black/[0.10] dark:border-white/[0.12]
+           bg-white dark:bg-white/[0.04]
+           text-ink dark:text-white
+           placeholder:text-ink-soft dark:placeholder:text-zinc-500
+           transition-colors
+           focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red/40;
+  }
+  textarea.tcgo-input {
+    @apply py-2 leading-relaxed;
+  }
+
   /* Hairline divider — for premium feel */
   .hairline {
     @apply border-t border-black/[0.06] dark:border-white/[0.06];
+  }
+
+  /* Horizontal nav strips that scroll but shouldn't show a scrollbar chrome. */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 
   /* Landing scroll-reveal resting state. Declared in CSS rather than as inline

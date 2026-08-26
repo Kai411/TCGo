@@ -116,8 +116,8 @@
 <script setup lang="ts">
 import type { InventoryItem } from "~/composables/useInventory";
 
-definePageMeta({ layout: "inventory" });
-useHead({ title: "Inventory · POS | TCGo" });
+definePageMeta({ layout: "seller" });
+useHead({ title: "Seller · POS | TCGo" });
 
 const { user, signInWithGoogle } = useAuth();
 const { items, listenMyInventory, markItemSold } = useInventory();

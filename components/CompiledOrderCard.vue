@@ -134,7 +134,11 @@ defineEmits<{
   (e: "cancel", id: string): void;
 }>();
 
-const statusLabel = computed(() => compiledOrderStatusLabel(props.order.status));
+// An absorbed order isn't a dead sale — its items live on in the surviving
+// order, so say "Merged" rather than the alarming "Cancelled".
+const statusLabel = computed(() =>
+  props.order.mergedInto ? "Merged" : compiledOrderStatusLabel(props.order.status),
+);
 const statusColor = computed(() => compiledOrderStatusColor(props.order.status));
 
 const counterpartyName = computed(() =>

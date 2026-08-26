@@ -1,153 +1,127 @@
 <template>
   <div ref="root" class="surface rounded-3xl p-5 sm:p-7">
-    <!-- Shared item header -->
-    <div class="flex items-center justify-between gap-3 pb-5 border-b border-black/[0.06]">
-      <div class="min-w-0">
-        <p class="text-sm font-semibold text-ink truncate">Charizard ex</p>
-        <p class="text-xs text-ink-soft tabular-price">199/165 · Near Mint</p>
+    <!-- Terminal header -->
+    <div class="flex items-center justify-between gap-3 pb-4 border-b border-black/[0.06]">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500" />
+        <p class="text-xs font-semibold text-ink">Counter · Till 1</p>
       </div>
-      <span
-        ref="syncChip"
-        class="chip chip-accent shrink-0 flex items-center gap-1.5"
-      >
-        <span class="w-1.5 h-1.5 rounded-full bg-pokemon-red" />
-        Synced
-      </span>
+      <span class="chip">No card reader needed</span>
     </div>
 
-    <!-- Two channels, one ledger. items-stretch (not items-center) so the two
-         panels are always the same height and their rows line up across the
-         connector — that visual rhyme is the whole point of the graphic. -->
-    <div class="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2 sm:gap-3 py-6">
-      <!-- Counter / POS -->
+    <!-- Scan → line item -->
+    <div class="py-4 space-y-2">
       <div
-        ref="posPanel"
-        class="flex flex-col rounded-2xl border border-black/[0.07] bg-canvas-sunken p-3 sm:p-4"
+        v-for="(line, i) in lines"
+        :key="line.name"
+        :ref="(el) => (rows[i] = el as HTMLElement)"
+        class="flex items-center gap-3"
       >
-        <p class="eyebrow !text-[9px] !tracking-[0.14em]">In-store</p>
-        <p class="mt-2 text-xs text-ink-muted">Counter sale</p>
-        <p class="mt-1 text-lg font-bold text-ink tabular-price">RM 245</p>
-        <!-- border-transparent so this button occupies exactly the same box as
-             the bordered "Listed" button opposite it. -->
-        <div
-          ref="chargeBtn"
-          class="mt-3 rounded-lg border border-transparent bg-ink text-white text-[11px] font-semibold text-center py-2"
-        >
-          Charge
+        <div class="w-7 h-7 shrink-0 rounded-md bg-canvas-sunken flex items-center justify-center">
+          <svg class="w-3.5 h-3.5 text-ink-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+          </svg>
         </div>
-      </div>
-
-      <!-- Connector -->
-      <div
-        class="relative self-center w-10 sm:w-16 h-px bg-black/[0.12]"
-        aria-hidden="true"
-      >
-        <div
-          ref="pulse"
-          class="absolute inset-y-0 left-0 w-full origin-left bg-pokemon-red"
-          style="transform: scaleX(0)"
-        />
-        <div
-          ref="pulseDot"
-          class="absolute -top-[3px] left-0 w-[7px] h-[7px] rounded-full bg-pokemon-red opacity-0"
-        />
-      </div>
-
-      <!-- Online -->
-      <div
-        ref="onlinePanel"
-        class="flex flex-col rounded-2xl border border-black/[0.07] bg-canvas-sunken p-3 sm:p-4"
-      >
-        <p class="eyebrow !text-[9px] !tracking-[0.14em]">Online</p>
-        <p class="mt-2 text-xs text-ink-muted">tcgo.shop</p>
-        <p class="mt-1 text-lg font-bold text-ink tabular-price">RM 245</p>
-        <div
-          class="mt-3 rounded-lg border border-black/[0.08] bg-white text-ink-muted text-[11px] font-semibold text-center py-2"
-        >
-          Listed
-        </div>
+        <p class="flex-1 min-w-0 text-xs text-ink truncate">{{ line.name }}</p>
+        <p class="text-xs font-semibold text-ink tabular-price">RM {{ line.price }}</p>
       </div>
     </div>
 
-    <!-- The point: one number, both channels -->
-    <div
-      class="flex items-center justify-between gap-3 pt-5 border-t border-black/[0.06]"
-    >
-      <p class="text-xs text-ink-muted">One stock ledger</p>
-      <p class="flex items-baseline gap-1.5">
-        <span
-          ref="stockNum"
-          class="text-2xl font-bold text-ink tabular-price leading-none"
-          >12</span
+    <!-- Total + tender -->
+    <div class="pt-4 border-t border-black/[0.06]">
+      <div class="flex items-baseline justify-between">
+        <p class="text-xs text-ink-muted">Total</p>
+        <p ref="total" class="text-2xl font-bold text-ink tabular-price">RM 0</p>
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-2">
+        <div
+          ref="qrBtn"
+          class="rounded-xl border border-black/[0.08] bg-canvas-sunken p-2.5 text-center"
         >
-        <span class="text-xs text-ink-soft">in stock</span>
+          <svg class="w-4 h-4 mx-auto text-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <path d="M14 14h3v3h-3zM19 19h2M17 21h4" />
+          </svg>
+          <p class="mt-1.5 text-[10px] font-semibold text-ink">Your QR</p>
+        </div>
+        <div
+          ref="tapBtn"
+          class="rounded-xl border border-black/[0.08] bg-canvas-sunken p-2.5 text-center"
+        >
+          <svg class="w-4 h-4 mx-auto text-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 8.5a8 8 0 0 1 0 7M9.5 5.5a13 13 0 0 1 0 13" />
+            <rect x="12" y="4" width="9" height="16" rx="2" />
+          </svg>
+          <p class="mt-1.5 text-[10px] font-semibold text-ink">Tap to pay*</p>
+        </div>
+      </div>
+
+      <div
+        ref="paid"
+        class="mt-3 rounded-lg bg-emerald-500/10 py-2 text-center opacity-0"
+      >
+        <p class="text-[11px] font-bold text-emerald-700">Paid · receipt sent</p>
+      </div>
+
+      <p class="mt-3 text-[10px] text-ink-soft text-center">
+        *Tap-to-pay carries an additional charge
       </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+const lines = [
+  { name: "Charizard ex · 199/165", price: "245" },
+  { name: "Pikachu VMAX · 044/185", price: "88" },
+];
+
 const root = ref<HTMLElement>();
-const posPanel = ref<HTMLElement>();
-const onlinePanel = ref<HTMLElement>();
-const chargeBtn = ref<HTMLElement>();
-const pulse = ref<HTMLElement>();
-const pulseDot = ref<HTMLElement>();
-const stockNum = ref<HTMLElement>();
-const syncChip = ref<HTMLElement>();
+const rows = ref<HTMLElement[]>([]);
+const total = ref<HTMLElement>();
+const qrBtn = ref<HTMLElement>();
+const tapBtn = ref<HTMLElement>();
+const paid = ref<HTMLElement>();
 
 useReveal(root, ({ gsap, reduced, root: el }) => {
-  if (reduced) return;
+  if (reduced) {
+    total.value!.textContent = "RM 333";
+    gsap.set(paid.value!, { opacity: 1 });
+    return;
+  }
 
-  // A sale rings up at the counter and the online stock drops in the same
-  // beat — the whole feature in four seconds. Loops so it still reads if the
-  // user scrolls back up.
+  const running = { v: 0 };
   const tl = gsap.timeline({
     repeat: -1,
-    repeatDelay: 1.8,
+    repeatDelay: 2,
     scrollTrigger: { trigger: el, start: "top 80%" },
   });
 
-  tl.to(chargeBtn.value!, { scale: 0.95, duration: 0.12, ease: "power2.in" })
-    .to(chargeBtn.value!, { scale: 1, duration: 0.25 })
-    .fromTo(
-      posPanel.value!,
-      { boxShadow: "0 0 0 0px rgba(227,53,13,0)" },
-      { boxShadow: "0 0 0 2px rgba(227,53,13,0.5)", duration: 0.3 },
-      "<"
+  // Cards scan in one at a time, the total climbs with them, then payment
+  // lands — the whole counter sale in one loop.
+  tl.set(rows.value, { opacity: 0, x: -8 })
+    .set(total.value!, { textContent: "RM 0" })
+    .set(paid.value!, { opacity: 0 })
+    .to(rows.value, { opacity: 1, x: 0, duration: 0.4, stagger: 0.5 })
+    .to(
+      running,
+      {
+        v: 333,
+        duration: 1.2,
+        ease: "power2.out",
+        onUpdate: () => {
+          total.value!.textContent = `RM ${Math.round(running.v)}`;
+        },
+      },
+      "-=0.8",
     )
-    .to(pulse.value!, { scaleX: 1, duration: 0.5, ease: "power2.inOut" }, "-=0.1")
-    .fromTo(
-      pulseDot.value!,
-      { opacity: 1, x: 0 },
-      { x: "100%", duration: 0.5, ease: "power2.inOut" },
-      "<"
-    )
-    .to(pulseDot.value!, { opacity: 0, duration: 0.15 })
-    .fromTo(
-      onlinePanel.value!,
-      { boxShadow: "0 0 0 0px rgba(227,53,13,0)" },
-      { boxShadow: "0 0 0 2px rgba(227,53,13,0.5)", duration: 0.3 },
-      "<"
-    )
-    // Stock ticks down: old number up and out, new number up and in.
-    .to(stockNum.value!, { y: -14, opacity: 0, duration: 0.2 }, "-=0.15")
-    .set(stockNum.value!, { textContent: "11", y: 14 })
-    .to(stockNum.value!, { y: 0, opacity: 1, duration: 0.3 })
-    .fromTo(
-      syncChip.value!,
-      { scale: 1 },
-      { scale: 1.08, duration: 0.18, yoyo: true, repeat: 1 },
-      "<"
-    )
-    .to([posPanel.value!, onlinePanel.value!], {
-      boxShadow: "0 0 0 0px rgba(227,53,13,0)",
-      duration: 0.4,
-    })
-    // Reset for the next loop.
-    .to(stockNum.value!, { opacity: 0, duration: 0.2 }, "+=1.2")
-    .set(stockNum.value!, { textContent: "12" })
-    .set(pulse.value!, { scaleX: 0 })
-    .to(stockNum.value!, { opacity: 1, duration: 0.3 });
+    .to(qrBtn.value!, { borderColor: "#E3350D", duration: 0.25 }, "+=0.2")
+    .to(paid.value!, { opacity: 1, duration: 0.35 }, "+=0.2")
+    .to(qrBtn.value!, { borderColor: "rgba(0,0,0,0.08)", duration: 0.4 }, "+=1.2")
+    .set(running, { v: 0 });
 });
 </script>

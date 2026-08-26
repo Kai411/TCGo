@@ -7,7 +7,7 @@
 
     <template v-else>
       <div class="flex items-center gap-2 mb-1">
-        <NuxtLink to="/inventory/items" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">
+        <NuxtLink to="/seller/items" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           Items
         </NuxtLink>
@@ -280,8 +280,8 @@
 <script setup lang="ts">
 import type { CatalogMatch } from "~/composables/useCardCatalog";
 
-definePageMeta({ layout: "inventory" });
-useHead({ title: "Inventory · Bulk add | TCGo" });
+definePageMeta({ layout: "seller" });
+useHead({ title: "Seller · Bulk add | TCGo" });
 
 const CONDITIONS = [
   "Near Mint (NM)",
@@ -759,7 +759,7 @@ const doImport = async () => {
         source: r.photoFile ? ("scan" as const) : ("csv" as const),
       })),
     );
-    router.push("/inventory/items");
+    router.push("/seller/items");
   } catch (e: any) {
     alert(e?.message || "Import failed. Please try again.");
     importing.value = false;

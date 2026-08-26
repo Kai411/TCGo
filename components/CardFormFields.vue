@@ -1,205 +1,157 @@
 <template>
-  <!-- Card: Quick Import (full width) -->
-  <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 lg:col-span-2">
-    <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-2">Quick Import</h3>
-    <p class="text-xs text-gray-400 dark:text-zinc-500 mb-3">
-      Paste a Collectr link to auto-fill card details
-    </p>
-    <div class="flex gap-2">
-      <input
-        v-model="importUrl"
-        type="url"
-        placeholder="https://www.getcollectr.com/products/..."
-        class="flex-1 bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2 text-sm text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-        @keydown.enter.prevent="handleImport"
+  <!-- Catalogue search (full width).
+       Replaces the old "paste a Collectr link" import — that sent sellers to a
+       third-party site to copy a URL back, and could only ever fill a name and
+       a picture. Searching our own catalogue fills the same fields, confirms a
+       real product id, and shows the market price and trend. -->
+  <CardSearchPicker
+    :manual-query="manualQuery"
+    :language="modelValue.language"
+    @select="applyCatalogCard"
+    class="lg:col-span-2"
+  />
+
+  <!-- Product type -->
+  <section class="surface rounded-2xl p-5 lg:col-span-2">
+    <FormField label="Product type" required>
+      <ChoiceGroup
+        :model-value="modelValue.productType"
+        @update:model-value="updateField('productType', $event)"
+        :options="PRODUCT_TYPES"
+        cols="grid-cols-3"
+        aria-label="Product type"
       />
-      <button
-        type="button"
-        @click="handleImport"
-        :disabled="importing || !importUrl"
-        class="bg-pokemon-blue text-white text-sm px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 whitespace-nowrap"
-      >
-        {{ importing ? "Loading..." : "Import" }}
-      </button>
-    </div>
-    <p v-if="importError" class="text-red-500 text-xs mt-2">
-      {{ importError }}
-    </p>
-    <p v-if="importSuccess" class="text-green-600 text-xs mt-2">
-      {{ importSuccess }}
-    </p>
-  </div>
+    </FormField>
+  </section>
 
-  <!-- Card: Product Type (full width) -->
-  <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 lg:col-span-2">
-    <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-3">
-      Product Type <span class="text-pokemon-red">*</span>
-    </h3>
-    <div class="grid grid-cols-3 gap-2">
-      <button
-        v-for="type in PRODUCT_TYPES"
-        :key="type"
-        type="button"
-        @click="updateField('productType', type)"
-        class="py-2.5 px-3 rounded-lg text-sm font-medium border-2 transition-all"
-        :class="
-          modelValue.productType === type
-            ? 'border-pokemon-red bg-red-50 text-pokemon-red'
-            : 'border-gray-200 dark:border-white/[0.08] bg-white text-gray-600 dark:text-zinc-300 hover:border-gray-300 dark:hover:border-white/[0.10]'
-        "
-      >
-        {{ type }}
-      </button>
-    </div>
-  </div>
+  <!-- Card details -->
+  <section class="surface rounded-2xl p-5 space-y-4">
+    <h3 class="text-sm font-bold text-ink dark:text-zinc-100">Card details</h3>
 
-  <!-- Card: Card Details -->
-  <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-4">
-    <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">Card Details</h3>
-
-    <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-        TCG / Franchise
-      </label>
-      <select
-        :value="modelValue.tcgType || 'Pokemon'"
-        @change="onInput('tcgType', $event)"
-        class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-      >
-        <option v-for="t in TCG_TYPES" :key="t" :value="t">{{ t }}</option>
-      </select>
-    </div>
-
-    <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-        Card Name <span class="text-pokemon-red">*</span>
-      </label>
+    <FormField label="Card name" required>
       <input
         :value="modelValue.cardName"
         @input="onInput('cardName', $event)"
         type="text"
         required
         placeholder="e.g. Charizard VMAX"
-        class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+        class="tcgo-input"
       />
-    </div>
+    </FormField>
 
     <div class="grid grid-cols-3 gap-3">
-      <div class="col-span-2">
-        <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-          Card Set
-        </label>
+      <FormField label="Set" class="col-span-2">
         <input
           :value="modelValue.cardSet"
           @input="onInput('cardSet', $event)"
           type="text"
           placeholder="e.g. Darkness Ablaze"
-          class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+          class="tcgo-input"
         />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-          Set No.
-        </label>
+      </FormField>
+      <FormField label="Number">
         <input
           :value="modelValue.cardNumber"
           @input="onInput('cardNumber', $event)"
           type="text"
           placeholder="020/189"
-          class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+          class="tcgo-input tabular-price"
         />
-      </div>
+      </FormField>
     </div>
 
-    <div class="grid grid-cols-2 gap-3">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-          Language
-        </label>
+    <div class="grid grid-cols-3 gap-3">
+      <FormField label="TCG">
+        <select
+          :value="modelValue.tcgType || 'Pokemon'"
+          @change="onInput('tcgType', $event)"
+          class="tcgo-input"
+        >
+          <option v-for="t in TCG_TYPES" :key="t" :value="t">{{ t }}</option>
+        </select>
+      </FormField>
+      <FormField label="Language">
         <select
           :value="modelValue.language || 'EN'"
           @change="onInput('language', $event)"
-          class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+          class="tcgo-input"
         >
           <option v-for="l in CARD_LANGUAGES" :key="l.code" :value="l.code">
-            {{ l.label }}{{ l.code !== "EN" ? ` (${l.code})` : "" }}
+            {{ l.code }}
           </option>
         </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-          Quantity
-        </label>
+      </FormField>
+      <FormField label="Qty">
         <input
           :value="modelValue.quantity ?? 1"
           @input="onNumberInput('quantity', $event)"
           type="number"
           min="1"
           step="1"
-          class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+          class="tcgo-input tabular-price"
         />
+      </FormField>
+    </div>
+
+    <!-- Rarity / variant / edition / artist are filled by the scanner and the
+         catalogue match, so they're collapsed by default rather than forcing
+         four more fields on someone adding a card by hand. Auto-opens when
+         something is already set so nothing is hidden. -->
+    <div class="pt-1">
+      <button
+        type="button"
+        @click="moreOpen = !moreOpen"
+        class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
+        :aria-expanded="showMore"
+      >
+        <svg
+          class="w-3.5 h-3.5 transition-transform"
+          :class="showMore ? 'rotate-180' : ''"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+        Print details
+        <span v-if="filledExtras" class="chip">{{ filledExtras }} set</span>
+      </button>
+
+      <div v-show="showMore" class="mt-3 space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <FormField label="Rarity">
+            <select :value="modelValue.rarity || ''" @change="onInput('rarity', $event)" class="tcgo-input">
+              <option value="">—</option>
+              <option v-for="r in RARITIES" :key="r" :value="r">{{ r }}</option>
+            </select>
+          </FormField>
+          <FormField label="Variant">
+            <select :value="modelValue.variant || ''" @change="onInput('variant', $event)" class="tcgo-input">
+              <option value="">—</option>
+              <option v-for="v in VARIANTS" :key="v" :value="v">{{ v }}</option>
+            </select>
+          </FormField>
+          <FormField label="Edition">
+            <select :value="modelValue.edition || ''" @change="onInput('edition', $event)" class="tcgo-input">
+              <option value="">—</option>
+              <option v-for="e in EDITIONS" :key="e" :value="e">{{ e }}</option>
+            </select>
+          </FormField>
+        </div>
+        <FormField label="Artist">
+          <input
+            :value="modelValue.artist || ''"
+            @input="onInput('artist', $event)"
+            type="text"
+            placeholder="e.g. Mitsuhiro Arita"
+            class="tcgo-input"
+          />
+        </FormField>
       </div>
     </div>
 
-    <!-- Rarity / Variant / Edition — auto-filled by scanner, editable. -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-          Rarity
-        </label>
-        <select
-          :value="modelValue.rarity || ''"
-          @change="onInput('rarity', $event)"
-          class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-        >
-          <option value="">—</option>
-          <option v-for="r in RARITIES" :key="r" :value="r">{{ r }}</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-          Variant
-        </label>
-        <select
-          :value="modelValue.variant || ''"
-          @change="onInput('variant', $event)"
-          class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-        >
-          <option value="">—</option>
-          <option v-for="v in VARIANTS" :key="v" :value="v">{{ v }}</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-          Edition
-        </label>
-        <select
-          :value="modelValue.edition || ''"
-          @change="onInput('edition', $event)"
-          class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-        >
-          <option value="">—</option>
-          <option v-for="e in EDITIONS" :key="e" :value="e">{{ e }}</option>
-        </select>
-      </div>
-    </div>
-
-    <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-        Artist
-      </label>
-      <input
-        :value="modelValue.artist || ''"
-        @input="onInput('artist', $event)"
-        type="text"
-        placeholder="e.g. Mitsuhiro Arita"
-        class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-      />
-    </div>
-
-    <!-- Optional flags for buyers -->
-    <div class="flex flex-wrap gap-4 pt-1">
-      <label class="inline-flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-zinc-200">
+    <!-- Buyer-facing flags -->
+    <div class="flex flex-wrap gap-4 pt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
+      <label class="inline-flex items-center gap-2 cursor-pointer text-[13px] text-ink-subtle dark:text-zinc-200">
         <input
           type="checkbox"
           :checked="modelValue.negotiable === true"
@@ -208,7 +160,7 @@
         />
         Negotiable
       </label>
-      <label class="inline-flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-zinc-200">
+      <label class="inline-flex items-center gap-2 cursor-pointer text-[13px] text-ink-subtle dark:text-zinc-200">
         <input
           type="checkbox"
           :checked="modelValue.pickupAvailable === true"
@@ -218,114 +170,77 @@
         Pickup available
       </label>
     </div>
-  </div>
+  </section>
 
-  <!-- Card: Description -->
-  <div class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5">
-    <label class="block text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-2">
-      Description
-    </label>
-    <textarea
-      :value="modelValue.description"
-      @input="onInput('description', $event)"
-      rows="6"
-      placeholder="Additional notes about the card..."
-      class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red resize-none"
-    ></textarea>
-  </div>
+  <!-- Description -->
+  <section class="surface rounded-2xl p-5">
+    <FormField label="Description" optional hint="Anything a buyer should know — flaws, centring, provenance.">
+      <textarea
+        :value="modelValue.description"
+        @input="onInput('description', $event)"
+        rows="9"
+        placeholder="Additional notes about the card…"
+        class="tcgo-input resize-none"
+      />
+    </FormField>
+  </section>
 
-  <!-- Card: Condition (full width) -->
-  <div
+  <!-- Condition (ungraded) -->
+  <section
     v-if="modelValue.productType === 'Ungraded'"
-    class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3 lg:col-span-2"
+    class="surface rounded-2xl p-5 lg:col-span-2"
   >
-    <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
-      Condition <span class="text-pokemon-red">*</span>
-    </h3>
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-      <button
-        v-for="c in UNGRADED_CONDITIONS"
-        :key="c"
-        type="button"
-        @click="updateField('condition', c)"
-        class="py-2 px-3 rounded-lg text-xs font-medium border-2 transition-all text-center"
-        :class="
-          modelValue.condition === c
-            ? 'border-pokemon-red bg-red-50 text-pokemon-red'
-            : 'border-gray-200 dark:border-white/[0.08] bg-white text-gray-600 dark:text-zinc-300 hover:border-gray-300 dark:hover:border-white/[0.10]'
-        "
-      >
-        {{ c }}
-      </button>
-    </div>
-  </div>
+    <FormField label="Condition" required hint="Grade honestly — condition disputes are the main reason orders get refunded.">
+      <ChoiceGroup
+        :model-value="modelValue.condition"
+        @update:model-value="updateField('condition', $event)"
+        :options="conditionChoices"
+        cols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+        size="sm"
+        aria-label="Condition"
+      />
+    </FormField>
+  </section>
 
-  <!-- Card: Grading (full width) -->
-  <div
+  <!-- Grading (graded) -->
+  <section
     v-else-if="modelValue.productType === 'Graded'"
-    class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-4 lg:col-span-2"
+    class="surface rounded-2xl p-5 space-y-4 lg:col-span-2"
   >
-    <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">Grading</h3>
+    <h3 class="text-sm font-bold text-ink dark:text-zinc-100">Grading</h3>
 
-    <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-2">
-        Grading Provider <span class="text-pokemon-red">*</span>
-      </label>
-      <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
-        <button
-          v-for="p in GRADING_PROVIDERS"
-          :key="p"
-          type="button"
-          @click="onProviderSelect(p)"
-          class="py-2 px-2 rounded-lg text-xs font-bold border-2 transition-all"
-          :class="
-            modelValue.gradingProvider === p
-              ? 'border-pokemon-red bg-red-50 text-pokemon-red'
-              : 'border-gray-200 dark:border-white/[0.08] bg-white text-gray-600 dark:text-zinc-300 hover:border-gray-300 dark:hover:border-white/[0.10]'
-          "
-        >
-          {{ p }}
-        </button>
-      </div>
-    </div>
+    <FormField label="Grading provider" required>
+      <ChoiceGroup
+        :model-value="modelValue.gradingProvider"
+        @update:model-value="onProviderSelect($event)"
+        :options="GRADING_PROVIDERS"
+        cols="grid-cols-3 sm:grid-cols-6"
+        size="sm"
+        aria-label="Grading provider"
+      />
+    </FormField>
 
-    <div v-if="modelValue.gradingProvider === 'Others'">
-      <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-        Provider Name <span class="text-pokemon-red">*</span>
-      </label>
+    <FormField v-if="modelValue.gradingProvider === 'Others'" label="Provider name" required>
       <input
         :value="modelValue.customGradingProvider"
         @input="onInput('customGradingProvider', $event)"
         type="text"
         required
         placeholder="e.g. SGC"
-        class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+        class="tcgo-input"
       />
-    </div>
+    </FormField>
 
-    <div v-if="modelValue.gradingProvider">
-      <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-2">
-        Grade <span class="text-pokemon-red">*</span>
-      </label>
-      <div
+    <FormField v-if="modelValue.gradingProvider" label="Grade" required>
+      <ChoiceGroup
         v-if="modelValue.gradingProvider !== 'Others'"
-        class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2"
-      >
-        <button
-          v-for="g in getGradesForProvider(modelValue.gradingProvider)"
-          :key="g"
-          type="button"
-          @click="updateField('grade', g)"
-          class="py-2 px-2 rounded-lg text-xs font-bold border-2 transition-all"
-          :class="
-            modelValue.grade === g
-              ? 'border-pokemon-red bg-red-50 text-pokemon-red'
-              : 'border-gray-200 dark:border-white/[0.08] bg-white text-gray-600 dark:text-zinc-300 hover:border-gray-300 dark:hover:border-white/[0.10]'
-          "
-        >
-          {{ g }}
-        </button>
-      </div>
+        :model-value="modelValue.grade"
+        @update:model-value="updateField('grade', $event)"
+        :options="getGradesForProvider(modelValue.gradingProvider)"
+        cols="grid-cols-4 sm:grid-cols-6 lg:grid-cols-8"
+        size="sm"
+        aria-label="Grade"
+      />
       <input
         v-else
         :value="modelValue.grade"
@@ -333,13 +248,14 @@
         type="text"
         required
         placeholder="Grade"
-        class="w-full bg-white border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
+        class="tcgo-input"
       />
-    </div>
-  </div>
+    </FormField>
+  </section>
 </template>
 
 <script setup lang="ts">
+import type { CatalogMatch } from "~/composables/useCardCatalog";
 import {
   PRODUCT_TYPES,
   UNGRADED_CONDITIONS,
@@ -389,48 +305,58 @@ const emit = defineEmits<{
   "import-image": [url: string];
 }>();
 
-// Quick Import
-const importUrl = ref("");
-const importing = ref(false);
-const importError = ref("");
-const importSuccess = ref("");
-
-const handleImport = async () => {
-  if (!importUrl.value) return;
-  importError.value = "";
-  importSuccess.value = "";
-  importing.value = true;
-
-  try {
-    const data = await $fetch<{
-      cardName: string;
-      cardNumber: string;
-      cardSet: string;
-      imageUrl: string;
-    }>("/api/fetch-card-meta", {
-      query: { url: importUrl.value },
-    });
-
-    // Auto-fill fields
-    const updates: Partial<CardFormData> = { ...props.modelValue };
-    if (data.cardName) updates.cardName = data.cardName;
-    if (data.cardNumber) updates.cardNumber = data.cardNumber;
-    if (data.cardSet) updates.cardSet = data.cardSet;
-    emit("update:modelValue", updates as CardFormData);
-
-    // Emit image URL for parent to handle
-    if (data.imageUrl) {
-      emit("import-image", data.imageUrl);
-    }
-
-    importSuccess.value = `Imported: ${data.cardName || "card data"}`;
-  } catch (e: any) {
-    importError.value =
-      e.data?.message || e.message || "Failed to import. Check the URL.";
-  } finally {
-    importing.value = false;
-  }
+// ── Catalogue match ───────────────────────────────────────────────────
+// Applying a picked card fills every field the catalogue actually knows and
+// leaves the rest (condition, grading) to the seller.
+const applyCatalogCard = (card: CatalogMatch) => {
+  const updates: CardFormData = {
+    ...props.modelValue,
+    cardName: card.name || props.modelValue.cardName,
+    cardSet: card.setName || props.modelValue.cardSet,
+    cardNumber: card.number || props.modelValue.cardNumber,
+    rarity: card.rarity || props.modelValue.rarity,
+    language: card.language || props.modelValue.language,
+  };
+  emit("update:modelValue", updates);
+  if (card.imageUrl) emit("import-image", card.imageUrl);
 };
+
+// ── Print details disclosure ──────────────────────────────────────────
+const moreOpen = ref(false);
+
+/** How many of the optional print fields already carry a value. */
+const filledExtras = computed(
+  () =>
+    [
+      props.modelValue.rarity,
+      props.modelValue.variant,
+      props.modelValue.edition,
+      props.modelValue.artist,
+    ].filter((v) => (v ?? "").trim()).length,
+);
+
+// Open if the seller opened it, or if the scanner/catalogue already filled
+// something — a value the user can't see is worse than an extra open section.
+const showMore = computed(() => moreOpen.value || filledExtras.value > 0);
+
+// Condition codes are what sellers actually say ("NM", "LP"); the full name
+// stays as a hint so the abbreviations aren't a guessing game.
+const conditionChoices = computed(() =>
+  UNGRADED_CONDITIONS.map((c) => {
+    const m = c.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+    return m ? { value: c, label: m[2]!, hint: m[1]! } : { value: c, label: c };
+  }),
+);
+
+// What the seller has typed by hand, fed to the picker so it can offer
+// catalogue suggestions for the manual-entry path. Number is included because
+// "charizard 199/165" is far more selective than the name alone.
+const manualQuery = computed(() =>
+  [props.modelValue.cardName, props.modelValue.cardNumber]
+    .map((v) => (v ?? "").trim())
+    .filter(Boolean)
+    .join(" "),
+);
 
 const updateField = (key: keyof CardFormData, value: any) => {
   emit("update:modelValue", { ...props.modelValue, [key]: value });

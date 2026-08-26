@@ -221,116 +221,28 @@
         </div>
       </div>
 
-      <!-- Seller settings -->
-      <div
-        v-if="!loading"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
+      <!-- Seller settings moved out to /seller/settings.
+           Shipping, couriers and staff are shop operations, not buyer profile
+           preferences — mixing them here made this page a grab-bag and buried
+           the seller controls behind a buyer-facing screen. -->
+      <NuxtLink
+        v-if="!loading && sellerReady"
+        to="/seller/settings"
+        class="flex items-center gap-4 bg-white dark:bg-white/[0.04] rounded-xl p-5 border border-gray-200 dark:border-white/[0.08] mt-4 hover:border-gray-300 dark:hover:border-white/[0.16] transition-colors"
       >
-        <div class="flex items-center justify-between gap-3">
-          <p class="text-xl font-bold">Seller</p>
-          <span
-            class="text-[11px] font-semibold px-2 py-1 rounded-full"
-            :class="sellerReady
-              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
-              : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'"
-          >
-            {{ sellerReady ? "Verified" : "Not verified" }}
-          </span>
+        <div class="w-10 h-10 shrink-0 rounded-xl bg-pokemon-red/[0.08] flex items-center justify-center">
+          <svg class="w-5 h-5 text-pokemon-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9h18M3 9l1.5-4.5A2 2 0 0 1 6.4 3h11.2a2 2 0 0 1 1.9 1.5L21 9M3 9v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9" />
+          </svg>
         </div>
-
-        <!-- Pickup address -->
-        <div>
-          <p class="text-sm font-semibold text-gray-800 dark:text-zinc-100 mb-1">Pickup address</p>
-          <p class="text-sm text-gray-500 dark:text-zinc-400 mb-2">
-            Where couriers collect your parcels from. This is the origin we
-            quote shipping against, so buyers can't see accurate rates without it.
-          </p>
-          <p v-if="pickupLine" class="text-sm text-gray-700 dark:text-zinc-200">{{ pickupLine }}</p>
-          <p v-else class="text-sm text-amber-600 dark:text-amber-400">Not set yet.</p>
-          <NuxtLink
-            to="/inventory/verify"
-            class="inline-block mt-2 text-sm font-semibold text-pokemon-red hover:underline"
-          >
-            {{ pickupLine ? "Edit in seller verification →" : "Add pickup address →" }}
-          </NuxtLink>
-        </div>
-
-        <!-- Handover preference -->
-        <div>
-          <p class="text-sm font-semibold text-gray-800 dark:text-zinc-100 mb-1">Parcel handover</p>
-          <p class="text-sm text-gray-500 dark:text-zinc-400 mb-2">
-            The cheapest couriers are drop-off only. Pick collection and we'll
-            quote buyers the cheaper pickup services instead.
-          </p>
-          <div class="flex gap-2">
-            <button
-              v-for="opt in HANDOVER_OPTIONS"
-              :key="opt.value"
-              @click="setHandover(opt.value)"
-              :disabled="savingHandover"
-              class="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors disabled:opacity-50"
-              :class="handover === opt.value
-                ? 'border-pokemon-red bg-pokemon-red/[0.06] text-pokemon-red'
-                : 'border-gray-300 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200'"
-            >
-              {{ opt.label }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Preferred couriers -->
-        <div>
-          <p class="text-sm font-semibold text-gray-800 dark:text-zinc-100 mb-1">Preferred couriers</p>
-          <p class="text-sm text-gray-500 dark:text-zinc-400 mb-2">
-            We'll use the cheapest of these when one serves the buyer's address.
-            Coverage varies by destination, so if none reach a buyer we fall back
-            to the cheapest available rather than blocking the sale. Pick none to
-            always take the cheapest.
-          </p>
-
-          <p v-if="couriersLoading" class="text-sm text-gray-400 dark:text-zinc-500">Loading couriers…</p>
-          <p v-else-if="courierNotice" class="text-sm text-amber-600 dark:text-amber-400">
-            {{ courierNotice }}
-          </p>
-          <div v-else class="flex flex-wrap gap-2">
-            <button
-              v-for="c in availableCouriers"
-              :key="c"
-              @click="toggleCourier(c)"
-              :disabled="savingCouriers"
-              class="px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors disabled:opacity-50"
-              :class="preferredCouriers.includes(c)
-                ? 'border-pokemon-red bg-pokemon-red/[0.08] text-pokemon-red'
-                : 'border-gray-300 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:border-gray-400'"
-            >
-              {{ c }}
-            </button>
-          </div>
-          <p v-if="!couriersLoading && !courierNotice && !preferredCouriers.length"
-             class="text-[11px] text-gray-400 dark:text-zinc-500 mt-2">
-            None selected — always using the cheapest available.
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-bold text-ink dark:text-white">Seller settings</p>
+          <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+            Pickup address, parcel handover, preferred couriers and staff.
           </p>
         </div>
-
-        <!-- Staff — placeholder -->
-        <div class="opacity-60">
-          <div class="flex items-center gap-2 mb-1">
-            <p class="text-sm font-semibold text-gray-800 dark:text-zinc-100">Manage staff</p>
-            <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-200 dark:bg-white/[0.10] text-gray-600 dark:text-zinc-300">
-              Coming soon
-            </span>
-          </div>
-          <p class="text-sm text-gray-500 dark:text-zinc-400">
-            Invite staff to help manage listings, orders and shipments on your behalf.
-          </p>
-          <button
-            disabled
-            class="mt-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 cursor-not-allowed"
-          >
-            Invite staff
-          </button>
-        </div>
-      </div>
+        <svg class="w-4 h-4 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+      </NuxtLink>
 
       <div
         v-if="!loading && premiumEnabled"
@@ -478,7 +390,7 @@
 
 <script setup lang="ts">
 import type { UserProfile } from "~/composables/useProfile";
-import { MY_STATES, stateName } from "~/shared/my-states";
+import { MY_STATES } from "~/shared/my-states";
 
 const { user, signInWithGoogle } = useAuth();
 const { profile, loading, updateProfile, updateCustomName } = useMyProfile();
@@ -567,13 +479,6 @@ const addressDirty = computed(
   () => JSON.stringify(addr.value) !== JSON.stringify(savedAddr.value),
 );
 
-// Seller handover preference.
-const HANDOVER_OPTIONS = [
-  { value: "dropoff" as const, label: "I drop off" },
-  { value: "pickup" as const, label: "Courier collects" },
-];
-const handover = ref<"dropoff" | "pickup">("dropoff");
-const savingHandover = ref(false);
 const saving = ref(false);
 const savingPhone = ref(false);
 const saveSuccess = ref(false);
@@ -601,7 +506,6 @@ watch(
       };
       addr.value = { ...loaded };
       savedAddr.value = { ...loaded };
-      handover.value = p.handoverPreference === "pickup" ? "pickup" : "dropoff";
 
       // Parse existing phone into prefix + number
       const existing = p.whatsappNumber || p.phone || "";
@@ -688,77 +592,7 @@ const saveAddress = async () => {
   }
 };
 
-const setHandover = async (value: "dropoff" | "pickup") => {
-  if (handover.value === value || savingHandover.value) return;
-  const previous = handover.value;
-  handover.value = value;
-  savingHandover.value = true;
-  try {
-    await updateProfile({ handoverPreference: value });
-  } catch {
-    handover.value = previous;
-  } finally {
-    savingHandover.value = false;
-  }
-};
-
 const { sellerReady } = useSellerKyc();
-
-// ── Preferred couriers ────────────────────────────────────────────────
-// The list comes from Delyva, quoted against this seller's own pickup
-// address, so it only offers couriers that actually serve them.
-const { authedFetch } = useAuthedFetch();
-const availableCouriers = ref<string[]>([]);
-const preferredCouriers = ref<string[]>([]);
-const couriersLoading = ref(false);
-const courierNotice = ref("");
-const savingCouriers = ref(false);
-
-const loadCouriers = async () => {
-  if (!user.value || couriersLoading.value) return;
-  couriersLoading.value = true;
-  courierNotice.value = "";
-  try {
-    const res = await authedFetch<{ available: string[]; selected?: string[]; reason?: string }>(
-      "/api/shipping/couriers",
-    );
-    availableCouriers.value = res.available || [];
-    preferredCouriers.value = res.selected || [];
-    if (!availableCouriers.value.length) {
-      courierNotice.value = res.reason || "No couriers available from your pickup address yet.";
-    }
-  } catch (e: any) {
-    courierNotice.value = e?.data?.message || "Couldn't load couriers.";
-  } finally {
-    couriersLoading.value = false;
-  }
-};
-
-watch(user, (u) => { if (u) void loadCouriers(); }, { immediate: true });
-
-const toggleCourier = async (courier: string) => {
-  if (savingCouriers.value) return;
-  const before = [...preferredCouriers.value];
-  preferredCouriers.value = before.includes(courier)
-    ? before.filter((c) => c !== courier)
-    : [...before, courier];
-  savingCouriers.value = true;
-  try {
-    await updateProfile({ preferredCouriers: preferredCouriers.value });
-  } catch {
-    preferredCouriers.value = before;
-  } finally {
-    savingCouriers.value = false;
-  }
-};
-
-const pickupLine = computed(() => {
-  const p = profile.value;
-  if (!p?.pickupAddress1 || !p?.pickupPostcode) return "";
-  return [p.pickupAddress1, p.pickupAddress2, `${p.pickupPostcode} ${p.pickupCity || ""}`.trim(), stateName(p.pickupState)]
-    .filter(Boolean)
-    .join(", ");
-});
 
 const toggleFavouritesPublic = async () => {
   editFavouritesPublic.value = !editFavouritesPublic.value;

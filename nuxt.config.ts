@@ -3,6 +3,13 @@
 // mounts — otherwise a dark-mode visitor gets a dark flash on these routes.
 const LIGHT_ONLY_ROUTES = ["/landing", "/privacy-policy", "/update-notice"];
 
+// The PWA module only emits manifest.webmanifest for production builds
+// (devOptions.enabled is false, deliberately — see the pwa block below).
+// Linking it in dev anyway makes the browser fetch a file that doesn't exist,
+// get the SPA's index.html fallback, and log
+// "Manifest: Line: 1, column: 1, Syntax error" on every page load.
+const isDev = process.env.NODE_ENV === "development";
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
@@ -155,8 +162,8 @@ export default defineNuxtConfig({
         },
         { rel: "canonical", href: "https://tcgo.shop/" },
         // PWA manifest — @vite-pwa/nuxt doesn't auto-inject this in
-        // ssr:false mode, so we add it ourselves.
-        { rel: "manifest", href: "/manifest.webmanifest" },
+        // ssr:false mode, so we add it ourselves. Production only: see isDev.
+        ...(isDev ? [] : [{ rel: "manifest", href: "/manifest.webmanifest" }]),
         // Inter font — preconnect + non-blocking link starts the fetch in
         // parallel with HTML, not after CSS parses (much faster than @import).
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -199,6 +206,9 @@ export default defineNuxtConfig({
     mailFrom: "",
     mailFromName: "",
     // Delyva (courier aggregator) — live shipping quotes at checkout.
+    // delyvaApiBase empty = production; set it to the sandbox base URL
+    // (with matching sandbox credentials) to test without real money.
+    delyvaApiBase: "",
     delyvaApiKey: "",
     delyvaCustomerId: "",
     delyvaCompanyId: "",

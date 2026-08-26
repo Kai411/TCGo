@@ -145,6 +145,26 @@ export interface CatalogPrice {
   high: number;
 }
 
+/**
+ * One day of the capped 365-entry series kept in card_prices.history, which a
+ * daily cron prepends via the snapshot_prices_today() RPC. `market` is USD as
+ * stored; callers get MYR from getPriceHistory().
+ */
+export interface PricePoint {
+  date: string; // YYYY-MM-DD
+  market: number; // MYR once returned by getPriceHistory
+}
+
+export interface PriceTrend {
+  points: PricePoint[];
+  /** Percentage change across the returned window; null if not computable. */
+  changePct: number | null;
+  first: number;
+  last: number;
+  min: number;
+  max: number;
+}
+
 export type CatalogSort = "best" | "name" | "price_asc" | "price_desc";
 
 // What we return to callers: the catalog row + a derived MYR price.
@@ -467,8 +487,60 @@ export const useCardCatalog = () => {
     return results[0] ?? null;
   };
 
+  /**
+   * Real price history for one product, newest-first in the DB and returned
+   * oldest-first for charting. Nothing is synthesised: if the daily snapshot
+   * hasn't run for this card yet the series is short or empty, and callers
+   * must render that honestly rather than draw a flat line.
+   */
+  const getPriceHistory = async (
+    productId: number,
+    days = 90,
+  ): Promise<PriceTrend | null> => {
+    if (!supabase) return null;
+
+    const fxReady = ensureRate();
+    const { data, error } = await supabase
+      .from("card_prices")
+      .select("history")
+      .eq("product_id", productId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[useCardCatalog] getPriceHistory error:", error.message);
+      return null;
+    }
+    await fxReady;
+
+    const raw = Array.isArray((data as any)?.history) ? (data as any).history : [];
+    const points: PricePoint[] = raw
+      .filter((p: any) => p && p.date && p.market != null)
+      .map((p: any) => ({ date: String(p.date), market: toMyr(Number(p.market)) }))
+      .filter((p: PricePoint) => Number.isFinite(p.market))
+      // Stored newest-first; charts read left-to-right in time.
+      .sort((a: PricePoint, b: PricePoint) => a.date.localeCompare(b.date))
+      .slice(-days);
+
+    if (!points.length) return null;
+
+    const first = points[0]!.market;
+    const last = points[points.length - 1]!.market;
+    const values = points.map((p) => p.market);
+
+    return {
+      points,
+      // A zero starting price can't yield a meaningful percentage.
+      changePct: first > 0 ? ((last - first) / first) * 100 : null,
+      first,
+      last,
+      min: Math.min(...values),
+      max: Math.max(...values),
+    };
+  };
+
   return {
     searchCatalog,
+    getPriceHistory,
     lookupByNameAndNumber,
     getCardWithPrice,
     getCardsByIds,

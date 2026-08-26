@@ -128,7 +128,7 @@
             <p class="text-xs text-gray-500 dark:text-zinc-400">
               Buyers are quoted a live courier rate from your pickup address to
               theirs at checkout — there's no price to set per listing.
-              <NuxtLink to="/inventory/verify" class="text-pokemon-red hover:underline">
+              <NuxtLink to="/seller/verify" class="text-pokemon-red hover:underline">
                 Check your pickup address →
               </NuxtLink>
             </p>
@@ -180,7 +180,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import type { CardFormData } from "~/components/CardFormFields.vue";
 import type { Card } from "~/composables/useCards";
 
-definePageMeta({ layout: "inventory" });
+definePageMeta({ layout: "seller" });
 
 const route = useRoute();
 const router = useRouter();
@@ -357,7 +357,7 @@ const handleDelete = async () => {
   deleting.value = true;
   try {
     await deleteCard(cardId);
-    await router.push("/inventory/listings");
+    await router.push("/seller/listings");
   } catch (e: any) {
     error.value = e.message || "Failed to delete listing";
   } finally {

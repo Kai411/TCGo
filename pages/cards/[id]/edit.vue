@@ -2,7 +2,7 @@
 // Moved into the inventory system — keep the old URL working, preserving id.
 definePageMeta({
   middleware: (to) =>
-    navigateTo(`/inventory/listings/${to.params.id}/edit`, { replace: true }),
+    navigateTo(`/seller/listings/${to.params.id}/edit`, { replace: true }),
 });
 </script>
 

@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-white text-black">
     <!-- Toolbar (hidden when printing) -->
     <div class="no-print sticky top-0 z-10 bg-white border-b border-gray-200 px-4 h-14 flex items-center justify-between gap-3">
-      <NuxtLink to="/inventory/items" class="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-black shrink-0">
+      <NuxtLink to="/seller/items" class="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-black shrink-0">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
         Back
       </NuxtLink>
@@ -60,7 +60,7 @@
         </template>
         <template v-else>No items to print.</template>
       </p>
-      <NuxtLink to="/inventory/items" class="text-pokemon-red hover:underline text-sm">Back to items</NuxtLink>
+      <NuxtLink to="/seller/items" class="text-pokemon-red hover:underline text-sm">Back to items</NuxtLink>
     </div>
 
     <p

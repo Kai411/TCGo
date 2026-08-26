@@ -21,12 +21,12 @@
             class="h-full w-[110px] object-cover hidden dark:block"
           />
         </NuxtLink>
-        <NuxtLink
+        <!-- <NuxtLink
           to="/beta"
           class="mb-3 px-1.5 py-0.5 rounded-full text-[9px] leading-none font-semibold tracking-widest uppercase text-ink-muted dark:text-zinc-500 bg-black/[0.05] dark:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.08] hover:text-ink dark:hover:text-zinc-300 hover:border-black/20 dark:hover:border-white/20 transition-colors"
         >
           Beta
-        </NuxtLink>
+        </NuxtLink> -->
       </div>
 
       <!-- Desktop nav -->
@@ -49,19 +49,19 @@
         <!-- Desktop sell CTAs → enter the inventory system -->
         <div v-if="user" class="hidden lg:flex items-center gap-2 ml-1">
           <NuxtLink
-            to="/inventory/listings/new"
+            to="/seller/listings/new"
             class="px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
           >
             Sell
           </NuxtLink>
           <NuxtLink
-            to="/inventory/auctions/new"
+            to="/seller/auctions/new"
             class="px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
           >
             Auction
           </NuxtLink>
           <NuxtLink
-            to="/inventory"
+            to="/seller"
             aria-label="Inventory"
             title="Inventory"
             class="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
@@ -134,6 +134,21 @@
           </span>
         </NuxtLink>
 
+        <!-- Seller dashboard, mobile. It was only reachable from inside the
+             "Sell" dropdown, which reads as a create-a-listing action — so the
+             dashboard was effectively unreachable on a phone. Own button now. -->
+        <NuxtLink
+          v-if="user"
+          to="/seller"
+          aria-label="Seller dashboard"
+          class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-full text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+        >
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="14" rx="2" />
+            <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+          </svg>
+        </NuxtLink>
+
         <div v-if="user" class="lg:hidden relative" @click.stop>
           <button
             @click="sellMenuOpen = !sellMenuOpen"
@@ -176,14 +191,14 @@
               class="absolute right-0 top-full mt-2 w-48 surface rounded-xl overflow-hidden py-1.5 z-50"
             >
               <NuxtLink
-                to="/inventory/listings/new"
+                to="/seller/listings/new"
                 @click="sellMenuOpen = false"
                 class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
               >
                 Sell a card
               </NuxtLink>
               <NuxtLink
-                to="/inventory/auctions/new"
+                to="/seller/auctions/new"
                 @click="sellMenuOpen = false"
                 class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
               >
@@ -193,11 +208,11 @@
                 class="my-1 border-t border-black/[0.06] dark:border-white/[0.08]"
               />
               <NuxtLink
-                to="/inventory"
+                to="/seller"
                 @click="sellMenuOpen = false"
                 class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
               >
-                Inventory dashboard
+                Seller Dashboard
               </NuxtLink>
             </div>
           </Transition>

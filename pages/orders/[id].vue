@@ -49,6 +49,29 @@
         </NuxtLink>
       </div>
 
+      <!-- Absorbed by a merge — point both parties at the surviving order -->
+      <div
+        v-if="order.mergedInto"
+        class="bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 rounded-xl p-4 mb-5"
+      >
+        <p class="font-semibold text-sky-900 dark:text-sky-200 text-sm">
+          Merged into another order
+        </p>
+        <p class="text-xs text-sky-800 dark:text-sky-300 mt-0.5">
+          {{
+            role === "buyer"
+              ? "The seller combined this with your other order — nothing was lost, your items ship together under one waybill."
+              : "This order was combined into one shipment."
+          }}
+        </p>
+        <NuxtLink
+          :to="`/orders/${order.mergedInto}`"
+          class="inline-block text-xs font-semibold text-sky-900 dark:text-sky-200 underline mt-1"
+        >
+          View the combined order →
+        </NuxtLink>
+      </div>
+
       <div class="grid lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-4 items-start">
 
         <!-- ═══ LEFT: what was bought, and what it cost ═══ -->

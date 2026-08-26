@@ -119,8 +119,8 @@
 import { MY_STATES } from "~/composables/useSellerKyc";
 import { MY_BANKS, bankByCode, bankName, resolveBankCode } from "~/shared/banks";
 
-definePageMeta({ layout: "inventory" });
-useHead({ title: "Inventory · Seller verification | TCGo" });
+definePageMeta({ layout: "seller" });
+useHead({ title: "Seller · Verification | TCGo" });
 
 const { user, signInWithGoogle } = useAuth();
 const { profile, updateProfile } = useMyProfile();

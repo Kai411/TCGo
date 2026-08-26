@@ -12,7 +12,7 @@
           Everything a card shop runs on
         </h2>
         <p class="reveal-init mt-4 text-base sm:text-lg text-ink-muted">
-          Four systems most shops stitch together from spreadsheets, a card
+          Five systems most shops stitch together from spreadsheets, a card
           machine and a courier portal. Here they're one product.
         </p>
       </div>
@@ -21,13 +21,13 @@
     <LandingFeatureRow
       index="01"
       eyebrow="Point of sale"
-      title="One inventory. Counter and online, always in sync."
-      body="Ring up a walk-in customer and your online listing updates in the same second. Sell the last copy at the till and it comes off the storefront before anyone can order it."
+      title="A till that runs on the phone in your pocket."
+      body="Ring up a walk-in customer with the camera you already own. Scan the card, take the money, print the price tag — no card reader, no separate terminal, no extra hardware to buy."
       :points="[
-        'One stock count across the counter and your storefront',
-        'Scan a card at the till and it leaves the shelf everywhere',
-        'Stock held automatically the moment an online order is paid',
-        'No double entry, no overselling what you already sold',
+        'Scan cards with your phone — no scanner or extra equipment',
+        'Print item labels and price tags straight from the platform',
+        'Take payment on the spot with your own QR code',
+        'Or tap-to-pay on the same phone (additional charge applies)',
       ]"
     >
       <LandingPosVisual />
@@ -35,11 +35,26 @@
 
     <LandingFeatureRow
       index="02"
+      eyebrow="Inventory"
+      title="One stock count. Counter and online, always in sync."
+      body="Sell the last copy at the till and it comes off your storefront before anyone can order it. One ledger behind both channels means no double entry and nothing oversold."
+      reverse
+      tinted
+      :points="[
+        'One stock count across the counter and your storefront',
+        'Sell in-store and the online listing updates in the same second',
+        'Stock held automatically the moment an online order is paid',
+        'Every movement traceable back to the sale that caused it',
+      ]"
+    >
+      <LandingInventoryVisual />
+    </LandingFeatureRow>
+
+    <LandingFeatureRow
+      index="03"
       eyebrow="Live market data"
       title="Know what a card is worth before you price it."
       body="Real-time market pricing on every card you hold, drawn from live sales and active listings — so you're pricing on today's market, not last season's guide."
-      reverse
-      tinted
       :points="[
         'Live market price on every card in your inventory',
         '30-day trend and last-sold history',
@@ -51,10 +66,12 @@
     </LandingFeatureRow>
 
     <LandingFeatureRow
-      index="03"
+      index="04"
       eyebrow="Reporting"
       title="Every sale in one dashboard, wherever it happened."
       body="Counter takings and online orders land in the same report. See which channel is carrying the month, what's actually moving, and what your shelves are worth today."
+      reverse
+      tinted
       :points="[
         'Online and in-store revenue side by side',
         'Daily, weekly and monthly breakdowns',
@@ -66,12 +83,10 @@
     </LandingFeatureRow>
 
     <LandingFeatureRow
-      index="04"
+      index="05"
       eyebrow="Fulfilment"
       title="Waybills generated the moment an order is paid."
       body="Pick a courier and get a printable AWB with tracking already attached. No copying addresses into a courier portal, no third account to reconcile at month end."
-      reverse
-      tinted
       :points="[
         'Printable AWB generated straight from the order',
         'Live courier rates shown at checkout',
@@ -100,11 +115,7 @@
             :key="item.title"
             class="reveal-init surface rounded-2xl p-5"
           >
-            <div
-              class="flex h-9 w-9 items-center justify-center rounded-xl bg-pokemon-red/[0.08]"
-            >
-              <span class="text-base">{{ item.icon }}</span>
-            </div>
+            <LandingFeatureIcon :name="item.icon" />
             <h3 class="mt-4 text-sm font-semibold text-ink">{{ item.title }}</h3>
             <p class="mt-1.5 text-[13px] leading-relaxed text-ink-muted">
               {{ item.body }}
@@ -165,34 +176,34 @@ definePageMeta({ layout: "landing" });
 
 useHead({
   title:
-    "TCGo — POS, Inventory & Marketplace for Card Shops in Malaysia",
+    "TCGo — Malaysia's TCG Marketplace, POS & Inventory for Card Shops",
   meta: [
     {
       name: "description",
       content:
-        "TCGo is the point-of-sale and inventory system for card shops in Malaysia. Sync counter and online sales on one stock ledger, check live market prices, track every sale in one dashboard, and generate shipping waybills instantly.",
+        "TCGo is Malaysia's trading card marketplace, backed by a point-of-sale and inventory system for card shops. Sell at the counter and online from one stock ledger, take payment by QR or tap-to-pay, check live market prices, and print shipping waybills instantly.",
     },
   ],
 });
 
 const secondaryItems = [
   {
-    icon: "⚡",
+    icon: "auction" as const,
     title: "Live auctions",
     body: "Real-time bidding with anti-snipe protection and automatic proxy bids.",
   },
   {
-    icon: "🛡️",
+    icon: "trust" as const,
     title: "Trust system",
     body: "Every buyer and seller carries a trust score, so both sides know who they're dealing with.",
   },
   {
-    icon: "🎯",
+    icon: "graded" as const,
     title: "Graded & raw",
     body: "PSA, CGC, TAG and Beckett slabs alongside raw cards in any condition.",
   },
   {
-    icon: "🇲🇾",
+    icon: "local" as const,
     title: "Local by default",
     body: "Prices in RM, FPX online banking at checkout, and domestic courier rates.",
   },

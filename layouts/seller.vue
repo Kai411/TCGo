@@ -9,20 +9,22 @@
             <span class="hidden sm:inline">Marketplace</span>
           </NuxtLink>
           <span class="text-ink-soft dark:text-zinc-600">/</span>
-          <span class="font-bold text-ink dark:text-white truncate">Inventory</span>
+          <span class="font-bold text-ink dark:text-white truncate">Seller Dashboard</span>
         </div>
+        <!-- Inventory and Auctions each have their own add button on-page, so
+             duplicating them up here just crowded the bar. Settings takes the
+             slot instead — it's the one destination with no other entry point. -->
         <div class="flex items-center gap-2 shrink-0">
           <NuxtLink
-            to="/inventory/listings/new"
-            class="px-3 py-1.5 rounded-full text-xs font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
+            to="/seller/settings"
+            aria-label="Seller settings"
+            class="p-2 rounded-full text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors"
+            :class="route.path === '/seller/settings' ? '!text-pokemon-red' : ''"
           >
-            + Card
-          </NuxtLink>
-          <NuxtLink
-            to="/inventory/auctions/new"
-            class="px-3 py-1.5 rounded-full text-xs font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
-          >
-            + Auction
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
           </NuxtLink>
         </div>
       </div>
@@ -71,15 +73,16 @@
 
     <!-- Mobile bottom nav -->
     <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] pb-[16px]">
-      <div
-        class="grid h-16 px-1"
-        :style="{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }"
-      >
+      <!-- Scrolls rather than dividing the width by the item count: with 8
+           destinations an equal-width grid gave each one ~45px on a 375px
+           screen, which is below the touch-target minimum. Every destination
+           stays reachable on mobile this way. -->
+      <div class="flex h-16 px-1 overflow-x-auto no-scrollbar">
         <NuxtLink
           v-for="item in navItems"
           :key="item.to"
           :to="item.to"
-          class="relative flex flex-col items-center justify-center gap-0.5 text-[9px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
+          class="relative flex flex-col items-center justify-center gap-0.5 shrink-0 min-w-[68px] flex-1 text-[9px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
           :class="isActive(item) ? '!text-pokemon-red' : ''"
         >
           <component :is="item.icon" class="w-5 h-5" />
@@ -117,23 +120,24 @@ const IconGavel = () =>
     h("path", { d: "M11 7l-7 7 3 3 7-7" }),
     h("path", { d: "M3 21h12" }),
   ]);
-const IconUpload = () =>
+const IconBox = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [
-    h("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }),
-    h("polyline", { points: "17 8 12 3 7 8" }),
-    h("line", { x1: "12", y1: "3", x2: "12", y2: "15" }),
+    h("path", { d: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" }),
+    h("polyline", { points: "3.27 6.96 12 12.01 20.73 6.96" }),
+    h("line", { x1: "12", y1: "22.08", x2: "12", y2: "12" }),
   ]);
+
 const IconScan = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [
     h("path", { d: "M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" }),
     h("line", { x1: "3", y1: "12", x2: "21", y2: "12" }),
   ]);
 
-const IconBox = () =>
+const IconOrders = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [
-    h("path", { d: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" }),
-    h("polyline", { points: "3.27 6.96 12 12.01 20.73 6.96" }),
-    h("line", { x1: "12", y1: "22.08", x2: "12", y2: "12" }),
+    h("path", { d: "M9 3h6a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" }),
+    h("path", { d: "M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" }),
+    h("path", { d: "m9 14 2 2 4-4" }),
   ]);
 
 const IconWallet = () =>
@@ -143,13 +147,15 @@ const IconWallet = () =>
   ]);
 
 const navItems = [
-  { to: "/inventory", label: "Dashboard", icon: IconDashboard, exact: true },
-  { to: "/inventory/pos", label: "POS", icon: IconScan },
-  { to: "/inventory/items", label: "Items", icon: IconBox },
-  { to: "/inventory/listings", label: "Listings", icon: IconTag },
-  { to: "/inventory/auctions", label: "Auctions", icon: IconGavel },
-  { to: "/inventory/funds", label: "Funds", icon: IconWallet },
-  { to: "/inventory/import", label: "Bulk add", icon: IconUpload },
+  { to: "/seller", label: "Dashboard", icon: IconDashboard, exact: true },
+  { to: "/seller/pos", label: "POS", icon: IconScan },
+  { to: "/seller/orders", label: "Orders", icon: IconOrders },
+  { to: "/seller/items", label: "Inventory", icon: IconBox },
+  { to: "/seller/listings", label: "Listings", icon: IconTag },
+  { to: "/seller/auctions", label: "Auctions", icon: IconGavel },
+  { to: "/seller/funds", label: "Funds", icon: IconWallet },
+  // Bulk add is reached from inside Inventory rather than the top-level nav —
+  // it's an occasional import, not a daily destination.
 ];
 
 const soonItems: { label: string; icon: any }[] = [];

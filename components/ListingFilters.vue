@@ -1,9 +1,9 @@
 <template>
   <!-- ── SIDEBAR MODE (desktop inline panel) ─────────────────────────── -->
   <template v-if="sidebar">
-    <div class="space-y-3">
-      <div class="flex items-center justify-between">
-        <p class="text-xs font-bold text-ink dark:text-white">Filters</p>
+    <div>
+      <div class="flex items-center justify-between pb-3">
+        <p class="text-sm font-bold text-ink dark:text-white">Filters</p>
         <button
           v-if="filters.activeCount.value > 0"
           @click="filters.reset()"
@@ -13,16 +13,17 @@
         </button>
       </div>
 
-      <!-- Sort -->
-      <section>
+      <!-- Sort is always visible: it is the one control people reach for every
+           visit, and it is a single short list. -->
+      <section class="py-3 border-t border-black/[0.06] dark:border-white/[0.08]">
         <p class="sb-label">Sort</p>
-        <div class="flex flex-col gap-px">
+        <div class="flex flex-col gap-0.5 mt-2">
           <button
             v-for="opt in sortOptions"
             :key="opt.value"
             type="button"
             @click="filters.sort.value = opt.value"
-            class="text-left text-[11px] px-2 py-1 rounded-md font-medium transition-colors"
+            class="text-left text-[13px] px-2.5 py-1.5 rounded-lg font-medium transition-colors"
             :class="
               filters.sort.value === opt.value
                 ? 'bg-ink text-white dark:bg-white dark:text-ink'
@@ -34,96 +35,90 @@
         </div>
       </section>
 
-      <!-- Status (auction only) -->
-      <section v-if="showAuctionSort">
-        <p class="sb-label">Status</p>
-        <div class="flex flex-wrap gap-1">
+      <!-- Everything else collapses. Showing six expanded groups at once made
+           the rail a wall of chips; a collapsed group still advertises its
+           active count so nothing hides silently. -->
+      <FilterGroup
+        v-for="g in groups"
+        :key="g.id"
+        :label="g.label"
+        :count="g.count"
+        :open="isOpen(g.id)"
+        @toggle="toggleSection(g.id)"
+      >
+        <!-- Status (auction only) -->
+        <div v-if="g.id === 'status'" class="flex flex-wrap gap-1.5">
           <ListingFilterPill
-            v-for="o in [{ v: 'live', l: 'Live' }, { v: 'ended', l: 'Ended' }]"
-            :key="o.v" size="sm"
+            v-for="o in STATUS_OPTS"
+            :key="o.v"
+            size="sm"
             :active="filters.statuses.value.includes(o.v as any)"
             @click="toggle(filters.statuses, o.v)"
           >{{ o.l }}</ListingFilterPill>
         </div>
-      </section>
 
-      <!-- Time left (auction only) -->
-      <section v-if="showAuctionSort">
-        <p class="sb-label">Time left</p>
-        <div class="flex flex-wrap gap-1">
+        <!-- Time left (auction only) -->
+        <div v-else-if="g.id === 'time'" class="flex flex-wrap gap-1.5">
           <ListingFilterPill
-            v-for="o in [{ v: 'ending-soon', l: '< 1h' }, { v: 'today', l: 'Today' }, { v: 'longer', l: 'Later' }]"
-            :key="o.v" size="sm"
+            v-for="o in TIME_OPTS"
+            :key="o.v"
+            size="sm"
             :active="filters.timeBuckets.value.includes(o.v as any)"
             @click="toggle(filters.timeBuckets, o.v)"
           >{{ o.l }}</ListingFilterPill>
         </div>
-      </section>
 
-      <!-- Price range -->
-      <section>
-        <p class="sb-label">Price (RM)</p>
-        <div class="flex items-center gap-1.5">
+        <!-- Price range -->
+        <div v-else-if="g.id === 'price'" class="flex items-center gap-2">
           <input
             type="number" inputmode="decimal" placeholder="Min"
             :value="filters.priceMin.value ?? ''"
             @input="onPriceInput($event, 'min')"
-            class="no-spin flex-1 min-w-0 px-2 py-1 rounded-md border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[11px] text-ink dark:text-white"
+            class="no-spin flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[13px] text-ink dark:text-white"
           />
-          <span class="text-[10px] text-ink-muted dark:text-zinc-500">—</span>
+          <span class="text-xs text-ink-soft dark:text-zinc-500">—</span>
           <input
             type="number" inputmode="decimal" placeholder="Max"
             :value="filters.priceMax.value ?? ''"
             @input="onPriceInput($event, 'max')"
-            class="no-spin flex-1 min-w-0 px-2 py-1 rounded-md border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[11px] text-ink dark:text-white"
+            class="no-spin flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[13px] text-ink dark:text-white"
           />
         </div>
-      </section>
 
-      <!-- Set name -->
-      <section>
-        <p class="sb-label">Set</p>
+        <!-- Set name -->
         <input
+          v-else-if="g.id === 'set'"
           type="text" v-model="filters.setQuery.value" placeholder="Search set…"
-          class="w-full px-2 py-1 rounded-md border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[11px] text-ink dark:text-white"
+          class="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[13px] text-ink dark:text-white"
         />
-      </section>
 
-      <!-- Product type -->
-      <section>
-        <p class="sb-label">Product</p>
-        <div class="flex flex-wrap gap-1">
+        <!-- Product type -->
+        <div v-else-if="g.id === 'product'" class="flex flex-wrap gap-1.5">
           <ListingFilterPill
             v-for="t in PRODUCT_TYPES" :key="t" size="sm"
             :active="filters.productTypes.value.includes(t as any)"
             @click="toggle(filters.productTypes, t)"
           >{{ t }}</ListingFilterPill>
         </div>
-      </section>
 
-      <!-- Condition -->
-      <section>
-        <p class="sb-label">Condition</p>
-        <div class="flex flex-wrap gap-1">
+        <!-- Condition -->
+        <div v-else-if="g.id === 'condition'" class="flex flex-wrap gap-1.5">
           <ListingFilterPill
             v-for="c in UNGRADED_CONDITIONS" :key="c" size="sm"
             :active="filters.conditions.value.includes(c)"
             @click="toggle(filters.conditions, c)"
           >{{ shortCondition(c) }}</ListingFilterPill>
         </div>
-      </section>
 
-      <!-- Language -->
-      <section>
-        <p class="sb-label">Language</p>
-        <div class="flex flex-wrap gap-1">
+        <!-- Language -->
+        <div v-else-if="g.id === 'language'" class="flex flex-wrap gap-1.5">
           <ListingFilterPill
             v-for="l in CARD_LANGUAGES" :key="l.code" size="sm"
             :active="filters.languages.value.includes(l.code)"
             @click="toggle(filters.languages, l.code)"
           >{{ l.code }}</ListingFilterPill>
         </div>
-      </section>
+      </FilterGroup>
     </div>
   </template>
 
@@ -327,6 +322,50 @@ const onPriceInput = (e: Event, which: "min" | "max") => {
   const n = raw === "" ? null : Number(raw);
   if (which === "min") props.filters.priceMin.value = Number.isFinite(n) ? n : null;
   else props.filters.priceMax.value = Number.isFinite(n) ? n : null;
+};
+
+const STATUS_OPTS = [
+  { v: "live", l: "Live" },
+  { v: "ended", l: "Ended" },
+];
+const TIME_OPTS = [
+  { v: "ending-soon", l: "< 1h" },
+  { v: "today", l: "Today" },
+  { v: "longer", l: "Later" },
+];
+
+// ── Collapsible sidebar groups ──────────────────────────────────────────
+// Only Price starts open. A group with an active selection auto-opens so a
+// filter can never be applied-but-invisible.
+const DEFAULT_OPEN = new Set(["price"]);
+const manual = ref<Record<string, boolean>>({});
+
+const groups = computed(() => {
+  const f = props.filters;
+  const all = [
+    { id: "status", label: "Status", count: f.statuses.value.length, auctionOnly: true },
+    { id: "time", label: "Time left", count: f.timeBuckets.value.length, auctionOnly: true },
+    {
+      id: "price",
+      label: "Price (RM)",
+      count: f.priceMin.value != null || f.priceMax.value != null ? 1 : 0,
+      auctionOnly: false,
+    },
+    { id: "set", label: "Set", count: f.setQuery.value.trim() ? 1 : 0, auctionOnly: false },
+    { id: "product", label: "Product", count: f.productTypes.value.length, auctionOnly: false },
+    { id: "condition", label: "Condition", count: f.conditions.value.length, auctionOnly: false },
+    { id: "language", label: "Language", count: f.languages.value.length, auctionOnly: false },
+  ];
+  return all.filter((g) => !g.auctionOnly || props.showAuctionSort);
+});
+
+const isOpen = (id: string) => {
+  if (id in manual.value) return manual.value[id]!;
+  const g = groups.value.find((x) => x.id === id);
+  return DEFAULT_OPEN.has(id) || (g?.count ?? 0) > 0;
+};
+const toggleSection = (id: string) => {
+  manual.value = { ...manual.value, [id]: !isOpen(id) };
 };
 
 const shortCondition = (c: string) => {

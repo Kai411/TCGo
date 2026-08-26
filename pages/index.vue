@@ -1,9 +1,9 @@
 <template>
-  <div class="lg:flex lg:gap-8">
+  <div class="lg:flex lg:gap-8 xl:gap-10">
     <!-- ── Filter sidebar (desktop only) ─────────────────────────────── -->
     <aside
       v-if="!loading"
-      class="hidden lg:block w-48 shrink-0 sticky top-[5.5rem] self-start"
+      class="hidden lg:block w-56 xl:w-60 shrink-0 sticky top-[5.5rem] self-start max-h-[calc(100vh-7rem)] overflow-y-auto no-scrollbar"
     >
       <ListingFilters :filters="filters" :sidebar="true" />
     </aside>
@@ -60,7 +60,7 @@
         </p>
         <NuxtLink
           v-if="user"
-          to="/inventory/listings/new"
+          to="/seller/listings/new"
           class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow ease-premium"
         >
           List your first card
@@ -70,7 +70,7 @@
       <!-- Grid -->
       <div
         v-else
-        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5"
+        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 xl:gap-5"
       >
         <CardTile v-for="card in availableCards" :key="card.id" :card="card" />
       </div>

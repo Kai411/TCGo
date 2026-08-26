@@ -2,7 +2,7 @@
   <div class="max-w-5xl mx-auto">
     <div v-if="!user" class="text-center py-12">
       <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">
-        You need to sign in to list a card.
+        You need to sign in to create an auction.
       </p>
       <button
         @click="signInWithGoogle"
@@ -13,83 +13,42 @@
     </div>
 
     <template v-else>
-      <h1 class="text-2xl font-bold mb-4">List Card for Sale</h1>
+      <h1 class="text-2xl font-bold mb-4">Create an Auction</h1>
 
-      <!-- Mode toggle: Scan vs Manual -->
-      <div
-        class="inline-flex p-1 mb-6 bg-gray-100 dark:bg-white/[0.06] rounded-xl"
-        role="tablist"
-      >
-        <button
-          type="button"
-          role="tab"
-          :aria-selected="mode === 'scan'"
-          @click="mode = 'scan'"
-          class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors"
-          :class="
-            mode === 'scan'
-              ? 'bg-white dark:bg-white/[0.12] text-ink dark:text-white shadow-sm'
-              : 'text-gray-600 dark:text-zinc-400 hover:text-ink dark:hover:text-white'
-          "
-        >
-          Scan cards
-        </button>
-        <button
-          type="button"
-          role="tab"
-          :aria-selected="mode === 'manual'"
-          @click="mode = 'manual'"
-          class="px-4 py-2 text-sm font-semibold rounded-lg transition-colors"
-          :class="
-            mode === 'manual'
-              ? 'bg-white dark:bg-white/[0.12] text-ink dark:text-white shadow-sm'
-              : 'text-gray-600 dark:text-zinc-400 hover:text-ink dark:hover:text-white'
-          "
-        >
-          Enter manually
-        </button>
-      </div>
+      <!-- One shared method picker across Listings, Auctions and Inventory.
+           Each page used to roll its own toggle with its own labels. -->
+      <AddMethodPicker
+        v-model="mode"
+        class="mb-6"
+        :methods="['scan', 'manual']"
+        :scan-remaining="scanRemaining"
+        :scan-limit="FREE_SCAN_LIMIT"
+        :is-premium="isPremium"
+      />
 
-      <!-- Scan flow -->
-      <div
-        v-if="mode === 'scan'"
-        class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 mb-6 flex items-center justify-between gap-4 flex-wrap"
-      >
-        <div>
-          <p class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
-            Scan cards
-          </p>
-          <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-            Use your camera (or upload photos). Each scan goes into a queue —
-            fill the price + condition for each one and publish all at once.
-          </p>
-          <p class="text-xs mt-1.5">
-            <span v-if="isPremium" class="text-emerald-600 dark:text-emerald-400 font-semibold">Unlimited scans</span>
-            <span v-else class="font-semibold" :class="scanRemaining === 0 ? 'text-pokemon-red' : 'text-ink dark:text-zinc-200'">
-              {{ scanRemaining }} / {{ FREE_SCAN_LIMIT }} scans left this month
-            </span>
-          </p>
-        </div>
-        <button
-          type="button"
-          @click="scannerOpen = true"
-          :disabled="!isPremium && scanRemaining === 0"
-          class="inline-flex items-center gap-1.5 bg-pokemon-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg
-            class="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
+      <!-- Scan: open the camera -->
+      <div v-if="mode === 'scan'" class="surface rounded-2xl p-5 mb-6">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-ink dark:text-zinc-100">Scan cards</p>
+            <p class="text-xs text-ink-muted dark:text-zinc-400 mt-0.5 max-w-md">
+              Use your camera or upload photos. Each scan joins a queue — set the
+              details on each one and publish the whole batch at once.
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="scannerOpen = true"
+            :disabled="!isPremium && scanRemaining === 0"
+            class="shrink-0 inline-flex items-center gap-1.5 bg-pokemon-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <path
-              d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-            />
-            <path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          Scan cards
-        </button>
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            Open scanner
+          </button>
+        </div>
       </div>
 
       <!-- Scanned drafts queue -->
@@ -122,8 +81,7 @@
             <div class="flex flex-col sm:flex-row gap-3 items-start">
               <!-- Thumbnail with status overlay. w-fit pins the container
                    to the image's natural width so the absolute overlay
-                   can never paint past it (was causing the "big black box"
-                   when flex stretched the container to row height/width). -->
+                   can never paint past it. -->
               <div class="relative shrink-0 w-fit">
                 <img
                   :src="item.scannedImageUrl"
@@ -192,27 +150,6 @@
                     >
                       {{ item.error }}
                     </p>
-                    <!-- TCGo DB market price (current daily snapshot, MYR). -->
-                    <p
-                      v-if="item.tcgoPrice"
-                      class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-500/[0.12] px-1.5 py-0.5 rounded"
-                      :title="`Source: TCGo DB (${item.tcgoPrice.subtype}, TCGPlayer market in USD, converted to MYR)`"
-                    >
-                      <svg
-                        class="w-3 h-3"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.5"
-                      >
-                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-                        <polyline points="16 7 22 7 22 13" />
-                      </svg>
-                      Market RM {{ item.tcgoPrice.market }}
-                      <span class="text-emerald-600/70 dark:text-emerald-300/60 font-normal">
-                        (RM {{ item.tcgoPrice.low }}–{{ item.tcgoPrice.high }})
-                      </span>
-                    </p>
                   </div>
                   <button
                     type="button"
@@ -235,36 +172,28 @@
                   <span>Reading the card and looking up matches…</span>
                 </div>
 
-                <!-- needs-pick: candidate grid from TCGo DB. Falls back to
-                     a helpful hint if Gemini couldn't read the number. -->
+                <!-- needs-pick: match grid -->
                 <div v-if="item.status === 'needs-pick' && item.matches">
-                  <p class="text-[11px] text-gray-500 dark:text-zinc-400 mb-1.5">
-                    Pick the matching print from TCGo DB:
-                  </p>
                   <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
                     <button
                       v-for="m in item.matches"
-                      :key="m.productId"
+                      :key="m.id"
                       type="button"
                       @click="pickMatch(item.id, m)"
-                      class="text-left bg-white dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] rounded overflow-hidden hover:border-pokemon-blue transition-colors"
+                      class="text-left bg-white border border-gray-200 dark:border-white/[0.08] rounded overflow-hidden hover:border-pokemon-red transition-colors"
                     >
-                      <div class="w-full aspect-[2.5/3.5]">
-                        <CardImage :src="m.imageUrl" :alt="m.name" />
-                      </div>
+                      <img
+                        :src="m.images.small"
+                        :alt="m.name"
+                        class="w-full aspect-[2.5/3.5] object-cover"
+                      />
                       <p class="px-1 py-0.5 text-[10px] font-semibold truncate">
                         {{ m.name }}
                       </p>
                       <p
-                        class="px-1 text-[9px] text-gray-500 dark:text-zinc-400 truncate"
+                        class="px-1 pb-1 text-[9px] text-gray-500 dark:text-zinc-400 truncate"
                       >
-                        {{ m.setName }}<span v-if="m.number"> · {{ m.number }}</span>
-                      </p>
-                      <p
-                        v-if="m.price"
-                        class="px-1 pb-1 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400"
-                      >
-                        RM {{ m.price.market }}
+                        {{ m.set.name }} · {{ m.number }}
                       </p>
                     </button>
                   </div>
@@ -282,15 +211,15 @@
                     type="button"
                     @click="retryManualSearch(item.id)"
                     :disabled="manualSearching[item.id]"
-                    class="bg-pokemon-blue text-white text-xs px-3 py-1.5 rounded disabled:opacity-50"
+                    class="bg-pokemon-red text-white text-xs px-3 py-1.5 rounded disabled:opacity-50"
                   >
                     {{ manualSearching[item.id] ? "…" : "Search" }}
                   </button>
                 </div>
 
-                <!-- ready: full per-card form -->
+                <!-- ready: full per-draft form -->
                 <template v-else-if="item.status === 'ready'">
-                  <!-- Product type + condition / grading + price -->
+                  <!-- Product type + condition / grading -->
                   <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     <select
                       v-model="draftFields[item.id].productType"
@@ -357,26 +286,94 @@
                       placeholder="Grade"
                       class="border border-gray-300 dark:border-white/[0.10] rounded-lg px-2.5 py-2 text-sm"
                     />
-                    <!-- Price: full width on mobile, fits in 3rd col on desktop -->
-                    <div class="relative col-span-2 sm:col-span-1">
+                  </div>
+
+                  <!-- Auction settings -->
+                  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <!-- Start price -->
+                    <div
+                      class="flex items-stretch rounded-lg border border-gray-300 dark:border-white/[0.10] overflow-hidden focus-within:border-pokemon-red focus-within:ring-1 focus-within:ring-pokemon-red"
+                    >
                       <span
-                        class="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500 dark:text-zinc-400 pointer-events-none"
-                        >RM</span
+                        class="flex items-center px-2 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 text-xs font-medium whitespace-nowrap select-none"
                       >
+                        <span class="hidden sm:inline">Start Price</span>
+                        <span class="sm:hidden">SB</span>
+                      </span>
                       <input
-                        v-model.number="draftFields[item.id].price"
+                        v-model.number="draftFields[item.id].startingPrice"
                         type="number"
                         step="0.01"
                         min="0.01"
-                        :placeholder="
-                          item.tcgoPrice
-                            ? `~${item.tcgoPrice.market}`
-                            : '0.00'
-                        "
-                        class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg px-2.5 py-2 pl-9 text-sm"
+                        placeholder="0.00"
+                        class="flex-1 min-w-0 px-2 py-2 text-sm bg-transparent outline-none text-gray-900 dark:text-zinc-100 placeholder-gray-400"
                       />
                     </div>
+                    <!-- Min increment -->
+                    <div
+                      class="flex items-stretch rounded-lg border border-gray-300 dark:border-white/[0.10] overflow-hidden focus-within:border-pokemon-red focus-within:ring-1 focus-within:ring-pokemon-red"
+                    >
+                      <span
+                        class="flex items-center px-2 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 text-xs font-medium whitespace-nowrap select-none"
+                      >
+                        <span class="hidden sm:inline">Min Increment +</span>
+                        <span class="sm:hidden">Min +</span>
+                      </span>
+                      <input
+                        v-model.number="draftFields[item.id].minIncrement"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="1.00"
+                        class="flex-1 min-w-0 px-2 py-2 text-sm bg-transparent outline-none text-gray-900 dark:text-zinc-100 placeholder-gray-400"
+                      />
+                    </div>
+                    <!-- Duration -->
+                    <div
+                      class="flex items-stretch rounded-lg border border-gray-300 dark:border-white/[0.10] overflow-hidden focus-within:border-pokemon-red focus-within:ring-1 focus-within:ring-pokemon-red col-span-2 sm:col-span-1"
+                    >
+                      <span
+                        class="flex items-center pl-2.5 pr-2 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-400 select-none"
+                      >
+                        <svg
+                          class="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                      </span>
+                      <select
+                        v-model.number="draftFields[item.id].duration"
+                        class="flex-1 px-2 py-2 text-sm bg-transparent outline-none text-gray-900 dark:text-zinc-100"
+                      >
+                        <option
+                          v-for="d in durationOptions"
+                          :key="d.value"
+                          :value="d.value"
+                        >
+                          {{ d.label }}
+                        </option>
+                      </select>
+                    </div>
                   </div>
+
+                  <!-- Private toggle -->
+                  <label
+                    class="flex items-center gap-2 text-sm text-gray-700 dark:text-zinc-200 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      v-model="draftFields[item.id].isPrivate"
+                      class="w-4 h-4 rounded border-gray-300 dark:border-white/[0.10] text-pokemon-red focus:ring-pokemon-red"
+                    />
+                    Private auction (only people with the link can bid)
+                  </label>
 
                   <!-- Description -->
                   <textarea
@@ -385,6 +382,46 @@
                     placeholder="Notes about the card (optional)…"
                     class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg px-2.5 py-2 text-sm resize-none"
                   />
+
+                  <!-- Auto-detected metadata — edit if scanner got it wrong. -->
+                  <!-- <div class="grid grid-cols-3 gap-2">
+                  <select
+                    :value="item.rarity || ''"
+                    @change="
+                      updateQueueItem(item.id, {
+                        rarity: ($event.target as HTMLSelectElement).value,
+                      })
+                    "
+                    class="border border-gray-300 dark:border-white/[0.10] rounded-lg px-2.5 py-2 text-sm"
+                  >
+                    <option value="">Rarity…</option>
+                    <option v-for="r in RARITIES" :key="r" :value="r">{{ r }}</option>
+                  </select>
+                  <select
+                    :value="item.variant || ''"
+                    @change="
+                      updateQueueItem(item.id, {
+                        variant: ($event.target as HTMLSelectElement).value,
+                      })
+                    "
+                    class="border border-gray-300 dark:border-white/[0.10] rounded-lg px-2.5 py-2 text-sm"
+                  >
+                    <option value="">Variant…</option>
+                    <option v-for="v in VARIANTS" :key="v" :value="v">{{ v }}</option>
+                  </select>
+                  <select
+                    :value="item.edition || ''"
+                    @change="
+                      updateQueueItem(item.id, {
+                        edition: ($event.target as HTMLSelectElement).value,
+                      })
+                    "
+                    class="border border-gray-300 dark:border-white/[0.10] rounded-lg px-2.5 py-2 text-sm"
+                  >
+                    <option value="">Edition…</option>
+                    <option v-for="e in EDITIONS" :key="e" :value="e">{{ e }}</option>
+                  </select>
+                </div> -->
 
                   <!-- Extra photos -->
                   <div>
@@ -395,7 +432,7 @@
                     </p>
                     <div class="flex items-center gap-2 flex-wrap">
                       <label
-                        class="cursor-pointer inline-flex items-center justify-center w-14 h-14 border border-dashed border-gray-300 dark:border-white/[0.10] rounded text-gray-400 dark:text-zinc-500 hover:border-pokemon-blue hover:text-pokemon-blue transition-colors text-xs"
+                        class="cursor-pointer inline-flex items-center justify-center w-14 h-14 border border-dashed border-gray-300 dark:border-white/[0.10] rounded text-gray-400 dark:text-zinc-500 hover:border-pokemon-red hover:text-pokemon-red transition-colors text-xs"
                       >
                         <svg
                           class="w-5 h-5"
@@ -450,7 +487,7 @@
           type="button"
           @click="publishDrafts"
           :disabled="publishing || !canPublishDrafts"
-          class="mt-4 w-full bg-pokemon-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+          class="mt-4 w-full bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
         >
           {{ publishButtonLabel }}
         </button>
@@ -471,41 +508,55 @@
           <div
             class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3 lg:col-span-2"
           >
-            <div class="flex items-center justify-between">
-              <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
-                Photos <span class="text-pokemon-red">*</span>
-              </h3>
-              <span class="text-xs text-gray-400 dark:text-zinc-500">{{ selectedFiles.length }}/3</span>
-            </div>
-            <input
-              ref="fileInput"
-              type="file"
-              accept="image/*"
-              multiple
-              class="hidden"
-              @change="handleFileSelect"
-            />
-            <div class="grid grid-cols-4 gap-2">
-              <!-- Add button — leftmost, hidden when at max -->
-              <label
-                v-if="selectedFiles.length < 3"
-                class="cursor-pointer aspect-[5/7] rounded-lg border-2 border-dashed border-gray-300 dark:border-white/[0.10] flex flex-col items-center justify-center gap-1 text-gray-400 dark:text-zinc-500 hover:border-pokemon-blue hover:text-pokemon-blue transition-colors"
-                @click="triggerFileInput"
-              >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path d="M12 5v14M5 12h14" />
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
+              Photos <span class="text-pokemon-red">*</span>
+            </h3>
+            <div
+              class="border-2 border-dashed border-gray-300 dark:border-white/[0.10] rounded-lg p-6 text-center hover:border-pokemon-red transition-colors cursor-pointer"
+              @click="triggerFileInput"
+              @dragover.prevent="dragOver = true"
+              @dragleave="dragOver = false"
+              @drop.prevent="handleDrop"
+              :class="{ 'border-pokemon-red bg-red-50': dragOver }"
+            >
+              <input
+                ref="fileInput"
+                type="file"
+                accept="image/*"
+                multiple
+                class="hidden"
+                @change="handleFileSelect"
+              />
+              <div class="text-gray-400 dark:text-zinc-500">
+                <svg
+                  class="mx-auto h-8 w-8 mb-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
-                <span class="text-[10px] font-medium">Add</span>
-              </label>
-              <!-- Photo previews -->
+                <p class="text-sm">Click or drag photos here</p>
+                <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
+                  PNG, JPG, WEBP up to 5MB each
+                </p>
+              </div>
+            </div>
+
+            <div v-if="selectedFiles.length > 0" class="grid grid-cols-4 gap-2">
               <div
                 v-for="(file, index) in selectedFiles"
                 :key="index"
-                class="relative group aspect-[5/7]"
+                class="relative group"
               >
                 <img
                   :src="file.preview"
-                  class="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-white/[0.08]"
+                  class="w-full aspect-square object-cover rounded-lg border border-gray-200 dark:border-white/[0.08]"
                 />
                 <button
                   type="button"
@@ -514,34 +565,139 @@
                 >
                   ✕
                 </button>
+                <div
+                  v-if="index === 0"
+                  class="absolute bottom-1 left-1 bg-pokemon-yellow text-gray-900 dark:text-zinc-100 text-xs px-1.5 py-0.5 rounded"
+                >
+                  Cover
+                </div>
               </div>
             </div>
-            <p class="text-xs text-gray-400 dark:text-zinc-500">PNG, JPG, WEBP · up to 5 MB each</p>
           </div>
 
-          <!-- Card: Price -->
+          <!-- Card: Auction Settings (full width) -->
           <div
-            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5"
+            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-4 lg:col-span-2"
           >
-            <label
-              class="block text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-2"
-            >
-              Price <span class="text-pokemon-red">*</span>
-            </label>
-            <div class="relative">
-              <span
-                class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500 dark:text-zinc-400 pointer-events-none"
-                >RM</span
+            <div class="flex items-center justify-between">
+              <h3
+                class="text-sm font-semibold text-gray-900 dark:text-zinc-100"
               >
-              <input
-                v-model.number="price"
-                type="number"
-                min="0.01"
-                step="0.01"
-                required
-                placeholder="0.00"
-                class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg pl-10 pr-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-blue focus:outline-none focus:ring-1 focus:ring-pokemon-blue"
-              />
+                Auction Settings
+              </h3>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <span class="text-xs text-gray-500 dark:text-zinc-400"
+                  >Private</span
+                >
+                <div
+                  class="relative w-9 h-5 rounded-full transition-colors"
+                  :class="isPrivate ? 'bg-pokemon-red' : 'bg-gray-300'"
+                  @click="isPrivate = !isPrivate"
+                >
+                  <div
+                    class="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform"
+                    :class="isPrivate ? 'translate-x-4' : 'translate-x-0.5'"
+                  ></div>
+                </div>
+              </label>
+            </div>
+            <p
+              v-if="isPrivate"
+              class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"
+            >
+              🔒 This auction will only be visible to people with the direct
+              link.
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label
+                  class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1"
+                >
+                  Starting Price <span class="text-pokemon-red">*</span>
+                </label>
+                <div
+                  class="flex items-stretch rounded-lg border border-gray-300 dark:border-white/[0.10] overflow-hidden focus-within:border-pokemon-red focus-within:ring-1 focus-within:ring-pokemon-red"
+                >
+                  <span
+                    class="flex items-center px-3 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 text-sm font-medium whitespace-nowrap select-none"
+                  >
+                    <span class="hidden sm:inline">Start Price: MYR</span>
+                    <span class="sm:hidden">SB: MYR</span>
+                  </span>
+                  <input
+                    v-model.number="startingPrice"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    required
+                    placeholder="1.00"
+                    class="flex-1 min-w-0 px-3 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 bg-transparent outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label
+                  class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1"
+                >
+                  Min Increment <span class="text-pokemon-red">*</span>
+                </label>
+                <div
+                  class="flex items-stretch rounded-lg border border-gray-300 dark:border-white/[0.10] overflow-hidden focus-within:border-pokemon-red focus-within:ring-1 focus-within:ring-pokemon-red"
+                >
+                  <span
+                    class="flex items-center px-3 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 text-sm font-medium whitespace-nowrap select-none"
+                  >
+                    <span class="hidden sm:inline">Min Increment: +</span>
+                    <span class="sm:hidden">Min +:</span>
+                  </span>
+                  <input
+                    v-model.number="minIncrement"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    required
+                    placeholder="1.00"
+                    class="flex-1 min-w-0 px-3 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 bg-transparent outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label
+                class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-zinc-200 mb-2"
+              >
+                <svg
+                  class="w-4 h-4 text-gray-400"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                Duration <span class="text-pokemon-red">*</span>
+              </label>
+              <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                <button
+                  v-for="opt in durationOptions"
+                  :key="opt.value"
+                  type="button"
+                  @click="duration = opt.value"
+                  class="py-2 px-2 rounded-lg text-xs font-medium border-2 transition-all"
+                  :class="
+                    duration === opt.value
+                      ? 'border-pokemon-red bg-red-50 text-pokemon-red'
+                      : 'border-gray-200 dark:border-white/[0.08] bg-white text-gray-600 dark:text-zinc-300 hover:border-gray-300 dark:hover:border-white/[0.10]'
+                  "
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -556,7 +712,7 @@
             <p class="text-xs text-gray-500 dark:text-zinc-400">
               Buyers are quoted a live courier rate from your pickup address to
               theirs at checkout — you don't set a price here.
-              <NuxtLink to="/inventory/verify" class="text-pokemon-red hover:underline">
+              <NuxtLink to="/seller/verify" class="text-pokemon-red hover:underline">
                 Check your pickup address →
               </NuxtLink>
             </p>
@@ -576,7 +732,7 @@
         >
           <div class="flex items-center gap-3">
             <div
-              class="animate-spin rounded-full h-4 w-4 border-b-2 border-pokemon-blue"
+              class="animate-spin rounded-full h-4 w-4 border-b-2 border-pokemon-red"
             ></div>
             <span class="text-sm text-gray-600 dark:text-zinc-300">
               Uploading photos... {{ uploadProgress }}/{{
@@ -589,9 +745,9 @@
         <button
           type="submit"
           :disabled="submitting"
-          class="w-full bg-pokemon-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="w-full bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {{ submitting ? "Listing..." : "List for Sale" }}
+          {{ submitting ? "Creating Auction..." : "Start Auction" }}
         </button>
       </form>
 
@@ -606,8 +762,10 @@
 
 <script setup lang="ts">
 import type { CardFormData } from "~/components/CardFormFields.vue";
+import type { AddMethod } from "~/components/AddMethodPicker.vue";
+import { FREE_SCAN_LIMIT } from "~/composables/useScanQuota";
 
-definePageMeta({ layout: "inventory" });
+definePageMeta({ layout: "seller" });
 
 import {
   UNGRADED_CONDITIONS,
@@ -617,27 +775,24 @@ import {
   EDITIONS,
   getGradesForProvider,
 } from "~/composables/useCardConstants";
-import { FREE_SCAN_LIMIT } from "~/composables/useScanQuota";
 
 const router = useRouter();
-const { createCard } = useCards();
-const { createListedFromCard } = useInventory();
+const { createAuction } = useAuctions();
 const { uploadAuctionImages } = useStorage();
+const { user, signInWithGoogle } = useAuth();
+const { profile } = useMyProfile();
 
 // Selling requires seller verification (contact + bank + pickup address).
 const { sellerReady, kycLoading } = useSellerKyc();
 watch(
   [kycLoading, sellerReady],
   ([loading, ready]) => {
-    if (!loading && !ready && useAuth().user.value) {
-      navigateTo("/inventory/verify");
+    if (!loading && !ready && user.value) {
+      navigateTo("/seller/verify");
     }
   },
   { immediate: true },
 );
-const { user, signInWithGoogle } = useAuth();
-const { profile } = useMyProfile();
-const { isPremium, remaining: scanRemaining } = useScanQuota();
 const {
   queue,
   remove: removeFromQueue,
@@ -646,27 +801,32 @@ const {
   updateItem: updateQueueItem,
   processingCount,
 } = useScanQueue();
-const { searchCatalog } = useCardCatalog();
+const { searchByName } = usePokemonTcg();
+// Scanning burns the same monthly quota here as it does on Listings; the
+// counter just wasn't shown on this page before.
+const { isPremium, remaining: scanRemaining } = useScanQuota();
 
 const scannerOpen = ref(false);
-const mode = ref<"scan" | "manual">("scan");
 
-// Per-draft form state, keyed by queue item id. Initialized lazily as
-// items get added to the queue.
+const mode = ref<AddMethod>("scan");
+
 interface DraftFileEntry {
   file: File;
   preview: string;
 }
-interface DraftFields {
+interface AuctionDraftFields {
   productType: "Ungraded" | "Graded" | "Sealed";
   condition: string;
   gradingProvider: string;
   grade: string;
   description: string;
-  price: number | null;
+  startingPrice: number | null;
+  minIncrement: number;
+  duration: number;
+  isPrivate: boolean;
   extraFiles: DraftFileEntry[];
 }
-const draftFields = ref<Record<string, DraftFields>>({});
+const draftFields = ref<Record<string, AuctionDraftFields>>({});
 
 watch(
   queue,
@@ -679,12 +839,14 @@ watch(
           gradingProvider: "",
           grade: "",
           description: "",
-          price: null,
+          startingPrice: null,
+          minIncrement: 1,
+          duration: 86400000, // 1 day
+          isPrivate: false,
           extraFiles: [],
         };
       }
     }
-    // Drop fields for any removed items + revoke any object URLs
     const liveIds = new Set(items.map((i) => i.id));
     for (const id of Object.keys(draftFields.value)) {
       if (!liveIds.has(id)) {
@@ -729,8 +891,6 @@ const clearDrafts = () => {
 
 const pickMatch = (id: string, match: any) => pickMatchInQueue(id, match);
 
-// Manual fallback for failed identifications — search by name and either
-// auto-resolve a single match or flip to needs-pick for the user.
 const manualSearch = ref<Record<string, string>>({});
 const manualSearching = ref<Record<string, boolean>>({});
 
@@ -739,7 +899,7 @@ const retryManualSearch = async (id: string) => {
   if (!term) return;
   manualSearching.value[id] = true;
   try {
-    const { results } = await searchCatalog(term, { limit: 12, language: "EN" });
+    const results = await searchByName(term);
     if (results.length === 0) {
       updateQueueItem(id, {
         status: "failed",
@@ -784,7 +944,7 @@ const publishButtonLabel = computed(() => {
     return "Pick or remove unresolved drafts to publish";
   if (blocked > 0)
     return `Publish ${readyDrafts.value.length} ready · ${blocked} unresolved`;
-  return `Publish all ${readyDrafts.value.length} draft${readyDrafts.value.length === 1 ? "" : "s"}`;
+  return `Publish all ${readyDrafts.value.length} auction${readyDrafts.value.length === 1 ? "" : "s"}`;
 });
 
 const publishDrafts = async () => {
@@ -792,16 +952,15 @@ const publishDrafts = async () => {
 
   if (!profile.value?.phone && !profile.value?.whatsappNumber) {
     draftError.value =
-      "Please add your contact number in your Profile before listing cards.";
+      "Please add your contact number in your Profile before creating auctions.";
     return;
   }
 
-  // Per-draft validation — only ready items are eligible to publish.
   for (const item of readyDrafts.value) {
     const f = draftFields.value[item.id];
     if (!f) continue;
-    if (!f.price || f.price <= 0) {
-      draftError.value = `Set a price for "${item.cardName}".`;
+    if (!f.startingPrice || f.startingPrice <= 0) {
+      draftError.value = `Set a starting price for "${item.cardName}".`;
       return;
     }
     if (f.productType === "Ungraded" && !f.condition) {
@@ -820,12 +979,12 @@ const publishDrafts = async () => {
     const sellerName =
       profile.value?.customName || user.value!.displayName || "Anonymous";
     const sellerUid = user.value!.uid;
+    const now = Date.now();
 
     for (const item of [...readyDrafts.value]) {
       const f = draftFields.value[item.id];
       if (!f) continue;
 
-      // Upload any extra photos the user attached to this draft.
       const extraUrls = f.extraFiles.length
         ? await uploadAuctionImages(f.extraFiles.map((x) => x.file))
         : [];
@@ -834,7 +993,11 @@ const publishDrafts = async () => {
       if (item.scannedImageUrl) baseUrls.push(item.scannedImageUrl);
       const imageUrls = [...baseUrls, ...extraUrls];
 
-      const cardId = await createCard({
+      await createAuction({
+        title: `${item.cardName} · ${item.cardSet || ""}`,
+        description: f.description,
+        imageUrl: imageUrls[0],
+        imageUrls,
         cardName: item.cardName!,
         cardSet: item.cardSet || "",
         cardNumber: item.cardNumber || "",
@@ -843,49 +1006,29 @@ const publishDrafts = async () => {
         gradingProvider: f.productType === "Graded" ? f.gradingProvider : "",
         grade: f.productType === "Graded" ? f.grade : "",
         customGradingProvider: "",
-        description: f.description,
-        price: f.price!,
-        imageUrl: imageUrls[0],
-        imageUrls,
+        startingPrice: f.startingPrice!,
+        minIncrement: f.minIncrement > 0 ? f.minIncrement : 1,
         seller: sellerName,
         sellerUid,
+        endsAt: now + f.duration,
+        isPrivate: f.isPrivate,
         language: item.language || "EN",
         tcgType: "Pokemon",
         rarity: item.rarity || "",
         variant: item.variant || "",
         edition: item.edition || "",
         artist: item.artist || "",
-        // Firestore rejects undefined — only attach productId when present.
-        ...(item.productId ? { productId: item.productId } : {}),
         quantity: 1,
         status: "active",
       });
-      // Bridge: mirror the listing into inventory so it shows up there too.
-      try {
-        await createListedFromCard(cardId, {
-          productId: item.productId ?? null,
-          cardName: item.cardName!,
-          setName: item.cardSet || "",
-          number: item.cardNumber || "",
-          rarity: item.rarity || "",
-          condition: f.productType === "Ungraded" ? f.condition : "",
-          price: f.price!,
-          imageUrl: imageUrls[0],
-          quantity: 1,
-        });
-      } catch {}
-      // Remove the published item from the queue so unresolved ones remain
-      // for the user to handle separately.
       removeFromQueue(item.id);
       publishProgress.value++;
     }
 
-    // Only redirect if everything was published. If unresolved drafts remain,
-    // stay on the page so the user can deal with them.
     if (queue.value.length === 0) {
       clearQueue();
       submitted.value = true;
-      await router.push("/inventory/listings");
+      await router.push("/auctions");
     }
   } catch (e: any) {
     draftError.value = e.message || "Failed to publish drafts";
@@ -901,7 +1044,7 @@ const formDirty = computed(() => {
     cardForm.value.cardSet !== "" ||
     cardForm.value.description !== "" ||
     selectedFiles.value.length > 0 ||
-    (price.value !== null && price.value > 0)
+    (startingPrice.value !== null && startingPrice.value > 0)
   );
 });
 
@@ -963,9 +1106,21 @@ const cardForm = ref<CardFormData>({
   pickupAvailable: false,
 });
 
-const price = ref<number | null>(null);
+const startingPrice = ref<number | null>(null);
+const minIncrement = ref(1);
+const duration = ref(86400000);
+const isPrivate = ref(false);
 const submitting = ref(false);
 const error = ref("");
+
+const durationOptions = [
+  { value: 3600000, label: "1 Hour" },
+  { value: 21600000, label: "6 Hours" },
+  { value: 43200000, label: "12 Hours" },
+  { value: 86400000, label: "1 Day" },
+  { value: 259200000, label: "3 Days" },
+  { value: 604800000, label: "7 Days" },
+];
 
 // Pre-fill shipping from profile
 watch(
@@ -995,8 +1150,6 @@ const handleDrop = (event: DragEvent) => {
   if (event.dataTransfer?.files) addFiles(Array.from(event.dataTransfer.files));
 };
 
-const MAX_PHOTOS = 3;
-
 const addFiles = (files: File[]) => {
   for (const file of files) {
     if (!file.type.startsWith("image/")) continue;
@@ -1004,8 +1157,8 @@ const addFiles = (files: File[]) => {
       error.value = `${file.name} is too large (max 5MB)`;
       continue;
     }
-    if (selectedFiles.value.length >= MAX_PHOTOS) {
-      error.value = `Maximum ${MAX_PHOTOS} photos`;
+    if (selectedFiles.value.length >= 10) {
+      error.value = "Maximum 10 photos";
       break;
     }
     selectedFiles.value.push({ file, preview: URL.createObjectURL(file) });
@@ -1022,7 +1175,7 @@ const handleSubmit = async () => {
 
   if (!profile.value?.phone && !profile.value?.whatsappNumber) {
     error.value =
-      "Please add your contact number in your Profile before listing a card.";
+      "Please add your contact number in your Profile before creating an auction.";
     return;
   }
 
@@ -1037,8 +1190,10 @@ const handleSubmit = async () => {
         throw new Error("Please select a grading provider");
       if (!cardForm.value.grade) throw new Error("Please enter a grade");
     }
-    if (!price.value || price.value <= 0)
-      throw new Error("Price must be greater than 0");
+    if (!startingPrice.value || startingPrice.value <= 0)
+      throw new Error("Starting price must be greater than 0");
+    if (!minIncrement.value || minIncrement.value <= 0)
+      throw new Error("Minimum increment must be greater than 0");
     if (selectedFiles.value.length === 0 && !importedImageUrl.value)
       throw new Error("Please upload at least one photo or import from a link");
 
@@ -1058,7 +1213,9 @@ const handleSubmit = async () => {
     }
     uploading.value = false;
 
-    const cardId = await createCard({
+    const auctionId = await createAuction({
+      title: cardForm.value.cardName,
+      description: cardForm.value.description,
       cardName: cardForm.value.cardName,
       cardSet: cardForm.value.cardSet,
       cardNumber: cardForm.value.cardNumber,
@@ -1067,13 +1224,15 @@ const handleSubmit = async () => {
       gradingProvider: cardForm.value.gradingProvider,
       grade: cardForm.value.grade,
       customGradingProvider: cardForm.value.customGradingProvider,
-      description: cardForm.value.description,
-      price: price.value,
       imageUrl: imageUrls[0] || "",
       imageUrls,
+      startingPrice: startingPrice.value,
+      minIncrement: minIncrement.value,
       seller:
         profile.value?.customName || user.value!.displayName || "Anonymous",
       sellerUid: user.value!.uid,
+      endsAt: Date.now() + duration.value,
+      isPrivate: isPrivate.value,
       language: cardForm.value.language || "EN",
       tcgType: cardForm.value.tcgType || "Pokemon",
       rarity: cardForm.value.rarity || "",
@@ -1086,25 +1245,12 @@ const handleSubmit = async () => {
       pickupAvailable: cardForm.value.pickupAvailable === true,
       status: "active",
     });
-    // Bridge: mirror the listing into inventory.
-    try {
-      await createListedFromCard(cardId, {
-        cardName: cardForm.value.cardName,
-        setName: cardForm.value.cardSet,
-        number: cardForm.value.cardNumber,
-        rarity: cardForm.value.rarity || "",
-        condition: cardForm.value.condition,
-        price: price.value,
-        imageUrl: imageUrls[0] || "",
-        quantity: cardForm.value.quantity || 1,
-      });
-    } catch {}
 
     selectedFiles.value.forEach((f: any) => URL.revokeObjectURL(f.preview));
     submitted.value = true;
-    await router.push("/");
+    await router.push(`/auctions/${auctionId}`);
   } catch (e: any) {
-    error.value = e.message || "Failed to list card";
+    error.value = e.message || "Failed to create auction";
     uploading.value = false;
   } finally {
     submitting.value = false;
