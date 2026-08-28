@@ -333,7 +333,7 @@
             >
               {{ upgradeLoading ? 'Redirecting...' : 'Upgrade to Premium · RM 5.99/mo' }}
             </button>
-            <NuxtLink to="/pricing" class="text-xs text-gray-400 dark:text-zinc-500 hover:text-ink dark:hover:text-white transition-colors">
+            <NuxtLink to="/membership" class="text-xs text-gray-400 dark:text-zinc-500 hover:text-ink dark:hover:text-white transition-colors">
               Compare plans →
             </NuxtLink>
           </div>

@@ -13,6 +13,13 @@
         <!-- Desktop nav -->
         <div class="hidden lg:flex items-center gap-5">
           <NuxtLink
+            to="/pricing"
+            class="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
+            active-class="!text-pokemon-red"
+          >
+            Pricing
+          </NuxtLink>
+          <NuxtLink
             to="/beta"
             class="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
             active-class="!text-pokemon-red"
@@ -121,6 +128,14 @@
 
           <!-- Nav links -->
           <div class="flex-1 flex flex-col px-6 py-6 gap-1">
+            <NuxtLink
+              to="/pricing"
+              class="text-lg font-medium text-gray-700 hover:text-pokemon-red py-3 border-b border-gray-100 transition-colors"
+              active-class="!text-pokemon-red"
+              @click="mobileMenuOpen = false"
+            >
+              Pricing
+            </NuxtLink>
             <NuxtLink
               to="/beta"
               class="text-lg font-medium text-gray-700 hover:text-pokemon-red py-3 border-b border-gray-100 transition-colors"

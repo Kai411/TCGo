@@ -200,7 +200,7 @@
 
         <NuxtLink
           v-if="premiumEnabled && isOwnProfile && profile.tier !== 'premium'"
-          to="/pricing"
+          to="/membership"
           class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-amber-400/15 dark:bg-amber-400/10 border border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 hover:bg-amber-400/25 dark:hover:bg-amber-400/20 transition-colors ease-premium"
         >
           <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">

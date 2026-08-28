@@ -1,7 +1,12 @@
 // Marketing surfaces are light-only. Listed here (rather than only in the
 // landing layout) because the pre-paint script below has to know before Vue
 // mounts — otherwise a dark-mode visitor gets a dark flash on these routes.
-const LIGHT_ONLY_ROUTES = ["/landing", "/privacy-policy", "/update-notice"];
+const LIGHT_ONLY_ROUTES = [
+  "/landing",
+  "/pricing",
+  "/privacy-policy",
+  "/update-notice",
+];
 
 // The PWA module only emits manifest.webmanifest for production builds
 // (devOptions.enabled is false, deliberately — see the pwa block below).

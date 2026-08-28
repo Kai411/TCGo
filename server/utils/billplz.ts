@@ -125,17 +125,26 @@ const PAYMENT_ORDER_CHECKSUM_FIELDS =
 
 // A collection groups payment orders — one per payout batch, so the Billplz
 // dashboard mirrors our ledger one-to-one.
-export const createMassPaymentCollection = async (title: string) => {
+export const createMassPaymentCollection = async (
+  title: string,
+  callbackUrl?: string,
+) => {
   const epoch = Math.floor(Date.now() / 1000);
+  const params: Record<string, string> = {
+    title,
+    epoch: String(epoch),
+    // COLLECTION_CHECKSUM_FIELDS — callback_url participates only when sent,
+    // and must sit between title and epoch in the signed string.
+    checksum: checksumOf([title, callbackUrl, epoch]),
+  };
+  // Without this, a completed transfer never reaches us: Billplz settles
+  // asynchronously and the only other way to learn the outcome is an admin
+  // manually hitting Refresh, which left sellers looking at "pending" for a
+  // payout the bank had already paid.
+  if (callbackUrl) params.callback_url = callbackUrl;
   return await billplzForm<{ id: string; title: string }>(
     "/v5/payment_order_collections",
-    {
-      title,
-      epoch: String(epoch),
-      // COLLECTION_CHECKSUM_FIELDS — callback_url omitted, so it contributes
-      // nothing to the signed string.
-      checksum: checksumOf([title, epoch]),
-    },
+    params,
   );
 };
 

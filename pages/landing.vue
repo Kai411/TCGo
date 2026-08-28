@@ -125,6 +125,54 @@
       </div>
     </section>
 
+    <!-- Pricing teaser -->
+    <section id="pricing" class="scroll-mt-20 px-4 py-20 sm:py-24">
+      <div ref="pricing" class="container mx-auto max-w-5xl">
+        <div
+          class="reveal-init surface rounded-3xl px-6 py-12 text-center sm:px-10 sm:py-14"
+        >
+          <span class="eyebrow">Pricing</span>
+          <h2
+            class="mt-4 text-display font-bold tracking-tightest text-ink"
+          >
+            4% a sale. Nothing until you sell.
+          </h2>
+          <p
+            class="mx-auto mt-4 max-w-lg text-base leading-relaxed text-ink-muted"
+          >
+            No listing fees, no monthly subscription, no minimum order. Sell an
+            RM84 card and you keep RM80.64.
+          </p>
+
+          <div
+            class="mx-auto mt-9 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3"
+          >
+            <div
+              v-for="stat in pricingStats"
+              :key="stat.label"
+              class="rounded-2xl bg-ink/[0.03] px-4 py-5"
+            >
+              <p class="text-2xl font-bold tabular-nums text-ink">
+                {{ stat.value }}
+              </p>
+              <p class="mt-1 text-xs text-ink-soft">{{ stat.label }}</p>
+            </div>
+          </div>
+
+          <NuxtLink
+            to="/pricing"
+            class="mt-9 inline-flex items-center gap-1.5 rounded-xl bg-ink px-7 py-3 text-sm font-semibold text-white transition-transform duration-200 ease-premium hover:-translate-y-0.5"
+          >
+            See full pricing
+            <span aria-hidden="true">→</span>
+          </NuxtLink>
+          <p class="mt-4 text-xs text-ink-soft">
+            Free while we're in beta — 4% starts at public launch.
+          </p>
+        </div>
+      </div>
+    </section>
+
     <!-- CTA -->
     <section class="px-4 pb-24">
       <div
@@ -209,13 +257,21 @@ const secondaryItems = [
   },
 ];
 
+// Headline numbers only — the full breakdown lives on /pricing.
+const pricingStats = [
+  { value: "4%", label: "per sale, flat" },
+  { value: "RM0", label: "listing & monthly fees" },
+  { value: "RM0", label: "buyer platform fee" },
+];
+
 const intro = ref<HTMLElement>();
 const secondary = ref<HTMLElement>();
+const pricing = ref<HTMLElement>();
 const cta = ref<HTMLElement>();
 
 // Each block gets its own context so its ScrollTrigger fires on its own
 // position rather than the whole page's.
-for (const section of [intro, secondary, cta]) {
+for (const section of [intro, secondary, pricing, cta]) {
   useReveal(section, ({ reduced, settle, timeline }) => {
     const items = section.value?.querySelectorAll(".reveal-init");
     if (!items?.length) return;

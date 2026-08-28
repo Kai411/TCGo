@@ -294,7 +294,7 @@ const desktopLinks = computed(() => {
     { to: "/", label: "Shop" },
     { to: "/auctions", label: "Auctions" },
   ];
-  if (premiumEnabled) links.push({ to: "/pricing", label: "Pricing" });
+  if (premiumEnabled) links.push({ to: "/membership", label: "Pricing" });
   if (user.value) {
     links.push({ to: "/collection", label: "Collection" });
     links.push({ to: "/activity", label: "Orders" });

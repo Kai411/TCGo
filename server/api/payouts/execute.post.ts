@@ -66,8 +66,13 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    // Billplz pushes the terminal status here rather than us polling for it.
+    const config = useRuntimeConfig();
+    const siteUrl =
+      (config.public.siteUrl as string) || getRequestURL(event).origin;
     const collection = await createMassPaymentCollection(
       `TCGo payout ${payoutId.slice(0, 8)}`,
+      `${siteUrl}/api/billplz/payout-callback`,
     );
     const instruction = await createMassPaymentInstruction({
       collectionId: collection.id,
