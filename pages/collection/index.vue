@@ -18,41 +18,10 @@
         class="sticky top-16 z-30 -mx-4 px-4 bg-canvas/95 dark:bg-canvas-inverse/95 backdrop-blur border-b border-black/[0.06] dark:border-white/[0.08]"
       >
         <!-- Summary strip → links to the full collection on the profile -->
-        <NuxtLink
-          :to="`/profile/${user.uid}?tab=collection`"
-          class="flex items-center justify-between gap-3 py-3 group"
-        >
-          <div class="min-w-0">
-            <p class="font-bold text-ink dark:text-white leading-tight">
-              My Collection
-            </p>
-          </div>
-          <span
-            class="shrink-0 inline-flex items-center gap-0.5 text-ink-muted dark:text-zinc-400 group-hover:text-pokemon-red transition-colors"
-          >
-            <svg
-              class="w-5 h-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-            <svg
-              class="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </span>
-        </NuxtLink>
+
+        <div class="min-w-0">
+          <p class="font-bold text-ink dark:text-white leading-tight py-2"></p>
+        </div>
 
         <!-- Search row: [scanner] [search] [filter] -->
         <div class="flex items-center gap-2 pb-3">
@@ -132,6 +101,37 @@
               class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-pokemon-red"
             />
           </button>
+
+          <NuxtLink
+            :to="`/profile/${user.uid}?tab=collection`"
+            class="flex items-center justify-between gap-3 py-3 group"
+          >
+            <span
+              class="shrink-0 inline-flex items-center gap-0.5 text-ink-muted dark:text-zinc-400 group-hover:text-pokemon-red transition-colors"
+            >
+              <svg
+                class="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <svg
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </span>
+          </NuxtLink>
         </div>
 
         <!-- Expandable Sort + Filter panel -->
@@ -234,8 +234,10 @@
                 RM {{ formatMyr(totalValue) }}
               </p>
               <p class="mt-1.5 text-xs text-ink-soft dark:text-zinc-500">
-                {{ count }} card{{ count === 1 ? "" : "s" }}<template v-if="totalCopies !== count">
-                  · {{ totalCopies }} copies</template>
+                {{ count }} card{{ count === 1 ? "" : "s"
+                }}<template v-if="totalCopies !== count">
+                  · {{ totalCopies }} copies</template
+                >
                 <template
                   v-if="
                     valueTrend.trackedCards && valueTrend.trackedCards < count
@@ -586,7 +588,11 @@ watch(
       collectionLoading.value = false;
     }
     try {
-      valueTrend.value = await getCollectionPriceTrend(ids, 30, quantities.value);
+      valueTrend.value = await getCollectionPriceTrend(
+        ids,
+        30,
+        quantities.value,
+      );
     } finally {
       trendLoading.value = false;
     }
