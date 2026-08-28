@@ -54,6 +54,42 @@ export interface CourierRate {
   etd: string;
 }
 
+/**
+ * Plausible price band for a domestic parcel under ~2kg, in MYR.
+ *
+ * A brand-agnostic sanity guard, because the selection rule is "cheapest
+ * wins" with nothing underneath it. The DelyvaX demo tenant makes the failure
+ * obvious — it returns a RM 0.10 "Instant Delivery" that wins every quote and
+ * a RM 15,000 Lalamove entry — but the same shape of bad data in production
+ * would be charged to a real buyer, so this guards both.
+ */
+export const MIN_PLAUSIBLE_RATE_MYR = 2.0;
+export const MAX_PLAUSIBLE_RATE_MYR = 150.0;
+
+/**
+ * Service classes that can't fulfil a mail-order card order, whatever they
+ * cost. On-demand point-to-point couriers need a rider and an immediate
+ * handover, so they can't do a scheduled collection — and they certainly
+ * can't cross to East Malaysia, which the demo tenant happily quotes them for.
+ *
+ * Deliberately matched on service name rather than a courier allowlist: the
+ * production tenant's parcel services (SPX, J&T, Ninja Van, DHL eCommerce,
+ * ABX, City-Link, Pos Laju) contain none of these words, so this narrows the
+ * junk without silently dropping a real courier we haven't seen yet.
+ */
+const NON_PARCEL_SERVICE =
+  /\b(instant|same[-\s]?day|lalamove|grab(express)?|borzo|mr\.?\s*speedy|restock|international)\b/i;
+
+/** A rate we're willing to quote or book. */
+export const isQuotableRate = (r: CourierRate): boolean =>
+  r.price >= MIN_PLAUSIBLE_RATE_MYR &&
+  r.price <= MAX_PLAUSIBLE_RATE_MYR &&
+  !NON_PARCEL_SERVICE.test(r.serviceName || r.courier);
+
+/** Drop anything we shouldn't be quoting at all. */
+export const quotableRates = (rates: CourierRate[]): CourierRate[] =>
+  rates.filter(isQuotableRate);
+
 // Services a seller can actually use, cheapest first. A pickup-preferring
 // seller never sees drop-off-only rates; a drop-off seller sees everything,
 // since they can always hand a collection parcel over too.
@@ -61,8 +97,9 @@ export const usableRates = (
   rates: CourierRate[],
   preference: HandoverPreference,
 ): CourierRate[] => {
+  const quotable = quotableRates(rates);
   const usable =
-    preference === "pickup" ? rates.filter((r) => !r.dropoffOnly) : rates;
+    preference === "pickup" ? quotable.filter((r) => !r.dropoffOnly) : quotable;
   return [...usable].sort((a, b) => a.price - b.price);
 };
 
@@ -97,6 +134,9 @@ export const quoteForOrder = (
 // Distinct courier brands in a set of rates, cheapest-first order preserved.
 export const courierBrands = (rates: CourierRate[]): string[] => {
   const seen: string[] = [];
-  for (const r of rates) if (r.courier && !seen.includes(r.courier)) seen.push(r.courier);
+  // Same filter as quoting — a seller shouldn't be offered a preferred courier
+  // we would never actually book.
+  for (const r of quotableRates(rates))
+    if (r.courier && !seen.includes(r.courier)) seen.push(r.courier);
   return seen;
 };

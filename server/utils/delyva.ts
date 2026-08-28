@@ -273,6 +273,39 @@ export const delyvaConsignmentNo = async (orderId: string): Promise<string> => {
   return String(res?.data?.consignmentNo ?? "");
 };
 
+export interface DelyvaOrderState {
+  status: string;
+  /** Delyva's terminal-failure code. */
+  failed: boolean;
+  consignmentNo: string;
+  /** Human-readable cause when `failed` — e.g. insufficient wallet credit. */
+  failedReason: string;
+}
+
+/**
+ * Full post-booking state, not just the tracking number.
+ *
+ * POST /order returns 200 with status "processing" even when the booking is
+ * about to fail: Delyva charges the wallet asynchronously, so an empty balance
+ * surfaces a moment later as status "failed" (statusCode 99) with a
+ * `failedReason`. Polling only for `consignmentNo` cannot tell "not ready yet"
+ * apart from "never happening", which is how a failed booking got recorded as
+ * a successful one.
+ */
+export const delyvaOrderState = async (
+  orderId: string,
+): Promise<DelyvaOrderState> => {
+  const res = await delyvaGet<any>(`/order/${orderId}`);
+  const d = res?.data ?? {};
+  const status = String(d.status ?? "");
+  return {
+    status,
+    failed: status === "failed" || Number(d.statusCode) === 99,
+    consignmentNo: String(d.consignmentNo ?? ""),
+    failedReason: String(d.failedReason ?? ""),
+  };
+};
+
 export const delyvaCancelOrder = async (orderId: string) =>
   await delyvaPost<{ data?: unknown }>(`/order/${orderId}/cancel`, {});
 

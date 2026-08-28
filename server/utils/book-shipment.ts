@@ -13,7 +13,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import {
   delyvaCreateOrder,
   delyvaCancelOrder,
-  delyvaConsignmentNo,
+  delyvaOrderState,
 } from "~/server/utils/delyva";
 import { quoteOrderShipping } from "~/server/utils/shipping";
 import { stateName } from "~/shared/my-states";
@@ -123,20 +123,38 @@ export const bookShipmentForOrder = async (
       },
     });
 
-    // Delyva queues orders, so the consignment number — which is the courier's
-    // tracking number — isn't in the create response. Give it a moment, then
-    // read it off the order. Not fatal if it isn't ready: the label route
-    // backfills it later.
+    // Delyva queues orders, so the consignment number — the courier's tracking
+    // number — isn't in the create response. Poll the order for it.
+    //
+    // Crucially this polls the order's STATUS too, not just the tracking
+    // number. POST /order answers 200 "processing" and only charges the wallet
+    // a moment later, so a booking that is about to fail looks identical to one
+    // that simply hasn't been assigned a consignment yet. Treating both as
+    // benign meant a failed booking was written down as a successful one:
+    // shipmentOrderNo set, shipmentError null, the order showing "Waybill
+    // ready" for a label that doesn't exist — and, because the idempotency
+    // claim keys off shipmentOrderNo, no way to ever retry it.
     let consignmentNo = "";
+    let failedReason = "";
     for (const waitMs of [1200, 2500]) {
       try {
-        consignmentNo = await delyvaConsignmentNo(result.orderId);
+        const state = await delyvaOrderState(result.orderId);
+        if (state.failed) {
+          failedReason = state.failedReason || "Courier rejected the booking";
+          break;
+        }
+        consignmentNo = state.consignmentNo;
         if (consignmentNo) break;
       } catch {
-        /* keep the booking; tracking can be backfilled */
+        /* transient read error — tracking can be backfilled by /label */
       }
       await new Promise((r) => setTimeout(r, waitMs));
     }
+
+    // Thrown outside the loop so the outer catch releases the claim and stores
+    // the reason. Nothing has been written to the order yet, so shipmentOrderNo
+    // stays unset and the seller can retry once the cause is fixed.
+    if (failedReason) throw new Error(failedReason);
 
     // NOTE: deliberately does NOT set status to "shipped". Booking a waybill
     // only buys the label — the parcel is still sitting on the seller's desk.
