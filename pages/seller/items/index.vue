@@ -110,7 +110,38 @@
           <div v-if="searchLoading" class="flex justify-center py-5">
             <div class="animate-spin rounded-full h-5 w-5 border-2 border-ink/10 border-t-pokemon-red" />
           </div>
-          <div v-else-if="searchResults.length" class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div
+            v-if="searchResults.length"
+            class="mt-3 flex items-center justify-between gap-3"
+          >
+            <p class="text-[11px] text-ink-muted dark:text-zinc-400 tabular-price">
+              {{ searchTotal }} result{{ searchTotal === 1 ? "" : "s" }}
+            </p>
+            <div v-if="searchTotalPages > 1" class="flex items-center gap-1">
+              <button
+                type="button"
+                :disabled="searchPage === 0 || searchLoading"
+                @click="goToSearchPage(searchPage - 1)"
+                aria-label="Previous page"
+                class="p-1 rounded-md text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+              </button>
+              <span class="text-[11px] font-semibold tabular-price text-ink dark:text-white min-w-[3.5rem] text-center">
+                {{ searchPage + 1 }} / {{ searchTotalPages }}
+              </span>
+              <button
+                type="button"
+                :disabled="searchPage >= searchTotalPages - 1 || searchLoading"
+                @click="goToSearchPage(searchPage + 1)"
+                aria-label="Next page"
+                class="p-1 rounded-md text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+              </button>
+            </div>
+          </div>
+          <div v-if="searchResults.length" class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
             <button
               v-for="card in searchResults"
               :key="card.productId"
@@ -599,7 +630,7 @@ const bulkList = async () => {
         sellerName: profile.value?.customName || user.value!.displayName || "Anonymous",
         sellerUid: user.value!.uid,
         price: i.listPrice,
-        condition: i.condition || CONDITIONS[0],
+        condition: i.condition || CONDITIONS[0] || "",
       });
     }
     clearSelection();
@@ -680,6 +711,9 @@ const addByHand = async () => {
   handBusy.value = true;
   try {
     await addItem({
+      // Explicitly null: a hand-entered item has no catalogue match, which is
+      // exactly what distinguishes it from a searched or scanned one.
+      productId: null,
       cardName: name,
       setName: handForm.value.setName.trim(),
       number: handForm.value.number.trim(),
@@ -733,17 +767,48 @@ const searchResults = ref<CatalogMatch[]>([]);
 const searchLoading = ref(false);
 const searched = ref(false);
 
-const runSearch = async () => {
-  const q = searchInput.value.trim();
-  if (q.length < 2) return;
+// Same page size and pager as CardSearchPicker, so adding a card behaves
+// identically here and in the Listings/Auctions form.
+const SEARCH_PAGE_SIZE = 8;
+const searchTotal = ref(0);
+const searchPage = ref(0);
+const lastSearchQuery = ref("");
+
+const searchTotalPages = computed(() =>
+  Math.max(1, Math.ceil(searchTotal.value / SEARCH_PAGE_SIZE)),
+);
+
+/** Fetch one page, replacing what's on screen. */
+const fetchSearchPage = async (n: number) => {
   searchLoading.value = true;
-  searched.value = true;
   try {
-    const { results } = await searchCatalog(q, { limit: 8, language: "EN" });
+    const { results, total } = await searchCatalog(lastSearchQuery.value, {
+      limit: SEARCH_PAGE_SIZE,
+      page: n,
+      language: "EN",
+    });
     searchResults.value = results;
+    searchTotal.value = total || searchTotal.value;
+    searchPage.value = n;
   } finally {
     searchLoading.value = false;
   }
+};
+
+const runSearch = async () => {
+  const q = searchInput.value.trim();
+  if (q.length < 2) return;
+  searched.value = true;
+  lastSearchQuery.value = q;
+  searchTotal.value = 0;
+  await fetchSearchPage(0);
+};
+
+const goToSearchPage = async (n: number) => {
+  if (searchLoading.value) return;
+  const target = Math.min(Math.max(0, n), searchTotalPages.value - 1);
+  if (target === searchPage.value) return;
+  await fetchSearchPage(target);
 };
 
 const quickAdd = async (card: CatalogMatch) => {
@@ -786,7 +851,7 @@ const openListDialog = (item: InventoryItem) => {
   listing.value = item;
   listForm.value = {
     price: item.listPrice || 0,
-    condition: item.condition || CONDITIONS[0],
+    condition: item.condition || CONDITIONS[0] || "",
   };
 };
 

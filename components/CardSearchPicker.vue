@@ -60,9 +60,38 @@
       No catalogue match. You can still fill the details in by hand below.
     </p>
     <div v-else-if="results.length" class="mt-3">
-      <p class="mb-2 text-[11px] text-ink-muted dark:text-zinc-400 tabular-price">
-        Showing {{ results.length }} of {{ total }}
-      </p>
+      <!-- Pager sits above the grid: it's the control you reach for after
+           scanning a page, and putting it below meant scrolling past the
+           results every single time. -->
+      <div class="mb-2 flex items-center justify-between gap-3">
+        <p class="text-[11px] text-ink-muted dark:text-zinc-400 tabular-price">
+          {{ total }} result{{ total === 1 ? "" : "s" }}
+        </p>
+        <div v-if="totalPages > 1" class="flex items-center gap-1">
+          <button
+            type="button"
+            :disabled="page === 0 || loading"
+            @click="goToPage(page - 1)"
+            aria-label="Previous page"
+            class="p-1 rounded-md text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+          </button>
+          <span class="text-[11px] font-semibold tabular-price text-ink dark:text-white min-w-[3.5rem] text-center">
+            {{ page + 1 }} / {{ totalPages }}
+          </span>
+          <button
+            type="button"
+            :disabled="page >= totalPages - 1 || loading"
+            @click="goToPage(page + 1)"
+            aria-label="Next page"
+            class="p-1 rounded-md text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+          </button>
+        </div>
+      </div>
+
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <CardSearchResult
           v-for="c in results"
@@ -72,25 +101,6 @@
           @select="choose(c)"
         />
       </div>
-
-      <!-- Append rather than replace: the seller is scanning for one specific
-           printing, and paging would throw away everything already on screen
-           (and their scroll position) each time. -->
-      <button
-        v-if="hasMore"
-        type="button"
-        :disabled="loadingMore"
-        @click="loadMore"
-        class="mt-3 w-full py-2 rounded-lg text-xs font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink-muted dark:text-zinc-300 hover:text-ink dark:hover:text-white hover:border-black/25 dark:hover:border-white/25 transition-colors disabled:opacity-50"
-      >
-        {{ loadingMore ? "Loading…" : `Load ${nextBatchSize} more` }}
-      </button>
-      <p
-        v-else-if="results.length >= PAGE_SIZE"
-        class="mt-3 text-center text-[11px] text-ink-soft dark:text-zinc-500"
-      >
-        That's everything matching "{{ lastQuery }}".
-      </p>
     </div>
 
     <!-- Picked card + real price trend -->
@@ -150,65 +160,49 @@ const trendLoading = ref(false);
 
 const lang = computed(() => (props.language === "JP" ? "JP" : "EN") as "EN" | "JP");
 
-/** Results per request. Also the "Load N more" batch size. */
+/** Results per page. */
 const PAGE_SIZE = 8;
 
 const total = ref(0);
 const page = ref(0);
-const loadingMore = ref(false);
-// Frozen at search time: `q` keeps changing as the seller types, and the
-// "that's everything" line should name what was actually searched.
+// Frozen at search time: `q` keeps changing as the seller types, but paging
+// must keep querying whatever was actually searched.
 const lastQuery = ref("");
 
-const hasMore = computed(() => results.value.length < total.value);
-const nextBatchSize = computed(() =>
-  Math.min(PAGE_SIZE, Math.max(0, total.value - results.value.length)),
-);
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)));
 
-const runSearch = async () => {
-  const query = q.value.trim();
-  if (query.length < 2) return;
+/** Fetch one page, replacing what's on screen. */
+const fetchPage = async (n: number) => {
   loading.value = true;
-  searched.value = true;
-  page.value = 0;
-  lastQuery.value = query;
   try {
-    const { results: r, total: t } = await searchCatalog(query, {
+    const { results: r, total: t } = await searchCatalog(lastQuery.value, {
       limit: PAGE_SIZE,
-      page: 0,
+      page: n,
       language: lang.value,
     });
     results.value = r;
-    total.value = t;
+    // Trust the latest count so "x / y" can't drift mid-browse.
+    total.value = t || total.value;
+    page.value = n;
   } finally {
     loading.value = false;
   }
 };
 
-const loadMore = async () => {
-  if (loadingMore.value || !hasMore.value) return;
-  loadingMore.value = true;
-  const next = page.value + 1;
-  try {
-    const { results: r, total: t } = await searchCatalog(lastQuery.value, {
-      limit: PAGE_SIZE,
-      page: next,
-      language: lang.value,
-    });
-    // The RPC re-counts per page; trust the latest figure so the "of N" line
-    // doesn't drift if the catalogue changes mid-browse.
-    total.value = t || total.value;
-    // Guard against a page that overlaps the previous one — a duplicate
-    // productId would break the :key and render the same card twice.
-    const seen = new Set(results.value.map((c) => c.productId));
-    results.value = [...results.value, ...r.filter((c) => !seen.has(c.productId))];
-    page.value = next;
-    // A page that adds nothing new means we're at the end whatever the count
-    // claims; stop offering more.
-    if (!r.length) total.value = results.value.length;
-  } finally {
-    loadingMore.value = false;
-  }
+const runSearch = async () => {
+  const query = q.value.trim();
+  if (query.length < 2) return;
+  searched.value = true;
+  lastQuery.value = query;
+  total.value = 0;
+  await fetchPage(0);
+};
+
+const goToPage = async (n: number) => {
+  if (loading.value) return;
+  const target = Math.min(Math.max(0, n), totalPages.value - 1);
+  if (target === page.value) return;
+  await fetchPage(target);
 };
 
 const choose = async (card: CatalogMatch) => {

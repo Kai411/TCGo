@@ -7,7 +7,7 @@
       class="rounded-xl border border-dashed border-black/[0.10] dark:border-white/[0.12] py-6 px-4 text-center"
     >
       <p class="text-xs text-ink-muted dark:text-zinc-400">
-        {{ loading ? "Loading price history…" : "Not enough price history for this card yet." }}
+        {{ loading ? "Loading price history…" : emptyText }}
       </p>
     </div>
 
@@ -15,7 +15,9 @@
       <!-- Headline: current price + change over the window -->
       <div v-if="showHeader" class="flex items-end justify-between gap-3 mb-3">
         <div>
-          <p class="text-[11px] text-ink-muted dark:text-zinc-400">Market price</p>
+          <p class="text-[11px] text-ink-muted dark:text-zinc-400">
+            {{ valueLabel }}
+          </p>
           <p class="text-2xl font-bold text-ink dark:text-white tabular-price leading-none mt-1">
             RM {{ fmt(trend.last) }}
           </p>
@@ -128,8 +130,16 @@ const props = withDefaults(
     loading?: boolean;
     height?: number;
     showHeader?: boolean;
+    valueLabel?: string;
+    emptyText?: string;
   }>(),
-  { loading: false, height: 120, showHeader: true },
+  {
+    loading: false,
+    height: 120,
+    showHeader: true,
+    valueLabel: "Market price",
+    emptyText: "Not enough price history for this card yet.",
+  },
 );
 
 // Fixed drawing space; the SVG stretches to the container via preserveAspectRatio.
@@ -152,9 +162,30 @@ const scaleY = (v: number) => {
   return PAD + (1 - (v - t.min) / span) * (H - PAD * 2);
 };
 
+// Space points by elapsed time rather than observation index. Missing
+// snapshot dates therefore render as real gaps instead of being compressed
+// into evenly spaced steps.
+const timeScale = computed(() => {
+  const points = props.trend?.points ?? [];
+  const parsed = points.map((point) =>
+    Date.parse(`${point.date}T00:00:00Z`),
+  );
+  const allValid = parsed.every(Number.isFinite);
+  const values = allValid ? parsed : points.map((_, index) => index);
+
+  return {
+    values,
+    min: values.length ? Math.min(...values) : 0,
+    max: values.length ? Math.max(...values) : 0,
+  };
+});
+
 const xAt = (i: number) => {
-  const n = props.trend!.points.length;
-  return n <= 1 ? W / 2 : (i / (n - 1)) * W;
+  const scale = timeScale.value;
+  const value = scale.values[i];
+  const span = scale.max - scale.min;
+  if (value === undefined || span <= 0) return W / 2;
+  return ((value - scale.min) / span) * W;
 };
 const yAt = (i: number) => scaleY(props.trend!.points[i]!.market);
 
@@ -180,7 +211,17 @@ const pick = (clientX: number) => {
   if (!el || !t) return;
   const r = el.getBoundingClientRect();
   const ratio = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
-  active.value = Math.round(ratio * (t.points.length - 1));
+  const targetX = ratio * W;
+  let nearest = 0;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < t.points.length; i++) {
+    const distance = Math.abs(xAt(i) - targetX);
+    if (distance < nearestDistance) {
+      nearest = i;
+      nearestDistance = distance;
+    }
+  }
+  active.value = nearest;
 };
 const onMove = (e: MouseEvent) => pick(e.clientX);
 const onTouch = (e: TouchEvent) => {
@@ -191,12 +232,21 @@ const onTouch = (e: TouchEvent) => {
 /** Keep the tooltip from hanging off either edge of the plot. */
 const clampPct = (p: number) => Math.min(88, Math.max(12, p));
 
+const showDateYear = computed(() => {
+  const values = timeScale.value.values;
+  if (values.length < 2) return false;
+  const firstYear = new Date(values[0]!).getUTCFullYear();
+  const lastYear = new Date(values[values.length - 1]!).getUTCFullYear();
+  return firstYear !== lastYear;
+});
+
 const labelAt = (i: number) => {
   const d = props.trend?.points[i]?.date;
   if (!d) return "";
   return new Date(`${d}T00:00:00Z`).toLocaleDateString("en-MY", {
     day: "numeric",
     month: "short",
+    ...(showDateYear.value ? { year: "numeric" } : {}),
   });
 };
 

@@ -12,7 +12,6 @@ import {
   where,
   onSnapshot,
   addDoc,
-  doc,
   deleteDoc,
   getDocs,
   type Unsubscribe,
@@ -81,7 +80,9 @@ export const useUserCollection = () => {
 
   const isInCollection = (productId: number) => productIds.value.has(productId);
 
-  const count = computed(() => entries.value.length);
+  // Duplicate pivot docs can exist after fast or concurrent writes. They
+  // still represent one collected product in counts and summary UI.
+  const count = computed(() => productIds.value.size);
 
   const addToCollection = async (productId: number) => {
     if (!user.value || !firestore) throw new Error("Not authenticated");
@@ -95,21 +96,15 @@ export const useUserCollection = () => {
 
   const removeFromCollection = async (productId: number) => {
     if (!user.value || !firestore) throw new Error("Not authenticated");
-    const entry = entries.value.find((e) => e.productId === productId);
-    if (entry) {
-      await deleteDoc(doc(firestore, "userCollection", entry.id));
-      return;
-    }
-    // Fallback if the listener hasn't loaded yet — query directly.
+    // Query the source of truth even if the listener already has a match so
+    // every duplicate pivot document is removed in the same operation.
     const q = query(
       collection(firestore, "userCollection"),
       where("userUid", "==", user.value.uid),
       where("productId", "==", productId),
     );
     const snap = await getDocs(q);
-    await Promise.all(
-      snap.docs.map((d) => deleteDoc(doc(firestore, "userCollection", d.id))),
-    );
+    await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
   };
 
   const toggleInCollection = async (productId: number) => {
@@ -132,10 +127,10 @@ export const useUserCollection = () => {
       where("userUid", "==", targetUid),
     );
     const snap = await getDocs(q);
-    return snap.docs
+    const sorted = snap.docs
       .map((d) => d.data() as CollectionEntry)
-      .sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0))
-      .map((e) => e.productId);
+      .sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0));
+    return [...new Set(sorted.map((entry) => entry.productId))];
   };
 
   return {

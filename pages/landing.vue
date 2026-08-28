@@ -135,13 +135,13 @@
           <h2
             class="mt-4 text-display font-bold tracking-tightest text-ink"
           >
-            4% a sale. Nothing until you sell.
+            4% a sale. 3% with the POS.
           </h2>
           <p
             class="mx-auto mt-4 max-w-lg text-base leading-relaxed text-ink-muted"
           >
-            No listing fees, no monthly subscription, no minimum order. Sell an
-            RM84 card and you keep RM80.64.
+            No listing fees, no minimum order, nothing to pay until a card
+            sells. Run your counter on TCGo and every online sale drops to 3%.
           </p>
 
           <div
@@ -259,8 +259,8 @@ const secondaryItems = [
 
 // Headline numbers only — the full breakdown lives on /pricing.
 const pricingStats = [
-  { value: "4%", label: "per sale, flat" },
-  { value: "RM0", label: "listing & monthly fees" },
+  { value: "4%", label: "per sale, or 3% on POS" },
+  { value: "RM0", label: "listing fees" },
   { value: "RM0", label: "buyer platform fee" },
 ];
 

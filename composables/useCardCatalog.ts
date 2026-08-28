@@ -163,6 +163,19 @@ export interface PriceTrend {
   last: number;
   min: number;
   max: number;
+  requestedDays: number;
+  oldestAvailableDate: string;
+  latestAvailableDate: string;
+  availableSpanDays: number;
+  snapshotCount: number;
+  hasFullCoverage: boolean;
+}
+
+export interface CollectionPriceTrend {
+  trend: PriceTrend | null;
+  trackedCards: number;
+  historyCards: number;
+  totalCards: number;
 }
 
 export type CatalogSort = "best" | "name" | "price_asc" | "price_desc";
@@ -178,6 +191,80 @@ export interface CatalogMatch {
   language: string;
   price: CatalogPrice | null;
 }
+
+const DAY_MS = 86_400_000;
+
+const dayTime = (date: string) => Date.parse(`${date}T00:00:00Z`);
+
+const historyPoints = (raw: unknown): PricePoint[] => {
+  if (!Array.isArray(raw)) return [];
+  const byDate = new Map<string, number>();
+  for (const point of raw) {
+    if (!point || typeof point !== "object") continue;
+    const date = String((point as any).date ?? "");
+    const rawMarket = (point as any).market;
+    const market = rawMarket == null ? Number.NaN : toMyr(Number(rawMarket));
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+      !Number.isFinite(dayTime(date)) ||
+      !Number.isFinite(market)
+    ) {
+      continue;
+    }
+    byDate.set(date, market);
+  }
+  return [...byDate.entries()]
+    .map(([date, market]) => ({ date, market }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+};
+
+/** Build chart statistics using a real calendar window, not a point count. */
+export const buildPriceTrend = (
+  sourcePoints: PricePoint[],
+  requestedDays = 90,
+): PriceTrend | null => {
+  const byDate = new Map<string, number>();
+  for (const point of sourcePoints) {
+    if (
+      /^\d{4}-\d{2}-\d{2}$/.test(point.date) &&
+      Number.isFinite(dayTime(point.date)) &&
+      Number.isFinite(point.market)
+    ) {
+      byDate.set(point.date, point.market);
+    }
+  }
+  const allPoints = [...byDate.entries()]
+    .map(([date, market]) => ({ date, market }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (!allPoints.length) return null;
+  const oldestAvailableDate = allPoints[0]!.date;
+  const latestAvailableDate = allPoints[allPoints.length - 1]!.date;
+  const oldestTime = dayTime(oldestAvailableDate);
+  const latestTime = dayTime(latestAvailableDate);
+  const safeDays = Math.max(1, Math.floor(requestedDays));
+  const cutoff = latestTime - (safeDays - 1) * DAY_MS;
+  const points = allPoints.filter((point) => dayTime(point.date) >= cutoff);
+  if (!points.length) return null;
+
+  const first = points[0]!.market;
+  const last = points[points.length - 1]!.market;
+  const values = points.map((point) => point.market);
+
+  return {
+    points,
+    changePct: first > 0 ? ((last - first) / first) * 100 : null,
+    first,
+    last,
+    min: Math.min(...values),
+    max: Math.max(...values),
+    requestedDays: safeDays,
+    oldestAvailableDate,
+    latestAvailableDate,
+    availableSpanDays: Math.max(1, Math.floor((latestTime - oldestTime) / DAY_MS) + 1),
+    snapshotCount: allPoints.length,
+    hasFullCoverage: oldestTime <= cutoff,
+  };
+};
 
 // Pull the best market price out of the card_prices.prices JSONB and
 // convert to MYR. Returns null if nothing usable was published.
@@ -445,6 +532,150 @@ export const useCardCatalog = () => {
     return productIds.map((id) => byId.get(id)).filter(Boolean) as CatalogMatch[];
   };
 
+  /**
+   * Suggestions for a catalogue detail page. Same-name printings come first,
+   * followed by cards from the same exact set, with rarity and live pricing as
+   * secondary signals. This stays entirely within the existing catalogue.
+   */
+  const getRelatedCards = async (
+    card: CatalogMatch,
+    limit = 5,
+  ): Promise<CatalogMatch[]> => {
+    if (!supabase || limit <= 0) return [];
+
+    const [sameName, sameSet] = await Promise.all([
+      searchCatalog(card.name, {
+        limit: Math.max(12, limit * 2),
+        language: card.language === "JP" ? "JP" : "EN",
+        sort: "best",
+      }),
+      searchCatalog("", {
+        limit: Math.max(24, limit * 4),
+        language: card.language === "JP" ? "JP" : "EN",
+        setMatch: card.setName,
+        sort: "price_desc",
+      }),
+    ]);
+
+    const candidates = new Map<number, CatalogMatch>();
+    for (const candidate of [...sameName.results, ...sameSet.results]) {
+      if (candidate.productId === card.productId) continue;
+      // The RPC's set filter is a substring match. Keep only exact-set rows so
+      // similarly named sets never leak into the recommendation rail.
+      const isSameName = candidate.name.toLowerCase() === card.name.toLowerCase();
+      const isSameSet = candidate.setName === card.setName;
+      if (!isSameName && !isSameSet) continue;
+      candidates.set(candidate.productId, candidate);
+    }
+
+    return [...candidates.values()]
+      .sort((a, b) => {
+        const aName = a.name.toLowerCase() === card.name.toLowerCase() ? 1 : 0;
+        const bName = b.name.toLowerCase() === card.name.toLowerCase() ? 1 : 0;
+        if (aName !== bName) return bName - aName;
+        const aRarity = a.rarity && a.rarity === card.rarity ? 1 : 0;
+        const bRarity = b.rarity && b.rarity === card.rarity ? 1 : 0;
+        if (aRarity !== bRarity) return bRarity - aRarity;
+        return (b.price?.market ?? 0) - (a.price?.market ?? 0);
+      })
+      .slice(0, limit);
+  };
+
+  /** Fetch oldest-first history series for many products, converted to MYR. */
+  const getPriceHistories = async (
+    productIds: number[],
+  ): Promise<Map<number, PricePoint[]>> => {
+    const histories = new Map<number, PricePoint[]>();
+    if (!supabase || productIds.length === 0) return histories;
+    await ensureRate();
+
+    const uniqueIds = [...new Set(productIds)];
+    const CHUNK = 200;
+    for (let i = 0; i < uniqueIds.length; i += CHUNK) {
+      const chunk = uniqueIds.slice(i, i + CHUNK);
+      const { data, error } = await supabase
+        .from("card_prices")
+        .select("product_id, history")
+        .in("product_id", chunk);
+      if (error) {
+        console.error("[useCardCatalog] getPriceHistories error:", error.message);
+        continue;
+      }
+      for (const row of data ?? []) {
+        histories.set(Number((row as any).product_id), historyPoints((row as any).history));
+      }
+    }
+    return histories;
+  };
+
+  /**
+   * Historical raw-market value of the current basket. The same set of cards
+   * is used for every point, so cards with shorter histories cannot create a
+   * fake jump merely by entering the dataset midway through the chart.
+   */
+  const getCollectionPriceTrend = async (
+    productIds: number[],
+    days = 30,
+  ): Promise<CollectionPriceTrend> => {
+    const uniqueIds = [...new Set(productIds)];
+    const histories = await getPriceHistories(uniqueIds);
+    const usable = uniqueIds
+      .map((productId) => ({ productId, points: histories.get(productId) ?? [] }))
+      .filter((item) => item.points.length >= 2);
+
+    if (!usable.length) {
+      return {
+        trend: null,
+        trackedCards: 0,
+        historyCards: 0,
+        totalCards: uniqueIds.length,
+      };
+    }
+
+    const latestTime = Math.max(
+      ...usable.map((item) => dayTime(item.points[item.points.length - 1]!.date)),
+    );
+    const cutoff = latestTime - (Math.max(1, days) - 1) * DAY_MS;
+    let tracked = usable.filter((item) => dayTime(item.points[0]!.date) <= cutoff);
+
+    // If no card has a complete requested window yet, still show the honest
+    // shared partial history instead of inventing earlier values.
+    let startTime = cutoff;
+    if (!tracked.length) {
+      tracked = usable;
+      startTime = Math.max(...tracked.map((item) => dayTime(item.points[0]!.date)));
+    }
+
+    // Aggregate only dates actually observed for every tracked card. Carrying
+    // an old value forward would disguise stale or missing snapshots as fresh
+    // market data and can create a misleading collection total.
+    const valuesByCard = tracked.map(
+      (item) => new Map(item.points.map((point) => [point.date, point.market])),
+    );
+    const eventDates = [...valuesByCard[0]!.keys()]
+      .filter((date) => {
+        const time = dayTime(date);
+        return (
+          time >= startTime &&
+          time <= latestTime &&
+          valuesByCard.every((values) => values.has(date))
+        );
+      })
+      .sort();
+
+    const aggregatePoints: PricePoint[] = eventDates.map((date) => ({
+      date,
+      market: valuesByCard.reduce((sum, values) => sum + values.get(date)!, 0),
+    }));
+
+    return {
+      trend: buildPriceTrend(aggregatePoints, days),
+      trackedCards: tracked.length,
+      historyCards: usable.length,
+      totalCards: uniqueIds.length,
+    };
+  };
+
   // Reconcile a single row (name + optional number + optional set hint) to
   // the best catalog match. Used by the import flows. Strategy:
   //   1. If a number is given, try exact name+number; bias suggestions by set.
@@ -512,35 +743,15 @@ export const useCardCatalog = () => {
     }
     await fxReady;
 
-    const raw = Array.isArray((data as any)?.history) ? (data as any).history : [];
-    const points: PricePoint[] = raw
-      .filter((p: any) => p && p.date && p.market != null)
-      .map((p: any) => ({ date: String(p.date), market: toMyr(Number(p.market)) }))
-      .filter((p: PricePoint) => Number.isFinite(p.market))
-      // Stored newest-first; charts read left-to-right in time.
-      .sort((a: PricePoint, b: PricePoint) => a.date.localeCompare(b.date))
-      .slice(-days);
-
-    if (!points.length) return null;
-
-    const first = points[0]!.market;
-    const last = points[points.length - 1]!.market;
-    const values = points.map((p) => p.market);
-
-    return {
-      points,
-      // A zero starting price can't yield a meaningful percentage.
-      changePct: first > 0 ? ((last - first) / first) * 100 : null,
-      first,
-      last,
-      min: Math.min(...values),
-      max: Math.max(...values),
-    };
+    return buildPriceTrend(historyPoints((data as any)?.history), days);
   };
 
   return {
     searchCatalog,
     getPriceHistory,
+    getPriceHistories,
+    getCollectionPriceTrend,
+    getRelatedCards,
     lookupByNameAndNumber,
     getCardWithPrice,
     getCardsByIds,

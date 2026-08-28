@@ -7,14 +7,14 @@
         <h1
           class="reveal-init mt-4 text-display font-bold tracking-tightest text-ink"
         >
-          4% a sale. Nothing until you sell.
+          4% a sale. 3% with the POS.
         </h1>
         <p
           class="reveal-init mx-auto mt-5 max-w-xl text-base leading-relaxed text-ink-muted sm:text-lg"
         >
-          Selling online costs 4% of a sale and nothing else — no listing fees,
-          no minimum order, nothing to pay until a card actually sells. Add the
-          POS only when you want a till.
+          No listing fees, no minimum order, nothing to pay until a card
+          actually sells. Run your counter on TCGo too and every online sale
+          drops to 3%.
         </p>
         <p
           class="reveal-init mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[13px] font-semibold text-emerald-700"
@@ -76,8 +76,9 @@
           </div>
         </div>
         <p class="reveal-init mt-4 text-center text-xs text-ink-soft">
-          Every plan pays the same 4% on online sales. Subscriptions are billed
-          monthly and cancel any time.
+          Subscriptions are billed monthly and cancel any time. The POS plan's
+          3% pays for itself once you're selling about RM{{ posBreakeven }} a
+          month online — past that, subscribing costs less than not.
         </p>
 
         <!-- Counter payments -->
@@ -222,7 +223,9 @@
 
               <dl class="mt-6 space-y-2.5 border-t border-white/10 pt-5 text-[13px]">
                 <div class="flex justify-between gap-3">
-                  <dt class="text-white/60">Marketplace fee (4%)</dt>
+                  <dt class="text-white/60">
+                    Marketplace fee ({{ (feeRate * 100).toFixed(0) }}%)
+                  </dt>
                   <dd class="tabular-nums">−RM{{ money(marketplaceFee) }}</dd>
                 </div>
                 <div class="flex justify-between gap-3">
@@ -247,6 +250,16 @@
                   >{{ effectiveRate }}%</span
                 >
                 of your online revenue, all in.
+              </p>
+              <p
+                v-if="posSaving > 0"
+                class="mt-2 rounded-xl bg-emerald-400/15 px-4 py-3 text-xs text-emerald-200"
+              >
+                On the POS plan you'd keep
+                <span class="font-bold text-emerald-100"
+                  >RM{{ money(posSaving) }}</span
+                >
+                more a month, even after the subscription.
               </p>
             </div>
           </div>
@@ -283,6 +296,12 @@
                 >4.0%</span
               >
             </div>
+            <p class="mt-4 rounded-xl bg-ink/[0.03] px-4 py-3 text-xs leading-relaxed text-ink-muted">
+              On the <span class="font-semibold text-ink">POS plan</span> the
+              platform fee drops to 0.5% — your subscription already covers it —
+              so you pay <span class="font-semibold text-ink">3.0%</span>.
+              Payment processing stays at cost either way.
+            </p>
           </div>
 
           <div class="reveal-init surface rounded-2xl p-6 sm:p-7">
@@ -561,9 +580,19 @@ const feeLines = [
 const MARKETPLACE_MONTHLY = 4.99;
 const POS_MONTHLY = 69.99;
 
+// POS subscribers pay 3% instead of 4%. The subscription already covers the
+// platform, so the 1.5% platform fee drops to 0.5% and only payment
+// processing (2.5%, at cost) is left untouched. The discount overtakes the
+// subscription at RM6,999 of online sales a month — above that the shop is
+// strictly better off subscribing, which is the point.
+const STANDARD_RATE = 0.04;
+const POS_RATE = 0.03;
+const POS_BREAKEVEN = Math.round(POS_MONTHLY / (STANDARD_RATE - POS_RATE));
+
 const plans = [
   {
     name: "Free",
+    rate: STANDARD_RATE,
     monthly: 0,
     price: "RM0",
     period: "/month",
@@ -580,6 +609,7 @@ const plans = [
   },
   {
     name: "Marketplace",
+    rate: STANDARD_RATE,
     monthly: MARKETPLACE_MONTHLY,
     price: `RM${MARKETPLACE_MONTHLY}`,
     period: "/month",
@@ -594,14 +624,16 @@ const plans = [
   },
   {
     name: "POS",
+    rate: POS_RATE,
     monthly: POS_MONTHLY,
     price: `RM${POS_MONTHLY}`,
     period: "/month",
-    plus: "+ 4% per online sale",
-    who: "For a shop with a counter. Everything above, plus the till.",
+    plus: "+ 3% per online sale",
+    who: "For a shop with a counter. Everything above, plus the till — and a point off every online sale.",
     featured: true,
     features: [
       "Everything in Marketplace",
+      "3% on online sales, not 4%",
       "Point-of-sale on your phone",
       "One stock count, counter and online",
       "Price tags and label printing",
@@ -633,7 +665,6 @@ const counterMethods = [
 ];
 
 // ── Calculator ──────────────────────────────────────────────────────
-const FEE_RATE = 0.04;
 const WITHDRAWAL_FEE = 1.25;
 
 const avgSale = ref(50);
@@ -648,7 +679,20 @@ const money = (n: number) =>
   });
 
 const revenue = computed(() => avgSale.value * salesPerMonth.value);
-const marketplaceFee = computed(() => revenue.value * FEE_RATE);
+const currentPlan = computed(
+  () => plans.find((p) => p.name === selectedPlan.value) ?? plans[0]!,
+);
+const feeRate = computed(() => currentPlan.value.rate);
+const marketplaceFee = computed(() => revenue.value * feeRate.value);
+
+// What the shop would save by moving to POS from whatever they've picked.
+// Negative means the subscription still costs more than the point it saves.
+const posSaving = computed(() => {
+  if (selectedPlan.value === "POS") return 0;
+  const now = revenue.value * currentPlan.value.rate + subscription.value;
+  const onPos = revenue.value * POS_RATE + POS_MONTHLY;
+  return now - onPos;
+});
 const withdrawalFee = computed(() => withdrawals.value * WITHDRAWAL_FEE);
 const subscription = computed(
   () => plans.find((p) => p.name === selectedPlan.value)?.monthly ?? 0,
@@ -697,6 +741,7 @@ const includedFree = [
 // unbranded for the TCG row: it comes from one seller's settlement statement,
 // not a published rate card, so naming the platform would overstate it.
 const comparison = [
+  { name: "TCGo on POS", rate: "3.0%", fee: "RM2.52", keep: "RM81.48", us: true },
   { name: "TCGo", rate: "4.0%", fee: "RM3.36", keep: "RM80.64", us: true },
   {
     name: "Other TCG marketplaces",
@@ -714,6 +759,10 @@ const comparison = [
 ];
 
 const faqs = [
+  {
+    q: "How does the 3% on the POS plan work?",
+    a: "Subscribe to POS and every online sale is charged 3% instead of 4% — there's nothing to claim and no minimum. Because the point you save grows with your sales, the plan pays for itself at around RM7,000 of online sales a month, and costs you less than not subscribing above that.",
+  },
   {
     q: "Why is the POS a subscription instead of a percentage?",
     a: "Money taken at your counter never passes through us — it goes straight from your customer to your own bank, by cash, DuitNow QR or a card tapped on your phone. There's nothing for us to take a cut of, so the till is priced by the month instead. Sell 100 cards over the counter or none at all, the price doesn't move.",
@@ -755,6 +804,8 @@ const faqs = [
     a: "Not today. TCGo does not currently charge service tax on its fees. If that changes as the platform grows, we'll tell sellers before it takes effect.",
   },
 ];
+
+const posBreakeven = POS_BREAKEVEN.toLocaleString("en-MY");
 
 const hero = ref<HTMLElement>();
 const plansSection = ref<HTMLElement>();
