@@ -15,6 +15,145 @@ useHead({
     <div class="updates">
       <div class="header">
         <hr class="my-8" />
+        <h1>V 0.4.0</h1>
+        <p class="italic mt-2">Date: August 29, 2026</p>
+
+        <br />
+        <strong>Payments &amp; payouts:</strong>
+        <ul>
+          <li>
+            <strong>Pay online with FPX</strong> — orders are paid through
+            Malaysian online banking at checkout. The cards in an order are
+            reserved the moment payment clears, so nothing can be sold twice
+            while a buyer is paying.
+          </li>
+          <li>
+            <strong>Seller payouts</strong> — sellers request a payout from the
+            Funds page and the money is transferred to the bank account on their
+            profile, with every batch tracked from request to paid.
+          </li>
+          <li>
+            <strong>Invoices by email</strong> — buyers are emailed an invoice
+            automatically once payment settles, and can resend it from the
+            order at any time.
+          </li>
+        </ul>
+
+        <br />
+        <strong>Shipping &amp; delivery:</strong>
+        <ul>
+          <li>
+            <strong>Live courier rates at checkout</strong> — shipping is quoted
+            from real courier rates against the buyer's delivery address instead
+            of a flat figure set per listing, so buyers pay close to the true
+            cost of the parcel.
+          </li>
+          <li>
+            <strong>Waybills the moment an order is paid</strong> — the courier
+            label is booked automatically when payment settles. Sellers open the
+            order, print, and hand the parcel over — no courier portal, no
+            copying addresses.
+          </li>
+          <li>
+            <strong>Delivery tracking for buyers</strong> — a status timeline on
+            the order page with the tracking number and, where the courier
+            provides one, an estimated delivery date.
+          </li>
+          <li>
+            <strong>Combine orders into one parcel</strong> — when the same buyer
+            has several unshipped orders going to the same address, sellers can
+            merge them. Labels already bought are cancelled and one new waybill
+            is booked for the combined parcel, so nothing is paid for twice.
+          </li>
+          <li>
+            <strong>Preferred couriers</strong> — sellers choose which courier
+            brands to ship with in their settings, and quoting respects it where
+            those couriers serve the route.
+          </li>
+          <li>
+            <strong>Saved delivery address</strong> — checkout uses the address
+            on your profile instead of asking for it again every order.
+          </li>
+        </ul>
+
+        <br />
+        <strong>Pricing:</strong>
+        <ul>
+          <li>
+            <strong>Pricing is now published</strong> — see the Pricing page. No
+            listing fees, no minimum order, and buyers never pay a platform fee.
+          </li>
+          <li>
+            <strong>2% a sale during beta</strong> — every plan is charged 2%
+            while we're in beta. At public launch that becomes 4%, or 3% on the
+            Vendor plan.
+          </li>
+          <li>
+            <strong>Two subscriptions</strong> — Pro at RM4.99 a month lifts the
+            20-a-month cap on card scans. Vendor at RM69.99 a month adds the
+            in-store point-of-sale and drops commission to 3%. In-store takings
+            settle straight to your own bank and are never charged a percentage.
+          </li>
+        </ul>
+
+        <br />
+        <strong>Seller area:</strong>
+        <ul>
+          <li>
+            <strong>Moved to one place</strong> — the seller dashboard, orders,
+            inventory, listings, auctions, funds and settings now live together
+            under Seller, with a sidebar on desktop and a bottom bar on mobile.
+          </li>
+          <li>
+            <strong>Order history, rewritten</strong> — orders are easier to scan
+            at a glance, and the order page splits into what was bought on the
+            left and delivery details on the right.
+          </li>
+          <li>
+            <strong>Simpler listing</strong> — per-listing shipping prices are
+            gone now that shipping is quoted live, so listing a card asks for
+            less.
+          </li>
+        </ul>
+      </div>
+
+      <div class="header">
+        <hr class="my-8" />
+        <h1>V 0.3.2</h1>
+        <p class="italic mt-2">Date: June 14, 2026</p>
+
+        <br />
+        <strong>Changes:</strong>
+        <ul>
+          <li>
+            <strong>Point of sale</strong> — scan cards with your phone camera,
+            ring up a walk-in customer and take payment at the counter.
+          </li>
+          <li>
+            <strong>Label printing</strong> — printable price tags and QR labels
+            for thermal printers and A4 sheets, with a portrait 30×40 layout.
+          </li>
+          <li>
+            <strong>Bulk add by photo</strong> — add stock in batches by
+            photographing cards and matching them against the TCGo database.
+          </li>
+          <li>
+            <strong>Japanese cards</strong> — Japanese printings are in the card
+            database and recognised by the scanner.
+          </li>
+          <li>
+            <strong>Seller funds</strong> — a Funds page showing what's cleared,
+            what's on hold and what's been paid out.
+          </li>
+          <li>
+            <strong>Inventory</strong> — select across every page at once, and
+            labels can be printed for listed items, not just in-stock ones.
+          </li>
+        </ul>
+      </div>
+
+      <div class="header">
+        <hr class="my-8" />
         <h1>V 0.3.1</h1>
         <p class="italic mt-2">Date: May 27, 2026</p>
 
