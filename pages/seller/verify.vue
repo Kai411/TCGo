@@ -43,7 +43,7 @@
             <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Bank <span class="text-pokemon-red">*</span></label>
             <select v-model="form.bankCode" required class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white">
               <option value="">Select bank…</option>
-              <option v-for="b in MY_BANKS" :key="b.code" :value="b.code">{{ b.name }}</option>
+              <option v-for="b in bankOptions" :key="b.code" :value="b.code">{{ b.name }}</option>
             </select>
             <p v-if="selectedBank && !selectedBank.payoutSupported" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
               Automatic payouts to {{ selectedBank.name }} aren't enabled yet — we'll transfer manually and it may take an extra working day.
@@ -52,7 +52,22 @@
           <div class="grid sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Account number <span class="text-pokemon-red">*</span></label>
-              <input v-model="form.bankAccountNumber" type="text" inputmode="numeric" required class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white tabular-nums"/>
+              <input
+                v-model="form.bankAccountNumber"
+                type="text"
+                inputmode="numeric"
+                required
+                class="w-full px-3 py-2 rounded-lg border bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white tabular-nums"
+                :class="accountError
+                  ? 'border-pokemon-red focus:border-pokemon-red'
+                  : 'border-gray-200 dark:border-white/[0.10]'"
+              />
+              <p v-if="accountError" class="text-[11px] font-medium text-pokemon-red mt-1">
+                {{ accountError }}
+              </p>
+              <p v-else-if="form.bankCode === SANDBOX_BANK_CODE" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                Sandbox test bank — any account number is accepted and the payout always succeeds.
+              </p>
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Account holder name <span class="text-pokemon-red">*</span></label>
@@ -117,7 +132,16 @@
 
 <script setup lang="ts">
 import { MY_STATES } from "~/composables/useSellerKyc";
-import { MY_BANKS, bankByCode, bankName, resolveBankCode } from "~/shared/banks";
+import {
+  MY_BANKS,
+  bankByCode,
+  bankName,
+  resolveBankCode,
+  banksFor,
+  checkBankAccount,
+  normaliseAccountNumber,
+  SANDBOX_BANK_CODE,
+} from "~/shared/banks";
 
 definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Verification | TCGo" });
@@ -164,10 +188,35 @@ watch(
 
 const selectedBank = computed(() => bankByCode(form.value.bankCode));
 
+// The sandbox test bank is only meaningful against Billplz sandbox; in
+// production it must not be selectable at all.
+const billplzSandbox = computed(() => {
+  const v = String(useRuntimeConfig().public.billplzSandbox ?? "").trim().toLowerCase();
+  return v === "true" || v === "1";
+});
+const bankOptions = computed(() => banksFor(billplzSandbox.value));
+
+// Format-only check — see shared/banks.ts for why there is no ownership check.
+// Blank is left to the browser's `required`, so the field isn't red before the
+// seller has typed anything.
+const accountError = computed(() => {
+  if (!form.value.bankAccountNumber) return "";
+  const r = checkBankAccount(form.value.bankAccountNumber, form.value.bankCode);
+  return r.ok ? "" : (r.error ?? "");
+});
+
 const saving = ref(false);
 const saved = ref(false);
 
 const save = async () => {
+  // The browser's `required` catches empty; this catches malformed. Blocking
+  // here rather than at payout time means the seller finds out now, not when
+  // a transfer bounces days later.
+  const check = checkBankAccount(form.value.bankAccountNumber, form.value.bankCode);
+  if (!check.ok) {
+    alert(check.error ?? "Please check the bank account number.");
+    return;
+  }
   saving.value = true;
   saved.value = false;
   try {
@@ -177,7 +226,7 @@ const save = async () => {
       // Denormalised for display (order pages, admin console) so they don't
       // all have to resolve the code.
       bankName: bankName(form.value.bankCode),
-      bankAccountNumber: form.value.bankAccountNumber.replace(/\s/g, ""),
+      bankAccountNumber: normaliseAccountNumber(form.value.bankAccountNumber),
       bankAccountHolder: form.value.bankAccountHolder.trim(),
       identityNumber: form.value.identityNumber.replace(/[\s-]/g, ""),
       pickupAddress1: form.value.pickupAddress1.trim(),

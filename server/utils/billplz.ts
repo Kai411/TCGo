@@ -26,8 +26,42 @@ export const billplzAuthHeader = () => {
   return `Basic ${Buffer.from(`${key}:`).toString("base64")}`;
 };
 
-// ── Mass Payment (seller payouts) ─────────────────────────────────────
-// Bills live on /api/v3; mass payment instructions live on /api/v4.
+// ── Seller payouts: V5 Payment Orders ─────────────────────────────────
+//
+// Bills live on /api/v3. Payouts live on /api/v5 as "Payment Orders".
+//
+// This previously targeted /api/v4/mass_payment_instruction{,_collection}s,
+// which does not exist on either environment — every call 404'd with an HTML
+// error page rather than a JSON API error, so no payout ever reached Billplz.
+// Billplz's disbursement product is the V5 Payment Order API.
+//
+// V5 differs from v3/v4 in two ways that matter:
+//   1. every request carries `epoch` (UNIX seconds) and a `checksum`
+//   2. the checksum is HMAC-SHA512 over the signed values concatenated in the
+//      documented order with NO separator, keyed by the X-Signature key
+//      (verified against the sandbox — see PAYMENT_ORDER_CHECKSUM_FIELDS).
+import { createHmac } from "node:crypto";
+
+const signatureKey = (): string => {
+  const key = useRuntimeConfig().billplzXSignatureKey as string;
+  if (!key) {
+    throw createError({
+      statusCode: 500,
+      message: "Billplz X-Signature key not configured (payouts need it to sign requests)",
+    });
+  }
+  return key;
+};
+
+/**
+ * HMAC-SHA512 of the ordered values, concatenated without a separator.
+ * Optional values that are absent contribute nothing — matching how Billplz
+ * treats an omitted callback_url.
+ */
+const checksumOf = (values: (string | number | undefined | null)[]): string =>
+  createHmac("sha512", signatureKey())
+    .update(values.filter((v) => v !== undefined && v !== null && v !== "").join(""))
+    .digest("hex");
 
 const billplzForm = async <T>(path: string, params: Record<string, string>): Promise<T> => {
   const res = await fetch(`${billplzBaseUrl()}${path}`, {
@@ -41,9 +75,14 @@ const billplzForm = async <T>(path: string, params: Record<string, string>): Pro
   const text = await res.text();
   if (!res.ok) {
     console.error("[billplz]", path, res.status, text);
+    // A 404 here is almost always a wrong path, and Billplz answers those with
+    // an HTML page — surfacing 300 chars of markup helps nobody.
+    const isHtml = /^\s*<!doctype html|^\s*<html/i.test(text);
     throw createError({
       statusCode: 502,
-      message: `Billplz error (${res.status}): ${text.slice(0, 300)}`,
+      message: isHtml
+        ? `Billplz error (${res.status}): endpoint not found at ${path}`
+        : `Billplz error (${res.status}): ${text.slice(0, 300)}`,
     });
   }
   return JSON.parse(text) as T;
@@ -57,72 +96,151 @@ export interface MassPaymentInstruction {
   recipient_name?: string;
 }
 
-// A collection groups instructions — we create one per payout batch so the
-// Billplz dashboard mirrors our ledger one-to-one.
-export const createMassPaymentCollection = async (title: string) =>
-  await billplzForm<{ id: string; title: string }>(
-    "/v4/mass_payment_instruction_collections",
-    { title },
+/**
+ * Billplz rejects non-ASCII in `name` and `description` with
+ * "Description contains invalid charaters" (their typo). The payout
+ * description used to be built with a "·" separator, so every real payout
+ * would have been rejected — on production as well as sandbox.
+ *
+ * Transliterates the punctuation we actually emit, then strips anything still
+ * outside printable ASCII rather than trusting callers to remember.
+ */
+export const asciiSafe = (value: string, max: number): string =>
+  value
+    .replace(/[\u2013\u2014]/g, "-")   // en/em dash
+    .replace(/[\u2018\u2019]/g, "'")   // curly single quotes
+    .replace(/[\u201C\u201D]/g, '"')   // curly double quotes
+    .replace(/[\u00B7\u2022]/g, "-")   // middle dot, bullet
+    .replace(/\u2026/g, "...")          // ellipsis
+    .replace(/[^\x20-\x7E]/g, "")      // anything else non-printable-ASCII
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+
+/** Signed fields, in Billplz's documented order. */
+const COLLECTION_CHECKSUM_FIELDS = "[title, callback_url*, epoch]";
+const PAYMENT_ORDER_CHECKSUM_FIELDS =
+  "[payment_order_collection_id, bank_account_number, total, epoch]";
+
+// A collection groups payment orders — one per payout batch, so the Billplz
+// dashboard mirrors our ledger one-to-one.
+export const createMassPaymentCollection = async (title: string) => {
+  const epoch = Math.floor(Date.now() / 1000);
+  return await billplzForm<{ id: string; title: string }>(
+    "/v5/payment_order_collections",
+    {
+      title,
+      epoch: String(epoch),
+      // COLLECTION_CHECKSUM_FIELDS — callback_url omitted, so it contributes
+      // nothing to the signed string.
+      checksum: checksumOf([title, epoch]),
+    },
   );
+};
 
 export const createMassPaymentInstruction = async (input: {
   collectionId: string;
   bankCode: string;
   bankAccountNumber: string;
-  identityNumber: string;
+  /** Accepted for call-site compatibility; V5 has no identity_number field. */
+  identityNumber?: string;
   name: string;
   description: string;
   /** Ringgit, converted to sen here. */
   amount: number;
   email?: string;
 }) => {
+  const epoch = Math.floor(Date.now() / 1000);
+  const total = String(Math.round(input.amount * 100));
+
   const params: Record<string, string> = {
-    mass_payment_instruction_collection_id: input.collectionId,
+    payment_order_collection_id: input.collectionId,
     bank_code: input.bankCode,
     bank_account_number: input.bankAccountNumber,
-    identity_number: input.identityNumber,
-    name: input.name,
-    description: input.description.slice(0, 120),
-    total: String(Math.round(input.amount * 100)),
+    name: asciiSafe(input.name, 100),
+    description: asciiSafe(input.description, 200),
+    total,
+    epoch: String(epoch),
+    // PAYMENT_ORDER_CHECKSUM_FIELDS
+    checksum: checksumOf([input.collectionId, input.bankAccountNumber, total, epoch]),
   };
   if (input.email) {
     params.email = input.email;
-    params.notification = "email";
+    params.notification = "true";
   }
-  return await billplzForm<MassPaymentInstruction>(
-    "/v4/mass_payment_instructions",
-    params,
-  );
+  try {
+    return await billplzForm<MassPaymentInstruction>("/v5/payment_orders", params);
+  } catch (e: any) {
+    // Turn Billplz's bare refusal into something an admin can act on.
+    if (/payment order limit/i.test(String(e?.message ?? ""))) {
+      const remaining = await getPaymentOrderLimit().catch(() => 0);
+      throw createError({
+        statusCode: 502,
+        message:
+          `Billplz Payment Order Limit is RM ${(remaining / 100).toFixed(2)} but this payout needs RM ${input.amount.toFixed(2)}. ` +
+          `Raise the limit in the Billplz dashboard (Payment Orders → limit), then retry.`,
+      });
+    }
+    throw e;
+  }
+};
+
+/**
+ * Remaining Payment Order allowance, in sen.
+ *
+ * Billplz caps how much an account may disburse; a fresh account (sandbox
+ * included) starts at 0 and every payment order is refused with
+ * "You do not have enough Payment Order Limit" until it's raised in the
+ * dashboard. Reading it lets us say *why* rather than pass that through raw.
+ *
+ * Note the singular path — /payment_order_limits (plural) 404s.
+ */
+export const getPaymentOrderLimit = async (): Promise<number> => {
+  const epoch = Math.floor(Date.now() / 1000);
+  const qs = new URLSearchParams({
+    epoch: String(epoch),
+    checksum: checksumOf([epoch]),
+  });
+  const res = await fetch(`${billplzBaseUrl()}/v5/payment_order_limit?${qs}`, {
+    headers: { Authorization: billplzAuthHeader() },
+  });
+  if (!res.ok) return 0;
+  const json = JSON.parse(await res.text()) as { total?: number };
+  return Number(json.total ?? 0);
 };
 
 export const getMassPaymentInstruction = async (id: string) => {
-  const res = await fetch(`${billplzBaseUrl()}/v4/mass_payment_instructions/${id}`, {
+  const epoch = Math.floor(Date.now() / 1000);
+  const qs = new URLSearchParams({
+    epoch: String(epoch),
+    checksum: checksumOf([id, epoch]), // [payment_order_id, epoch]
+  });
+  const res = await fetch(`${billplzBaseUrl()}/v5/payment_orders/${id}?${qs}`, {
     headers: { Authorization: billplzAuthHeader() },
   });
   const text = await res.text();
   if (!res.ok) {
-    console.error("[billplz] get instruction", res.status, text);
+    console.error("[billplz] get payment order", res.status, text);
     throw createError({ statusCode: 502, message: "Couldn't read payout status" });
   }
   return JSON.parse(text) as MassPaymentInstruction;
 };
 
-// Billplz's instruction statuses aren't a stable closed set across accounts, so
-// map the ones we know and treat anything unrecognised as still in flight —
-// never as success. A payout only reaches "paid" on an explicit success value.
+// V5 payment-order lifecycle: processing → enquiring → executing → reviewing
+// → completed, or refunded if the transfer bounces back.
 export const mapInstructionStatus = (
   raw: string | undefined,
 ): "processing" | "paid" | "failed" => {
   const s = String(raw || "").toLowerCase();
   if (["completed", "processed", "success", "successful", "paid"].includes(s)) return "paid";
-  if (["rejected", "failed", "cancelled", "canceled", "returned"].includes(s)) return "failed";
+  if (
+    ["rejected", "failed", "cancelled", "canceled", "returned", "refunded"].includes(s)
+  )
+    return "failed";
+  // processing / enquiring / executing / reviewing are all still in flight.
   return "processing";
 };
 
-// Verify Billplz's X-Signature on callback payloads.
-// Source string: every `billplz[...]` param except x_signature, formatted as
-// `billplz<key><value>`, sorted case-insensitively, joined with "|", then
-// HMAC-SHA256 with the X Signature Key.
 export const verifyBillplzSignature = (
   params: Record<string, string>,
   xSignatureKey: string,

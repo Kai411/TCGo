@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
       bankAccountNumber: claimed.recipient.bankAccountNumber,
       identityNumber: recipient.identityNumber,
       name: claimed.recipient.name,
-      description: `TCGo seller payout · ${claimed.orderIds.length} order(s)`,
+      description: `TCGo seller payout - ${claimed.orderIds.length} order(s)`,
       amount: claimed.amount,
       email: claimed.sellerEmail,
     });

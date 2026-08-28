@@ -213,6 +213,10 @@ export default defineNuxtConfig({
     delyvaCustomerId: "",
     delyvaCompanyId: "",
     public: {
+      // Mirrors the server-side billplzSandbox flag. Public because the seller
+      // KYC form needs to know whether to offer Billplz's sandbox test bank —
+      // it's an environment marker, not a secret.
+      billplzSandbox: "",
       firebaseApiKey: "",
       firebaseAuthDomain: "",
       firebaseDatabaseURL: "",

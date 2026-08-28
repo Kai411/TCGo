@@ -72,7 +72,7 @@
             <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">Pending payout</p>
           </div>
           <p class="text-xl font-extrabold text-ink dark:text-white tabular-nums mt-1">RM {{ fmt(queuedTotal) }}</p>
-          <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">{{ queued.length }} order{{ queued.length === 1 ? "" : "s" }} · being processed</p>
+          <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">{{ queued.length }} order{{ queued.length === 1 ? "" : "s" }} · {{ pendingCaption }}</p>
         </div>
         <div class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] p-4">
           <div class="flex items-center gap-1.5">
@@ -83,6 +83,32 @@
           <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">{{ locked.length }} order{{ locked.length === 1 ? "" : "s" }} · until delivered + {{ holdDays }}d</p>
         </div>
       </div>
+
+      <!-- Payout status.
+           "Pending payout" was a single number with no way to tell whether a
+           request was still waiting on us or already moving at the bank. These
+           are genuinely different states and the seller is entitled to know
+           which one their money is in. -->
+      <section v-if="queued.length" class="mb-6">
+        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
+          Payout status
+        </p>
+        <div class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+          <div v-for="e in queued" :key="e.order.id" class="flex items-center gap-3 px-3 py-2.5">
+            <span class="shrink-0 w-2 h-2 rounded-full" :class="payoutDot(e)" />
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium text-ink dark:text-white truncate">
+                {{ e.order.buyerName }} · {{ e.order.items.length }} item{{ e.order.items.length === 1 ? "" : "s" }}
+              </p>
+              <p class="text-[11px] text-gray-500 dark:text-zinc-400">{{ payoutStage(e) }}</p>
+            </div>
+            <span class="shrink-0 text-sm font-bold text-ink dark:text-white tabular-nums">RM {{ fmt(e.amount) }}</span>
+          </div>
+        </div>
+        <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-2">
+          Bank transfers usually land the next working day once submitted.
+        </p>
+      </section>
 
       <!-- Locked detail -->
       <section v-if="locked.length" class="mb-6">
@@ -143,6 +169,23 @@ const {
 } = useSellerFunds();
 
 const holdDays = PAYOUT_HOLD_DAYS;
+
+// categorizeFunds folds both into "queued", but they mean different things:
+//   queued     -> request received, waiting for TCGo to submit the batch
+//   processing -> submitted to the bank, transfer in flight
+const isSubmitted = (e: FundEntry) => e.order.payoutStatus === "processing";
+
+const payoutStage = (e: FundEntry) =>
+  isSubmitted(e)
+    ? "Sent to the bank - transfer in progress"
+    : "Requested - awaiting approval";
+
+const payoutDot = (e: FundEntry) =>
+  isSubmitted(e) ? "bg-blue-500" : "bg-amber-400";
+
+const pendingCaption = computed(() =>
+  queued.value.some(isSubmitted) ? "transfer in progress" : "awaiting approval",
+);
 
 onMounted(() => {
   if (user.value) listenSellerCompiledOrders();
