@@ -118,6 +118,9 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ layout: "admin" });
+useHead({ title: "Payouts — TCGo Admin" });
+
 import {
   PAYOUT_STATUS_LABEL,
   type PayoutBatch,

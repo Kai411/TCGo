@@ -537,6 +537,14 @@
 </template>
 
 <script setup lang="ts">
+import {
+  MARKETPLACE_MONTHLY,
+  POS_MONTHLY,
+  STANDARD_RATE,
+  POS_RATE,
+  POS_BREAKEVEN,
+} from "~/shared/pricing";
+
 definePageMeta({ layout: "landing" });
 
 useHead({
@@ -577,18 +585,8 @@ const feeLines = [
 // the shop's own bank at 0% for micro and small merchants (BNM waiver), and
 // tap-to-pay settles direct too, at the acquirer's card rate. Neither is
 // marked up here — see the payment note under the plans.
-const MARKETPLACE_MONTHLY = 4.99;
-const POS_MONTHLY = 69.99;
-
-// POS subscribers pay 3% instead of 4%. The subscription already covers the
-// platform, so the 1.5% platform fee drops to 0.5% and only payment
-// processing (2.5%, at cost) is left untouched. The discount overtakes the
-// subscription at RM6,999 of online sales a month — above that the shop is
-// strictly better off subscribing, which is the point.
-const STANDARD_RATE = 0.04;
-const POS_RATE = 0.03;
-const POS_BREAKEVEN = Math.round(POS_MONTHLY / (STANDARD_RATE - POS_RATE));
-
+// Rates and prices come from shared/pricing so the public page and the admin
+// revenue forecast can never quote different numbers.
 const plans = [
   {
     id: "free",

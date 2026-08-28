@@ -299,7 +299,9 @@ const desktopLinks = computed(() => {
     links.push({ to: "/collection", label: "Collection" });
     links.push({ to: "/activity", label: "Orders" });
   }
-  if (isAdmin.value) links.push({ to: "/admin/reports", label: "Admin" });
+  // Lands on the operations dashboard, not straight into Reports — Admin is
+  // its own surface with a nav of its own now.
+  if (isAdmin.value) links.push({ to: "/admin", label: "Admin" });
   return links;
 });
 

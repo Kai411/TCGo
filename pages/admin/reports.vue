@@ -192,6 +192,9 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({ layout: "admin" });
+useHead({ title: "Reports — TCGo Admin" });
+
 import { REPORT_TYPES } from "~/composables/useReports";
 
 const { isAdmin } = useAdmin();
