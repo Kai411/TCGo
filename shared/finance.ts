@@ -8,13 +8,17 @@
 // Two rules that shape everything here:
 //
 //  1. GMV is not revenue. Money collected for a card belongs to the seller;
-//     our revenue is the commission, the shipping margin and subscriptions.
-//     A dashboard that leads with GMV flatters itself into bad decisions.
+//     our revenue is commission, retained postage and subscriptions. A
+//     dashboard that leads with GMV flatters itself into bad decisions.
 //
-//  2. Beta is reported honestly. PLATFORM_FEE_PERCENT is 0 today, so actual
-//     commission is zero. We report that as the truth AND separately show what
-//     the same orders would have earned at launch rates, so the cost of the
-//     free period is visible rather than invisible.
+//  2. Postage is grossed up, not netted. What the buyer paid is revenue and
+//     what the courier charged is a cost, on separate lines. Netting them into
+//     a "margin" and ALSO listing the courier as a cost subtracts the courier
+//     twice — which is exactly the bug this once had.
+//
+//  3. Beta is reported honestly. Commission runs at the reduced beta rate, and
+//     what launch rates would have earned is shown beside it so the discount
+//     is visible rather than invisible.
 
 import { PLANS, planById, type PlanId } from "~/shared/pricing";
 
@@ -62,19 +66,25 @@ export const isSettled = (o: FinanceOrder): boolean =>
 
 // ── Per-order economics ──────────────────────────────────────────────
 
-/**
- * What we charged the buyer for postage, less what the courier charged us.
- * Only when WE booked the label — if the seller shipped it themselves the
- * postage was reimbursed to them and there is no margin here.
- */
-export const shippingMargin = (o: FinanceOrder): number => {
-  if (!o.shipmentOrderNo) return 0;
-  return round2((o.shipping || 0) - (o.shippingQuotedRate || 0));
-};
-
 /** What the courier label cost us. Zero when the seller shipped it. */
 export const courierCost = (o: FinanceOrder): number =>
   o.shipmentOrderNo ? round2(o.shippingQuotedRate || 0) : 0;
+
+/**
+ * Postage collected from the buyer that we keep. Only when WE booked the
+ * label — if the seller shipped it themselves the postage is reimbursed to
+ * them (see shippingReimbursement in shared/payouts) and never reaches us.
+ *
+ * This is the GROSS amount collected, not the margin: the courier's charge is
+ * a separate cost line so the Delyva spend is visible on its own. Netting it
+ * here as well would subtract the courier twice.
+ */
+export const shippingRevenue = (o: FinanceOrder): number =>
+  o.shipmentOrderNo ? round2(o.shipping || 0) : 0;
+
+/** Kept for reporting: what's left of the postage after the courier is paid. */
+export const shippingMargin = (o: FinanceOrder): number =>
+  round2(shippingRevenue(o) - courierCost(o));
 
 /** Commission actually recorded. Zero while the beta fee holiday is on. */
 export const actualCommission = (o: FinanceOrder): number =>
@@ -107,8 +117,12 @@ export interface FinanceSummary {
   // Revenue
   commission: number;
   commissionIfCharged: number;
-  /** What the beta fee holiday is costing, in forgone commission. */
+  /** Forgone commission: what launch rates would add over the beta rate. */
   betaGiveaway: number;
+  /** Postage collected on platform-booked labels, gross of the courier bill. */
+  shippingRevenue: number;
+  /** Postage left after the courier is paid. Reporting only — already
+   *  implied by shippingRevenue minus courierCost, never added on top. */
   shippingMargin: number;
   subscriptionRevenue: number;
   revenue: number;
@@ -141,12 +155,12 @@ export const summariseFinance = (
   const commissionIfCharged = sum(
     settled.map((o) => commissionAtLaunch(o, planForSeller(o.sellerUid))),
   );
-  const margin = sum(settled.map(shippingMargin));
+  const postage = sum(settled.map(shippingRevenue));
   const subscriptionRevenue = round2(
     subscriptions.pro * (PLANS.find((p) => p.id === "pro")?.monthly ?? 0) +
       subscriptions.vendor * (PLANS.find((p) => p.id === "vendor")?.monthly ?? 0),
   );
-  const revenue = round2(commission + margin + subscriptionRevenue);
+  const revenue = round2(commission + postage + subscriptionRevenue);
 
   const courier = sum(settled.map(courierCost));
   const collectionFees = round2(settled.length * BILLPLZ_FPX_FEE);
@@ -166,7 +180,8 @@ export const summariseFinance = (
     commission,
     commissionIfCharged,
     betaGiveaway: round2(commissionIfCharged - commission),
-    shippingMargin: margin,
+    shippingRevenue: postage,
+    shippingMargin: round2(postage - courier),
     subscriptionRevenue,
     revenue,
     courierCost: courier,

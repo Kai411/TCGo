@@ -32,5 +32,22 @@ export const PLANS: Plan[] = [
 export const planById = (id: string | undefined | null): Plan =>
   PLANS.find((p) => p.id === id) ?? PLANS[0]!;
 
+// ── Beta pricing ──────────────────────────────────────────────────────
+//
+// During beta every seller pays a single reduced rate regardless of plan —
+// half the standard 4%. A flat beta rate is deliberate: layering the Vendor
+// discount on top would put the commission at 1%, below what an order costs
+// us to process, and it would make "what am I paying" harder to answer during
+// exactly the period we're asking people to take a chance on us.
+//
+// Flip BETA_PRICING to false at launch and per-plan rates take over with no
+// other change.
+export const BETA_PRICING = true;
+export const BETA_RATE = 0.02;
+
+/** The commission actually charged today, for a seller on `planId`. */
+export const effectiveRate = (planId: PlanId = "free"): number =>
+  BETA_PRICING ? BETA_RATE : planById(planId).rate;
+
 /** Online sales a month at which Vendor's 1pp discount covers its subscription. */
 export const POS_BREAKEVEN = Math.round(POS_MONTHLY / (STANDARD_RATE - POS_RATE));

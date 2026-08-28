@@ -20,7 +20,7 @@
           class="reveal-init mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[13px] font-semibold text-emerald-700"
         >
           <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          Free while we're in beta — 4% starts at public launch
+          {{ (BETA_RATE * 100).toFixed(0) }}% while we're in beta — 4% at public launch
         </p>
       </div>
     </section>
@@ -79,6 +79,13 @@
           Subscriptions are billed monthly and cancel any time. Vendor's 3% pays
           for itself once you're selling about RM{{ posBreakeven }} a
           month online — past that, subscribing costs less than not.
+        </p>
+        <p
+          class="reveal-init mt-2 text-center text-xs font-medium text-emerald-700 dark:text-emerald-400"
+        >
+          During beta every plan is charged
+          {{ (BETA_RATE * 100).toFixed(0) }}% a sale, whichever rate is shown
+          above. The rates above take effect at public launch.
         </p>
 
         <!-- Counter payments -->
@@ -543,6 +550,7 @@ import {
   STANDARD_RATE,
   POS_RATE,
   POS_BREAKEVEN,
+  BETA_RATE,
 } from "~/shared/pricing";
 
 definePageMeta({ layout: "landing" });

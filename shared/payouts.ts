@@ -8,9 +8,17 @@
 // Structurally typed (not importing CompiledOrder) so Nitro can use it without
 // pulling in the Vue composable layer.
 
-// Platform commission on the item subtotal. 0 during beta — the plumbing
-// exists so turning this on later is a one-line change.
-export const PLATFORM_FEE_PERCENT = 0;
+// Platform commission on the item subtotal.
+//
+// The rate itself lives in shared/pricing (BETA_RATE while in beta, per-plan
+// rates at launch) so the seller-facing pricing page, the admin revenue
+// forecast and the money actually deducted here can never quote three
+// different numbers.
+export { effectiveRate } from "~/shared/pricing";
+import { effectiveRate, type PlanId } from "~/shared/pricing";
+
+/** @deprecated Read the rate via effectiveRate() — it varies by plan at launch. */
+export const PLATFORM_FEE_PERCENT = effectiveRate();
 
 // Hold window after delivery before funds unlock (dispute buffer).
 export const PAYOUT_HOLD_DAYS = 3;
@@ -34,12 +42,17 @@ export interface PayableOrder {
   // Present when the platform booked the label on its own courier credit.
   // Absent means the seller shipped it themselves and paid the courier.
   shipmentOrderNo?: string;
+  /** Seller's subscription plan, once orders record it. Beta ignores this. */
+  sellerPlan?: PlanId;
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+// `sellerPlan` is absent on every order today, so this resolves to the beta
+// rate for everyone. It starts honouring per-plan rates the moment orders
+// carry the seller's plan — no change needed here.
 export const platformFeeFor = (order: PayableOrder): number =>
-  round2((order.subtotal || 0) * PLATFORM_FEE_PERCENT);
+  round2((order.subtotal || 0) * effectiveRate(order.sellerPlan));
 
 // Shipping is only reimbursed to the seller when *they* paid the courier.
 // When the platform books the label it's charged to the platform's own courier

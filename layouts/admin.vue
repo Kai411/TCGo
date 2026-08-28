@@ -100,6 +100,13 @@ import { h } from "vue";
 
 const route = useRoute();
 
+// Keep the whole admin surface out of search results. The obscure path only
+// stops casual discovery — requireAdmin on the server routes is the actual
+// control — but there's no reason to let a crawler index it either. Note we
+// deliberately do NOT add it to robots.txt: a Disallow line would advertise
+// the path to anyone who reads it.
+useHead({ meta: [{ name: "robots", content: "noindex, nofollow" }] });
+
 const stroke = {
   fill: "none",
   stroke: "currentColor",
@@ -136,9 +143,9 @@ const IconChart = () =>
   ]);
 
 const navItems = [
-  { to: "/admin", label: "Overview", icon: IconDashboard, exact: true },
-  { to: "/admin/payouts", label: "Payouts", icon: IconWallet },
-  { to: "/admin/reports", label: "Reports", icon: IconFlag },
+  { to: "/mintcondition", label: "Overview", icon: IconDashboard, exact: true },
+  { to: "/mintcondition/payouts", label: "Payouts", icon: IconWallet },
+  { to: "/mintcondition/reports", label: "Reports", icon: IconFlag },
 ];
 
 // Signposts for what this dashboard is meant to grow into, so the nav doesn't

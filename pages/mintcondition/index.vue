@@ -101,10 +101,11 @@
           <div class="flex items-start justify-between gap-4 flex-wrap">
             <div class="min-w-0">
               <p class="text-sm font-semibold text-ink dark:text-white">
-                The beta fee holiday cost RM{{ fmt(summary.betaGiveaway) }} this period
+                The beta discount cost RM{{ fmt(summary.betaGiveaway) }} this period
               </p>
               <p class="text-xs text-ink-muted dark:text-zinc-400 mt-1 max-w-xl leading-relaxed">
-                Commission is set to 0% while in beta, so actual commission is
+                Commission runs at the reduced beta rate of
+                {{ (BETA_RATE * 100).toFixed(0) }}%, earning
                 RM{{ fmt(summary.commission) }}. The same orders at launch rates
                 would have earned RM{{ fmt(summary.commissionIfCharged) }}.
               </p>
@@ -128,14 +129,18 @@
             </h2>
             <dl class="space-y-2.5 text-sm">
               <AdminRow label="Commission" :value="summary.commission" />
-              <AdminRow label="Shipping margin" :value="summary.shippingMargin" />
+              <AdminRow label="Postage collected" :value="summary.shippingRevenue" />
               <AdminRow
                 label="Subscriptions"
                 :value="summary.subscriptionRevenue"
                 :note="subsNote"
               />
               <AdminRow label="Revenue" :value="summary.revenue" strong divider />
-              <AdminRow label="Courier labels" :value="-summary.courierCost" />
+              <AdminRow
+                label="Courier labels"
+                :value="-summary.courierCost"
+                :note="`RM${fmt(summary.shippingMargin)} left after postage`"
+              />
               <AdminRow label="FPX collection fees" :value="-summary.billplzCollectionFees" />
               <AdminRow label="Payout fees" :value="-summary.billplzPayoutFees" />
               <AdminRow label="Costs" :value="-summary.costs" strong divider />
@@ -271,7 +276,7 @@
             tone="muted"
           />
           <NuxtLink
-            to="/admin/payouts"
+            to="/mintcondition/payouts"
             class="rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-4 flex items-center justify-between gap-3 hover:border-black/20 dark:hover:border-white/25 transition-colors"
           >
             <div>
@@ -289,7 +294,7 @@
 </template>
 
 <script setup lang="ts">
-import { MARKETPLACE_MONTHLY, POS_MONTHLY } from "~/shared/pricing";
+import { MARKETPLACE_MONTHLY, POS_MONTHLY, BETA_RATE } from "~/shared/pricing";
 import type { FinanceSummary, TopUpProjection, SstPosition } from "~/shared/finance";
 
 definePageMeta({ layout: "admin" });

@@ -167,7 +167,7 @@
             <span aria-hidden="true">→</span>
           </NuxtLink>
           <p class="mt-4 text-xs text-ink-soft">
-            Free while we're in beta — 4% starts at public launch.
+            2% while we're in beta — 4% at public launch.
           </p>
         </div>
       </div>

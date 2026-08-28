@@ -68,14 +68,53 @@
           </div>
 
           <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-1.5">
-              <span v-if="card.rarity" class="chip chip-gold">{{
-                card.rarity
-              }}</span>
-              <span class="chip">{{ card.language }}</span>
-              <span v-if="card.price" class="chip">{{
-                card.price.subtype
-              }}</span>
+            <!-- Chips left, collection control top-right. It used to sit
+                 beside the price at the foot of the column, which buried the
+                 one action on the page below the fold on narrow screens. -->
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span v-if="card.rarity" class="chip chip-gold">{{
+                  card.rarity
+                }}</span>
+                <span class="chip">{{ card.language }}</span>
+                <span v-if="card.price" class="chip">{{
+                  card.price.subtype
+                }}</span>
+              </div>
+
+              <div class="flex shrink-0 items-center gap-2">
+                <!-- Owned: a status mark, not a button. The only action left
+                     (changing how many copies) sits with the price below. -->
+                <CollectedBadge v-if="inCollection" :quantity="ownedQuantity" label />
+                <button
+                  v-if="!inCollection"
+                  type="button"
+                  :disabled="collectionBusy || (!!user && collectionLoading)"
+                  class="inline-flex min-w-[166px] items-center justify-center gap-2 rounded-full bg-pokemon-blue px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:translate-y-0 disabled:opacity-60"
+                  @click="handleCollectionToggle"
+                >
+                  <div
+                    v-if="collectionBusy"
+                    class="h-4 w-4 animate-spin rounded-full border-2 border-current/25 border-t-current"
+                    aria-hidden="true"
+                  />
+                  <svg
+                    v-else
+                    class="w-4 h-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.25"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  {{ collectionButtonLabel }}
+                </button>
+
+              </div>
             </div>
 
             <p class="mt-5 eyebrow">{{ card.setName }}</p>
@@ -87,11 +126,14 @@
             <p
               class="mt-2 text-sm text-ink-muted dark:text-zinc-400 sm:text-base"
             >
-              <span v-if="card.number">Card {{ card.number }} · </span
-              >{{ card.language }} printing
+              <span v-if="card.number">{{ card.number }} · </span
+              >{{ card.language }}
             </p>
 
-            <div class="mt-7 flex flex-wrap items-end justify-between gap-5">
+            <!-- Price left, copies stepper flush right — one row, so the
+                 stepper reads as a property of the card rather than a second
+                 call to action stacked under the header. -->
+            <div class="mt-7 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p
                   class="text-xs font-semibold text-ink-muted dark:text-zinc-400"
@@ -115,39 +157,33 @@
                   Price unavailable
                 </p>
               </div>
-
-              <button
-                type="button"
-                :disabled="collectionBusy || (!!user && collectionLoading)"
-                class="inline-flex min-w-[166px] items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
-                :class="
-                  inCollection
-                    ? 'border border-black/[0.10] bg-white/70 text-ink hover:bg-white dark:border-white/[0.12] dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.10]'
-                    : 'bg-pokemon-blue text-white hover:bg-blue-700'
-                "
-                @click="handleCollectionToggle"
+              <div
+                v-if="inCollection && user"
+                class="inline-flex items-center gap-0.5 rounded-full border border-black/[0.10] bg-canvas-raised px-0.5 dark:border-white/[0.12] dark:bg-[#1B1B20]"
               >
-                <div
-                  v-if="collectionBusy"
-                  class="h-4 w-4 animate-spin rounded-full border-2 border-current/25 border-t-current"
-                  aria-hidden="true"
-                />
-                <svg
-                  v-else
-                  class="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.25"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
+                <button
+                  type="button"
+                  :disabled="collectionBusy"
+                  @click="handleCollectionDecrement"
+                  class="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-muted transition-colors hover:text-pokemon-red disabled:opacity-50 dark:text-zinc-300"
+                  :aria-label="ownedQuantity <= 1 ? 'Remove from collection' : 'Remove one copy'"
                 >
-                  <path v-if="inCollection" d="m5 12 4 4L19 6" />
-                  <path v-else d="M12 5v14M5 12h14" />
-                </svg>
-                {{ collectionButtonLabel }}
-              </button>
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14" /></svg>
+                </button>
+                <span class="min-w-[1.5rem] text-center text-sm font-bold tabular-price text-ink dark:text-white">
+                  {{ ownedQuantity }}
+                </span>
+                <button
+                  type="button"
+                  :disabled="collectionBusy"
+                  @click="handleCollectionIncrement"
+                  class="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-muted transition-colors hover:text-pokemon-blue disabled:opacity-50 dark:text-zinc-300"
+                  aria-label="Add another copy"
+                >
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                </button>
+              </div>
+
             </div>
 
             <div
@@ -551,6 +587,7 @@
             <CollectionItemCard
               :card="relatedCard"
               :in-collection="isInCollection(relatedCard.productId)"
+              :quantity="quantityOf(relatedCard.productId)"
               :class="
                 relatedBusyIds.has(relatedCard.productId)
                   ? 'pointer-events-none opacity-55'
@@ -606,6 +643,9 @@ const {
   listenMyCollection,
   stopListening,
   isInCollection,
+  quantityOf,
+  addCopy,
+  removeCopy,
   toggleInCollection,
 } = useUserCollection();
 
@@ -677,9 +717,15 @@ const historyCoverageLabel = computed(() => {
 
 const unavailableRangeLabel = computed(() => {
   const history = fullTrend.value;
-  const oneYear = rangeOptions.value.find((option) => option.days === 365);
-  if (!history || !oneYear?.disabled) return "";
-  return `1Y unavailable — ${history.snapshotCount} snapshots / ${history.availableSpanDays} days recorded (${formatHistoryDate(history.oldestAvailableDate)}–${formatHistoryDate(history.latestAvailableDate)}).`;
+  if (!history) return "";
+  // Name every unavailable range, not just 1Y — if 6M is short too, saying so
+  // is the same sentence. Snapshot counts and span-in-days were detail nobody
+  // acts on; the window that *does* exist is the useful part.
+  const unavailable = rangeOptions.value
+    .filter((option) => option.disabled)
+    .map((option) => option.label);
+  if (!unavailable.length) return "";
+  return `${unavailable.join(", ")} unavailable — ${formatHistoryDate(history.oldestAvailableDate)} – ${formatHistoryDate(history.latestAvailableDate)} record available`;
 });
 
 const selectedCoverageLabel = computed(() => {
@@ -730,11 +776,42 @@ const inCollection = computed(
     isInCollection(productId.value),
 );
 
+// Only rendered when the card is NOT collected — the owned state is the
+// CollectedBadge, not this button.
 const collectionButtonLabel = computed(() => {
   if (!user.value) return "Sign in to collect";
   if (collectionLoading.value) return "Checking collection…";
-  return inCollection.value ? "In my collection" : "Add to collection";
+  return "Add to collection";
 });
+
+/** Copies of this card owned, for the badge and stepper. */
+const ownedQuantity = computed(() =>
+  Number.isFinite(productId.value) ? quantityOf(productId.value) : 0,
+);
+
+const handleCollectionIncrement = async () => {
+  if (collectionBusy.value || !user.value || collectionLoading.value) return;
+  collectionBusy.value = true;
+  try {
+    await addCopy(productId.value);
+  } catch (err) {
+    console.error("[collection detail] add copy failed:", err);
+  } finally {
+    collectionBusy.value = false;
+  }
+};
+
+const handleCollectionDecrement = async () => {
+  if (collectionBusy.value || !user.value || collectionLoading.value) return;
+  collectionBusy.value = true;
+  try {
+    await removeCopy(productId.value);
+  } catch (err) {
+    console.error("[collection detail] remove copy failed:", err);
+  } finally {
+    collectionBusy.value = false;
+  }
+};
 
 const normalizeText = (value?: string | null) =>
   (value ?? "").trim().toLocaleLowerCase().replace(/\s+/g, " ");
