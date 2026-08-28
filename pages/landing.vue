@@ -135,7 +135,7 @@
           <h2
             class="mt-4 text-display font-bold tracking-tightest text-ink"
           >
-            4% a sale. 3% with the POS.
+            4% a sale. 3% with Vendor.
           </h2>
           <p
             class="mx-auto mt-4 max-w-lg text-base leading-relaxed text-ink-muted"
@@ -259,7 +259,7 @@ const secondaryItems = [
 
 // Headline numbers only — the full breakdown lives on /pricing.
 const pricingStats = [
-  { value: "4%", label: "per sale, or 3% on POS" },
+  { value: "4%", label: "per sale, or 3% on Vendor" },
   { value: "RM0", label: "listing fees" },
   { value: "RM0", label: "buyer platform fee" },
 ];

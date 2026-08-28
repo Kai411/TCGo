@@ -12,6 +12,14 @@
       >
         <CardImage :src="card.imageUrl" :alt="card.name" />
       </div>
+      <!-- Copies owned. Only shown past one: a "×1" on every card would be
+           noise, and the badge is meant to catch the eye on the playsets. -->
+      <span
+        v-if="quantity > 1"
+        class="absolute top-2 left-2 z-10 rounded-md bg-ink/85 px-1.5 py-0.5 text-[11px] font-bold text-white tabular-price backdrop-blur-sm"
+      >
+        ×{{ quantity }}
+      </span>
 
       <div class="p-2.5" :class="readonly ? '' : 'pr-11'">
         <p
@@ -38,8 +46,38 @@
       </div>
     </NuxtLink>
 
+    <!-- Owned-card controls: step the quantity instead of a single
+         add/remove, so a playset is managed in place. `−` at one copy removes
+         the card entirely, which is what the minus already meant. -->
+    <div
+      v-if="!readonly && showQuantity"
+      class="absolute bottom-2.5 right-2.5 z-10 flex items-center gap-0.5 rounded-full bg-canvas-raised dark:bg-[#1B1B20] border border-black/[0.08] dark:border-white/[0.12] shadow-sm"
+    >
+      <button
+        type="button"
+        :disabled="busy"
+        @click.stop.prevent="$emit('decrement')"
+        class="inline-flex items-center justify-center w-7 h-7 rounded-full text-ink-muted dark:text-zinc-300 hover:text-pokemon-red transition-colors disabled:opacity-50 disabled:cursor-wait"
+        :aria-label="quantity <= 1 ? `Remove ${card.name} from collection` : `Remove one copy of ${card.name}`"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14" /></svg>
+      </button>
+      <span class="min-w-[1.25rem] text-center text-[11px] font-bold tabular-price text-ink dark:text-white">
+        {{ quantity }}
+      </span>
+      <button
+        type="button"
+        :disabled="busy"
+        @click.stop.prevent="$emit('increment')"
+        class="inline-flex items-center justify-center w-7 h-7 rounded-full text-ink-muted dark:text-zinc-300 hover:text-pokemon-blue transition-colors disabled:opacity-50 disabled:cursor-wait"
+        :aria-label="`Add another copy of ${card.name}`"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+      </button>
+    </div>
+
     <button
-      v-if="!readonly"
+      v-if="!readonly && !showQuantity"
       type="button"
       :disabled="busy"
       @click="$emit('toggle')"
@@ -98,7 +136,8 @@
 <script setup lang="ts">
 import type { CatalogMatch } from "~/composables/useCardCatalog";
 
-defineProps<{
+withDefaults(
+  defineProps<{
   card: CatalogMatch;
   inCollection: boolean;
   // Hide the +/- button — used when showcasing a collection read-only
@@ -106,9 +145,21 @@ defineProps<{
   readonly?: boolean;
   // Prevent duplicate mutations and replace the +/- glyph with a spinner.
   busy?: boolean;
-}>();
+  /** Copies owned. Drives the ×N badge and the stepper. */
+  quantity?: number;
+  /**
+   * Show the −/N/+ stepper instead of the single add/remove toggle. Used in
+   * the owned-collection grid; the search grid keeps the toggle, where the
+   * question is still "do I own this at all?".
+   */
+    showQuantity?: boolean;
+  }>(),
+  { quantity: 1 },
+);
 
 defineEmits<{
   (e: "toggle"): void;
+  (e: "increment"): void;
+  (e: "decrement"): void;
 }>();
 </script>

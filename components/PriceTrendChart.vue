@@ -18,21 +18,37 @@
           <p class="text-[11px] text-ink-muted dark:text-zinc-400">
             {{ valueLabel }}
           </p>
-          <p class="text-2xl font-bold text-ink dark:text-white tabular-price leading-none mt-1">
-            RM {{ fmt(trend.last) }}
+          <p
+            class="text-2xl font-bold text-ink dark:text-white tabular-price leading-none mt-1"
+          >
+            {{ fmt(trend.last) }} MYR
           </p>
         </div>
         <span
           v-if="trend.changePct !== null"
           class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-price"
-          :class="up
-            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'"
+          :class="
+            up
+              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+              : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+          "
         >
-          <svg class="w-3 h-3" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+          <svg
+            class="w-3 h-3"
+            viewBox="0 0 12 12"
+            fill="none"
+            aria-hidden="true"
+          >
             <path
-              :d="up ? 'M6 9.5V2.5M6 2.5L3 5.5M6 2.5l3 3' : 'M6 2.5v7M6 9.5l-3-3M6 9.5l3-3'"
-              stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
+              :d="
+                up
+                  ? 'M6 9.5V2.5M6 2.5L3 5.5M6 2.5l3 3'
+                  : 'M6 2.5v7M6 9.5l-3-3M6 9.5l3-3'
+              "
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
             />
           </svg>
           {{ Math.abs(trend.changePct).toFixed(1) }}%
@@ -76,9 +92,15 @@
           <!-- Crosshair -->
           <line
             v-if="active !== null"
-            :x1="xAt(active)" :x2="xAt(active)" y1="0" :y2="H"
-            :stroke="strokeColor" stroke-width="1" stroke-dasharray="3 3"
-            vector-effect="non-scaling-stroke" opacity="0.5"
+            :x1="xAt(active)"
+            :x2="xAt(active)"
+            y1="0"
+            :y2="H"
+            :stroke="strokeColor"
+            stroke-width="1"
+            stroke-dasharray="3 3"
+            vector-effect="non-scaling-stroke"
+            opacity="0.5"
           />
         </svg>
 
@@ -87,7 +109,11 @@
         <span
           v-if="active !== null"
           class="absolute w-2.5 h-2.5 rounded-full ring-4 pointer-events-none"
-          :class="up ? 'bg-emerald-500 ring-emerald-500/15' : 'bg-pokemon-red ring-pokemon-red/15'"
+          :class="
+            up
+              ? 'bg-emerald-500 ring-emerald-500/15'
+              : 'bg-pokemon-red ring-pokemon-red/15'
+          "
           :style="{
             left: `${(xAt(active) / W) * 100}%`,
             top: `${(yAt(active) / H) * 100}%`,
@@ -104,17 +130,25 @@
             top: `${Math.max(0, (yAt(active) / H) * 100 - 6)}%`,
           }"
         >
-          <p class="text-[10px] text-white/70 dark:text-ink-muted">{{ labelAt(active) }}</p>
-          <p class="text-[11px] font-bold text-white dark:text-ink tabular-price">
-            RM {{ fmt(trend.points[active]!.market) }}
+          <p class="text-[10px] text-white/70 dark:text-ink-muted">
+            {{ labelAt(active) }}
+          </p>
+          <p
+            class="text-[11px] font-bold text-white dark:text-ink tabular-price"
+          >
+            {{ fmt(trend.points[active]!.market) }} MYR
           </p>
         </div>
       </div>
 
       <!-- Range footer -->
-      <div class="mt-2 flex items-center justify-between text-[10px] text-ink-soft dark:text-zinc-500 tabular-price">
+      <div
+        class="mt-2 flex items-center justify-between text-[10px] text-ink-soft dark:text-zinc-500 tabular-price"
+      >
         <span>{{ labelAt(0) }}</span>
-        <span>Low RM {{ fmt(trend.min) }} · High RM {{ fmt(trend.max) }}</span>
+        <span
+          >Low {{ fmt(trend.min) }} MYR · High {{ fmt(trend.max) }} MYR</span
+        >
         <span>{{ labelAt(trend.points.length - 1) }}</span>
       </div>
     </div>
@@ -167,9 +201,7 @@ const scaleY = (v: number) => {
 // into evenly spaced steps.
 const timeScale = computed(() => {
   const points = props.trend?.points ?? [];
-  const parsed = points.map((point) =>
-    Date.parse(`${point.date}T00:00:00Z`),
-  );
+  const parsed = points.map((point) => Date.parse(`${point.date}T00:00:00Z`));
   const allValid = parsed.every(Number.isFinite);
   const values = allValid ? parsed : points.map((_, index) => index);
 
@@ -193,7 +225,10 @@ const linePath = computed(() => {
   const t = props.trend;
   if (!t || t.points.length < 2) return "";
   return t.points
-    .map((p, i) => `${i === 0 ? "M" : "L"}${xAt(i).toFixed(2)},${scaleY(p.market).toFixed(2)}`)
+    .map(
+      (p, i) =>
+        `${i === 0 ? "M" : "L"}${xAt(i).toFixed(2)},${scaleY(p.market).toFixed(2)}`,
+    )
     .join(" ");
 });
 
@@ -251,5 +286,8 @@ const labelAt = (i: number) => {
 };
 
 const fmt = (n: number) =>
-  n.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  n.toLocaleString("en-MY", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 </script>

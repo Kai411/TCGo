@@ -26,33 +26,6 @@
             <p class="font-bold text-ink dark:text-white leading-tight">
               My Collection
             </p>
-            <p
-              class="text-xs text-ink-muted dark:text-zinc-400 mt-0.5 flex items-center gap-1.5"
-            >
-              <svg
-                class="w-3.5 h-3.5 shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <rect x="3" y="3" width="7" height="7" rx="1" />
-                <rect x="14" y="3" width="7" height="7" rx="1" />
-                <rect x="3" y="14" width="7" height="7" rx="1" />
-                <rect x="14" y="14" width="7" height="7" rx="1" />
-              </svg>
-              <span
-                class="tabular-nums font-semibold text-ink dark:text-zinc-200"
-                >{{ count }}</span
-              >
-              {{ count === 1 ? "card" : "cards" }}
-              <span class="mx-1 opacity-40">·</span>
-              est. value
-              <span
-                class="tabular-nums font-semibold text-ink dark:text-zinc-200"
-                >{{ formatMyr(totalValue) }} MYR</span
-              >
-            </p>
           </div>
           <span
             class="shrink-0 inline-flex items-center gap-0.5 text-ink-muted dark:text-zinc-400 group-hover:text-pokemon-red transition-colors"
@@ -255,12 +228,19 @@
           <div class="flex items-start justify-between gap-3">
             <div>
               <p class="eyebrow">Estimated value</p>
-              <p class="mt-2 text-3xl sm:text-4xl font-bold text-ink dark:text-white tabular-price leading-none tracking-tightest">
+              <p
+                class="mt-2 text-3xl sm:text-4xl font-bold text-ink dark:text-white tabular-price leading-none tracking-tightest"
+              >
                 RM {{ formatMyr(totalValue) }}
               </p>
               <p class="mt-1.5 text-xs text-ink-soft dark:text-zinc-500">
-                {{ count }} card{{ count === 1 ? "" : "s" }}
-                <template v-if="valueTrend.trackedCards && valueTrend.trackedCards < count">
+                {{ count }} card{{ count === 1 ? "" : "s" }}<template v-if="totalCopies !== count">
+                  · {{ totalCopies }} copies</template>
+                <template
+                  v-if="
+                    valueTrend.trackedCards && valueTrend.trackedCards < count
+                  "
+                >
                   · trend from {{ valueTrend.trackedCards }} with price history
                 </template>
               </p>
@@ -281,23 +261,36 @@
       <!-- ── Your collection ─────────────────────────────────────────── -->
       <section v-if="!showingSearch" class="pt-5">
         <div v-if="collectionLoading" class="flex justify-center py-16">
-          <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red" />
+          <div
+            class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red"
+          />
         </div>
 
         <div v-else-if="!collectionCards.length" class="text-center py-16">
-          <p class="text-ink dark:text-white font-semibold">Your collection is empty</p>
-          <p class="text-sm text-ink-muted dark:text-zinc-400 mt-1 max-w-sm mx-auto">
-            Search the TCGo catalogue above and tap + on any card to start tracking it.
+          <p class="text-ink dark:text-white font-semibold">
+            Your collection is empty
+          </p>
+          <p
+            class="text-sm text-ink-muted dark:text-zinc-400 mt-1 max-w-sm mx-auto"
+          >
+            Search the TCGo catalogue above and tap + on any card to start
+            tracking it.
           </p>
         </div>
 
         <template v-else>
           <div class="flex items-center justify-between mb-3">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400">
+            <h2
+              class="text-sm font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400"
+            >
               Your collection
             </h2>
-            <span class="text-[11px] text-ink-soft dark:text-zinc-500 tabular-price">
-              {{ collectionCards.length }} card{{ collectionCards.length === 1 ? "" : "s" }}
+            <span
+              class="text-[11px] text-ink-soft dark:text-zinc-500 tabular-price"
+            >
+              {{ collectionCards.length }} card{{
+                collectionCards.length === 1 ? "" : "s"
+              }}
             </span>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -306,7 +299,11 @@
               :key="card.productId"
               :card="card"
               :in-collection="true"
-              @toggle="handleToggle(card.productId)"
+              show-quantity
+              :quantity="quantityOf(card.productId)"
+              :busy="busyIds.has(card.productId)"
+              @increment="handleIncrement(card.productId)"
+              @decrement="handleDecrement(card.productId)"
             />
           </div>
         </template>
@@ -318,7 +315,9 @@
           v-if="searchLoading && searchResults.length === 0"
           class="flex justify-center py-16"
         >
-          <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red" />
+          <div
+            class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red"
+          />
         </div>
 
         <p
@@ -330,11 +329,15 @@
 
         <template v-else>
           <div class="flex items-center justify-between mb-3 gap-3">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400">
+            <h2
+              class="text-sm font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400"
+            >
               Search results
             </h2>
             <div class="flex items-center gap-3">
-              <span class="text-[11px] text-ink-soft dark:text-zinc-500 tabular-price">
+              <span
+                class="text-[11px] text-ink-soft dark:text-zinc-500 tabular-price"
+              >
                 {{ searchResults.length }} of {{ searchTotal }}
               </span>
               <button
@@ -352,6 +355,8 @@
               :key="card.productId"
               :card="card"
               :in-collection="isInCollection(card.productId)"
+              :quantity="quantityOf(card.productId)"
+              :busy="busyIds.has(card.productId)"
               @toggle="handleToggle(card.productId)"
             />
           </div>
@@ -362,12 +367,17 @@
               class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors disabled:opacity-60"
             >
               <span v-if="searchLoading">Loading…</span>
-              <span v-else>Load {{ Math.min(SEARCH_PAGE_SIZE, searchTotal - searchResults.length) }} more</span>
+              <span v-else
+                >Load
+                {{
+                  Math.min(SEARCH_PAGE_SIZE, searchTotal - searchResults.length)
+                }}
+                more</span
+              >
             </button>
           </div>
         </template>
       </div>
-
     </template>
   </div>
 </template>
@@ -385,12 +395,22 @@ useHead({ title: "Add Cards | TCGo Marketplace" });
 const SEARCH_PAGE_SIZE = 28;
 
 const { user, signInWithGoogle } = useAuth();
-const { searchCatalog, getCardsByIds, listSets, listRarities, getCollectionPriceTrend } =
-  useCardCatalog();
+const {
+  searchCatalog,
+  getCardsByIds,
+  listSets,
+  listRarities,
+  getCollectionPriceTrend,
+} = useCardCatalog();
 const {
   entries,
   count,
+  totalCopies,
   isInCollection,
+  quantities,
+  quantityOf,
+  addCopy,
+  removeCopy,
   toggleInCollection,
   listenMyCollection,
 } = useUserCollection();
@@ -544,7 +564,12 @@ watch(
   async (ids) => {
     if (!ids.length) {
       collectionCards.value = [];
-      valueTrend.value = { trend: null, trackedCards: 0, historyCards: 0, totalCards: 0 };
+      valueTrend.value = {
+        trend: null,
+        trackedCards: 0,
+        historyCards: 0,
+        totalCards: 0,
+      };
       return;
     }
     collectionLoading.value = true;
@@ -561,7 +586,7 @@ watch(
       collectionLoading.value = false;
     }
     try {
-      valueTrend.value = await getCollectionPriceTrend(ids, 30);
+      valueTrend.value = await getCollectionPriceTrend(ids, 30, quantities.value);
     } finally {
       trendLoading.value = false;
     }
@@ -569,7 +594,11 @@ watch(
   { immediate: true },
 );
 const totalValue = computed(() =>
-  collectionCards.value.reduce((sum, c) => sum + (c.price?.market ?? 0), 0),
+  // Weighted by copies — owning four of a card is four times the value.
+  collectionCards.value.reduce(
+    (sum, c) => sum + (c.price?.market ?? 0) * quantityOf(c.productId),
+    0,
+  ),
 );
 
 const formatMyr = (n: number) =>
@@ -578,11 +607,30 @@ const formatMyr = (n: number) =>
     maximumFractionDigits: 2,
   });
 
-const handleToggle = async (productId: number) => {
+// Per-card in-flight guard. A shared boolean would freeze the whole grid
+// while one card saved.
+const busyIds = ref<Set<number>>(new Set());
+
+const withBusy = async (productId: number, fn: () => Promise<void>) => {
+  if (busyIds.value.has(productId)) return;
+  busyIds.value = new Set(busyIds.value).add(productId);
   try {
-    await toggleInCollection(productId);
+    await fn();
   } catch (err) {
-    console.error("[collection] toggle failed:", err);
+    console.error("[collection] update failed:", err);
+  } finally {
+    const next = new Set(busyIds.value);
+    next.delete(productId);
+    busyIds.value = next;
   }
 };
+
+const handleToggle = (productId: number) =>
+  withBusy(productId, () => toggleInCollection(productId));
+
+const handleIncrement = (productId: number) =>
+  withBusy(productId, () => addCopy(productId));
+
+const handleDecrement = (productId: number) =>
+  withBusy(productId, () => removeCopy(productId));
 </script>

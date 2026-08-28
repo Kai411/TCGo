@@ -69,9 +69,13 @@
 
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-1.5">
-              <span v-if="card.rarity" class="chip chip-gold">{{ card.rarity }}</span>
+              <span v-if="card.rarity" class="chip chip-gold">{{
+                card.rarity
+              }}</span>
               <span class="chip">{{ card.language }}</span>
-              <span v-if="card.price" class="chip">{{ card.price.subtype }}</span>
+              <span v-if="card.price" class="chip">{{
+                card.price.subtype
+              }}</span>
             </div>
 
             <p class="mt-5 eyebrow">{{ card.setName }}</p>
@@ -80,26 +84,35 @@
             >
               {{ card.name }}
             </h1>
-            <p class="mt-2 text-sm text-ink-muted dark:text-zinc-400 sm:text-base">
-              <span v-if="card.number">Card {{ card.number }} · </span>{{ card.language }} printing
+            <p
+              class="mt-2 text-sm text-ink-muted dark:text-zinc-400 sm:text-base"
+            >
+              <span v-if="card.number">Card {{ card.number }} · </span
+              >{{ card.language }} printing
             </p>
 
             <div class="mt-7 flex flex-wrap items-end justify-between gap-5">
               <div>
-                <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400">
+                <p
+                  class="text-xs font-semibold text-ink-muted dark:text-zinc-400"
+                >
                   Raw market price
                 </p>
                 <p
                   v-if="card.price"
                   class="mt-1 text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
                 >
-                  <span class="mr-1 text-xl font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl">RM</span>{{ formatMyr(card.price.market) }}
+                  {{ formatMyr(card.price.market) }}
+                  <span
+                    class="mr-1 text-xl font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
+                    >MYR</span
+                  >
                 </p>
-                <p v-else class="mt-2 text-xl font-bold text-ink-muted dark:text-zinc-300">
+                <p
+                  v-else
+                  class="mt-2 text-xl font-bold text-ink-muted dark:text-zinc-300"
+                >
                   Price unavailable
-                </p>
-                <p class="mt-2 text-[11px] text-ink-soft dark:text-zinc-500">
-                  TCGplayer market estimate · converted to MYR
                 </p>
               </div>
 
@@ -107,9 +120,11 @@
                 type="button"
                 :disabled="collectionBusy || (!!user && collectionLoading)"
                 class="inline-flex min-w-[166px] items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold shadow-sm transition-all hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
-                :class="inCollection
-                  ? 'border border-black/[0.10] bg-white/70 text-ink hover:bg-white dark:border-white/[0.12] dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.10]'
-                  : 'bg-pokemon-blue text-white hover:bg-blue-700'"
+                :class="
+                  inCollection
+                    ? 'border border-black/[0.10] bg-white/70 text-ink hover:bg-white dark:border-white/[0.12] dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.10]'
+                    : 'bg-pokemon-blue text-white hover:bg-blue-700'
+                "
                 @click="handleCollectionToggle"
               >
                 <div
@@ -138,28 +153,47 @@
             <div
               class="mt-7 grid grid-cols-2 gap-3 border-t border-black/[0.06] pt-5 dark:border-white/[0.08] sm:grid-cols-3"
             >
-              <div class="rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]">
-                <p class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+              <div
+                class="rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
+              >
+                <p
+                  class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
+                >
                   Market low
                 </p>
-                <p class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
-                  {{ card.price ? `RM ${formatMyr(card.price.low)}` : "—" }}
+                <p
+                  class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price"
+                >
+                  {{ card.price ? `${formatMyr(card.price.low)} MYR` : "—" }}
                 </p>
               </div>
-              <div class="rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]">
-                <p class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+              <div
+                class="rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
+              >
+                <p
+                  class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
+                >
                   Market high
                 </p>
-                <p class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
-                  {{ card.price ? `RM ${formatMyr(card.price.high)}` : "—" }}
+                <p
+                  class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price"
+                >
+                  {{ card.price ? `${formatMyr(card.price.high)} MYR` : "—" }}
                 </p>
               </div>
-              <div class="col-span-2 rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04] sm:col-span-1">
-                <p class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+              <div
+                class="col-span-2 rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04] sm:col-span-1"
+              >
+                <p
+                  class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
+                >
                   Graded supply
                 </p>
                 <p class="mt-1 text-sm font-bold text-ink dark:text-white">
-                  {{ activeGradedListings.length }} {{ activeGradedListings.length === 1 ? "listing" : "listings" }}
+                  {{ activeGradedListings.length }}
+                  {{
+                    activeGradedListings.length === 1 ? "listing" : "listings"
+                  }}
                 </p>
               </div>
             </div>
@@ -171,7 +205,9 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
             <span class="eyebrow">Price history</span>
-            <h2 class="mt-1 text-xl font-bold tracking-tight text-ink dark:text-white">
+            <h2
+              class="mt-1 text-xl font-bold tracking-tight text-ink dark:text-white"
+            >
               Raw card trend
             </h2>
             <p
@@ -193,11 +229,17 @@
                 type="button"
                 :disabled="option.disabled"
                 class="inline-flex min-w-11 items-center justify-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-35"
-                :class="selectedRange === option.days && !option.disabled
-                  ? 'bg-white text-ink shadow-pill dark:bg-zinc-700 dark:text-white'
-                  : 'text-ink-muted hover:text-ink dark:text-zinc-400 dark:hover:text-white'"
+                :class="
+                  selectedRange === option.days && !option.disabled
+                    ? 'bg-white text-ink shadow-pill dark:bg-zinc-700 dark:text-white'
+                    : 'text-ink-muted hover:text-ink dark:text-zinc-400 dark:hover:text-white'
+                "
                 :aria-pressed="selectedRange === option.days"
-                :title="option.disabled ? option.disabledReason : `Show ${option.label} price history`"
+                :title="
+                  option.disabled
+                    ? option.disabledReason
+                    : `Show ${option.label} price history`
+                "
                 @click="selectedRange = option.days"
               >
                 <svg
@@ -239,21 +281,30 @@
           class="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-black/[0.06] pt-4 text-[11px] leading-relaxed text-ink-soft dark:border-white/[0.08] dark:text-zinc-500"
         >
           <p>
-            {{ selectedCoverageLabel }} No missing dates or prices are estimated.
+            {{ selectedCoverageLabel }} No missing dates or prices are
+            estimated.
           </p>
           <span
             class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold"
-            :class="historyIsStale
-              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
-              : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'"
+            :class="
+              historyIsStale
+                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+            "
           >
-            <span class="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+            <span
+              class="h-1.5 w-1.5 rounded-full bg-current"
+              aria-hidden="true"
+            />
             {{ historyFreshnessLabel }}
           </span>
         </div>
-        <p v-else class="mt-5 text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500">
-          TCGplayer raw-card market data, converted from USD to MYR. The chart only
-          draws when at least two recorded snapshots are available.
+        <p
+          v-else
+          class="mt-5 text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500"
+        >
+          TCGplayer raw-card market data, converted from USD to MYR. The chart
+          only draws when at least two recorded snapshots are available.
         </p>
       </section>
 
@@ -261,11 +312,14 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <span class="eyebrow">Graded prices</span>
-            <h2 class="mt-1 text-xl font-bold tracking-tight text-ink dark:text-white">
+            <h2
+              class="mt-1 text-xl font-bold tracking-tight text-ink dark:text-white"
+            >
               Active graded listings
             </h2>
             <p class="mt-1 max-w-xl text-sm text-ink-muted dark:text-zinc-400">
-              Asking prices for professionally graded copies of this printing on TCGo.
+              Asking prices for professionally graded copies of this printing on
+              TCGo.
             </p>
           </div>
           <span class="chip chip-accent">TCGo marketplace</span>
@@ -306,34 +360,52 @@
           </p>
         </div>
 
-        <div v-else class="mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]">
+        <div
+          v-else
+          class="mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
+        >
           <div class="hidden sm:block overflow-x-auto">
             <table class="w-full min-w-[600px] text-sm">
               <thead class="bg-canvas-sunken dark:bg-white/[0.03]">
-                <tr class="text-left text-[10px] uppercase tracking-[0.14em] text-ink-soft dark:text-zinc-500">
+                <tr
+                  class="text-left text-[10px] uppercase tracking-[0.14em] text-ink-soft dark:text-zinc-500"
+                >
                   <th class="px-4 py-3 font-semibold">Grade</th>
                   <th class="px-4 py-3 font-semibold">Lowest ask</th>
                   <th class="px-4 py-3 font-semibold">Price range</th>
                   <th class="px-4 py-3 font-semibold">Available</th>
-                  <th class="px-4 py-3 font-semibold"><span class="sr-only">View</span></th>
+                  <th class="px-4 py-3 font-semibold">
+                    <span class="sr-only">View</span>
+                  </th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-black/[0.06] dark:divide-white/[0.06]">
+              <tbody
+                class="divide-y divide-black/[0.06] dark:divide-white/[0.06]"
+              >
                 <tr v-for="row in gradedRows" :key="row.key">
                   <td class="px-4 py-4">
-                    <span class="inline-flex items-center gap-1.5 rounded-md bg-amber-400 px-2 py-1 text-xs font-extrabold text-amber-950">
-                      <span class="uppercase tracking-wide">{{ row.provider }}</span>
+                    <span
+                      class="inline-flex items-center gap-1.5 rounded-md bg-amber-400 px-2 py-1 text-xs font-extrabold text-amber-950"
+                    >
+                      <span class="uppercase tracking-wide">{{
+                        row.provider
+                      }}</span>
                       <span>{{ row.grade }}</span>
                     </span>
                   </td>
-                  <td class="px-4 py-4 font-bold text-ink dark:text-white tabular-price">
-                    RM {{ formatMyr(row.low) }}
+                  <td
+                    class="px-4 py-4 font-bold text-ink dark:text-white tabular-price"
+                  >
+                    {{ formatMyr(row.low) }} MYR
                   </td>
-                  <td class="px-4 py-4 text-ink-muted dark:text-zinc-300 tabular-price">
+                  <td
+                    class="px-4 py-4 text-ink-muted dark:text-zinc-300 tabular-price"
+                  >
                     {{ formatPriceRange(row.low, row.high) }}
                   </td>
                   <td class="px-4 py-4 text-ink-muted dark:text-zinc-300">
-                    {{ row.count }} {{ row.count === 1 ? "listing" : "listings" }}
+                    {{ row.count }}
+                    {{ row.count === 1 ? "listing" : "listings" }}
                   </td>
                   <td class="px-4 py-4 text-right">
                     <NuxtLink
@@ -341,7 +413,14 @@
                       class="inline-flex items-center gap-1 text-xs font-bold text-pokemon-red hover:underline"
                     >
                       View
-                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                      <svg
+                        class="w-3.5 h-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        aria-hidden="true"
+                      >
                         <path d="m9 18 6-6-6-6" />
                       </svg>
                     </NuxtLink>
@@ -351,7 +430,9 @@
             </table>
           </div>
 
-          <div class="sm:hidden divide-y divide-black/[0.06] dark:divide-white/[0.06]">
+          <div
+            class="sm:hidden divide-y divide-black/[0.06] dark:divide-white/[0.06]"
+          >
             <NuxtLink
               v-for="row in gradedRows"
               :key="row.key"
@@ -359,8 +440,12 @@
               class="flex items-center justify-between gap-4 p-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
             >
               <div>
-                <span class="inline-flex items-center gap-1 rounded-md bg-amber-400 px-2 py-1 text-xs font-extrabold text-amber-950">
-                  <span class="uppercase tracking-wide">{{ row.provider }}</span>
+                <span
+                  class="inline-flex items-center gap-1 rounded-md bg-amber-400 px-2 py-1 text-xs font-extrabold text-amber-950"
+                >
+                  <span class="uppercase tracking-wide">{{
+                    row.provider
+                  }}</span>
                   <span>{{ row.grade }}</span>
                 </span>
                 <p class="mt-2 text-[11px] text-ink-soft dark:text-zinc-500">
@@ -368,20 +453,28 @@
                 </p>
               </div>
               <div class="text-right">
-                <p class="text-sm font-bold text-ink dark:text-white tabular-price">
-                  RM {{ formatMyr(row.low) }}
+                <p
+                  class="text-sm font-bold text-ink dark:text-white tabular-price"
+                >
+                  {{ formatMyr(row.low) }} MYR
                 </p>
-                <p v-if="row.high !== row.low" class="mt-0.5 text-[10px] text-ink-soft dark:text-zinc-500">
-                  up to RM {{ formatMyr(row.high) }}
+                <p
+                  v-if="row.high !== row.low"
+                  class="mt-0.5 text-[10px] text-ink-soft dark:text-zinc-500"
+                >
+                  up to {{ formatMyr(row.high) }} MYR
                 </p>
               </div>
             </NuxtLink>
           </div>
         </div>
 
-        <p v-if="gradedRows.length" class="mt-4 text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500">
-          These are seller asking prices, not independent appraisal values. Tap a row
-          to view the lowest-priced listing.
+        <p
+          v-if="gradedRows.length"
+          class="mt-4 text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500"
+        >
+          These are seller asking prices, not independent appraisal values. Tap
+          a row to view the lowest-priced listing.
         </p>
       </section>
 
@@ -389,7 +482,9 @@
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <span class="eyebrow">Keep exploring</span>
-            <h2 class="mt-1 text-2xl font-bold tracking-tight text-ink dark:text-white">
+            <h2
+              class="mt-1 text-2xl font-bold tracking-tight text-ink dark:text-white"
+            >
               Cards you may also like
             </h2>
             <p class="mt-1 text-sm text-ink-muted dark:text-zinc-400">
@@ -426,16 +521,27 @@
             :key="index"
             class="surface overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
           >
-            <div class="aspect-[2.5/3.5] animate-pulse bg-black/[0.05] dark:bg-white/[0.05]" />
+            <div
+              class="aspect-[2.5/3.5] animate-pulse bg-black/[0.05] dark:bg-white/[0.05]"
+            />
             <div class="space-y-2.5 p-3">
-              <div class="h-3.5 w-2/3 animate-pulse rounded bg-black/[0.06] dark:bg-white/[0.06]" />
-              <div class="h-2.5 w-full animate-pulse rounded bg-black/[0.05] dark:bg-white/[0.05]" />
-              <div class="h-4 w-1/2 animate-pulse rounded bg-black/[0.06] dark:bg-white/[0.06]" />
+              <div
+                class="h-3.5 w-2/3 animate-pulse rounded bg-black/[0.06] dark:bg-white/[0.06]"
+              />
+              <div
+                class="h-2.5 w-full animate-pulse rounded bg-black/[0.05] dark:bg-white/[0.05]"
+              />
+              <div
+                class="h-4 w-1/2 animate-pulse rounded bg-black/[0.06] dark:bg-white/[0.06]"
+              />
             </div>
           </div>
         </div>
 
-        <div v-else class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div
+          v-else
+          class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+        >
           <div
             v-for="relatedCard in relatedCards"
             :key="relatedCard.productId"
@@ -445,7 +551,11 @@
             <CollectionItemCard
               :card="relatedCard"
               :in-collection="isInCollection(relatedCard.productId)"
-              :class="relatedBusyIds.has(relatedCard.productId) ? 'pointer-events-none opacity-55' : ''"
+              :class="
+                relatedBusyIds.has(relatedCard.productId)
+                  ? 'pointer-events-none opacity-55'
+                  : ''
+              "
               @toggle="handleRelatedToggle(relatedCard.productId)"
             />
             <div
@@ -453,7 +563,9 @@
               class="pointer-events-none absolute bottom-2.5 right-2.5 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-pokemon-blue text-white shadow-sm"
               aria-hidden="true"
             >
-              <div class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              <div
+                class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white"
+              />
             </div>
           </div>
         </div>
@@ -541,9 +653,10 @@ const rangeOptions = computed(() =>
   }),
 );
 
-const trend = computed<PriceTrend | null>(() =>
-  rangeTrends.value.find((option) => option.days === selectedRange.value)?.trend ??
-  null,
+const trend = computed<PriceTrend | null>(
+  () =>
+    rangeTrends.value.find((option) => option.days === selectedRange.value)
+      ?.trend ?? null,
 );
 
 const HISTORY_DAY_MS = 86_400_000;
@@ -573,8 +686,8 @@ const selectedCoverageLabel = computed(() => {
   const selected = trend.value;
   if (!selected) return "";
   const label =
-    rangeDefinitions.find((option) => option.days === selectedRange.value)?.label ??
-    "Selected range";
+    rangeDefinitions.find((option) => option.days === selectedRange.value)
+      ?.label ?? "Selected range";
   const firstDate = selected.points[0]?.date;
   const lastDate = selected.points[selected.points.length - 1]?.date;
   if (!firstDate || !lastDate) return "";
@@ -595,7 +708,9 @@ const historyAgeDays = computed(() => {
   if (!latest) return 0;
   return Math.max(
     0,
-    Math.floor((Date.now() - Date.parse(`${latest}T00:00:00Z`)) / HISTORY_DAY_MS),
+    Math.floor(
+      (Date.now() - Date.parse(`${latest}T00:00:00Z`)) / HISTORY_DAY_MS,
+    ),
   );
 });
 
@@ -607,11 +722,12 @@ const historyFreshnessLabel = computed(() => {
   return `Latest snapshot ${historyAgeDays.value} days ago`;
 });
 
-const inCollection = computed(() =>
-  Boolean(user.value) &&
-  !collectionLoading.value &&
-  Number.isFinite(productId.value) &&
-  isInCollection(productId.value),
+const inCollection = computed(
+  () =>
+    Boolean(user.value) &&
+    !collectionLoading.value &&
+    Number.isFinite(productId.value) &&
+    isInCollection(productId.value),
 );
 
 const collectionButtonLabel = computed(() => {
@@ -717,8 +833,7 @@ const gradedRows = computed<GradedPriceRow[]>(() => {
         (providerOrder.get(b.provider) ?? 99);
       if (providerDiff) return providerDiff;
       return (
-        (Number.parseFloat(b.grade) || 0) -
-        (Number.parseFloat(a.grade) || 0)
+        (Number.parseFloat(b.grade) || 0) - (Number.parseFloat(a.grade) || 0)
       );
     });
 });
@@ -882,8 +997,8 @@ const formatMyr = (value: number) =>
 
 const formatPriceRange = (low: number, high: number) =>
   low === high
-    ? `RM ${formatMyr(low)}`
-    : `RM ${formatMyr(low)}–${formatMyr(high)}`;
+    ? `${formatMyr(low)} MYR`
+    : `${formatMyr(low)}–${formatMyr(high)} MYR`;
 
 useHead(() => ({
   title: card.value

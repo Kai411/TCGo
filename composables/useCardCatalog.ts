@@ -616,8 +616,20 @@ export const useCardCatalog = () => {
   const getCollectionPriceTrend = async (
     productIds: number[],
     days = 30,
+    /**
+     * Copies held per product. A collection can hold four of the same card,
+     * and valuing that basket once would understate it by 3x. Omitted or
+     * missing entries count as one, so existing callers are unaffected.
+     */
+    quantities?: Map<number, number> | Record<number, number>,
   ): Promise<CollectionPriceTrend> => {
     const uniqueIds = [...new Set(productIds)];
+    const copiesOf = (id: number): number => {
+      if (!quantities) return 1;
+      const q =
+        quantities instanceof Map ? quantities.get(id) : (quantities as any)[id];
+      return Math.max(1, Number(q ?? 1));
+    };
     const histories = await getPriceHistories(uniqueIds);
     const usable = uniqueIds
       .map((productId) => ({ productId, points: histories.get(productId) ?? [] }))
@@ -665,7 +677,11 @@ export const useCardCatalog = () => {
 
     const aggregatePoints: PricePoint[] = eventDates.map((date) => ({
       date,
-      market: valuesByCard.reduce((sum, values) => sum + values.get(date)!, 0),
+      // Weighted by copies so the series matches the headline basket value.
+      market: tracked.reduce(
+        (sum, item, i) => sum + valuesByCard[i]!.get(date)! * copiesOf(item.productId),
+        0,
+      ),
     }));
 
     return {
