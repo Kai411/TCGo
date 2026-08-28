@@ -41,6 +41,7 @@ export const billplzAuthHeader = () => {
 //      documented order with NO separator, keyed by the X-Signature key
 //      (verified against the sandbox — see PAYMENT_ORDER_CHECKSUM_FIELDS).
 import { createHmac } from "node:crypto";
+import { SANDBOX_BANK_CODE } from "~/shared/banks";
 
 const signatureKey = (): string => {
   const key = useRuntimeConfig().billplzXSignatureKey as string;
@@ -150,6 +151,22 @@ export const createMassPaymentInstruction = async (input: {
   amount: number;
   email?: string;
 }) => {
+  // The sandbox test bank settles every payout as a success. Offering it is
+  // gated client-side by NUXT_PUBLIC_BILLPLZ_SANDBOX, but that is a *second*
+  // flag that has to agree with the server's — and a stale or mistyped public
+  // flag on production would let a seller save this bank code and have real
+  // money sent nowhere. The server owns the decision.
+  if (
+    input.bankCode.toUpperCase() === SANDBOX_BANK_CODE &&
+    !isBillplzSandbox()
+  ) {
+    throw createError({
+      statusCode: 400,
+      message:
+        "Refusing to pay out to the sandbox test bank against production Billplz. The seller must set a real bank account.",
+    });
+  }
+
   const epoch = Math.floor(Date.now() / 1000);
   const total = String(Math.round(input.amount * 100));
 
