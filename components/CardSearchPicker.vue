@@ -60,6 +60,9 @@
       No catalogue match. You can still fill the details in by hand below.
     </p>
     <div v-else-if="results.length" class="mt-3">
+      <p class="mb-2 text-[11px] text-ink-muted dark:text-zinc-400 tabular-price">
+        Showing {{ results.length }} of {{ total }}
+      </p>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <CardSearchResult
           v-for="c in results"
@@ -69,6 +72,25 @@
           @select="choose(c)"
         />
       </div>
+
+      <!-- Append rather than replace: the seller is scanning for one specific
+           printing, and paging would throw away everything already on screen
+           (and their scroll position) each time. -->
+      <button
+        v-if="hasMore"
+        type="button"
+        :disabled="loadingMore"
+        @click="loadMore"
+        class="mt-3 w-full py-2 rounded-lg text-xs font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink-muted dark:text-zinc-300 hover:text-ink dark:hover:text-white hover:border-black/25 dark:hover:border-white/25 transition-colors disabled:opacity-50"
+      >
+        {{ loadingMore ? "Loading…" : `Load ${nextBatchSize} more` }}
+      </button>
+      <p
+        v-else-if="results.length >= PAGE_SIZE"
+        class="mt-3 text-center text-[11px] text-ink-soft dark:text-zinc-500"
+      >
+        That's everything matching "{{ lastQuery }}".
+      </p>
     </div>
 
     <!-- Picked card + real price trend -->
@@ -128,16 +150,64 @@ const trendLoading = ref(false);
 
 const lang = computed(() => (props.language === "JP" ? "JP" : "EN") as "EN" | "JP");
 
+/** Results per request. Also the "Load N more" batch size. */
+const PAGE_SIZE = 8;
+
+const total = ref(0);
+const page = ref(0);
+const loadingMore = ref(false);
+// Frozen at search time: `q` keeps changing as the seller types, and the
+// "that's everything" line should name what was actually searched.
+const lastQuery = ref("");
+
+const hasMore = computed(() => results.value.length < total.value);
+const nextBatchSize = computed(() =>
+  Math.min(PAGE_SIZE, Math.max(0, total.value - results.value.length)),
+);
+
 const runSearch = async () => {
   const query = q.value.trim();
   if (query.length < 2) return;
   loading.value = true;
   searched.value = true;
+  page.value = 0;
+  lastQuery.value = query;
   try {
-    const { results: r } = await searchCatalog(query, { limit: 8, language: lang.value });
+    const { results: r, total: t } = await searchCatalog(query, {
+      limit: PAGE_SIZE,
+      page: 0,
+      language: lang.value,
+    });
     results.value = r;
+    total.value = t;
   } finally {
     loading.value = false;
+  }
+};
+
+const loadMore = async () => {
+  if (loadingMore.value || !hasMore.value) return;
+  loadingMore.value = true;
+  const next = page.value + 1;
+  try {
+    const { results: r, total: t } = await searchCatalog(lastQuery.value, {
+      limit: PAGE_SIZE,
+      page: next,
+      language: lang.value,
+    });
+    // The RPC re-counts per page; trust the latest figure so the "of N" line
+    // doesn't drift if the catalogue changes mid-browse.
+    total.value = t || total.value;
+    // Guard against a page that overlaps the previous one — a duplicate
+    // productId would break the :key and render the same card twice.
+    const seen = new Set(results.value.map((c) => c.productId));
+    results.value = [...results.value, ...r.filter((c) => !seen.has(c.productId))];
+    page.value = next;
+    // A page that adds nothing new means we're at the end whatever the count
+    // claims; stop offering more.
+    if (!r.length) total.value = results.value.length;
+  } finally {
+    loadingMore.value = false;
   }
 };
 
@@ -145,6 +215,8 @@ const choose = async (card: CatalogMatch) => {
   picked.value = card;
   results.value = [];
   suggestions.value = [];
+  total.value = 0;
+  page.value = 0;
   emit("select", card);
 
   trendLoading.value = true;
@@ -160,6 +232,8 @@ const clear = () => {
   picked.value = null;
   trend.value = null;
   searched.value = false;
+  total.value = 0;
+  page.value = 0;
 };
 
 // ── Manual-entry suggestions ─────────────────────────────────────────

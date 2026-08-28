@@ -76,10 +76,36 @@
           </div>
         </div>
         <p class="reveal-init mt-4 text-center text-xs text-ink-soft">
-          Every plan pays the same 4% on marketplace sales. The subscription
-          buys the counter — in-store sales through the POS are never charged a
-          percentage.
+          Every plan pays the same 4% on online sales. Subscriptions are billed
+          monthly and cancel any time.
         </p>
+
+        <!-- Counter payments -->
+        <div class="reveal-init surface mt-4 rounded-2xl p-6 sm:p-7">
+          <h3 class="text-sm font-semibold text-ink">
+            Money taken at your counter
+          </h3>
+          <p class="mt-1.5 text-[13px] leading-relaxed text-ink-muted">
+            In-store payments settle straight into your own bank account. We
+            never hold your counter takings and never charge a percentage on
+            them — you're paying the card networks, not us.
+          </p>
+          <div class="mt-5 grid gap-3 sm:grid-cols-3">
+            <div
+              v-for="m in counterMethods"
+              :key="m.name"
+              class="rounded-2xl bg-ink/[0.03] p-4"
+            >
+              <p class="text-sm font-semibold text-ink">{{ m.rate }}</p>
+              <p class="mt-0.5 text-[13px] font-medium text-ink">
+                {{ m.name }}
+              </p>
+              <p class="mt-1.5 text-xs leading-relaxed text-ink-soft">
+                {{ m.note }}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -521,59 +547,88 @@ const feeLines = [
   },
 ];
 
-// Marketplace selling is priced on the sale (4%); the counter is priced on the
-// month. In-store takings never touch our payment rail, so there is nothing to
-// take a percentage of — a subscription is the only honest way to charge for
-// the POS. RM99 sits deliberately under the general-purpose Malaysian POS
-// entry tier (StoreHub ~RM102, Qashier ~RM158) while bundling the card-shop
-// specifics those don't have.
-const POS_MONTHLY = 99;
-const POS_MULTI_MONTHLY = 199;
+// Two subscriptions sit on top of the per-sale 4%.
+//
+// Marketplace (RM4.99) unlocks unlimited AI card scans — the free tier caps at
+// 20 a month. POS (RM69.99) adds the in-store till. The POS price is
+// deliberately under the general-purpose Malaysian entry tier (StoreHub
+// ~RM102, Qashier ~RM158) because we're buying density in a small market.
+//
+// Counter takings never touch our payment rail: DuitNow QR settles straight to
+// the shop's own bank at 0% for micro and small merchants (BNM waiver), and
+// tap-to-pay settles direct too, at the acquirer's card rate. Neither is
+// marked up here — see the payment note under the plans.
+const MARKETPLACE_MONTHLY = 4.99;
+const POS_MONTHLY = 69.99;
 
 const plans = [
   {
-    name: "Marketplace",
+    name: "Free",
+    monthly: 0,
     price: "RM0",
     period: "/month",
     plus: "+ 4% per online sale",
-    who: "For sellers clearing a collection or running a shop that's online only.",
+    who: "For collectors clearing shelf space and sellers testing the water.",
     featured: false,
     features: [
       "Unlimited listings",
+      "20 card scans a month",
       "Live market pricing",
       "Courier waybills at cost",
       "Auctions and offers",
     ],
   },
   {
-    name: "Shop",
+    name: "Marketplace",
+    monthly: MARKETPLACE_MONTHLY,
+    price: `RM${MARKETPLACE_MONTHLY}`,
+    period: "/month",
+    plus: "+ 4% per online sale",
+    who: "For sellers listing in volume, where the scan cap starts to bite.",
+    featured: false,
+    features: [
+      "Everything in Free",
+      "Unlimited card scans",
+      "Scan straight into a listing",
+    ],
+  },
+  {
+    name: "POS",
+    monthly: POS_MONTHLY,
     price: `RM${POS_MONTHLY}`,
     period: "/month",
     plus: "+ 4% per online sale",
     who: "For a shop with a counter. Everything above, plus the till.",
     featured: true,
     features: [
+      "Everything in Marketplace",
       "Point-of-sale on your phone",
-      "Scan cards with the camera",
       "One stock count, counter and online",
       "Price tags and label printing",
       "Daily takings and reports",
     ],
   },
+];
+
+// In-store payment rates. These are the acquirer's, not ours — we add no
+// margin, because the money never passes through us. DuitNow QR's 0% is BNM's
+// MDR waiver for micro and small merchants, extended into 2026; card rates are
+// the published in-person rate from a platform acquirer.
+const counterMethods = [
   {
-    name: "Multi-outlet",
-    price: `RM${POS_MULTI_MONTHLY}`,
-    period: "/month",
-    plus: "+ 4% per online sale",
-    who: "For more than one branch, or several tills on the floor.",
-    featured: false,
-    features: [
-      "Everything in Shop",
-      "Unlimited tills and outlets",
-      "Per-outlet reporting",
-      "Staff accounts and permissions",
-      "Stock transfers between outlets",
-    ],
+    rate: "0%",
+    name: "DuitNow QR",
+    note: "Free for micro and small merchants under the BNM waiver. Straight to your bank.",
+  },
+  {
+    rate: "1.4%",
+    name: "Tap to pay",
+    note: "Contactless cards and wallets on the shop's own phone. Minimum 30 sen.",
+  },
+  {
+    rate: "0%",
+    name: "Cash",
+    note: "Recorded in the till and counted in your reports like any other sale.",
   },
 ];
 
@@ -584,7 +639,7 @@ const WITHDRAWAL_FEE = 1.25;
 const avgSale = ref(50);
 const salesPerMonth = ref(40);
 const withdrawals = ref(4);
-const selectedPlan = ref<string>("Marketplace");
+const selectedPlan = ref<string>("Free");
 
 const money = (n: number) =>
   n.toLocaleString("en-MY", {
@@ -595,12 +650,8 @@ const money = (n: number) =>
 const revenue = computed(() => avgSale.value * salesPerMonth.value);
 const marketplaceFee = computed(() => revenue.value * FEE_RATE);
 const withdrawalFee = computed(() => withdrawals.value * WITHDRAWAL_FEE);
-const subscription = computed(() =>
-  selectedPlan.value === "Shop"
-    ? POS_MONTHLY
-    : selectedPlan.value === "Multi-outlet"
-      ? POS_MULTI_MONTHLY
-      : 0,
+const subscription = computed(
+  () => plans.find((p) => p.name === selectedPlan.value)?.monthly ?? 0,
 );
 const totalCost = computed(
   () => marketplaceFee.value + withdrawalFee.value + subscription.value,
@@ -633,6 +684,10 @@ const includedFree = [
     body: "Current market values on every card so you price with the market.",
   },
   {
+    title: "Direct counter settlement",
+    body: "In-store takings go straight to your own bank — we never hold them.",
+  },
+  {
     title: "Courier waybills",
     body: "Book and print shipping labels at the courier rate we're quoted.",
   },
@@ -661,11 +716,15 @@ const comparison = [
 const faqs = [
   {
     q: "Why is the POS a subscription instead of a percentage?",
-    a: "Money taken at your counter never passes through us — it goes straight from your customer to you, by cash or your own QR. There's nothing for us to take a cut of, so the till is priced by the month instead. Sell 100 cards over the counter or none at all, the price doesn't move.",
+    a: "Money taken at your counter never passes through us — it goes straight from your customer to your own bank, by cash, DuitNow QR or a card tapped on your phone. There's nothing for us to take a cut of, so the till is priced by the month instead. Sell 100 cards over the counter or none at all, the price doesn't move.",
   },
   {
-    q: "Do I need the Shop plan to sell online?",
-    a: "No. Selling on the marketplace costs 4% a sale and nothing else — the subscription is only for the in-store till, card scanning and label printing.",
+    q: "Do I need a subscription to sell online?",
+    a: "No. Selling costs 4% a sale on every plan, free one included. Marketplace at RM4.99 lifts the 20-a-month cap on card scans, and POS at RM69.99 adds the in-store till on top.",
+  },
+  {
+    q: "What does tap-to-pay cost?",
+    a: "1.4% of the sale, minimum 30 sen, charged by the card acquirer rather than by us — we add no margin on it. DuitNow QR is free for micro and small merchants under Bank Negara's waiver, so most shops use the QR by default and keep tap-to-pay for customers who'd rather tap a card.",
   },
   {
     q: "When am I charged?",
@@ -688,8 +747,8 @@ const faqs = [
     a: "You're only charged on money that actually reaches you. If an order is cancelled before it's paid out, no fee is taken.",
   },
   {
-    q: "Can I cancel the Shop plan?",
-    a: "Any time, and it stops at the end of the month you've paid for. Your listings, stock and sales history stay exactly where they are — you just lose the till until you resubscribe.",
+    q: "Can I cancel a subscription?",
+    a: "Any time, and it runs to the end of the month you've paid for. Your listings, stock and sales history stay exactly where they are — you drop back to the free plan and keep selling at 4%.",
   },
   {
     q: "Is there SST on top?",
