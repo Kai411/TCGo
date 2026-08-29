@@ -46,9 +46,9 @@ export default defineEventHandler(async (event) => {
   const sellerSnap = await db.collection("users").doc(caller.uid).get();
   const merchantKey = (sellerSnap.data() as any)?.hitpayMerchantKey || undefined;
 
-  let providerStatus: string;
+  let state: { status: string; lastAttemptFailed: boolean };
   try {
-    providerStatus = await posPaymentProvider().chargeStatus(sale.chargeId, merchantKey);
+    state = await posPaymentProvider().chargeStatus(sale.chargeId, merchantKey);
   } catch {
     // A provider hiccup is not a failed payment. Keep the sale open and let
     // the till ask again — releasing stock here could strand a customer who
@@ -56,19 +56,26 @@ export default defineEventHandler(async (event) => {
     return { status: "awaiting_payment", settled: false, unreachable: true };
   }
 
-  if (providerStatus === "paid") {
+  if (state.status === "paid") {
     const result = await finalisePosSale(db, saleId, "paid");
     return { status: result.status, settled: true };
   }
-  if (providerStatus === "failed" || providerStatus === "expired") {
+  if (state.status === "failed" || state.status === "expired") {
     const result = await finalisePosSale(
       db,
       saleId,
       "failed",
-      providerStatus === "expired" ? "Payment window expired" : "Payment declined",
+      state.status === "expired" ? "Payment window expired" : "Payment declined",
     );
     return { status: result.status, settled: false };
   }
 
-  return { status: "awaiting_payment", settled: false };
+  // Declined, but the QR is still live and the customer can try again. The
+  // sale deliberately stays open and the cards stay held — releasing them
+  // here would pull the stock while the customer reaches for another card.
+  return {
+    status: "awaiting_payment",
+    settled: false,
+    lastAttemptFailed: state.lastAttemptFailed,
+  };
 });

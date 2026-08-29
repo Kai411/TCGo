@@ -31,6 +31,23 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 export type PosChargeStatus = "pending" | "paid" | "failed" | "expired";
 
+/**
+ * A charge can have a failed ATTEMPT without being dead.
+ *
+ * Verified against the sandbox: when a payment is declined, HitPay marks the
+ * payment `failed` but leaves the payment REQUEST `pending`, because the
+ * customer can scan the same QR and try again. Reading only the request status
+ * would leave the till spinning silently until the hold lapsed; treating the
+ * first decline as terminal would yank the cards back while the customer is
+ * reaching for another card. So the two are reported separately and the seller
+ * decides.
+ */
+export interface PosChargeState {
+  status: PosChargeStatus;
+  /** Latest attempt was declined. The charge is still open for a retry. */
+  lastAttemptFailed: boolean;
+}
+
 export interface PosCharge {
   /** Provider-side id, used for polling and webhook matching. */
   chargeId: string;
@@ -51,7 +68,7 @@ export interface PosPaymentProvider {
     /** Sub-merchant (seller) key — omit to charge to the platform account. */
     merchantKey?: string;
   }): Promise<PosCharge>;
-  chargeStatus(chargeId: string, merchantKey?: string): Promise<PosChargeStatus>;
+  chargeStatus(chargeId: string, merchantKey?: string): Promise<PosChargeState>;
   cancelCharge(chargeId: string, merchantKey?: string): Promise<void>;
 }
 
@@ -159,7 +176,16 @@ const hitpay: PosPaymentProvider = {
       throw new Error(`HitPay status lookup failed (HTTP ${res.status})`);
     }
     const body = (await res.json()) as any;
-    return mapHitpayStatus(String(body?.status ?? "pending"));
+    const status = mapHitpayStatus(String(body?.status ?? "pending"));
+
+    // The request-level status doesn't move on a decline, so the attempt list
+    // is the only place a failure shows up.
+    const attempts: any[] = Array.isArray(body?.payments) ? body.payments : [];
+    const latest = attempts.length ? attempts[attempts.length - 1] : null;
+    const lastAttemptFailed =
+      status === "pending" && String(latest?.status ?? "") === "failed";
+
+    return { status, lastAttemptFailed };
   },
 
   async cancelCharge(chargeId, merchantKey) {

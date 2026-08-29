@@ -32,7 +32,10 @@ export default defineEventHandler(async (event) => {
 
   if (sale.chargeId) {
     try {
-      const providerStatus = await posPaymentProvider().chargeStatus(sale.chargeId, merchantKey);
+      const { status: providerStatus } = await posPaymentProvider().chargeStatus(
+        sale.chargeId,
+        merchantKey,
+      );
       if (providerStatus === "paid") {
         // Too late — the customer paid. Settle instead of cancelling.
         const result = await finalisePosSale(db, saleId, "paid");

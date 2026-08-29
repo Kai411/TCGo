@@ -121,6 +121,20 @@
             Any Malaysian banking or e-wallet app
           </p>
 
+          <!-- A decline is not the end of the sale: the same QR still
+               works, and most customers just try another account. -->
+          <div
+            v-if="attemptDeclined"
+            class="mt-4 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 px-3 py-2"
+          >
+            <p class="text-xs font-bold text-amber-800 dark:text-amber-200">
+              That payment was declined
+            </p>
+            <p class="mt-0.5 text-[11px] text-amber-700 dark:text-amber-300">
+              The QR still works — ask them to try again, or cancel and take cash.
+            </p>
+          </div>
+
           <div class="mt-4 flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-zinc-400">
             <span class="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400" />
             Waiting for payment
@@ -203,6 +217,8 @@ const props = defineProps<{
   /** Epoch ms when the hold lapses. */
   reservedUntil: number;
   cancelling: boolean;
+  /** Latest attempt declined, but the QR is still live for a retry. */
+  attemptDeclined: boolean;
   failedReason: string;
   qrEnabled: boolean;
 }>();

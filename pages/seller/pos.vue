@@ -171,6 +171,7 @@
         :qr-image="qrImage"
         :reserved-until="reservedUntil"
         :cancelling="cancelling"
+        :attempt-declined="attemptDeclined"
         :failed-reason="failedReason"
         :qr-enabled="qrEnabled"
         @pay="startPayment"
@@ -409,6 +410,8 @@ const qrImage = ref("");
 const reservedUntil = ref(0);
 const cancelling = ref(false);
 const failedReason = ref("");
+// A declined attempt on a charge that is still open for a retry.
+const attemptDeclined = ref(false);
 const lastCount = ref(0);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -461,6 +464,7 @@ const startPayment = async (method: PosPaymentMethod) => {
   if (method === "cash") return payCash();
   phase.value = "starting";
   failedReason.value = "";
+  attemptDeclined.value = false;
 
   try {
     const res = await authedFetch<{
@@ -537,10 +541,16 @@ const startPolling = () => {
   pollTimer = setInterval(async () => {
     if (!saleId.value) return;
     try {
-      const res = await authedFetch<{ status: string; settled: boolean }>(
-        "/api/pos/charge-status",
-        { method: "POST", body: { saleId: saleId.value } },
-      );
+      const res = await authedFetch<{
+        status: string;
+        settled: boolean;
+        lastAttemptFailed?: boolean;
+      }>("/api/pos/charge-status", {
+        method: "POST",
+        body: { saleId: saleId.value },
+      });
+      // Declined but retryable — tell the seller without killing the QR.
+      attemptDeclined.value = !!res.lastAttemptFailed;
       if (res.status === "paid") {
         stopPolling();
         lastCount.value = stash.value.length;
@@ -605,6 +615,7 @@ const closeSheet = () => {
   qrImage.value = "";
   saleId.value = "";
   reservedUntil.value = 0;
+  attemptDeclined.value = false;
 };
 
 // A till left open with a live hold would keep stock locked for the full
