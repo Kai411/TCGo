@@ -119,14 +119,14 @@
                   @click="desktopSellOpen = false"
                   class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
                 >
-                  List a card
+                  Sell a card
                 </NuxtLink>
                 <NuxtLink
                   to="/seller/auctions/new"
                   @click="desktopSellOpen = false"
                   class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
                 >
-                  List for auction
+                  Start an auction
                 </NuxtLink>
               </div>
             </Transition>
