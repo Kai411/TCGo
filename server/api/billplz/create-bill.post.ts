@@ -3,8 +3,9 @@
 //
 // Flow: buyer taps "Pay online (FPX)" → this creates the bill, links it to
 // the order, and returns the hosted payment URL. The webhook flips the order
-// to paid; the redirect just lands the buyer back on the order page (which
-// listens live).
+// to paid; the redirect lands the buyer on /payment/success, which watches
+// the order live and hands a declined payment (billplz[paid]=false) on to
+// /payment/failed. Billplz appends its billplz[...] params to redirect_url.
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import {
@@ -115,7 +116,7 @@ export default defineEventHandler(async (event) => {
     name: order.buyerName || "TCGo Buyer",
     amount: String(amount),
     callback_url: `${siteUrl}/api/billplz/webhook`,
-    redirect_url: `${siteUrl}/orders/${orderId}`,
+    redirect_url: `${siteUrl}/payment/success?orderId=${encodeURIComponent(orderId)}`,
     description: `TCGo order #${orderId.slice(0, 8)} (${order.items?.length ?? 0} items)`,
     reference_1_label: "orderId",
     reference_1: orderId,
