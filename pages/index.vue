@@ -3,7 +3,7 @@
     <!-- ── Filter sidebar (desktop only) ─────────────────────────────── -->
     <aside
       v-if="!loading"
-      class="hidden lg:block w-56 xl:w-60 shrink-0 sticky top-[5.5rem] self-start max-h-[calc(100vh-7rem)] overflow-y-auto no-scrollbar"
+      class="hidden lg:block w-56 xl:w-60 shrink-0 sticky top-[8.75rem] self-start max-h-[calc(100vh-10.25rem)] overflow-y-auto no-scrollbar"
     >
       <ListingFilters :filters="filters" :sidebar="true" />
     </aside>

@@ -89,12 +89,48 @@
             </p>
           </div>
 
-          <ul v-else class="divide-y divide-black/[0.06] dark:divide-white/[0.08]">
+          <template v-else>
+            <!-- Bulk toolbar -->
+            <div
+              class="sticky top-0 z-10 flex items-center justify-between px-5 py-2.5 bg-canvas/95 dark:bg-canvas-inverse/95 backdrop-blur border-b border-black/[0.06] dark:border-white/[0.08]"
+            >
+              <label
+                class="inline-flex items-center gap-2.5 text-sm font-semibold text-ink dark:text-white cursor-pointer select-none"
+              >
+                <input
+                  type="checkbox"
+                  :checked="allSelected"
+                  :indeterminate="someSelected && !allSelected"
+                  @change="toggleAll"
+                  class="w-4 h-4 rounded accent-pokemon-red cursor-pointer"
+                />
+                {{ allSelected ? "Deselect all" : "Select all" }}
+              </label>
+              <button
+                :disabled="!someSelected"
+                @click="removeSelected"
+                class="text-sm font-semibold text-pokemon-red hover:underline disabled:text-ink-soft dark:disabled:text-zinc-600 disabled:no-underline disabled:cursor-default transition-colors"
+              >
+                Remove{{ selectedCount ? ` (${selectedCount})` : "" }}
+              </button>
+            </div>
+
+            <ul class="divide-y divide-black/[0.06] dark:divide-white/[0.08]">
             <li
               v-for="item in items"
               :key="item.id"
-              class="flex gap-3 px-5 py-4"
+              class="flex gap-3 px-5 py-4 transition-colors"
+              :class="selected.has(item.id) ? 'bg-pokemon-red/[0.04]' : ''"
             >
+              <label class="flex items-center shrink-0 cursor-pointer">
+                <input
+                  type="checkbox"
+                  :checked="selected.has(item.id)"
+                  @change="toggleOne(item.id)"
+                  :aria-label="`Select ${item.cardName}`"
+                  class="w-4 h-4 rounded accent-pokemon-red cursor-pointer"
+                />
+              </label>
               <NuxtLink
                 :to="`/cards/${item.id}`"
                 @click="close"
@@ -124,7 +160,7 @@
                     RM {{ item.price.toFixed(2) }}
                   </span>
                   <button
-                    @click="removeFromCart(item.id)"
+                    @click="removeOne(item.id)"
                     class="text-xs font-semibold text-ink-muted dark:text-zinc-400 hover:text-pokemon-red transition-colors"
                   >
                     Remove
@@ -132,7 +168,8 @@
                 </div>
               </div>
             </li>
-          </ul>
+            </ul>
+          </template>
         </div>
 
         <!-- Footer -->
@@ -158,7 +195,7 @@
           </NuxtLink>
           <button
             @click="close"
-            class="block w-full text-center text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
+            class="block w-full text-center px-4 py-3 rounded-full text-sm font-semibold text-ink dark:text-white bg-black/[0.05] dark:bg-white/[0.08] hover:bg-black/[0.09] dark:hover:bg-white/[0.12] transition-colors"
           >
             Continue browsing
           </button>
@@ -175,6 +212,41 @@ const emit = defineEmits<{ (e: "update:modelValue", v: boolean): void }>();
 const { items, cartTotal, removeFromCart } = useCart();
 
 const close = () => emit("update:modelValue", false);
+
+// ── Multi-select ─────────────────────────────────────────────────────────
+const selected = ref(new Set<string>());
+const selectedCount = computed(
+  () => items.value.filter((i) => selected.value.has(i.id)).length,
+);
+const someSelected = computed(() => selectedCount.value > 0);
+const allSelected = computed(
+  () => items.value.length > 0 && selectedCount.value === items.value.length,
+);
+const toggleOne = (id: string) => {
+  const next = new Set(selected.value);
+  next.has(id) ? next.delete(id) : next.add(id);
+  selected.value = next;
+};
+const toggleAll = () => {
+  selected.value = allSelected.value
+    ? new Set()
+    : new Set(items.value.map((i) => i.id));
+};
+const removeOne = (id: string) => {
+  removeFromCart(id);
+  if (selected.value.has(id)) toggleOne(id);
+};
+const removeSelected = () => {
+  for (const id of [...selected.value]) removeFromCart(id);
+  selected.value = new Set();
+};
+// Drop selection when the drawer closes so it doesn't linger next time.
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (!open) selected.value = new Set();
+  },
+);
 
 // Escape closes; lock body scroll while open.
 const onKey = (e: KeyboardEvent) => {

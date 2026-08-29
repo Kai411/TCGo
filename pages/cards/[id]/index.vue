@@ -302,7 +302,7 @@
 
               <!-- Add to cart -->
               <button
-                @click="handleAddToCart"
+                @click="handleAddToCart($event)"
                 :disabled="inCart"
                 class="w-full inline-flex items-center justify-center gap-2 border border-gray-200 dark:border-white/[0.08] text-ink dark:text-white py-3 rounded-lg text-sm font-semibold hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors disabled:opacity-60 disabled:cursor-default"
               >
@@ -371,9 +371,16 @@ const handleBuyNow = () => {
   router.push("/cart");
 };
 
-const handleAddToCart = () => {
+const { flyToCart } = useFlyToCart();
+
+const handleAddToCart = (e?: MouseEvent) => {
   if (!card.value || inCart.value) return;
   markIntent();
+  // Decorative: thumbnail flies from the button to the navbar cart icon.
+  flyToCart(
+    (e?.currentTarget as HTMLElement | null) ?? null,
+    card.value.imageUrls?.[0] || card.value.imageUrl || "",
+  );
   addToCart({
     id: card.value.id,
     cardName: card.value.cardName,

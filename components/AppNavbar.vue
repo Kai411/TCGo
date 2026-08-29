@@ -119,14 +119,14 @@
                   @click="desktopSellOpen = false"
                   class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
                 >
-                  List a card
+                  Sell a card
                 </NuxtLink>
                 <NuxtLink
                   to="/seller/auctions/new"
                   @click="desktopSellOpen = false"
                   class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
                 >
-                  List for auction
+                  Start an auction
                 </NuxtLink>
               </div>
             </Transition>
@@ -158,6 +158,7 @@
         <button
           @click="cartOpen = true"
           aria-label="Cart"
+          data-cart-target
           class="relative inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
         >
           <svg
@@ -182,29 +183,6 @@
             {{ cartCount > 99 ? "99+" : cartCount }}
           </span>
         </button>
-
-        <!-- Seller dashboard, mobile. It was only reachable from inside the
-             "Sell" dropdown, which reads as a create-a-listing action — so the
-             dashboard was effectively unreachable on a phone. Own button now. -->
-        <NuxtLink
-          v-if="user"
-          to="/seller"
-          aria-label="Seller dashboard"
-          class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-full text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-        >
-          <svg
-            class="w-5 h-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <rect x="2" y="7" width="20" height="14" rx="2" />
-            <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-          </svg>
-        </NuxtLink>
 
         <div v-if="user" class="lg:hidden relative" @click.stop>
           <button
@@ -305,16 +283,27 @@
     <!-- Second row (desktop): section nav — Shop / Auctions / Collection /
          Orders. Dark strip under the glassy top bar, TCGplayer-style. -->
     <div class="hidden lg:block">
-      <div class="container mx-auto px-4 h-11 flex items-center gap-1">
+      <div
+        ref="tabsEl"
+        class="container mx-auto px-4 h-11 flex items-center gap-1 relative"
+      >
         <NuxtLink
           v-for="link in desktopLinks"
           :key="link.to"
           :to="link.to"
-          class="relative h-full inline-flex items-center px-4 text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors duration-200 ease-premium after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:rounded-full after:bg-pokemon-red after:opacity-0 after:transition-opacity after:duration-200"
-          active-class="!text-ink dark:!text-white after:!opacity-100"
+          :ref="(el) => setTabRef(link.to, el)"
+          class="relative h-full inline-flex items-center px-4 text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors duration-200 ease-premium"
+          active-class="!text-ink dark:!text-white"
         >
           {{ link.label }}
         </NuxtLink>
+        <!-- Single red underline that slides between tabs. Hidden until the
+             first measurement so it never flashes at x=0. -->
+        <span
+          aria-hidden="true"
+          class="absolute left-0 bottom-0 h-0.5 rounded-full bg-pokemon-red transition-[transform,width,opacity] duration-300 ease-premium origin-left"
+          :style="indicatorStyle"
+        />
       </div>
     </div>
   </nav>
@@ -438,6 +427,33 @@ const mobileTabs = computed(() => {
   }
   return tabs;
 });
+
+// ── Sliding tab indicator (row 2) ───────────────────────────────────────
+// One underline that slides to the active link instead of blinking across.
+const {
+  containerEl: tabsEl,
+  setTabRef,
+  indicatorStyle,
+  measure: measureTab,
+} = useTabIndicator({ pad: 16 }); // pad matches px-4 on the link
+
+const routeForIndicator = useRoute();
+const activeTabKey = computed(() => {
+  // Longest matching prefix wins, so /auctions/123 highlights Auctions.
+  const path = routeForIndicator.path;
+  let best: string | null = null;
+  for (const { to } of desktopLinks.value) {
+    const hit =
+      to === "/" ? path === "/" : path === to || path.startsWith(to + "/");
+    if (hit && (best === null || to.length > best.length)) best = to;
+  }
+  return best;
+});
+onMounted(() => nextTick(() => measureTab(activeTabKey.value)));
+watch(
+  () => [activeTabKey.value, desktopLinks.value.length],
+  () => nextTick(() => measureTab(activeTabKey.value)),
+);
 
 const sellMenuOpen = ref(false);
 const desktopSellOpen = ref(false);

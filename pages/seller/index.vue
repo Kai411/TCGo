@@ -52,11 +52,23 @@ const posSales = computed(() =>
 const goToOrders = (queue: string) =>
   router.push({ path: "/seller/orders", query: { q: queue } });
 
+const { startIfNew: startTourIfNew } = useSellerTour();
+
 const start = () => {
   listenSellerCompiledOrders();
   listenMyInventory();
   startAutoMerge();
 };
+
+// First-visit onboarding: wait until the dashboard has actually rendered so
+// the tour has stat tiles to point at, then spotlight-walk the seller area.
+watch(
+  loadingSeller,
+  (loading) => {
+    if (!loading && user.value) nextTick(startTourIfNew);
+  },
+  { immediate: true },
+);
 
 onMounted(() => {
   if (user.value) start();

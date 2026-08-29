@@ -15,7 +15,7 @@
     <template v-else>
       <!-- ── Sticky top: summary + search/filter ─────────────────────── -->
       <div
-        class="sticky top-16 z-30 -mx-4 px-4 bg-canvas/95 dark:bg-canvas-inverse/95 backdrop-blur border-b border-black/[0.06] dark:border-white/[0.08]"
+        class="sticky top-16 lg:top-[116px] z-30 -mx-4 px-4 bg-canvas/95 dark:bg-canvas-inverse/95 backdrop-blur border-b border-black/[0.06] dark:border-white/[0.08]"
       >
         <!-- Summary strip → links to the full collection on the profile -->
 
