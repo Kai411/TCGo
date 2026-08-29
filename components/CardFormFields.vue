@@ -303,6 +303,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   "update:modelValue": [value: CardFormData];
   "import-image": [url: string];
+  /** The full catalogue match, for callers that need the product id. */
+  "catalog-select": [card: CatalogMatch];
 }>();
 
 // ── Catalogue match ───────────────────────────────────────────────────
@@ -319,6 +321,7 @@ const applyCatalogCard = (card: CatalogMatch) => {
   };
   emit("update:modelValue", updates);
   if (card.imageUrl) emit("import-image", card.imageUrl);
+  emit("catalog-select", card);
 };
 
 // ── Print details disclosure ──────────────────────────────────────────

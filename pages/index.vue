@@ -68,18 +68,78 @@
       </div>
 
       <!-- Grid -->
-      <div
-        v-else
-        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 xl:gap-5"
-      >
-        <CardTile v-for="card in availableCards" :key="card.id" :card="card" />
-      </div>
+      <template v-else>
+        <div
+          class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 xl:gap-5"
+        >
+          <CardTile v-for="card in pageCards" :key="card.id" :card="card" />
+        </div>
+
+        <!-- Pagination -->
+        <nav
+          v-if="pageCount > 1"
+          class="mt-8 sm:mt-10 flex flex-col items-center gap-3"
+          aria-label="Pagination"
+        >
+          <div class="flex items-center gap-1.5">
+            <button
+              :disabled="page <= 1"
+              @click="goToPage(page - 1)"
+              class="pg-btn"
+              aria-label="Previous page"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <template v-for="(p, i) in pageLinks" :key="i">
+              <span
+                v-if="p === '…'"
+                class="w-9 h-9 inline-flex items-center justify-center text-sm text-ink-soft dark:text-zinc-500"
+              >
+                …
+              </span>
+              <button
+                v-else
+                @click="goToPage(p)"
+                class="pg-btn"
+                :class="p === page && 'pg-btn-active'"
+                :aria-current="p === page ? 'page' : undefined"
+              >
+                {{ p }}
+              </button>
+            </template>
+            <button
+              :disabled="page >= pageCount"
+              @click="goToPage(page + 1)"
+              class="pg-btn"
+              aria-label="Next page"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
+          <p class="text-xs text-ink-muted dark:text-zinc-400 tabular-nums">
+            Showing {{ rangeStart }}–{{ rangeEnd }} of {{ availableCards.length }}
+          </p>
+        </nav>
+      </template>
     </div>
   </div>
 </template>
 
+<style scoped>
+.pg-btn {
+  @apply w-9 h-9 inline-flex items-center justify-center rounded-full text-sm font-semibold tabular-nums transition-colors ease-premium;
+  @apply text-ink-muted hover:text-ink hover:bg-black/[0.04] disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-default;
+  @apply dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06];
+}
+.pg-btn-active {
+  @apply bg-ink text-white hover:bg-ink hover:text-white;
+  @apply dark:bg-white dark:text-ink dark:hover:bg-white dark:hover:text-ink;
+}
+</style>
+
 <script setup lang="ts">
 import type { Card } from "~/composables/useCards";
+import { SHOP_PAGE_SIZE, SHOP_STATE_KEY } from "~/composables/useShopOrdering";
 
 useHead({
   title: "Shop Pokemon Cards | TCGo Marketplace",
@@ -115,12 +175,120 @@ const tcgCounts = computed(() => {
   );
 });
 
+const { discoveryOrder } = useShopOrdering();
+
 const availableCards = computed(() => {
   const base = cards.value
     .filter((c: Card) => !c.sold)
     .filter(
       (c: Card) => activeTcg.value === "All" || tcgOf(c) === activeTcg.value,
     );
-  return filters.apply(base);
+  const sorted = filters.apply(base);
+  // Only the default feed gets the discovery mix; an explicit sort is exact.
+  return filters.sort.value === "newest" ? discoveryOrder(sorted) : sorted;
 });
+
+// ── Pagination (60 per page — divides evenly into every grid column count) ──
+const route = useRoute();
+const router = useRouter();
+
+const pageCount = computed(() =>
+  Math.max(1, Math.ceil(availableCards.value.length / SHOP_PAGE_SIZE)),
+);
+const page = computed(() => {
+  const raw = Number(route.query.page) || 1;
+  return Math.min(Math.max(1, Math.floor(raw)), pageCount.value);
+});
+const pageCards = computed(() =>
+  availableCards.value.slice(
+    (page.value - 1) * SHOP_PAGE_SIZE,
+    page.value * SHOP_PAGE_SIZE,
+  ),
+);
+const rangeStart = computed(() => (page.value - 1) * SHOP_PAGE_SIZE + 1);
+const rangeEnd = computed(() =>
+  Math.min(page.value * SHOP_PAGE_SIZE, availableCards.value.length),
+);
+
+// 1 … 4 [5] 6 … 12 — always show first/last, current ±1.
+const pageLinks = computed<(number | "…")[]>(() => {
+  const n = pageCount.value;
+  const cur = page.value;
+  if (n <= 7) return Array.from({ length: n }, (_, i) => i + 1);
+  const set = new Set<number>([1, n, cur - 1, cur, cur + 1]);
+  if (cur <= 3) [2, 3, 4].forEach((p) => set.add(p));
+  if (cur >= n - 2) [n - 1, n - 2, n - 3].forEach((p) => set.add(p));
+  const pages = [...set].filter((p) => p >= 1 && p <= n).sort((a, b) => a - b);
+  const out: (number | "…")[] = [];
+  pages.forEach((p, i) => {
+    if (i && p - pages[i - 1] > 1) out.push("…");
+    out.push(p);
+  });
+  return out;
+});
+
+const goToPage = (p: number) => {
+  const next = Math.min(Math.max(1, p), pageCount.value);
+  if (next === page.value) return;
+  router.push({ query: { ...route.query, page: next === 1 ? undefined : next } });
+  if (import.meta.client) window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+// Changing filters / TCG / sort jumps back to page one.
+watch(
+  [activeTcg, () => filters.sort.value, () => filters.activeCount.value],
+  () => {
+    if (route.query.page) router.replace({ query: { ...route.query, page: undefined } });
+  },
+);
+
+// ── Resume where the buyer left off ─────────────────────────────────────
+// Opening a card, adding to cart and coming back to "/" used to drop the
+// buyer on page 1 at the top. Remember page + scroll + TCG tab for the
+// session. The page/tab are restored here; the scroll offset is applied by
+// app/router.options.ts because Nuxt's own scroll-to-top runs after mount
+// and would otherwise override anything this component does.
+const STATE_KEY = SHOP_STATE_KEY;
+let scrollTicking = false;
+let mountedAt = 0;
+const saveState = () => {
+  // Right after (re)mount the window sits at 0 until the router applies the
+  // restored offset; a save in that window would wipe the real position.
+  if (window.scrollY === 0 && Date.now() - mountedAt < 1500) return;
+  try {
+    sessionStorage.setItem(
+      STATE_KEY,
+      JSON.stringify({ page: page.value, y: window.scrollY, tcg: activeTcg.value }),
+    );
+  } catch {}
+};
+const onScroll = () => {
+  if (scrollTicking) return;
+  scrollTicking = true;
+  requestAnimationFrame(() => {
+    scrollTicking = false;
+    saveState();
+  });
+};
+
+onMounted(() => {
+  mountedAt = Date.now();
+  window.addEventListener("scroll", onScroll, { passive: true });
+  let saved: { page?: number; y?: number; tcg?: string } | null = null;
+  try {
+    saved = JSON.parse(sessionStorage.getItem(STATE_KEY) || "null");
+  } catch {}
+  if (!saved || route.query.page) return;
+  if (saved.tcg) activeTcg.value = saved.tcg;
+  if ((saved.page ?? 1) > 1) {
+    // Same path → router scrollBehavior returns false, so this swap doesn't
+    // disturb the restored scroll offset.
+    router.replace({ query: { ...route.query, page: saved.page } });
+  }
+});
+onBeforeUnmount(() => {
+  window.removeEventListener("scroll", onScroll);
+  saveState();
+});
+watch(page, saveState);
 </script>

@@ -34,6 +34,40 @@
         </template>
       </div>
 
+      <!-- Selection bar: tick cards (or a whole seller) and remove in one go -->
+      <div
+        class="flex items-center justify-between gap-3 mb-3 px-1 text-xs"
+      >
+        <label class="inline-flex items-center gap-2 text-gray-600 dark:text-zinc-300 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            :checked="allSelected"
+            :indeterminate="someSelected && !allSelected"
+            @change="toggleAll"
+            class="rounded"
+            aria-label="Select all items"
+          />
+          <span v-if="selectedCount">{{ selectedCount }} of {{ items.length }} selected</span>
+          <span v-else>Select all</span>
+        </label>
+        <div class="flex items-center gap-3">
+          <button
+            v-if="someSelected"
+            @click="clearSelection"
+            class="text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white"
+          >
+            Clear selection
+          </button>
+          <button
+            :disabled="!someSelected"
+            @click="removeSelected"
+            class="font-semibold text-red-500 hover:text-red-700 disabled:opacity-40 disabled:hover:text-red-500"
+          >
+            Remove selected{{ selectedCount ? ` (${selectedCount})` : "" }}
+          </button>
+        </div>
+      </div>
+
       <!-- Compiled-order previews (one per seller) -->
       <div class="space-y-4 mb-6">
         <div
@@ -42,28 +76,56 @@
           class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4"
         >
           <div class="flex items-center justify-between mb-3">
-            <div>
-              <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
-                Compiled order
-              </p>
-              <NuxtLink
-                :to="`/profile/${group.sellerUid}`"
-                class="font-semibold text-ink dark:text-white text-sm hover:underline"
+            <label class="flex items-center gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                :checked="groupState(group) === 'all'"
+                :indeterminate="groupState(group) === 'some'"
+                @change="toggleGroup(group)"
+                class="rounded"
+                :aria-label="`Select all items from ${group.sellerName}`"
+              />
+              <div>
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                  Compiled order
+                </p>
+                <NuxtLink
+                  :to="`/profile/${group.sellerUid}`"
+                  class="font-semibold text-ink dark:text-white text-sm hover:underline"
+                  @click.stop
+                >
+                  {{ group.sellerName }}
+                </NuxtLink>
+              </div>
+            </label>
+            <div class="flex items-center gap-3 text-xs">
+              <span class="text-gray-500 dark:text-zinc-400">
+                {{ group.items.length }} {{ group.items.length === 1 ? "item" : "items" }}
+              </span>
+              <button
+                @click="removeGroup(group)"
+                class="text-red-500 hover:text-red-700"
+                :title="`Remove all items from ${group.sellerName}`"
               >
-                {{ group.sellerName }}
-              </NuxtLink>
+                Remove seller
+              </button>
             </div>
-            <span class="text-xs text-gray-500 dark:text-zinc-400">
-              {{ group.items.length }} {{ group.items.length === 1 ? "item" : "items" }}
-            </span>
           </div>
 
           <div class="space-y-2">
             <div
               v-for="item in group.items"
               :key="item.id"
-              class="flex gap-3 items-center"
+              class="flex gap-3 items-center rounded-lg -mx-1 px-1 transition-colors"
+              :class="selected.has(item.id) ? 'bg-pokemon-red/[0.04]' : ''"
             >
+              <input
+                type="checkbox"
+                :checked="selected.has(item.id)"
+                @change="toggleOne(item.id)"
+                class="rounded shrink-0"
+                :aria-label="`Select ${item.cardName}`"
+              />
               <div class="w-14 h-14 shrink-0 rounded-lg overflow-hidden">
                 <CardImage :src="item.imageUrl" :alt="item.cardName" />
               </div>
@@ -185,6 +247,58 @@ const { createCompiledOrders } = useCompiledOrders();
 const { authedFetch } = useAuthedFetch();
 
 const placing = ref(false);
+
+// ── Multi-select removal ──────────────────────────────────────────────
+// Tick individual cards, or a whole seller via the group-header checkbox,
+// then remove in one go. Selection is pruned whenever the cart changes so a
+// removed item can't linger as a phantom "selected" id.
+const selected = ref(new Set<string>());
+const selectedCount = computed(
+  () => items.value.filter((i) => selected.value.has(i.id)).length,
+);
+const someSelected = computed(() => selectedCount.value > 0);
+const allSelected = computed(
+  () => items.value.length > 0 && selectedCount.value === items.value.length,
+);
+const toggleOne = (id: string) => {
+  const next = new Set(selected.value);
+  next.has(id) ? next.delete(id) : next.add(id);
+  selected.value = next;
+};
+const toggleAll = () => {
+  selected.value = allSelected.value
+    ? new Set()
+    : new Set(items.value.map((i) => i.id));
+};
+const clearSelection = () => {
+  selected.value = new Set();
+};
+const groupState = (g: { items: CartItem[] }): "none" | "some" | "all" => {
+  const n = g.items.filter((i) => selected.value.has(i.id)).length;
+  if (n === 0) return "none";
+  return n === g.items.length ? "all" : "some";
+};
+const toggleGroup = (g: { items: CartItem[] }) => {
+  const next = new Set(selected.value);
+  const ids = g.items.map((i) => i.id);
+  if (groupState(g) === "all") ids.forEach((id) => next.delete(id));
+  else ids.forEach((id) => next.add(id));
+  selected.value = next;
+};
+const removeSelected = () => {
+  for (const id of [...selected.value]) removeFromCart(id);
+  selected.value = new Set();
+};
+const removeGroup = (g: { items: CartItem[]; sellerName: string }) => {
+  if (!confirm(`Remove all ${g.items.length} items from ${g.sellerName}?`)) return;
+  for (const it of g.items) removeFromCart(it.id);
+};
+watch(items, (list) => {
+  const live = new Set(list.map((i) => i.id));
+  if ([...selected.value].some((id) => !live.has(id))) {
+    selected.value = new Set([...selected.value].filter((id) => live.has(id)));
+  }
+});
 
 // ── Delivery address ──────────────────────────────────────────────────
 // Shipping is quoted live from each seller's pickup postcode to the buyer's

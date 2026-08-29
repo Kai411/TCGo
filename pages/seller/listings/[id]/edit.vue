@@ -21,82 +21,42 @@
       <h1 class="text-2xl font-bold mb-6">Edit Listing</h1>
 
       <form id="edit-listing-form" @submit.prevent="handleSubmit" class="space-y-4 pb-36 lg:pb-0">
+        <p class="text-xs text-gray-500 dark:text-zinc-400 -mt-2">
+          Only the price can be changed on a live listing. To change the card
+          details or photos, delete this listing and add the card again.
+        </p>
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <CardFormFields
-            v-model="cardForm"
-            @import-image="handleImportImage"
-          />
-
-          <!-- Card: Photos -->
-          <div
-            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3 lg:col-span-2"
+          <!-- Everything but price is read-only. A disabled <fieldset> greys
+               out every input, select and button inside (including the
+               catalogue search) without touching CardFormFields itself. -->
+          <fieldset
+            disabled
+            aria-label="Card details (read-only)"
+            class="contents"
           >
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
-              Photos
-            </h3>
+            <div class="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4 opacity-60 pointer-events-none select-none">
+              <CardFormFields v-model="cardForm" />
 
-            <!-- Existing images -->
-            <div
-              v-if="existingImages.length > 0"
-              class="grid grid-cols-4 gap-2"
-            >
+              <!-- Photos (read-only) -->
               <div
-                v-for="(url, i) in existingImages"
-                :key="'existing-' + i"
-                class="relative group"
+                v-if="existingImages.length > 0"
+                class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3 lg:col-span-2"
               >
-                <img
-                  :src="url"
-                  class="w-full aspect-square object-cover rounded-lg border border-gray-200 dark:border-white/[0.08]"
-                />
-                <button
-                  type="button"
-                  @click="removeExistingImage(i)"
-                  class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  ✕
-                </button>
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
+                  Photos
+                </h3>
+                <div class="grid grid-cols-4 gap-2">
+                  <img
+                    v-for="(url, i) in existingImages"
+                    :key="'existing-' + i"
+                    :src="url"
+                    class="w-full aspect-square object-cover rounded-lg border border-gray-200 dark:border-white/[0.08]"
+                  />
+                </div>
               </div>
             </div>
-
-            <!-- Upload new -->
-            <div
-              class="border-2 border-dashed border-gray-300 dark:border-white/[0.10] rounded-lg p-4 text-center hover:border-pokemon-blue transition-colors cursor-pointer"
-              @click="triggerFileInput"
-            >
-              <input
-                ref="fileInput"
-                type="file"
-                accept="image/*"
-                multiple
-                class="hidden"
-                @change="handleFileSelect"
-              />
-              <p class="text-sm text-gray-400 dark:text-zinc-500">
-                Add more photos
-              </p>
-            </div>
-
-            <div v-if="newFiles.length > 0" class="grid grid-cols-4 gap-2">
-              <div
-                v-for="(file, i) in newFiles"
-                :key="'new-' + i"
-                class="relative group"
-              >
-                <img
-                  :src="file.preview"
-                  class="w-full aspect-square object-cover rounded-lg border border-gray-200 dark:border-white/[0.08]"
-                />
-                <button
-                  type="button"
-                  @click="removeNewFile(i)"
-                  class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-          </div>
+          </fieldset>
 
           <!-- Price -->
           <div
@@ -176,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { doc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import type { CardFormData } from "~/components/CardFormFields.vue";
 import type { Card } from "~/composables/useCards";
 
@@ -189,7 +149,6 @@ const cardId = route.params.id as string;
 const { cards, loading, deleteCard } = useCards();
 const { firestore } = useFirebase();
 const { user } = useAuth();
-const { uploadAuctionImages } = useStorage();
 
 const card = computed(
   () => cards.value.find((c: Card) => c.id === cardId) || null,
@@ -222,9 +181,6 @@ const cardForm = ref<CardFormData>({
 
 const price = ref<number | null>(null);
 const existingImages = ref<string[]>([]);
-const newFiles = ref<{ file: File; preview: string }[]>([]);
-const importedImageUrl = ref("");
-const fileInput = ref<HTMLInputElement | null>(null);
 const submitting = ref(false);
 const error = ref("");
 
@@ -263,80 +219,29 @@ watch(
   { immediate: true },
 );
 
-const handleImportImage = (url: string) => {
-  importedImageUrl.value = url;
-  existingImages.value.push(url);
-};
-
-const triggerFileInput = () => fileInput.value?.click();
-
-const handleFileSelect = (event: Event) => {
-  const input = event.target as HTMLInputElement;
-  if (!input.files) return;
-  for (const file of Array.from(input.files)) {
-    if (file.size > 5 * 1024 * 1024) continue;
-    newFiles.value.push({ file, preview: URL.createObjectURL(file) });
-  }
-};
-
-const removeExistingImage = (index: number) => {
-  existingImages.value.splice(index, 1);
-};
-
-const removeNewFile = (index: number) => {
-  URL.revokeObjectURL(newFiles.value[index].preview);
-  newFiles.value.splice(index, 1);
-};
-
 const handleSubmit = async () => {
   error.value = "";
   if (!price.value || price.value <= 0) {
     error.value = "Price must be greater than 0";
     return;
   }
-  if (existingImages.value.length === 0 && newFiles.value.length === 0) {
-    error.value = "At least one photo is required";
-    return;
-  }
 
   submitting.value = true;
   try {
-    // Upload new files
-    let allImages = [...existingImages.value];
-    if (newFiles.value.length > 0) {
-      for (const { file } of newFiles.value) {
-        const urls = await uploadAuctionImages([file]);
-        allImages.push(...urls);
-      }
-    }
-
+    // Price is the only editable field on a live listing — card details and
+    // photos are locked so buyers see what was originally listed.
     const cardDoc = doc(firestore!, "cards", cardId);
-    await updateDoc(cardDoc, {
-      cardName: cardForm.value.cardName,
-      cardSet: cardForm.value.cardSet,
-      cardNumber: cardForm.value.cardNumber,
-      productType: cardForm.value.productType,
-      condition: cardForm.value.condition,
-      gradingProvider: cardForm.value.gradingProvider,
-      grade: cardForm.value.grade,
-      customGradingProvider: cardForm.value.customGradingProvider,
-      description: cardForm.value.description,
-      price: price.value,
-      imageUrl: allImages[0] || "",
-      imageUrls: allImages,
-      language: cardForm.value.language || "EN",
-      tcgType: cardForm.value.tcgType || "Pokemon",
-      rarity: cardForm.value.rarity || "",
-      variant: cardForm.value.variant || "",
-      edition: cardForm.value.edition || "",
-      artist: cardForm.value.artist || "",
-      certNumber: cardForm.value.certNumber || "",
-      quantity: cardForm.value.quantity || 1,
-      negotiable: cardForm.value.negotiable === true,
-      pickupAvailable: cardForm.value.pickupAvailable === true,
-    });
+    await updateDoc(cardDoc, { price: price.value });
+    // Keep the mirrored inventory row's list price in step.
+    try {
+      const snap = await getDocs(
+        query(collection(firestore!, "inventory"), where("listingId", "==", cardId)),
+      );
+      await Promise.all(
+        snap.docs.map((d) => updateDoc(d.ref, { listPrice: price.value, updatedAt: Date.now() })),
+      );
+    } catch {}
 
-    newFiles.value.forEach((f) => URL.revokeObjectURL(f.preview));
     await router.push(`/cards/${cardId}`);
   } catch (e: any) {
     error.value = e.message || "Failed to save changes";
