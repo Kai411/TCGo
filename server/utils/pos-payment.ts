@@ -58,6 +58,26 @@ export interface PosCharge {
   url?: string;
 }
 
+/**
+ * How a seller's HitPay account is reached.
+ *
+ * HitPay documents two ways to connect a sub-merchant, and they authenticate
+ * differently: a merchant who pastes their own API key is sent as
+ * X-BUSINESS-API-KEY, while one who goes through the OAuth "Connect your
+ * HitPay account" flow is sent as a Bearer token. Both are paired with the
+ * platform's own X-PLATFORM-KEY, which is what attaches commission.
+ *
+ * OAuth is the better of the two — the token is scoped, revocable from the
+ * merchant's own dashboard, and no key ever changes hands — so it wins when
+ * both are present. Neither set means the platform account is charged.
+ */
+export interface MerchantCredential {
+  /** Sub-merchant's own API key (direct integration). */
+  apiKey?: string;
+  /** OAuth access token (Connect Merchant Accounts). */
+  accessToken?: string;
+}
+
 export interface PosPaymentProvider {
   readonly name: string;
   createDuitNowCharge(input: {
@@ -65,11 +85,11 @@ export interface PosPaymentProvider {
     reference: string;
     description: string;
     webhookUrl: string;
-    /** Sub-merchant (seller) key — omit to charge to the platform account. */
-    merchantKey?: string;
+    /** Omit to charge the platform account. */
+    merchant?: MerchantCredential;
   }): Promise<PosCharge>;
-  chargeStatus(chargeId: string, merchantKey?: string): Promise<PosChargeState>;
-  cancelCharge(chargeId: string, merchantKey?: string): Promise<void>;
+  chargeStatus(chargeId: string, merchant?: MerchantCredential): Promise<PosChargeState>;
+  cancelCharge(chargeId: string, merchant?: MerchantCredential): Promise<void>;
 }
 
 // ── HitPay ────────────────────────────────────────────────────────────
@@ -86,24 +106,56 @@ const hitpayConfig = () => {
 
 export const isPosPaymentConfigured = (): boolean => !!hitpayConfig().apiKey;
 
+/**
+ * Is TCGo operating as a HitPay platform (many shops), or as a single
+ * account (its own)?
+ *
+ * The distinction decides whether an unconnected seller is acceptable.
+ * In single-account mode there is only one shop and its key is in
+ * config. In platform mode, charging an unconnected seller would put
+ * their counter takings in TCGo's account.
+ */
+export const isPlatformMode = (): boolean => !!hitpayConfig().platformKey;
+
 const hitpayBase = () =>
   hitpayConfig().sandbox
     ? "https://api.sandbox.hit-pay.com/v1"
     : "https://api.hit-pay.com/v1";
 
-const hitpayHeaders = (merchantKey?: string): Record<string, string> => {
+const hitpayHeaders = (merchant?: MerchantCredential): Record<string, string> => {
   const { apiKey, platformKey } = hitpayConfig();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     "X-Requested-With": "XMLHttpRequest",
-    // A sub-merchant key charges the seller's own HitPay account; falling back
-    // to the platform key would silently bill the wrong merchant, so callers
-    // that mean to use the platform account must pass nothing at all.
-    "X-BUSINESS-API-KEY": merchantKey || apiKey,
   };
+
+  if (merchant?.accessToken) {
+    // OAuth-connected seller: the token identifies the merchant, so no
+    // business key is sent at all.
+    headers.Authorization = `Bearer ${merchant.accessToken}`;
+  } else {
+    // Either the seller's own key, or — when they haven't connected an
+    // account — the platform's. Falling back is deliberate but it means the
+    // PLATFORM is paid, not the shop; see isSellerConnected().
+    headers["X-BUSINESS-API-KEY"] = merchant?.apiKey || apiKey;
+  }
+
+  // Attaches platform commission and unified webhooks. Works alongside
+  // either authentication method.
   if (platformKey) headers["X-PLATFORM-KEY"] = platformKey;
   return headers;
 };
+
+/**
+ * Is this seller's money going to their own bank?
+ *
+ * False means a counter sale would settle into the PLATFORM's account
+ * instead of the shop's — fine while TCGo is testing against its own
+ * account, wrong for anybody else, so callers can refuse rather than
+ * quietly collect someone else's takings.
+ */
+export const isSellerConnected = (merchant?: MerchantCredential): boolean =>
+  !!(merchant?.accessToken || merchant?.apiKey);
 
 const mapHitpayStatus = (status: string): PosChargeStatus => {
   switch (status) {
@@ -124,10 +176,10 @@ const mapHitpayStatus = (status: string): PosChargeStatus => {
 const hitpay: PosPaymentProvider = {
   name: "hitpay",
 
-  async createDuitNowCharge({ amountSen, reference, description, webhookUrl, merchantKey }) {
+  async createDuitNowCharge({ amountSen, reference, description, webhookUrl, merchant }) {
     const res = await fetch(`${hitpayBase()}/payment-requests`, {
       method: "POST",
-      headers: hitpayHeaders(merchantKey),
+      headers: hitpayHeaders(merchant),
       body: JSON.stringify({
         // HitPay prices in major units, unlike Billplz. Converting back here
         // keeps every caller in sen and this the only place that knows.
@@ -168,10 +220,15 @@ const hitpay: PosPaymentProvider = {
     };
   },
 
-  async chargeStatus(chargeId, merchantKey) {
+  async chargeStatus(chargeId, merchant) {
     const res = await fetch(`${hitpayBase()}/payment-requests/${encodeURIComponent(chargeId)}`, {
-      headers: hitpayHeaders(merchantKey),
+      headers: hitpayHeaders(merchant),
     });
+    if (res.status === 401) {
+      // HitPay documents 401 as the disconnection signal: the merchant
+      // revoked the app from Developers -> Connected Apps.
+      throw new Error("This shop's HitPay account is no longer connected.");
+    }
     if (!res.ok) {
       throw new Error(`HitPay status lookup failed (HTTP ${res.status})`);
     }
@@ -188,12 +245,12 @@ const hitpay: PosPaymentProvider = {
     return { status, lastAttemptFailed };
   },
 
-  async cancelCharge(chargeId, merchantKey) {
+  async cancelCharge(chargeId, merchant) {
     // Best-effort: an already-paid request can't be cancelled, and that race
     // is resolved by the webhook, not here.
     await fetch(`${hitpayBase()}/payment-requests/${encodeURIComponent(chargeId)}`, {
       method: "DELETE",
-      headers: hitpayHeaders(merchantKey),
+      headers: hitpayHeaders(merchant),
     }).catch(() => {});
   },
 };

@@ -8,6 +8,7 @@
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
 import { posPaymentProvider } from "~/server/utils/pos-payment";
+import { sellerMerchant } from "~/server/utils/pos-merchant";
 import { finalisePosSale } from "~/server/utils/pos-settle";
 
 export default defineEventHandler(async (event) => {
@@ -43,12 +44,11 @@ export default defineEventHandler(async (event) => {
 
   if (!sale.chargeId) return { status: "awaiting_payment", settled: false };
 
-  const sellerSnap = await db.collection("users").doc(caller.uid).get();
-  const merchantKey = (sellerSnap.data() as any)?.hitpayMerchantKey || undefined;
+  const merchant = await sellerMerchant(db, caller.uid);
 
   let state: { status: string; lastAttemptFailed: boolean };
   try {
-    state = await posPaymentProvider().chargeStatus(sale.chargeId, merchantKey);
+    state = await posPaymentProvider().chargeStatus(sale.chargeId, merchant);
   } catch {
     // A provider hiccup is not a failed payment. Keep the sale open and let
     // the till ask again — releasing stock here could strand a customer who

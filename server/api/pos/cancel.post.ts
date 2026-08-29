@@ -8,6 +8,7 @@
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
 import { posPaymentProvider } from "~/server/utils/pos-payment";
+import { sellerMerchant } from "~/server/utils/pos-merchant";
 import { finalisePosSale } from "~/server/utils/pos-settle";
 
 export default defineEventHandler(async (event) => {
@@ -27,14 +28,13 @@ export default defineEventHandler(async (event) => {
     return { status: sale.status, cancelled: false };
   }
 
-  const sellerSnap = await db.collection("users").doc(caller.uid).get();
-  const merchantKey = (sellerSnap.data() as any)?.hitpayMerchantKey || undefined;
+  const merchant = await sellerMerchant(db, caller.uid);
 
   if (sale.chargeId) {
     try {
       const { status: providerStatus } = await posPaymentProvider().chargeStatus(
         sale.chargeId,
-        merchantKey,
+        merchant,
       );
       if (providerStatus === "paid") {
         // Too late — the customer paid. Settle instead of cancelling.
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
       // unpaid QR left live is worse than a hold released early, and the
       // webhook will settle it if the customer does pay.
     }
-    await posPaymentProvider().cancelCharge(sale.chargeId, merchantKey).catch(() => {});
+    await posPaymentProvider().cancelCharge(sale.chargeId, merchant).catch(() => {});
   }
 
   const result = await finalisePosSale(db, saleId, "cancelled", "Cancelled by seller");

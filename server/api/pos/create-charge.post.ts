@@ -17,7 +17,13 @@ import {
   releaseExpiredReservations,
   StockUnavailableError,
 } from "~/server/utils/pos-reservations";
-import { posPaymentProvider, isPosPaymentConfigured } from "~/server/utils/pos-payment";
+import {
+  posPaymentProvider,
+  isPosPaymentConfigured,
+  isPlatformMode,
+  isSellerConnected,
+} from "~/server/utils/pos-payment";
+import { sellerMerchant } from "~/server/utils/pos-merchant";
 import { posTotals, toSen, round2 } from "~/shared/pos-sale";
 import type { PosSaleLine, PosPaymentMethod } from "~/shared/pos-sale";
 import { noteError } from "~/server/utils/oplog";
@@ -130,11 +136,31 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
   const siteUrl = (config.public.siteUrl as string) || getRequestURL(event).origin;
 
-  // The seller's own HitPay sub-merchant account, so the money lands in their
-  // bank rather than TCGo's. Unset = the shop hasn't connected one, and the
-  // platform account is charged instead.
-  const sellerSnap = await db.collection("users").doc(caller.uid).get();
-  const merchantKey = (sellerSnap.data() as any)?.hitpayMerchantKey || undefined;
+  // The seller's own HitPay account, so the money lands in their bank
+  // rather than TCGo's.
+  const merchant = await sellerMerchant(db, caller.uid);
+
+  // Once TCGo runs as a platform, an unconnected seller must NOT be
+  // charged: the money would settle into the platform's account instead
+  // of the shop's. Refusing is the only safe answer — taking the payment
+  // and reconciling later means holding someone else's takings.
+  //
+  // In single-account mode (no platform key) there is only one shop and
+  // its key is the configured one, so this doesn't apply.
+  if (isPlatformMode() && !isSellerConnected(merchant)) {
+    // Release before refusing — the hold is already taken by this point.
+    await releaseItems(db, saleRef.id).catch(() => {});
+    await saleRef.update({
+      status: "cancelled",
+      failedReason: "Shop has no HitPay account connected",
+      updatedAt: Date.now(),
+    });
+    throw createError({
+      statusCode: 409,
+      message:
+        "Connect your HitPay account before taking QR payments, so the money reaches your bank. Take cash for now.",
+    });
+  }
 
   try {
     const charge = await posPaymentProvider().createDuitNowCharge({
@@ -142,7 +168,7 @@ export default defineEventHandler(async (event) => {
       reference: saleRef.id,
       description: `${lines.length} card${lines.length === 1 ? "" : "s"} · TCGo counter sale`,
       webhookUrl: `${siteUrl}/api/pos/webhook`,
-      merchantKey,
+      merchant,
     });
 
     await saleRef.update({ chargeId: charge.chargeId, updatedAt: Date.now() });
