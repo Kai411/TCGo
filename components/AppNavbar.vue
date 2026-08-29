@@ -184,29 +184,6 @@
           </span>
         </button>
 
-        <!-- Seller dashboard, mobile. It was only reachable from inside the
-             "Sell" dropdown, which reads as a create-a-listing action — so the
-             dashboard was effectively unreachable on a phone. Own button now. -->
-        <NuxtLink
-          v-if="user"
-          to="/seller"
-          aria-label="Seller dashboard"
-          class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-full text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-        >
-          <svg
-            class="w-5 h-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <rect x="2" y="7" width="20" height="14" rx="2" />
-            <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-          </svg>
-        </NuxtLink>
-
         <div v-if="user" class="lg:hidden relative" @click.stop>
           <button
             @click="sellMenuOpen = !sellMenuOpen"
