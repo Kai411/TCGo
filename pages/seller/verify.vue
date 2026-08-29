@@ -8,7 +8,7 @@
     <template v-else>
       <h1 class="text-2xl font-bold text-ink dark:text-white mb-1">Seller verification</h1>
       <p class="text-sm text-gray-500 dark:text-zinc-400 mb-6">
-        Required before you can sell. We use this to pay you (bank transfer) and to create shipping labels from your address — no documents needed.
+        Required before you can sell. We verify who you are, then use these details to pay you and to create shipping labels from your address.
       </p>
 
       <div
@@ -24,6 +24,8 @@
       >
         <p class="text-sm font-semibold text-amber-800 dark:text-amber-200">Missing: {{ missing.join(", ") }}</p>
       </div>
+
+      <KycVerifyCard class="mb-5" />
 
       <form @submit.prevent="save" class="space-y-5">
         <!-- Contact -->

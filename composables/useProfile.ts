@@ -6,6 +6,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { effectScope, ref, onUnmounted, watch } from "vue";
+import type { KycStatus } from "~/shared/didit";
 
 export type MembershipTier = "free" | "premium";
 
@@ -76,6 +77,20 @@ export interface UserProfile {
   // allowed to quote — the cheapest rate is usually drop-off only, and quoting
   // it to a seller who expects collection gives a price they can't book at.
   handoverPreference?: "dropoff" | "pickup";
+
+  // ── Identity verification (Didit) ───────────────────────────────────
+  // Written ONLY by the Didit webhook, never by the client. Firestore rules
+  // must keep these read-only to the owner, or the gate is decorative.
+  kycStatus?: KycStatus;
+  kycStatusAt?: number;
+  kycSessionId?: string;
+  kycStartedAt?: number;
+  kycVerifiedAt?: number;
+  /** Name as it appeared on the verified document — match payouts against it. */
+  kycVerifiedName?: string;
+  kycDocumentType?: string;
+  kycIssuingState?: string;
+  kycDeclineReason?: string | null;
   // Courier brands this seller would rather ship with, e.g. ["J&T Express"].
   // Best-effort: if none serve a given route, quoting falls back to the
   // cheapest available rather than blocking the sale.

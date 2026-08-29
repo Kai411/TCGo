@@ -13,6 +13,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@didit-protocol/sdk-web": "^0.2.1",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "firebase": "^12.13.0",
     "firebase-admin": "^13.0.0",

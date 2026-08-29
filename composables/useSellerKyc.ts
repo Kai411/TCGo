@@ -8,9 +8,15 @@
 //   3. a pickup address (courier collection / shipment origin).
 //
 // Bank accounts in MY require IC to open, so the bank-account requirement is
-// the real-identity anchor without us touching documents.
+// a real-identity anchor in itself.
+//
+// Since then, document verification has been added on top (Didit — MyKad or
+// passport plus a face scan). Both are required: the bank account is what
+// makes a payout possible at all, and the identity check is what stops
+// someone selling under a name that isn't theirs before any money moves.
 
 import { computed } from "vue";
+import { isKycVerified } from "~/shared/didit";
 export { payoutDetailsComplete } from "~/shared/payout-details";
 import { payoutDetailsComplete } from "~/shared/payout-details";
 
@@ -26,6 +32,7 @@ export const useSellerKyc = () => {
     const p = profile.value;
     if (!p) return ["profile"];
     const out: string[] = [];
+    if (!isKycVerified(p.kycStatus)) out.push("identity verification");
     if (!p.whatsappNumber && !p.phone) out.push("contact number");
     if (!payoutDetailsComplete(p)) out.push("bank account");
     if (!p.pickupAddress1 || !p.pickupPostcode || !p.pickupCity || !p.pickupState)

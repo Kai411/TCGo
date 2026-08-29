@@ -210,6 +210,11 @@ export default defineNuxtConfig({
     mailtrapInboxId: "",
     mailFrom: "",
     mailFromName: "",
+    // Didit (identity verification). Server-only: the API key must never
+    // reach the browser, and the webhook secret verifies inbound signatures.
+    // The workflow id is per-session config, not a secret — see shared/didit.ts.
+    diditApiKey: "",
+    diditWebhookSecret: "",
     // Delyva (courier aggregator) — live shipping quotes at checkout.
     // delyvaApiBase empty = production; set it to the sandbox base URL
     // (with matching sandbox credentials) to test without real money.
