@@ -158,7 +158,7 @@
           </NuxtLink>
           <button
             @click="close"
-            class="block w-full text-center text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
+            class="block w-full text-center px-4 py-3 rounded-full text-sm font-semibold text-ink dark:text-white bg-black/[0.05] dark:bg-white/[0.08] hover:bg-black/[0.09] dark:hover:bg-white/[0.12] transition-colors"
           >
             Continue browsing
           </button>

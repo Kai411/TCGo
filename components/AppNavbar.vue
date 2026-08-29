@@ -305,16 +305,27 @@
     <!-- Second row (desktop): section nav — Shop / Auctions / Collection /
          Orders. Dark strip under the glassy top bar, TCGplayer-style. -->
     <div class="hidden lg:block">
-      <div class="container mx-auto px-4 h-11 flex items-center gap-1">
+      <div
+        ref="tabsEl"
+        class="container mx-auto px-4 h-11 flex items-center gap-1 relative"
+      >
         <NuxtLink
           v-for="link in desktopLinks"
           :key="link.to"
           :to="link.to"
-          class="relative h-full inline-flex items-center px-4 text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors duration-200 ease-premium after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:rounded-full after:bg-pokemon-red after:opacity-0 after:transition-opacity after:duration-200"
-          active-class="!text-ink dark:!text-white after:!opacity-100"
+          :ref="(el) => setTabRef(link.to, el)"
+          class="relative h-full inline-flex items-center px-4 text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors duration-200 ease-premium"
+          active-class="!text-ink dark:!text-white"
         >
           {{ link.label }}
         </NuxtLink>
+        <!-- Single red underline that slides between tabs. Hidden until the
+             first measurement so it never flashes at x=0. -->
+        <span
+          aria-hidden="true"
+          class="absolute left-0 bottom-0 h-0.5 rounded-full bg-pokemon-red transition-[transform,width,opacity] duration-300 ease-premium origin-left"
+          :style="indicatorStyle"
+        />
       </div>
     </div>
   </nav>
@@ -438,6 +449,58 @@ const mobileTabs = computed(() => {
   }
   return tabs;
 });
+
+// ── Sliding tab indicator ───────────────────────────────────────────────
+// Measures the active row-2 link and translates one underline to it, so
+// switching tabs animates instead of the line just blinking across.
+const tabsEl = ref<HTMLElement | null>(null);
+const tabEls = new Map<string, HTMLElement>();
+const setTabRef = (to: string, el: any) => {
+  const node: HTMLElement | null = el?.$el ?? el ?? null;
+  if (node) tabEls.set(to, node);
+  else tabEls.delete(to);
+};
+const indicator = ref({ x: 0, w: 0, visible: false });
+const indicatorStyle = computed(() => ({
+  transform: `translateX(${indicator.value.x}px)`,
+  width: `${indicator.value.w}px`,
+  opacity: indicator.value.visible ? 1 : 0,
+}));
+
+const routeForIndicator = useRoute();
+const measureIndicator = () => {
+  const container = tabsEl.value;
+  if (!container) return;
+  // Longest matching prefix wins, so /auctions/123 highlights Auctions.
+  const path = routeForIndicator.path;
+  let best: string | null = null;
+  for (const to of tabEls.keys()) {
+    const hit = to === "/" ? path === "/" : path === to || path.startsWith(to + "/");
+    if (hit && (best === null || to.length > best.length)) best = to;
+  }
+  const el = best ? tabEls.get(best) : null;
+  if (!el) {
+    indicator.value = { ...indicator.value, visible: false };
+    return;
+  }
+  // offsetLeft is relative to the container (it's `relative`), so this is
+  // immune to scrollbar/centering shifts between measurement and paint.
+  const PAD = 16; // matches px-4 on the link
+  indicator.value = {
+    x: el.offsetLeft + PAD,
+    w: Math.max(0, el.offsetWidth - PAD * 2),
+    visible: true,
+  };
+};
+onMounted(() => {
+  nextTick(measureIndicator);
+  window.addEventListener("resize", measureIndicator);
+});
+onBeforeUnmount(() => window.removeEventListener("resize", measureIndicator));
+watch(
+  () => [routeForIndicator.path, desktopLinks.value.length],
+  () => nextTick(measureIndicator),
+);
 
 const sellMenuOpen = ref(false);
 const desktopSellOpen = ref(false);

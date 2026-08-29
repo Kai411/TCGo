@@ -3,7 +3,7 @@
     <!-- ── Filter sidebar (desktop only) ─────────────────────────────── -->
     <aside
       v-if="!loading"
-      class="hidden lg:block w-48 shrink-0 sticky top-[5.5rem] self-start"
+      class="hidden lg:block w-48 shrink-0 sticky top-[8.75rem] self-start"
     >
       <ListingFilters :filters="filters" :sidebar="true" :show-auction-sort="true" />
     </aside>

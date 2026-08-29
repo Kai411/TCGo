@@ -87,6 +87,8 @@ export default defineNuxtConfig({
     },
   },
   app: {
+    // Subtle fade + lift between routes; keyframes live in tailwind.css.
+    pageTransition: { name: "page", mode: "out-in" },
     head: {
       title: "TCGo Marketplace - Buy, Sell & Auction Pokemon Cards in Malaysia",
       htmlAttrs: { lang: "en" },
