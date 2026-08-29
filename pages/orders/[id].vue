@@ -240,12 +240,20 @@
                 >
                   {{ cancelling ? "Cancelling…" : "Cancel shipment" }}
                 </button>
+                <!-- Manual fallback only. Order status normally follows the
+                     courier's own scans (/api/shipping/track), so this appears
+                     solely when there is no consignment to track — a booking
+                     that never succeeded. Without it such an order could never
+                     leave "To ship". -->
                 <button
-                  v-if="order.status === 'confirmed' || order.status === 'paid'"
+                  v-if="
+                    (order.status === 'confirmed' || order.status === 'paid') &&
+                    !order.trackingNumber
+                  "
                   @click="shipDialogOpen = true"
-                  class="px-4 py-2 rounded-lg text-sm font-semibold bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+                  class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
                 >
-                  Mark shipped
+                  Mark shipped manually
                 </button>
               </template>
             </div>
@@ -837,14 +845,16 @@ const cancelShipment = async () => {
 };
 
 // ── Courier tracking ──────────────────────────────────────────────────
-// Loaded on demand and on arrival, for buyer and seller alike — the buyer is
-// the one who actually wants to know where the parcel is.
+// Loaded on demand and on arrival, for buyer and seller alike. The buyer is
+// the one who wants to know where the parcel is, but the call also advances
+// the order's status from the courier's scans, so the seller must be able to
+// make it too — otherwise an order only moves when the buyer looks at it.
 const tracking = ref<any>(null);
 const trackingBusy = ref(false);
 const trackingMessage = ref("No courier updates yet.");
 
 const loadTracking = async () => {
-  if (role.value !== "buyer") return;
+  if (!role.value) return;
   if (!order.value?.trackingNumber || trackingBusy.value) return;
   trackingBusy.value = true;
   try {
@@ -869,11 +879,11 @@ const loadTracking = async () => {
 };
 
 // Fetch once a tracking number exists (it appears after booking) and we know
-// the viewer is the buyer — role resolves asynchronously with the order.
+// who is looking — role resolves asynchronously with the order.
 watch(
   [() => order.value?.trackingNumber, role],
   ([n, r]) => {
-    if (n && r === "buyer") void loadTracking();
+    if (n && r) void loadTracking();
   },
   { immediate: true },
 );

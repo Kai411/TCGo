@@ -51,8 +51,15 @@ export const hasWaybill = (o: CompiledOrder) => !!o.shipmentOrderNo;
 // per component that happens to call this composable.
 let autoMergeStarted = false;
 
+// Tracking poll bookkeeping, module-level so navigating between the dashboard
+// and the Orders page doesn't re-poll the same consignments.
+const TRACK_TTL_MS = 5 * 60 * 1000;
+const TRACK_BATCH = 12;
+const lastTracked = new Map<string, number>();
+let syncingTracking = false;
+
 export const useSellerOrders = () => {
-  const { sellerCompiledOrders, markShipped, mergeOrders } = useCompiledOrders();
+  const { sellerCompiledOrders, mergeOrders } = useCompiledOrders();
 
   const byStatus = (...s: CompiledOrder["status"][]) =>
     computed(() => sellerCompiledOrders.value.filter((o) => s.includes(o.status)));
@@ -135,28 +142,50 @@ export const useSellerOrders = () => {
   const queueCount = (q: OrderQueue) =>
     q === "mergeable" ? mergeableGroups.value.length : queue(q).length;
 
-  // ── Ship dialog ─────────────────────────────────────────────────────
-  const shippingOrderId = ref<string | null>(null);
-  const shipTrackingNumber = ref("");
-  const shipCarrier = ref("");
+  // ── Courier-driven status ───────────────────────────────────────────
+  // The manual "Mark shipped" dialog is gone: order status now follows the
+  // courier's own scans via /api/shipping/track, so a seller can't tell the
+  // buyer a parcel is on its way before the courier has actually collected it.
+  // markShipped() remains on useCompiledOrders as a deliberate escape hatch
+  // for a shipment that never got a Delyva booking.
+  //
+  // Which leaves the question of who asks the courier. The order page only
+  // polls for the *buyer*, so without this an order would advance only if the
+  // buyer happened to open it — and since payout eligibility keys off
+  // deliveredAt, a quiet buyer would leave the seller's money locked up. The
+  // seller's own Orders page now polls too.
+  const trackable = (o: CompiledOrder) =>
+    !!o.trackingNumber && o.status !== "delivered" && o.status !== "cancelled";
 
-  const openShipDialog = (orderId: string) => {
-    shippingOrderId.value = orderId;
-    // Prefill from the booked waybill so the seller doesn't retype a tracking
-    // number the platform already knows.
-    const o = sellerCompiledOrders.value.find((x) => x.id === orderId);
-    shipTrackingNumber.value = o?.trackingNumber || "";
-    shipCarrier.value = o?.shippingCarrier || "";
-  };
+  const syncTracking = async () => {
+    if (syncingTracking) return;
+    syncingTracking = true;
+    try {
+      const { authedFetch } = useAuthedFetch();
+      const now = Date.now();
+      const due = sellerCompiledOrders.value
+        .filter(trackable)
+        .filter((o) => now - (lastTracked.get(o.id) ?? 0) > TRACK_TTL_MS)
+        // One shop can have a long tail of open orders; cap the burst so a
+        // page load never fires dozens of courier calls at once.
+        .slice(0, TRACK_BATCH);
 
-  const confirmShip = async () => {
-    if (!shippingOrderId.value) return;
-    await markShipped(
-      shippingOrderId.value,
-      shipTrackingNumber.value.trim() || undefined,
-      shipCarrier.value.trim() || undefined,
-    );
-    shippingOrderId.value = null;
+      for (const o of due) {
+        lastTracked.set(o.id, now);
+        try {
+          await authedFetch("/api/shipping/track", {
+            method: "POST",
+            body: { orderId: o.id },
+          });
+        } catch (e) {
+          // A parcel the courier hasn't scanned yet is the normal case, and
+          // one failure must not stop the rest of the batch.
+          console.debug("[useSellerOrders] tracking sync skipped", o.id, e);
+        }
+      }
+    } finally {
+      syncingTracking = false;
+    }
   };
 
   // ── Merge ───────────────────────────────────────────────────────────
@@ -228,11 +257,7 @@ export const useSellerOrders = () => {
     nonMergeableSales,
     queue,
     queueCount,
-    shippingOrderId,
-    shipTrackingNumber,
-    shipCarrier,
-    openShipDialog,
-    confirmShip,
+    syncTracking,
     merging,
     handleMerge,
     startAutoMerge,

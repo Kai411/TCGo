@@ -341,6 +341,27 @@ export interface DelyvaTracking {
   etaAccurate: boolean;
 }
 
+/**
+ * Where a shipment is, in terms the order model understands.
+ *
+ * Codes verified against live consignments rather than guessed — the observed
+ * ladder is 100 "Record created" → 110 "Order ready" → 500 "Collected" →
+ * 600 "In transit" → 700 "Delivered", with 900 cancelled and 99 failed.
+ *
+ * "Collected" is the moment the parcel leaves the seller: that, not the label
+ * being bought, is what "shipped" means to a buyer.
+ */
+export type DelyvaStage = "pending" | "shipped" | "delivered" | "cancelled";
+
+export const delyvaStage = (statusCode: number): DelyvaStage => {
+  const code = Number(statusCode);
+  if (!Number.isFinite(code)) return "pending";
+  if (code >= 900 || code === 99) return "cancelled";
+  if (code >= 700) return "delivered";
+  if (code >= 500) return "shipped";
+  return "pending";
+};
+
 export const delyvaTrack = async (consignmentNo: string): Promise<DelyvaTracking> => {
   const { companyId } = delyvaConfig();
   const res = await delyvaPost<any>("/order/track", {

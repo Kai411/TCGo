@@ -103,7 +103,6 @@
                 :key="order.id"
                 :order="order"
                 role="seller"
-                @ship="openShipDialog(order.id)"
               />
             </div>
           </div>
@@ -130,66 +129,12 @@
               <CompiledOrderCard
                 :order="order"
                 role="seller"
-                @ship="openShipDialog(order.id)"
               />
             </div>
           </div>
         </div>
       </template>
 
-      <!-- Ship dialog -->
-      <div
-        v-if="shippingOrderId"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
-        @click.self="shippingOrderId = null"
-      >
-        <div
-          class="surface rounded-2xl w-full max-w-sm p-5 border border-black/[0.06] dark:border-white/[0.08]"
-        >
-          <h3 class="text-base font-bold text-ink dark:text-white">Mark as shipped</h3>
-          <p class="mt-1 mb-3 text-xs text-ink-muted dark:text-zinc-400">
-            Confirm once the parcel is actually with the courier.
-          </p>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-xs font-medium text-ink-muted dark:text-zinc-400 mb-1">
-                Tracking number (optional)
-              </label>
-              <input
-                v-model="shipTrackingNumber"
-                type="text"
-                placeholder="e.g. EM123456789MY"
-                class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
-              />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-ink-muted dark:text-zinc-400 mb-1">
-                Carrier (optional)
-              </label>
-              <input
-                v-model="shipCarrier"
-                type="text"
-                placeholder="e.g. Pos Laju, J&T"
-                class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
-              />
-            </div>
-          </div>
-          <div class="flex gap-2 mt-4">
-            <button
-              @click="shippingOrderId = null"
-              class="flex-1 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-ink-subtle dark:text-zinc-200"
-            >
-              Cancel
-            </button>
-            <button
-              @click="confirmShip"
-              class="flex-1 py-2 rounded-lg text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
-            >
-              Mark shipped
-            </button>
-          </div>
-        </div>
-      </div>
     </template>
   </div>
 </template>
@@ -209,14 +154,11 @@ const {
   toShip,
   readyToHandOver,
   needsWaybill,
+  shipped,
   mergeableGroups,
   queue,
   queueCount,
-  shippingOrderId,
-  shipTrackingNumber,
-  shipCarrier,
-  openShipDialog,
-  confirmShip,
+  syncTracking,
   merging,
   handleMerge,
   startAutoMerge,
@@ -275,4 +217,16 @@ watch(user, (u) => {
     startAutoMerge();
   }
 });
+
+// Ask the courier where the open parcels are, once the Firestore listener has
+// actually delivered them. This is what moves an order out of "To ship" now
+// that there is no manual button — see syncTracking() for why the seller has
+// to be the one polling. It self-throttles, so firing on every change is fine.
+watch(
+  () => toShip.value.length + shipped.value.length,
+  (n) => {
+    if (n > 0) void syncTracking();
+  },
+  { immediate: true },
+);
 </script>

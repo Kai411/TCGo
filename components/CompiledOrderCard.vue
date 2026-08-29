@@ -104,13 +104,6 @@
         >
           Awaiting the buyer's payment
         </span>
-        <button
-          v-if="order.status === 'confirmed' || order.status === 'paid'"
-          @click="$emit('ship', order.id)"
-          class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
-        >
-          Mark shipped
-        </button>
       </template>
     </div>
   </div>
@@ -130,7 +123,6 @@ const props = defineProps<{
 
 defineEmits<{
   (e: "mark-delivered", id: string): void;
-  (e: "ship", id: string): void;
   (e: "cancel", id: string): void;
 }>();
 
