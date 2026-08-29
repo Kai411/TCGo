@@ -158,6 +158,7 @@
         <button
           @click="cartOpen = true"
           aria-label="Cart"
+          data-cart-target
           class="relative inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
         >
           <svg
