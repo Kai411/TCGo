@@ -15,8 +15,8 @@
         <!-- Spotlight. The huge box-shadow paints the dimmed backdrop, so the
              cut-out around the target stays crisp and animates between steps. -->
         <div
-          class="absolute pointer-events-none rounded-xl ring-2 ring-pokemon-red/80 transition-all duration-300 ease-out"
-          :class="rect ? 'opacity-100' : 'opacity-0'"
+          class="absolute pointer-events-none rounded-2xl ring-2 transition-[top,left,width,height] duration-300 ease-out"
+          :class="rect ? 'ring-pokemon-red/80' : 'ring-transparent'"
           :style="spotlightStyle"
         />
 
@@ -203,15 +203,38 @@ const focusTarget = async () => {
   nextBtn.value?.focus({ preventScroll: true });
 };
 
+// The spotlight is the *only* thing painting the dim backdrop (via its giant
+// box-shadow), on every step. On a target-less step it simply sits under the
+// centred tooltip. Swapping dim sources between steps, or collapsing the box
+// to 0×0, is what made the backdrop visibly "shrink" on the first Next.
+const DIM = "0 0 0 200vmax rgba(0,0,0,0.62)";
+
+const centred = () => {
+  const { w, h } = tipSize.value;
+  return {
+    top: Math.max(16, (window.innerHeight - h) / 2),
+    left: Math.max(16, (window.innerWidth - w) / 2),
+  };
+};
+
 const spotlightStyle = computed(() => {
-  if (!rect.value) return { top: "50%", left: "50%", width: "0px", height: "0px" };
+  if (!rect.value) {
+    const c = centred();
+    return {
+      top: `${c.top}px`,
+      left: `${c.left}px`,
+      width: `${tipSize.value.w}px`,
+      height: `${tipSize.value.h}px`,
+      boxShadow: DIM,
+    };
+  }
   const r = rect.value;
   return {
     top: `${r.top - PAD}px`,
     left: `${r.left - PAD}px`,
     width: `${r.width + PAD * 2}px`,
     height: `${r.height + PAD * 2}px`,
-    boxShadow: "0 0 0 200vmax rgba(0,0,0,0.62)",
+    boxShadow: DIM,
   };
 });
 
@@ -224,13 +247,8 @@ const tipStyle = computed(() => {
   const clampY = (y: number) => Math.min(Math.max(16, y), vh - h - 16);
 
   if (!rect.value) {
-    // No target: centre it, and darken the whole screen ourselves since the
-    // spotlight's shadow isn't painted.
-    return {
-      top: `${clampY((vh - h) / 2)}px`,
-      left: `${clampX((vw - w) / 2)}px`,
-      boxShadow: "0 0 0 200vmax rgba(0,0,0,0.62), 0 25px 50px -12px rgba(0,0,0,.4)",
-    };
+    const c = centred();
+    return { top: `${c.top}px`, left: `${c.left}px` };
   }
   const r = rect.value;
   // Sidebar items sit at the far left — put the card beside them.
