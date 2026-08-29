@@ -1,8 +1,10 @@
 <template>
   <!-- Top bar (sticky, glassy) -->
-  <nav class="sticky top-0 z-40 glass">
+  <nav
+    class="sticky top-0 z-40 glass shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.6)]"
+  >
     <div
-      class="container mx-auto px-4 h-16 flex items-center justify-between gap-4"
+      class="container mx-auto px-4 h-16 lg:h-[72px] lg:pt-3 flex items-center justify-between gap-4"
     >
       <!-- Logo (matches LandingNavbar: square sprite cropped to wordmark slice).
            Links to /landing (marketing) — user prefers this over the shop
@@ -29,67 +31,113 @@
         </NuxtLink> -->
       </div>
 
-      <!-- Desktop nav -->
-      <div
-        class="hidden lg:flex items-center gap-1 flex-1 justify-center max-w-xl"
+      <!-- Desktop search — stretched across the centre of the top bar
+           (TCGplayer-style). Typing here seeds the full search modal, which
+           owns results/history, so we don't duplicate that logic. -->
+      <form
+        class="hidden lg:flex flex-1 min-w-0 mx-4 items-center h-11 rounded-full border border-black/[0.12] dark:border-white/[0.12] bg-white dark:bg-zinc-900 focus-within:border-ink dark:focus-within:border-white focus-within:ring-2 focus-within:ring-ink/10 dark:focus-within:ring-white/10 transition-[border-color,box-shadow] duration-200 ease-premium overflow-hidden"
+        role="search"
+        @submit.prevent="openSearch"
       >
-        <NuxtLink
-          v-for="link in desktopLinks"
-          :key="link.to"
-          :to="link.to"
-          class="relative px-4 py-2 rounded-full text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors duration-200 ease-premium"
-          :active-class="activeLinkClass"
+        <input
+          v-model="navQuery"
+          type="search"
+          placeholder="Search cards, sets, sellers…"
+          aria-label="Search"
+          autocomplete="off"
+          class="flex-1 min-w-0 h-full px-5 bg-transparent text-sm text-ink dark:text-white placeholder:text-ink-soft dark:placeholder:text-zinc-500 outline-none [&::-webkit-search-cancel-button]:appearance-none"
+          @focus="openSearch"
+        />
+        <button
+          type="submit"
+          aria-label="Search"
+          class="h-full px-4 border-l border-black/[0.08] dark:border-white/[0.08] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
         >
-          {{ link.label }}
-        </NuxtLink>
-      </div>
+          <svg
+            class="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        </button>
+      </form>
 
       <!-- Right cluster -->
       <div class="flex items-center gap-1.5 lg:gap-2 shrink-0">
         <!-- Desktop sell CTAs → enter the inventory system -->
         <div v-if="user" class="hidden lg:flex items-center gap-2 ml-1">
-          <NuxtLink
-            to="/seller/listings/new"
-            class="px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
-          >
-            Sell
-          </NuxtLink>
-          <NuxtLink
-            to="/seller/auctions/new"
-            class="px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
-          >
-            Auction
-          </NuxtLink>
-          <NuxtLink
-            to="/seller"
-            aria-label="Inventory"
-            title="Inventory"
-            class="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
-          >
-            <svg
-              class="w-5 h-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+          <!-- Single glowing Sell CTA; the menu asks card vs auction. -->
+          <div class="relative" @click.stop>
+            <button
+              @click="desktopSellOpen = !desktopSellOpen"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white shadow-glow hover:shadow-[0_0_24px_rgba(220,38,38,0.65)] hover:brightness-110 transition-[box-shadow,filter] duration-200 ease-premium"
+              aria-haspopup="true"
+              :aria-expanded="desktopSellOpen"
             >
-              <path
-                d="M20 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"
-              />
-              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-              <path d="M2 12h20" />
-            </svg>
-          </NuxtLink>
+              <svg
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+              >
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Sell
+              <svg
+                class="w-3 h-3 -mr-0.5 transition-transform duration-200"
+                :class="desktopSellOpen ? 'rotate-180' : ''"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+            <Transition
+              enter-active-class="transition duration-150"
+              enter-from-class="opacity-0 -translate-y-1"
+              leave-active-class="transition duration-100"
+              leave-to-class="opacity-0 -translate-y-1"
+            >
+              <div
+                v-if="desktopSellOpen"
+                class="absolute right-0 top-full mt-2 w-52 surface rounded-xl overflow-hidden py-1.5 z-50"
+              >
+                <NuxtLink
+                  to="/seller/listings/new"
+                  @click="desktopSellOpen = false"
+                  class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
+                >
+                  List a card
+                </NuxtLink>
+                <NuxtLink
+                  to="/seller/auctions/new"
+                  @click="desktopSellOpen = false"
+                  class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
+                >
+                  List for auction
+                </NuxtLink>
+              </div>
+            </Transition>
+          </div>
         </div>
 
-        <!-- Search button — visible on both mobile and desktop. Opens the
-             full-screen search modal. -->
+        <!-- Search button — mobile only; desktop has the inline field. -->
         <button
           @click="searchOpen = true"
           aria-label="Search"
-          class="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
+          class="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
         >
           <svg
             class="w-5 h-5"
@@ -105,9 +153,10 @@
           </svg>
         </button>
 
-        <!-- Cart -->
-        <NuxtLink
-          to="/cart"
+        <!-- Cart — opens the slide-in drawer so shoppers keep their place
+             instead of jumping to /cart. -->
+        <button
+          @click="cartOpen = true"
           aria-label="Cart"
           class="relative inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
         >
@@ -132,7 +181,7 @@
           >
             {{ cartCount > 99 ? "99+" : cartCount }}
           </span>
-        </NuxtLink>
+        </button>
 
         <!-- Seller dashboard, mobile. It was only reachable from inside the
              "Sell" dropdown, which reads as a create-a-listing action — so the
@@ -252,6 +301,22 @@
         </button>
       </div>
     </div>
+
+    <!-- Second row (desktop): section nav — Shop / Auctions / Collection /
+         Orders. Dark strip under the glassy top bar, TCGplayer-style. -->
+    <div class="hidden lg:block">
+      <div class="container mx-auto px-4 h-11 flex items-center gap-1">
+        <NuxtLink
+          v-for="link in desktopLinks"
+          :key="link.to"
+          :to="link.to"
+          class="relative h-full inline-flex items-center px-4 text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors duration-200 ease-premium after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:rounded-full after:bg-pokemon-red after:opacity-0 after:transition-opacity after:duration-200"
+          active-class="!text-ink dark:!text-white after:!opacity-100"
+        >
+          {{ link.label }}
+        </NuxtLink>
+      </div>
+    </div>
   </nav>
 
   <!-- Mobile bottom tab bar (3 tabs: Shop / Auctions / Profile).
@@ -281,7 +346,8 @@
     </div>
   </nav>
 
-  <SearchModal v-model="searchOpen" />
+  <SearchModal v-model="searchOpen" :initial-query="navQuery" />
+  <CartDrawer v-model="cartOpen" />
 </template>
 
 <script setup lang="ts">
@@ -291,9 +357,6 @@ const { user, authLoading, signInWithGoogle } = useAuth();
 const { profile } = useMyProfile();
 const { isAdmin } = useAdmin();
 const { cartCount } = useCart();
-
-const activeLinkClass =
-  "!text-white dark:!text-ink !bg-ink dark:!bg-white shadow-card";
 
 const { premiumEnabled } = useFeatureFlags();
 
@@ -306,6 +369,7 @@ const desktopLinks = computed(() => {
   if (user.value) {
     links.push({ to: "/collection", label: "Collection" });
     links.push({ to: "/activity", label: "Orders" });
+    links.push({ to: "/seller", label: "Seller Dashboard" });
   }
   return links;
 });
@@ -376,11 +440,24 @@ const mobileTabs = computed(() => {
 });
 
 const sellMenuOpen = ref(false);
+const desktopSellOpen = ref(false);
 const searchOpen = ref(false);
+const cartOpen = ref(false);
+
+// Inline desktop search field. Focusing or submitting hands off to the
+// modal, seeded with whatever was typed; the field clears once handed off.
+const navQuery = ref("");
+const openSearch = () => {
+  searchOpen.value = true;
+};
+watch(searchOpen, (open) => {
+  if (!open) navQuery.value = "";
+});
 
 // Close the sell menu when user clicks anywhere else.
 const handleDocClick = () => {
   sellMenuOpen.value = false;
+  desktopSellOpen.value = false;
 };
 onMounted(() => {
   document.addEventListener("click", handleDocClick);
@@ -395,7 +472,9 @@ watch(
   () => route.fullPath,
   () => {
     sellMenuOpen.value = false;
+    desktopSellOpen.value = false;
     searchOpen.value = false;
+    cartOpen.value = false;
   },
 );
 </script>

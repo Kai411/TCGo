@@ -6,10 +6,16 @@
       leave-active-class="transition duration-150"
       leave-to-class="opacity-0"
     >
+      <!-- Mobile: full-screen takeover. Desktop (lg+): dimmed backdrop with a
+           floating panel just under the top bar, so the page stays visible. -->
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-[60] bg-canvas dark:bg-canvas-inverse flex flex-col"
+        class="fixed inset-0 z-[60] bg-canvas dark:bg-canvas-inverse lg:bg-black/40 lg:dark:bg-black/60 flex flex-col lg:items-center lg:pt-20 lg:px-4"
+        @click.self="close"
       >
+       <div
+        class="flex flex-col flex-1 min-h-0 w-full lg:flex-none lg:max-w-3xl lg:max-h-[70vh] lg:rounded-2xl lg:surface lg:overflow-hidden"
+       >
         <!-- Header -->
         <div
           class="flex items-center gap-3 px-3 sm:px-6 h-16 border-b border-black/[0.06] dark:border-white/[0.08] shrink-0"
@@ -51,7 +57,7 @@
               v-model="query"
               type="search"
               placeholder="Search cards, auctions, sets, sellers…"
-              class="flex-1 bg-transparent outline-none text-sm sm:text-base text-ink dark:text-white placeholder-ink-soft"
+              class="flex-1 bg-transparent outline-none text-sm sm:text-base text-ink dark:text-white placeholder-ink-soft [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
               @keydown.enter="onEnter"
             />
             <button
@@ -209,6 +215,7 @@
             </template>
           </div>
         </div>
+       </div>
       </div>
     </Transition>
   </Teleport>
@@ -219,7 +226,11 @@ import { cdnUrl } from "~/composables/useStorage";
 import type { Card } from "~/composables/useCards";
 import type { Auction } from "~/composables/useAuctions";
 
-const props = defineProps<{ modelValue: boolean }>();
+const props = defineProps<{
+  modelValue: boolean;
+  /** Seed the query on open (used by the inline navbar search field). */
+  initialQuery?: string;
+}>();
 const emit = defineEmits<{ (e: "update:modelValue", v: boolean): void }>();
 
 const { cards } = useCards();
@@ -233,7 +244,7 @@ watch(
   () => props.modelValue,
   async (open) => {
     if (open) {
-      query.value = "";
+      query.value = props.initialQuery ?? "";
       await nextTick();
       inputEl.value?.focus();
     }
