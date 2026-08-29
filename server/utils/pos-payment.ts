@@ -16,11 +16,30 @@
 // ─────────────────
 // HitPay's platform (master–sub-merchant) model settles each sub-merchant to
 // their OWN bank account — funds are never pooled through the platform. So a
-// counter sale pays the shop directly, next business day, and TCGo's cut is
-// deducted automatically as platform commission. That is materially different
-// from the marketplace rail, where TCGo holds the money in escrow until the
-// parcel is delivered and then pays out via Billplz. Counter cash never
-// enters escrow, so `posSales` never touches the payout ledger.
+// counter sale pays the shop directly (T+2 in Malaysia), and never enters
+// escrow. That is materially different from the marketplace rail, where TCGo
+// holds the money until the parcel is delivered and then pays out via
+// Billplz — which is why `posSales` never touches the payout ledger.
+//
+// TCGo TAKES NO CUT OF A COUNTER SALE.
+//
+// The POS is paid for by subscription: it is the Vendor plan (see
+// shared/pricing.ts, POS_MONTHLY). Plan.rate is commission on ONLINE sales
+// only. At the counter the seller keeps everything except HitPay's own
+// 1.2% DuitNow QR fee, which HitPay deducts from their settlement.
+//
+// Two things follow, and both are easy to break by accident:
+//
+//   1. Never send `platform_commission_amount` on a counter charge.
+//   2. Leave the Commission Rate in the HitPay dashboard (Settings →
+//      Platform) at ZERO. X-PLATFORM-KEY is sent for the platform
+//      relationship and unified webhooks, but that same header is what
+//      applies a dashboard commission rate — so setting one there would
+//      start skimming every counter sale in the country with no code
+//      change and nothing in this repo to show for it.
+//
+// HitPay charges the platform itself nothing: no licensing fee, no monthly,
+// no per-transaction cost to TCGo.
 //
 // STATUS: the HitPay request/response shapes below follow HitPay's published
 // API docs but have NOT been exercised against a live account — TCGo has no
