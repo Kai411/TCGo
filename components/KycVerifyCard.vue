@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import type { KycStatus } from "~/shared/didit";
+import { KYC_REQUIRED, type KycStatus } from "~/shared/didit";
 
 const { profile } = useMyProfile();
 const { authedFetch } = useAuthedFetch();
@@ -109,16 +109,22 @@ const tone = computed(() => {
         label: "Re-verify",
         badge: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
         border: "border-amber-200 dark:border-amber-500/20",
-        body: "Your verification has aged out and needs renewing before you can keep selling.",
+        body: KYC_REQUIRED
+          ? "Your verification has aged out and needs renewing before you can keep selling."
+          : "Your verification has aged out. Renewing takes about a minute.",
         canStart: true,
         cta: "Re-verify",
       };
     default:
       return {
-        label: "Required",
+        // Don't say "Required" while the gate is off — a badge that overstates
+        // the consequence is the kind of thing people stop believing.
+        label: KYC_REQUIRED ? "Required" : "Optional",
         badge: "bg-gray-100 text-gray-600 dark:bg-white/[0.06] dark:text-zinc-300",
         border: "border-black/[0.06] dark:border-white/[0.08]",
-        body: "Confirm who you are with your MyKad or passport. It takes about a minute and only needs doing once.",
+        body: KYC_REQUIRED
+          ? "Confirm who you are with your MyKad or passport. It takes about a minute and only needs doing once."
+          : "Not needed to start selling yet. Verifying now with your MyKad or passport takes about a minute, shows buyers you're a real seller, and saves doing it later.",
         canStart: true,
         cta: "Verify identity",
       };

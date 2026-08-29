@@ -40,11 +40,30 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(uid)).data;
     }
 
+    // ── THE SWITCH ───────────────────────────────────────────────────
+    //
+    // false = anyone signed in may list; true = only verified sellers may.
+    // Must be kept in step with KYC_REQUIRED in shared/didit.ts, and rules
+    // only take effect once deployed:
+    //     firebase deploy --only firestore:rules
+    //
+    // Everything else in this file stays in force either way — kycStatus is
+    // still unwritable by the client, so flipping this back to true can't be
+    // undone by a user setting the field on themselves.
+    function kycRequired() {
+      return false;
+    }
+
     // The seller gate. kycStatus is written ONLY by the Didit webhook through
     // the Admin SDK (see the users rules below), so this cannot be self-
     // certified — which is the whole point.
-    function kycVerified() {
-      return signedIn() && profileOf(request.auth.uid).kycStatus == 'verified';
+    //
+    // The short-circuit matters for cost as well as policy: while the gate is
+    // off, the profileOf() lookup never runs, so listing a card doesn't pay
+    // for an extra document read on every write.
+    function kycGatePassed() {
+      return signedIn() && (!kycRequired() ||
+        profileOf(request.auth.uid).kycStatus == 'verified');
     }
 
     // Fields the client must never set or change on its own profile. Each is
@@ -119,14 +138,14 @@ service cloud.firestore {
       allow read: if true; // public shop
 
       allow create: if isOwner(request.resource.data.sellerUid)
-        && kycVerified();
+        && kycGatePassed();
 
       // Edits stay with the seller, and the listing can't be handed to
       // someone else. `sold` is flipped by the payment webhook server-side.
       allow update: if isAdmin()
         || onlyEngagementCounters()
         || (isOwner(resource.data.sellerUid)
-            && kycVerified()
+            && kycGatePassed()
             && request.resource.data.sellerUid == resource.data.sellerUid);
 
       allow delete: if isAdmin() || isOwner(resource.data.sellerUid);
@@ -138,12 +157,12 @@ service cloud.firestore {
       allow read: if true;
 
       allow create: if isOwner(request.resource.data.sellerUid)
-        && kycVerified();
+        && kycGatePassed();
 
       allow update: if isAdmin()
         || onlyEngagementCounters()
         || (isOwner(resource.data.sellerUid)
-            && kycVerified()
+            && kycGatePassed()
             && request.resource.data.sellerUid == resource.data.sellerUid);
 
       allow delete: if isAdmin() || isOwner(resource.data.sellerUid);

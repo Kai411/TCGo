@@ -16,7 +16,7 @@
 // someone selling under a name that isn't theirs before any money moves.
 
 import { computed } from "vue";
-import { isKycVerified } from "~/shared/didit";
+import { kycGatePassed } from "~/shared/didit";
 export { payoutDetailsComplete } from "~/shared/payout-details";
 import { payoutDetailsComplete } from "~/shared/payout-details";
 
@@ -32,7 +32,8 @@ export const useSellerKyc = () => {
     const p = profile.value;
     if (!p) return ["profile"];
     const out: string[] = [];
-    if (!isKycVerified(p.kycStatus)) out.push("identity verification");
+    // No-op while KYC_REQUIRED is false — see shared/didit.ts.
+    if (!kycGatePassed(p.kycStatus)) out.push("identity verification");
     if (!p.whatsappNumber && !p.phone) out.push("contact number");
     if (!payoutDetailsComplete(p)) out.push("bank account");
     if (!p.pickupAddress1 || !p.pickupPostcode || !p.pickupCity || !p.pickupState)

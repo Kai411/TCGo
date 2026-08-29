@@ -5,6 +5,19 @@
 // Keeping it here means the server route and any future workflow (a lighter
 // one for buyers, say) read from one list.
 
+// ── THE SWITCH ────────────────────────────────────────────────────────
+//
+// Set to false to stop requiring identity verification before someone can
+// sell. Everything else stays wired up: the webhook still records decisions,
+// the card still lets people verify voluntarily, and admins still see who
+// verified. Only the *gate* is lifted.
+//
+// Flipping this back to true does NOT re-gate the database on its own —
+// firestore.rules carries its own kycRequired() switch, and rules have to be
+// deployed. Change both, together, or the browser and the database will
+// disagree about who's allowed to sell.
+export const KYC_REQUIRED = false;
+
 export const DIDIT_BASE = "https://verification.didit.me";
 
 /** "Compliance workflow" — ID document + liveness + face match. */
@@ -73,3 +86,13 @@ export const kycStatusFor = (status: string): KycStatus | null => {
 /** Only a completed, approved verification counts. */
 export const isKycVerified = (s: KycStatus | undefined | null): boolean =>
   s === "verified";
+
+/**
+ * Whether this profile may sell.
+ *
+ * Separate from isKycVerified on purpose: "has verified" is a fact about the
+ * person and stays true regardless, while "may sell" is a policy that
+ * KYC_REQUIRED can relax. Call sites that gate access want this one.
+ */
+export const kycGatePassed = (s: KycStatus | undefined | null): boolean =>
+  !KYC_REQUIRED || isKycVerified(s);
