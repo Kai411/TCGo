@@ -139,6 +139,7 @@
 
 <script setup lang="ts">
 import type { Card } from "~/composables/useCards";
+import { isAvailable } from "~/shared/card-availability";
 import { SHOP_PAGE_SIZE, SHOP_STATE_KEY } from "~/composables/useShopOrdering";
 
 useHead({
@@ -160,7 +161,7 @@ const activeTcg = ref<string>("All");
 const tcgOf = (c: Card) => c.tcgType || "Pokemon";
 
 const tcgCounts = computed(() => {
-  const live = cards.value.filter((c: Card) => !c.sold);
+  const live = cards.value.filter(isAvailable);
   const counts = new Map<string, number>();
   counts.set("All", live.length);
   for (const c of live) {
@@ -179,7 +180,7 @@ const { discoveryOrder } = useShopOrdering();
 
 const availableCards = computed(() => {
   const base = cards.value
-    .filter((c: Card) => !c.sold)
+    .filter(isAvailable)
     .filter(
       (c: Card) => activeTcg.value === "All" || tcgOf(c) === activeTcg.value,
     );

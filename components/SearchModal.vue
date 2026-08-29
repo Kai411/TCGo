@@ -225,6 +225,7 @@
 import { cdnUrl } from "~/composables/useStorage";
 import type { Card } from "~/composables/useCards";
 import type { Auction } from "~/composables/useAuctions";
+import { isAvailable } from "~/shared/card-availability";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -260,7 +261,7 @@ const cardResults = computed<Card[]>(() => {
   const term = query.value.trim();
   if (!term) return [];
   return cards.value
-    .filter((c: Card) => !c.sold)
+    .filter(isAvailable)
     .filter((c: Card) =>
       matches(
         `${c.cardName} ${c.cardSet ?? ""} ${c.seller ?? ""}`,
@@ -293,7 +294,7 @@ const totalResults = computed(
 const topSets = computed(() => {
   const counts = new Map<string, number>();
   for (const c of cards.value) {
-    if (c.sold || !c.cardSet) continue;
+    if (!isAvailable(c) || !c.cardSet) continue;
     counts.set(c.cardSet, (counts.get(c.cardSet) ?? 0) + 1);
   }
   return [...counts.entries()]
@@ -305,7 +306,7 @@ const topSets = computed(() => {
 const topSellers = computed(() => {
   const counts = new Map<string, number>();
   for (const c of cards.value) {
-    if (c.sold || !c.seller) continue;
+    if (!isAvailable(c) || !c.seller) continue;
     counts.set(c.seller, (counts.get(c.seller) ?? 0) + 1);
   }
   return [...counts.entries()]

@@ -1,0 +1,184 @@
+// Start a counter payment: record the sale, hold the stock, get a DuitNow QR.
+//
+// Order matters. The hold is taken BEFORE the charge exists, so there is no
+// window where a customer is looking at a live QR for a card that has just
+// been sold online. If the provider then refuses, the hold is released again —
+// a seller who can't take payment must not be left with locked stock.
+//
+// Prices come from the request because haggling is the whole point of a
+// counter sale, but `listPrice` is read from inventory so the discount the
+// dashboard reports is the real one and not one the client made up.
+
+import { getAdminFirestore } from "~/server/utils/firebase-admin";
+import { requireUser } from "~/server/utils/auth";
+import {
+  reserveItems,
+  releaseItems,
+  releaseExpiredReservations,
+  StockUnavailableError,
+} from "~/server/utils/pos-reservations";
+import { posPaymentProvider, isPosPaymentConfigured } from "~/server/utils/pos-payment";
+import { posTotals, toSen, round2 } from "~/shared/pos-sale";
+import type { PosSaleLine, PosPaymentMethod } from "~/shared/pos-sale";
+import { noteError } from "~/server/utils/oplog";
+
+interface Body {
+  lines?: Array<{ itemId: string; soldPrice: number }>;
+  method?: PosPaymentMethod;
+}
+
+export default defineEventHandler(async (event) => {
+  const caller = await requireUser(event);
+  const body = (await readBody(event)) as Body;
+  const method: PosPaymentMethod = body.method ?? "duitnow_qr";
+
+  if (method === "tap_to_pay") {
+    throw createError({ statusCode: 400, message: "Tap to pay isn't available yet" });
+  }
+  if (!Array.isArray(body.lines) || !body.lines.length) {
+    throw createError({ statusCode: 400, message: "Nothing to charge" });
+  }
+  if (body.lines.length > 200) {
+    throw createError({ statusCode: 400, message: "Too many items in one sale" });
+  }
+  if (method === "duitnow_qr" && !isPosPaymentConfigured()) {
+    throw createError({
+      statusCode: 503,
+      message: "QR payments aren't set up for this shop yet. Take cash and mark the sale paid.",
+    });
+  }
+
+  const db = getAdminFirestore();
+  await releaseExpiredReservations(db, caller.uid).catch(() => {});
+
+  // ── Build the sale from inventory, not from what the client sent ──────
+  const itemIds = body.lines.map((l) => l.itemId);
+  const snaps = await Promise.all(
+    itemIds.map((id) => db.collection("inventory").doc(id).get()),
+  );
+
+  const lines: PosSaleLine[] = [];
+  for (const [i, snap] of snaps.entries()) {
+    if (!snap.exists) {
+      throw createError({ statusCode: 404, message: "An item in this sale no longer exists" });
+    }
+    const item = snap.data() as any;
+    if (item.userUid !== caller.uid) {
+      throw createError({ statusCode: 403, message: "That item isn't yours to sell" });
+    }
+    const asked = Number(body.lines![i]!.soldPrice);
+    if (!Number.isFinite(asked) || asked < 0) {
+      throw createError({ statusCode: 400, message: "Invalid price" });
+    }
+    lines.push({
+      itemId: snap.id,
+      cardId: item.listingId ?? null,
+      cardName: item.cardName ?? "Card",
+      sub: [item.setName, item.number].filter(Boolean).join(" · "),
+      image: item.primaryImage ?? "",
+      listPrice: round2(Number(item.listPrice) || 0),
+      soldPrice: round2(asked),
+    });
+  }
+
+  const totals = posTotals(lines);
+  if (totals.total <= 0) {
+    throw createError({ statusCode: 400, message: "A QR payment needs a total above RM 0" });
+  }
+
+  const now = Date.now();
+  const saleRef = db.collection("posSales").doc();
+  await saleRef.set({
+    sellerUid: caller.uid,
+    lines,
+    subtotal: totals.subtotal,
+    discountTotal: totals.discountTotal,
+    total: totals.total,
+    status: "awaiting_payment",
+    method,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  // ── Hold the stock ────────────────────────────────────────────────────
+  let reservedUntil: number;
+  try {
+    ({ reservedUntil } = await reserveItems(db, {
+      saleId: saleRef.id,
+      sellerUid: caller.uid,
+      itemIds,
+    }));
+  } catch (e: any) {
+    await saleRef.update({
+      status: "cancelled",
+      failedReason: e?.message || "Stock unavailable",
+      updatedAt: Date.now(),
+    });
+    if (e instanceof StockUnavailableError) {
+      // 409 + the offending items, so the POS can highlight them in place.
+      throw createError({
+        statusCode: 409,
+        message: e.message,
+        data: { blocked: e.blocked },
+      });
+    }
+    throw e;
+  }
+  await saleRef.update({ reservedUntil });
+
+  // ── Ask the acquirer for a QR ─────────────────────────────────────────
+  const config = useRuntimeConfig();
+  const siteUrl = (config.public.siteUrl as string) || getRequestURL(event).origin;
+
+  // The seller's own HitPay sub-merchant account, so the money lands in their
+  // bank rather than TCGo's. Unset = the shop hasn't connected one, and the
+  // platform account is charged instead.
+  const sellerSnap = await db.collection("users").doc(caller.uid).get();
+  const merchantKey = (sellerSnap.data() as any)?.hitpayMerchantKey || undefined;
+
+  try {
+    const charge = await posPaymentProvider().createDuitNowCharge({
+      amountSen: toSen(totals.total),
+      reference: saleRef.id,
+      description: `${lines.length} card${lines.length === 1 ? "" : "s"} · TCGo counter sale`,
+      webhookUrl: `${siteUrl}/api/pos/webhook`,
+      merchantKey,
+    });
+
+    await saleRef.update({ chargeId: charge.chargeId, updatedAt: Date.now() });
+
+    return {
+      saleId: saleRef.id,
+      chargeId: charge.chargeId,
+      qrPayload: charge.qrPayload,
+      url: charge.url ?? null,
+      total: totals.total,
+      subtotal: totals.subtotal,
+      discountTotal: totals.discountTotal,
+      reservedUntil,
+    };
+  } catch (e: any) {
+    // No QR means no payment. Give the stock back immediately rather than
+    // leaving it locked for the full reservation window.
+    await releaseItems(db, saleRef.id).catch(() => {});
+    await saleRef.update({
+      status: "failed",
+      failedReason: e?.message || "Payment provider error",
+      updatedAt: Date.now(),
+    });
+    noteError({
+      area: "payment",
+      severity: "error",
+      code: "pos.charge_create_failed",
+      message: `Couldn't create a counter-payment QR: ${e?.message || e}`,
+      userUid: caller.uid,
+      error: e,
+      context: { saleId: saleRef.id, totalMyr: totals.total },
+      hint: "The seller has a customer waiting. Stock was released. Check the HitPay merchant account has DuitNow QR enabled.",
+    });
+    throw createError({
+      statusCode: 502,
+      message: "Couldn't reach the payment provider. Take cash, or try again.",
+    });
+  }
+});

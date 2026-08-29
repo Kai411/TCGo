@@ -2,6 +2,7 @@
 import type { Card } from "~/composables/useCards";
 import type { Auction } from "~/composables/useAuctions";
 import { cdnUrl } from "~/composables/useStorage";
+import { isAvailable, isReserved } from "~/shared/card-availability";
 
 const props = defineProps<{
   card?: Card;
@@ -143,13 +144,16 @@ const timerClasses = computed(() => {
             {{ conditionLabel }}
           </span>
 
-          <!-- Sold overlay (cards only — auctions already show ENDED via the timer badge) -->
+          <!-- Unavailable overlay (cards only — auctions already show ENDED via
+               the timer badge). "Reserved" is a card being paid for at a
+               seller's counter right now; it comes back on its own if that
+               payment falls through, so it must not read as Sold. -->
           <div
-            v-if="card?.sold"
+            v-if="card && !isAvailable(card)"
             class="absolute inset-0 bg-black/40 flex items-end p-1.5"
           >
             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/60 text-white/90 tracking-wide uppercase">
-              Sold
+              {{ isReserved(card) ? "Reserved" : "Sold" }}
             </span>
           </div>
 

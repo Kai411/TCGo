@@ -82,6 +82,19 @@
               </span>
             </dd>
           </div>
+          <!-- Haggling at the counter is invisible in revenue alone: a card
+               sold at RM 80 off list still books as a sale. This is the
+               margin actually given away. -->
+          <div v-if="counterDiscount.total > 0">
+            <dt class="text-[11px] text-ink-muted dark:text-zinc-400">Discounts</dt>
+            <dd class="mt-1 text-lg font-bold text-amber-600 dark:text-amber-400 tabular-price">
+              RM {{ formatMyr(counterDiscount.total) }}
+              <span class="block text-[10px] font-normal text-ink-soft dark:text-zinc-500">
+                on {{ counterDiscount.count }}
+                {{ counterDiscount.count === 1 ? "item" : "items" }}
+              </span>
+            </dd>
+          </div>
         </dl>
       </div>
 
@@ -369,6 +382,24 @@ const salesValue = computed(() => unifiedSales.value.reduce((s, e) => s + e.valu
 const itemsSold = computed(() => unifiedSales.value.reduce((s, e) => s + e.itemsCount, 0));
 const completedCount = computed(() => unifiedSales.value.length);
 const posCount = computed(() => (props.posSales ?? []).length);
+
+// Counter discounts, straight off the inventory rows the dashboard already
+// has: every sold item carries both the price its label was printed with and
+// what it actually went for. No extra query, and it stays correct for cash
+// sales as well as QR ones.
+const counterDiscount = computed(() => {
+  let total = 0;
+  let count = 0;
+  for (const item of props.posSales ?? []) {
+    const off = (item.listPrice ?? 0) - (item.soldPrice ?? item.listPrice ?? 0);
+    // Selling above the asking price is not a negative discount.
+    if (off > 0.005) {
+      total += off;
+      count += 1;
+    }
+  }
+  return { total: Math.round(total * 100) / 100, count };
+});
 const avgOrder = computed(() =>
   completedCount.value ? salesValue.value / completedCount.value : 0,
 );

@@ -8,7 +8,7 @@
     <template v-else>
       <h1 class="text-2xl font-bold text-ink dark:text-white mb-1">POS</h1>
       <p class="text-sm text-gray-500 dark:text-zinc-400 mb-5">
-        Scan your inventory QR labels to ring up an in-person sale. Adjust the price for any haggling, then mark paid.
+        Scan your inventory QR labels to ring up an in-person sale. Adjust the price for any haggling, then take payment.
       </p>
 
       <!-- Scanner -->
@@ -68,26 +68,68 @@
         </div>
       </div>
 
+      <!-- Sold-online alert. Raised when the pre-payment check finds something
+           in the basket that a buyer took online while the seller was scanning. -->
+      <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0 -translate-y-1">
+        <div
+          v-if="blocked.length"
+          class="mb-4 rounded-xl border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 p-3.5"
+        >
+          <div class="flex items-start gap-2.5">
+            <svg class="w-4 h-4 mt-0.5 shrink-0 text-red-600 dark:text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-bold text-red-800 dark:text-red-200">
+                {{ blocked.length === 1 ? "One card is no longer available" : `${blocked.length} cards are no longer available` }}
+              </p>
+              <p class="mt-0.5 text-xs text-red-700 dark:text-red-300">
+                Highlighted below. Remove {{ blocked.length === 1 ? "it" : "them" }} from the pile before taking payment.
+              </p>
+              <button
+                @click="removeBlocked"
+                class="mt-2.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 text-white hover:bg-red-700"
+              >
+                Remove {{ blocked.length === 1 ? "it" : `all ${blocked.length}` }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
       <!-- Stash -->
-      <div class="mb-44 lg:mb-24">
+      <div class="mb-44 lg:mb-28">
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">Cart ({{ stash.length }})</h2>
-          <button v-if="stash.length" @click="stash = []" class="text-xs text-gray-400 dark:text-zinc-500 hover:text-red-500">Clear</button>
+          <button v-if="stash.length" @click="clearCart" class="text-xs text-gray-400 dark:text-zinc-500 hover:text-red-500">Clear</button>
         </div>
         <p v-if="!stash.length" class="text-sm text-gray-400 dark:text-zinc-500 py-6 text-center">Scan a label to add it here.</p>
         <div v-else class="space-y-2">
-          <div v-for="(line, i) in stash" :key="line.id" class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] p-2.5 flex items-center gap-3">
+          <div
+            v-for="(line, i) in stash"
+            :key="line.id"
+            class="surface rounded-xl p-2.5 flex items-center gap-3 transition-colors"
+            :class="blockedIds.has(line.id)
+              ? 'border-2 border-red-500 bg-red-50 dark:bg-red-500/10'
+              : 'border border-black/[0.06] dark:border-white/[0.08]'"
+          >
             <div class="w-10 h-14 shrink-0 rounded overflow-hidden"><CardImage :src="line.image" :alt="line.cardName" /></div>
             <div class="min-w-0 flex-1">
               <p class="text-sm font-medium text-ink dark:text-white truncate">{{ line.cardName }}</p>
               <p class="text-[11px] text-gray-500 dark:text-zinc-400 truncate">{{ line.sub }}</p>
-              <p v-if="line.soldPrice !== line.listPrice" class="text-[10px] text-amber-600 dark:text-amber-400">List RM {{ line.listPrice.toFixed(2) }}</p>
+              <p v-if="blockedIds.has(line.id)" class="text-[10px] font-bold text-red-600 dark:text-red-400 mt-0.5">
+                {{ blockedReason(line.id) }}
+              </p>
+              <p v-else-if="discountOf(line) > 0" class="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
+                <span class="line-through">RM {{ line.listPrice.toFixed(2) }}</span>
+                · RM {{ discountOf(line).toFixed(2) }} off
+              </p>
             </div>
             <div class="shrink-0 flex items-center gap-1">
               <span class="text-[10px] text-gray-400">RM</span>
-              <input type="number" min="0" step="0.01" v-model.number="line.soldPrice" class="w-20 text-sm text-right px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums" />
+              <input type="number" min="0" step="0.01" v-model.number="line.soldPrice" :disabled="paying" class="w-20 text-sm text-right px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums disabled:opacity-50" />
             </div>
-            <button @click="stash.splice(i, 1)" class="shrink-0 text-gray-400 hover:text-red-500" aria-label="Remove">
+            <button @click="removeLine(i)" :disabled="paying" class="shrink-0 text-gray-400 hover:text-red-500 disabled:opacity-40" aria-label="Remove">
               <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
@@ -99,28 +141,59 @@
         <div v-if="stash.length" class="fixed bottom-20 lg:bottom-0 inset-x-0 lg:left-56 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] px-4 py-3 lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div class="max-w-2xl mx-auto flex items-center justify-between gap-3">
             <div>
-              <p class="text-[11px] text-gray-500 dark:text-zinc-400">Total · {{ stash.length }} {{ stash.length === 1 ? "item" : "items" }}</p>
-              <p class="text-xl font-extrabold text-ink dark:text-white tabular-nums">RM {{ total.toFixed(2) }}</p>
+              <p class="text-[11px] text-gray-500 dark:text-zinc-400">
+                {{ stash.length }} {{ stash.length === 1 ? "item" : "items" }}
+                <span v-if="totals.discountTotal > 0" class="text-amber-600 dark:text-amber-400 font-semibold">
+                  · RM {{ totals.discountTotal.toFixed(2) }} off
+                </span>
+              </p>
+              <p class="text-xl font-extrabold text-ink dark:text-white tabular-nums">RM {{ totals.total.toFixed(2) }}</p>
             </div>
-            <button @click="checkout" :disabled="checkingOut" class="px-6 py-3 rounded-xl text-sm font-bold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 flex items-center gap-2">
-              <span v-if="checkingOut" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-              Mark paid
+            <button
+              @click="openPayment"
+              :disabled="paying"
+              class="px-8 py-3 rounded-xl text-sm font-bold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 flex items-center gap-2"
+            >
+              <span v-if="paying" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+              Pay
             </button>
           </div>
         </div>
       </Transition>
+
+      <PosPaymentSheet
+        v-if="sheetOpen"
+        :phase="phase"
+        :total="totals.total"
+        :discount-total="totals.discountTotal"
+        :discounted-count="totals.discountedCount"
+        :count="stash.length || lastCount"
+        :qr-image="qrImage"
+        :reserved-until="reservedUntil"
+        :cancelling="cancelling"
+        :failed-reason="failedReason"
+        :qr-enabled="qrEnabled"
+        @pay="startPayment"
+        @cancel="cancelPayment"
+        @close="closeSheet"
+        @retry="retryPayment"
+      />
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { InventoryItem } from "~/composables/useInventory";
+import { posTotals, lineDiscount } from "~/shared/pos-sale";
+import type { PosPaymentMethod } from "~/shared/pos-sale";
 
 definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · POS | TCGo" });
 
 const { user, signInWithGoogle } = useAuth();
-const { items, listenMyInventory, markItemSold } = useInventory();
+const { items, listenMyInventory } = useInventory();
+const { authedFetch } = useAuthedFetch();
+const qrEnabled = String(useRuntimeConfig().public.posQrEnabled ?? "") === "true";
 
 onMounted(() => {
   if (user.value) listenMyInventory();
@@ -139,7 +212,11 @@ interface StashLine {
   soldPrice: number;
 }
 const stash = ref<StashLine[]>([]);
-const total = computed(() => stash.value.reduce((s, l) => s + (l.soldPrice || 0), 0));
+
+// Totals come from the shared helper so the till, the server and the
+// dashboard can't drift on what a discount is worth.
+const totals = computed(() => posTotals(stash.value));
+const discountOf = (line: StashLine) => lineDiscount(line);
 
 const addItem = (item: InventoryItem) => {
   if (stash.value.some((l) => l.id === item.id)) {
@@ -148,6 +225,10 @@ const addItem = (item: InventoryItem) => {
   }
   if (item.status === "sold") {
     showToast("Already sold");
+    return;
+  }
+  if (item.status === "reserved" && (item.reservedUntil ?? 0) > Date.now()) {
+    showToast("Being paid for on another till");
     return;
   }
   stash.value.push({
@@ -160,6 +241,16 @@ const addItem = (item: InventoryItem) => {
   });
   feedback();
   showToast(`Added ${item.cardName}`);
+};
+
+const removeLine = (i: number) => {
+  const [gone] = stash.value.splice(i, 1);
+  if (gone) blocked.value = blocked.value.filter((b) => b.itemId !== gone.id);
+};
+
+const clearCart = () => {
+  stash.value = [];
+  blocked.value = [];
 };
 
 // ── Feedback (beep + haptic + flash) ─────────────────────────────────
@@ -268,6 +359,9 @@ const loop = () => {
 
 const handleDecoded = (raw: string) => {
   if (!raw.startsWith("tcgo:inv:")) return; // ignore foreign QR codes silently
+  // Scanning is meaningless once a payment is on screen, and adding to a cart
+  // whose total is already being charged would silently undercharge.
+  if (paying.value) return;
   const id = raw.slice("tcgo:inv:".length);
   const now = Date.now();
   const last = recent.get(id) ?? 0;
@@ -291,28 +385,237 @@ const manualResults = computed(() => {
   const q = manualSearch.value.trim().toLowerCase();
   if (q.length < 2) return [];
   return items.value
-    .filter((i) => i.status !== "sold" && i.cardName.toLowerCase().includes(q))
+    .filter((i) => i.status !== "sold" && i.status !== "reserved")
+    .filter((i) => i.cardName.toLowerCase().includes(q))
     .slice(0, 12);
 });
 
-// ── Checkout ──────────────────────────────────────────────────────────
-const checkingOut = ref(false);
-const checkout = async () => {
-  if (!stash.value.length || checkingOut.value) return;
-  if (!confirm(`Mark ${stash.value.length} item(s) as sold for RM ${total.value.toFixed(2)}?`)) return;
-  checkingOut.value = true;
+// ── Payment ───────────────────────────────────────────────────────────
+type Phase = "choose" | "starting" | "awaiting" | "paid" | "failed";
+
+interface BlockedItem {
+  itemId: string;
+  cardName: string;
+  reason: "sold" | "reserved" | "unavailable";
+}
+
+const sheetOpen = ref(false);
+const phase = ref<Phase>("choose");
+const paying = computed(() => sheetOpen.value && phase.value !== "choose" && phase.value !== "failed");
+const blocked = ref<BlockedItem[]>([]);
+const blockedIds = computed(() => new Set(blocked.value.map((b) => b.itemId)));
+const saleId = ref("");
+const qrImage = ref("");
+const reservedUntil = ref(0);
+const cancelling = ref(false);
+const failedReason = ref("");
+const lastCount = ref(0);
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+const blockedReason = (itemId: string) => {
+  const hit = blocked.value.find((b) => b.itemId === itemId);
+  if (!hit) return "";
+  return hit.reason === "reserved"
+    ? "Being paid for on another till"
+    : "Sold online — remove from the pile";
+};
+
+const removeBlocked = () => {
+  const gone = blockedIds.value;
+  stash.value = stash.value.filter((l) => !gone.has(l.id));
+  blocked.value = [];
+  showToast("Removed");
+};
+
+/**
+ * Availability is checked BEFORE the method sheet opens, so the seller learns
+ * a card went while they were scanning at the point they can still pull it out
+ * of the pile — not with a customer's phone already out.
+ */
+const openPayment = async () => {
+  if (!stash.value.length) return;
+  blocked.value = [];
+  failedReason.value = "";
+
   try {
-    for (const line of stash.value) {
-      await markItemSold(line.id, line.soldPrice);
+    const res = await authedFetch<{ ok: boolean; blocked: BlockedItem[] }>(
+      "/api/pos/check-stock",
+      { method: "POST", body: { itemIds: stash.value.map((l) => l.id) } },
+    );
+    if (!res.ok) {
+      blocked.value = res.blocked ?? [];
+      try { navigator.vibrate?.([80, 60, 80]); } catch {}
+      showToast("Some cards are no longer available");
+      return;
     }
-    const n = stash.value.length;
-    stash.value = [];
-    recent.clear();
-    showToast(`Sold ${n} item${n === 1 ? "" : "s"} ✓`);
   } catch (e: any) {
-    alert(e?.message || "Checkout failed. Please try again.");
-  } finally {
-    checkingOut.value = false;
+    showToast(e?.data?.message || "Couldn't check stock — try again");
+    return;
+  }
+
+  phase.value = "choose";
+  sheetOpen.value = true;
+};
+
+const startPayment = async (method: PosPaymentMethod) => {
+  if (method === "cash") return payCash();
+  phase.value = "starting";
+  failedReason.value = "";
+
+  try {
+    const res = await authedFetch<{
+      saleId: string;
+      qrPayload: string;
+      reservedUntil: number;
+    }>("/api/pos/create-charge", {
+      method: "POST",
+      body: {
+        method,
+        lines: stash.value.map((l) => ({ itemId: l.id, soldPrice: l.soldPrice })),
+      },
+    });
+
+    saleId.value = res.saleId;
+    reservedUntil.value = res.reservedUntil;
+
+    // The payload is a raw EMVCo string; the QR itself is drawn here.
+    const mod: any = await import("qrcode");
+    const QRCode = mod.default ?? mod;
+    qrImage.value = await QRCode.toDataURL(res.qrPayload, {
+      margin: 0,
+      width: 420,
+      // DuitNow payloads are long, and a till gets scanned in poor light at an
+      // angle — the extra redundancy of level Q is worth the density.
+      errorCorrectionLevel: "Q",
+    });
+
+    phase.value = "awaiting";
+    startPolling();
+  } catch (e: any) {
+    // 409 carries the items that blocked the sale, so they can be highlighted
+    // rather than just described.
+    const conflict = e?.data?.data?.blocked as BlockedItem[] | undefined;
+    if (conflict?.length) {
+      blocked.value = conflict;
+      sheetOpen.value = false;
+      showToast("Some cards are no longer available");
+      return;
+    }
+    failedReason.value = e?.data?.message || e?.message || "Couldn't start the payment.";
+    phase.value = "failed";
   }
 };
+
+const payCash = async () => {
+  phase.value = "starting";
+  try {
+    const res = await authedFetch<{ count: number }>("/api/pos/cash-sale", {
+      method: "POST",
+      body: { lines: stash.value.map((l) => ({ itemId: l.id, soldPrice: l.soldPrice })) },
+    });
+    lastCount.value = res.count;
+    phase.value = "paid";
+    stash.value = [];
+    recent.clear();
+  } catch (e: any) {
+    const conflict = e?.data?.data?.blocked as BlockedItem[] | undefined;
+    if (conflict?.length) {
+      blocked.value = conflict;
+      sheetOpen.value = false;
+      showToast("Some cards are no longer available");
+      return;
+    }
+    failedReason.value = e?.data?.message || "Couldn't record the sale.";
+    phase.value = "failed";
+  }
+};
+
+// The webhook is authoritative, but it can't reach localhost in development
+// and can lag in production — so the till asks too. Both settle idempotently.
+const startPolling = () => {
+  stopPolling();
+  pollTimer = setInterval(async () => {
+    if (!saleId.value) return;
+    try {
+      const res = await authedFetch<{ status: string; settled: boolean }>(
+        "/api/pos/charge-status",
+        { method: "POST", body: { saleId: saleId.value } },
+      );
+      if (res.status === "paid") {
+        stopPolling();
+        lastCount.value = stash.value.length;
+        phase.value = "paid";
+        stash.value = [];
+        recent.clear();
+        try { navigator.vibrate?.(120); } catch {}
+      } else if (res.status === "failed" || res.status === "cancelled") {
+        stopPolling();
+        failedReason.value =
+          res.status === "cancelled"
+            ? "The payment window expired. Nothing was charged."
+            : "The customer's payment was declined.";
+        phase.value = "failed";
+      }
+    } catch {
+      // Transient — keep waiting rather than dropping a live payment.
+    }
+  }, 2500);
+};
+
+const stopPolling = () => {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = null;
+};
+
+const cancelPayment = async () => {
+  if (!saleId.value || cancelling.value) return;
+  cancelling.value = true;
+  try {
+    const res = await authedFetch<{ paidInstead?: boolean }>("/api/pos/cancel", {
+      method: "POST",
+      body: { saleId: saleId.value },
+    });
+    stopPolling();
+    if (res.paidInstead) {
+      // They paid in the moment it took to reach for Cancel.
+      lastCount.value = stash.value.length;
+      phase.value = "paid";
+      stash.value = [];
+      recent.clear();
+    } else {
+      sheetOpen.value = false;
+      showToast("Payment cancelled — cards released");
+    }
+  } catch (e: any) {
+    showToast(e?.data?.message || "Couldn't cancel — try again");
+  } finally {
+    cancelling.value = false;
+  }
+};
+
+const retryPayment = () => {
+  phase.value = "choose";
+  failedReason.value = "";
+};
+
+const closeSheet = () => {
+  stopPolling();
+  sheetOpen.value = false;
+  phase.value = "choose";
+  qrImage.value = "";
+  saleId.value = "";
+  reservedUntil.value = 0;
+};
+
+// A till left open with a live hold would keep stock locked for the full
+// window. Release it on the way out.
+onBeforeUnmount(() => {
+  stopPolling();
+  if (saleId.value && phase.value === "awaiting") {
+    void authedFetch("/api/pos/cancel", {
+      method: "POST",
+      body: { saleId: saleId.value },
+    }).catch(() => {});
+  }
+});
 </script>

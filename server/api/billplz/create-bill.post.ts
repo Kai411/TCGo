@@ -15,6 +15,7 @@ import {
 } from "~/server/utils/billplz";
 import { requireUser } from "~/server/utils/auth";
 import { regionForState, totalForRegion } from "~/shared/shipping";
+import { isAvailable, unavailableReason } from "~/shared/card-availability";
 import { quoteOrderShipping } from "~/server/utils/shipping";
 import { noteError } from "~/server/utils/oplog";
 
@@ -48,6 +49,47 @@ export default defineEventHandler(async (event) => {
   }
   if (!order.deliveryAddress?.postcode) {
     throw createError({ statusCode: 400, message: "Delivery address required before payment" });
+  }
+
+  // Every card must still be for sale AT THE MOMENT OF PAYMENT. Orders are
+  // written client-side and can sit in `pending` indefinitely, so the listing
+  // may have sold — or been reserved by the seller's own POS for a customer
+  // standing at their counter — since the buyer added it to the cart. Hiding
+  // sold cards from the grid is cosmetic; this is the check that actually
+  // stops the same card being sold twice.
+  //
+  // Auction orders are exempt: their item is the auction doc, not a listing.
+  if (!order.auctionId) {
+    const cardIds: string[] = (order.items ?? [])
+      .map((i: any) => i?.cardId)
+      .filter((id: unknown): id is string => typeof id === "string" && !!id);
+    const snaps = await Promise.all(
+      cardIds.map((id) => db.collection("cards").doc(id).get()),
+    );
+    const blocked = snaps
+      .filter((cardSnap) => cardSnap.exists && !isAvailable(cardSnap.data() as any))
+      .map((cardSnap) => {
+        const data = cardSnap.data() as any;
+        return {
+          cardId: cardSnap.id,
+          cardName: data?.cardName ?? "This card",
+          reason: unavailableReason(data),
+        };
+      });
+    if (blocked.length) {
+      // 409, not 400: the request was valid when the buyer made it, and
+      // retrying after the hold lapses may well succeed.
+      throw createError({
+        statusCode: 409,
+        message:
+          blocked.length === 1
+            ? blocked[0]!.reason === "reserved"
+              ? `${blocked[0]!.cardName} is being paid for in store right now. Try again in a few minutes.`
+              : `${blocked[0]!.cardName} has just been sold.`
+            : `${blocked.length} cards in this order are no longer available.`,
+        data: { unavailable: blocked },
+      });
+    }
   }
 
   const requestUrl = getRequestURL(event);

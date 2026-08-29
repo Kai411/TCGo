@@ -28,7 +28,7 @@
           ← Back to shop
         </button>
         <NuxtLink
-          v-if="isOwnListing && !card.sold"
+          v-if="isOwnListing && available"
           :to="`/seller/listings/${card.id}/edit`"
           class="text-sm bg-gray-100 dark:bg-white/[0.04] hover:bg-gray-200 dark:hover:bg-white/[0.08] px-4 py-1.5 rounded-lg text-gray-700 dark:text-zinc-200 transition-colors"
         >
@@ -143,10 +143,10 @@
                     size="md"
                   />
                   <span
-                    v-if="card.sold"
+                    v-if="!available"
                     class="bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-zinc-400 text-xs px-2 py-1 rounded-full font-medium"
                   >
-                    Sold
+                    {{ reserved ? "Reserved" : "Sold" }}
                   </span>
                 </div>
               </div>
@@ -291,7 +291,7 @@
             </div>
 
             <!-- Contact Seller + Buy Now + Add to cart -->
-            <div v-if="!card.sold && !isOwnListing" class="mt-6 space-y-3">
+            <div v-if="available && !isOwnListing" class="mt-6 space-y-3">
               <!-- Buy Now · adds to cart and jumps to checkout, so shipping is
                    quoted live in one place instead of two. -->
               <button
@@ -333,11 +333,15 @@
               </p>
             </div>
 
-            <div v-else-if="card.sold" class="mt-6">
+            <div v-else-if="!available" class="mt-6">
               <div
                 class="w-full text-center bg-gray-100 dark:bg-white/[0.04] text-gray-500 dark:text-zinc-400 py-3 rounded-lg font-medium"
               >
-                This card has been sold
+                {{
+                  reserved
+                    ? "Being paid for in store — check back in a few minutes"
+                    : "This card has been sold"
+                }}
               </div>
             </div>
           </div>
@@ -349,6 +353,7 @@
 
 <script setup lang="ts">
 import type { Card } from "~/composables/useCards";
+import { isAvailable, isReserved } from "~/shared/card-availability";
 
 const route = useRoute();
 const cardId = route.params.id as string;
@@ -417,6 +422,11 @@ const handleAddToCart = (e?: MouseEvent) => {
 const card = computed(
   () => cards.value.find((c: Card) => c.id === cardId) || null,
 );
+
+// Availability reads both the legacy `sold` flag and the lifecycle status, so
+// a card held for an in-store QR payment stops being buyable here too.
+const available = computed(() => !!card.value && isAvailable(card.value));
+const reserved = computed(() => !!card.value && isReserved(card.value));
 
 // Short condition label — extract abbreviation from "Near Mint (NM)" format
 const conditionShort = (condition: string): string => {

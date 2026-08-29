@@ -8,6 +8,11 @@
 //
 // Status lifecycle (v1 tracks presence; POS/listing bridges come next):
 //   in_stock → listed (online) / sold (POS or online)
+//
+// `reserved` is a temporary hold taken by the POS while a counter customer
+// pays. It blocks the online listing for the duration and reverts to whatever
+// the item was before (in_stock, or listed) if the payment doesn't complete —
+// see server/utils/pos-reservations.ts.
 
 import {
   collection,
@@ -25,7 +30,7 @@ import {
 } from "firebase/firestore";
 import { computed, ref } from "vue";
 
-export type InventoryStatus = "in_stock" | "listed" | "sold";
+export type InventoryStatus = "in_stock" | "listed" | "reserved" | "sold";
 export type InventorySource = "manual" | "csv" | "scan";
 
 export interface InventoryItem {
@@ -58,6 +63,11 @@ export interface InventoryItem {
   saleChannel?: "direct" | "online";
   // Link to a marketplace listing once listed online (future bridge).
   listingId?: string;
+  // POS hold. Both are cleared when the sale settles or the hold is released.
+  reservedForSaleId?: string;
+  reservedUntil?: number;
+  // The counter sale that sold it, for reconciling against posSales.
+  posSaleId?: string;
   createdAt: number;
   updatedAt: number;
 }

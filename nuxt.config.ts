@@ -223,6 +223,15 @@ export default defineNuxtConfig({
     // means the scheduled path is refused outright — automation you forgot to
     // configure should not be automation anyone can trigger.
     cronSecret: "",
+    // HitPay (DuitNow QR at the counter). Separate from Billplz on purpose:
+    // Billplz cannot return an embeddable QR payload, only a hosted page.
+    // hitpayApiKey is the platform account; each seller's own sub-merchant key
+    // lives on their user doc so counter takings settle to their bank, not
+    // ours. Unset = the POS offers cash only.
+    hitpayApiKey: "",
+    hitpayPlatformKey: "",
+    hitpayWebhookSalt: "",
+    hitpaySandbox: "",
     // Delyva (courier aggregator) — live shipping quotes at checkout.
     // delyvaApiBase empty = production; set it to the sandbox base URL
     // (with matching sandbox credentials) to test without real money.
@@ -231,6 +240,10 @@ export default defineNuxtConfig({
     delyvaCustomerId: "",
     delyvaCompanyId: "",
     public: {
+      // Lets the POS show the QR option only when the platform can actually
+      // create one. Not a secret — it's a feature flag, and the seller finds
+      // out either way the moment they tap Pay.
+      posQrEnabled: "",
       // Mirrors the server-side billplzSandbox flag. Public because the seller
       // KYC form needs to know whether to offer Billplz's sandbox test bank —
       // it's an environment marker, not a secret.

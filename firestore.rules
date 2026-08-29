@@ -266,6 +266,22 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ── posSales ─────────────────────────────────────────────────────
+    //
+    // Counter sales. A seller reads their own — the dashboard reports takings
+    // and discounts from these — but never writes one: every field that
+    // matters (status, total, the lines and their prices) is what decides
+    // whether stock gets marked sold, and all of it is written by
+    // /api/pos/* through the Admin SDK.
+    //
+    // Letting a client write here would let a seller mark a sale paid without
+    // any money moving, which is exactly what the reservation rail exists to
+    // prevent.
+    match /posSales/{saleId} {
+      allow read: if isOwner(resource.data.sellerUid) || isAdmin();
+      allow write: if false;
+    }
+
     match /webhookEvents/{eventId} {
       allow read, write: if false;
     }
