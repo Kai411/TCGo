@@ -30,16 +30,34 @@ export default defineEventHandler(async (event) => {
 
   const problem = passwordProblem(next, actor.staffId);
   if (problem) throw createError({ statusCode: 400, message: problem });
-  if (next === current) {
-    throw createError({ statusCode: 400, message: "That's the password you already have." });
-  }
 
   const db = getAdminFirestore();
   const ref = db.collection("staff").doc(actor.staffId);
   const staff = (await ref.get()).data() as any;
 
+  // Verify the current password BEFORE anything else about the new one.
+  //
+  // The order matters more than it looks. Comparing the two submitted fields
+  // first means someone who types their intended new password into both boxes
+  // — a very natural reading of a "set your own password" screen — is told
+  // "that's the password you already have", which is both untrue and no help
+  // at all in working out what to do. Checking the real credential first
+  // means every message describes what's actually wrong.
   if (!(await verifyPassword(current, staff?.passwordHash))) {
-    throw createError({ statusCode: 401, message: "Your current password isn't right." });
+    throw createError({
+      statusCode: 401,
+      message: "Your current password isn't right.",
+    });
+  }
+
+  // Asked of the stored hash, not of the other form field: the question is
+  // whether the new password is genuinely new, and the form fields can differ
+  // while still landing on the password already in use.
+  if (await verifyPassword(next, staff?.passwordHash)) {
+    throw createError({
+      statusCode: 400,
+      message: "Pick a password you haven't used here before.",
+    });
   }
 
   await ref.update({

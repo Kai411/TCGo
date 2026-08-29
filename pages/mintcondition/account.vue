@@ -17,10 +17,15 @@
       class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-4"
       @submit.prevent="submit"
     >
-      <h2 class="text-sm font-bold">Change password</h2>
+      <h2 class="text-sm font-bold">{{ first ? "Set your password" : "Change password" }}</h2>
 
       <div>
-        <label class="block text-xs font-semibold mb-1.5">Current password</label>
+        <!-- On first run this is the password an admin handed over, not one
+             the holder chose. Calling it "current" there invites people to
+             type the password they *want* into it. -->
+        <label class="block text-xs font-semibold mb-1.5">
+          {{ first ? "Temporary password (the one you were given)" : "Current password" }}
+        </label>
         <input
           v-model="current"
           type="password"
@@ -43,6 +48,26 @@
         </p>
       </div>
 
+      <div>
+        <!-- A confirm field is what people expect the second box to be. Having
+             a real one removes the ambiguity rather than explaining it away. -->
+        <label class="block text-xs font-semibold mb-1.5">Confirm new password</label>
+        <input
+          v-model="confirm"
+          type="password"
+          autocomplete="new-password"
+          class="w-full px-3 py-2.5 rounded-lg border text-sm bg-white dark:bg-white/[0.04]"
+          :class="
+            mismatch
+              ? 'border-red-300 dark:border-red-500/40'
+              : 'border-black/[0.08] dark:border-white/[0.10]'
+          "
+        />
+        <p v-if="mismatch" class="mt-1.5 text-[11px] text-red-600 dark:text-red-400">
+          These two don't match.
+        </p>
+      </div>
+
       <p v-if="error" class="text-[13px] text-red-600 dark:text-red-400">{{ error }}</p>
       <p v-if="done" class="text-[13px] text-emerald-600 dark:text-emerald-400">
         Password changed. Any other browser you were signed in on has been signed out.
@@ -50,7 +75,7 @@
 
       <button
         type="submit"
-        :disabled="busy || !current || !next"
+        :disabled="busy || !current || !next || mismatch"
         class="w-full py-2.5 rounded-lg text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink disabled:opacity-50"
       >
         {{ busy ? "Saving…" : "Change password" }}
@@ -88,6 +113,11 @@ const { mcFetch } = useMcFetch();
 const first = computed(() => route.query.first === "1");
 const current = ref("");
 const next = ref("");
+const confirm = ref("");
+
+// Only complain once there's something to compare — flagging a mismatch
+// against a half-typed field trains people to ignore the warning.
+const mismatch = computed(() => !!confirm.value && confirm.value !== next.value);
 const busy = ref(false);
 const error = ref("");
 const done = ref(false);
@@ -97,6 +127,7 @@ const myPermissions = computed(() =>
 );
 
 const submit = async () => {
+  if (mismatch.value) return;
   busy.value = true;
   error.value = "";
   done.value = false;
@@ -108,6 +139,7 @@ const submit = async () => {
     done.value = true;
     current.value = "";
     next.value = "";
+    confirm.value = "";
     await refresh();
     if (first.value) await navigateTo("/mintcondition");
   } catch (e: any) {

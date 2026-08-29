@@ -8,6 +8,7 @@
 
 import { hasPermission } from "~/shared/staff";
 import type { PermissionDef } from "~/shared/staff";
+import type { Ref } from "vue";
 
 export interface StaffMe {
   signedIn: boolean;
@@ -23,9 +24,62 @@ export interface StaffMe {
 const state = () => useState<StaffMe | null>("mc-staff", () => null);
 const ready = () => useState<boolean>("mc-staff-ready", () => false);
 
+/**
+ * Headers for a console request.
+ *
+ * `x-mc-auth` is the CSRF marker the server requires on state-changing calls.
+ *
+ * The Authorization header is the bootstrap path, and it has to be here or
+ * the console is unusable on a fresh install: the very first staff account
+ * can only be created by the legacy marketplace-admin bridge, and without a
+ * Firebase token an admin is redirected to a login page that needs an account
+ * only the bridge can create. Once real staff accounts exist the cookie takes
+ * over — requireStaff tries it first and never reaches this.
+ *
+ * The auth refs are passed in rather than read here: useAuth() reaches for the
+ * Nuxt instance, and this runs inside async call chains where that context is
+ * already gone. Resolving them in setup and closing over them keeps the bridge
+ * working from every call site instead of only the ones that happen to call in
+ * before their first await.
+ */
+const buildHeaders = async (
+  user: Ref<{ getIdToken: () => Promise<string> } | null>,
+  authLoading: Ref<boolean>,
+): Promise<Record<string, string>> => {
+  const headers: Record<string, string> = { "x-mc-auth": "1" };
+  try {
+    // Firebase restores the session asynchronously. Without this wait, a hard
+    // refresh races the listener and drops the token on the first request,
+    // which reads to the user as being randomly signed out.
+    if (authLoading.value) {
+      await new Promise<void>((resolve) => {
+        const stop = watch(authLoading, (l) => {
+          if (!l) {
+            stop();
+            resolve();
+          }
+        });
+        // Never hang the console if Firebase doesn't initialise at all.
+        setTimeout(() => {
+          stop();
+          resolve();
+        }, 3000);
+      });
+    }
+    if (user.value) {
+      headers.Authorization = `Bearer ${await user.value.getIdToken()}`;
+    }
+  } catch {
+    // No Firebase is a perfectly normal state for a staff-only account.
+  }
+  return headers;
+};
+
 export const useStaffAuth = () => {
   const me = state();
   const loaded = ready();
+  const { user, authLoading } = useAuth();
+  const headers = () => buildHeaders(user as any, authLoading);
 
   /**
    * Ask the server who we are.
@@ -37,7 +91,10 @@ export const useStaffAuth = () => {
    */
   const refresh = async (): Promise<StaffMe> => {
     try {
-      const res = await $fetch<StaffMe>("/api/mc/me", { credentials: "include" });
+      const res = await $fetch<StaffMe>("/api/mc/me", {
+        credentials: "include",
+        headers: await headers(),
+      });
       me.value = res;
       return res;
     } catch {
@@ -61,7 +118,7 @@ export const useStaffAuth = () => {
         method: "POST",
         body: { staffId, password },
         credentials: "include",
-        headers: { "x-mc-auth": "1" },
+        headers: await headers(),
       },
     );
     await refresh();
@@ -72,7 +129,7 @@ export const useStaffAuth = () => {
     await $fetch("/api/mc/logout", {
       method: "POST",
       credentials: "include",
-      headers: { "x-mc-auth": "1" },
+      headers: await headers(),
     }).catch(() => undefined);
     me.value = { signedIn: false };
     await navigateTo("/mintcondition/login");
@@ -94,11 +151,17 @@ export const useStaffAuth = () => {
  * on routes that send money.
  */
 export const useMcFetch = () => {
+  // Resolved here, in setup, for the reason given on buildHeaders.
+  const { user, authLoading } = useAuth();
+
   const mcFetch = async <T>(url: string, opts: Record<string, any> = {}): Promise<T> =>
     (await $fetch(url, {
       ...opts,
       credentials: "include",
-      headers: { ...(opts.headers || {}), "x-mc-auth": "1" },
+      headers: {
+        ...(await buildHeaders(user as any, authLoading)),
+        ...(opts.headers || {}),
+      },
     })) as T;
   return { mcFetch };
 };
