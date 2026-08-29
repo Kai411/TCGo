@@ -578,6 +578,7 @@ import {
 } from "~/composables/useCardConstants";
 import { FREE_SCAN_LIMIT } from "~/composables/useScanQuota";
 import type { AddMethod } from "~/components/AddMethodPicker.vue";
+import { photoRequirement, photoRequirementMet } from "~/shared/photo-policy";
 
 const router = useRouter();
 const { createCard } = useCards();
@@ -1000,8 +1001,20 @@ const handleSubmit = async () => {
     }
     if (!price.value || price.value <= 0)
       throw new Error("Price must be greater than 0");
+    // An imported catalogue image satisfies the baseline, but never the rule
+    // below: the whole point is that a stock render can't stand in as evidence
+    // for a claim about this particular card.
     if (selectedFiles.value.length === 0 && !importedImageUrl.value)
       throw new Error("Please upload at least one photo or import from a link");
+
+    const photoRule = photoRequirement(
+      cardForm.value.productType,
+      cardForm.value.condition,
+      price.value,
+    );
+    if (!photoRequirementMet(photoRule, selectedFiles.value.length)) {
+      throw new Error(photoRule.reason);
+    }
 
     let imageUrls: string[] = [];
 

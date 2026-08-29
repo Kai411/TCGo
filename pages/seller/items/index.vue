@@ -11,7 +11,7 @@
       <!-- Header + summary -->
       <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
         <div>
-          <h1 class="text-2xl font-bold text-ink dark:text-white">Items</h1>
+          <h1 class="text-2xl font-bold text-ink dark:text-white">Inventory</h1>
           <p class="text-sm text-gray-500 dark:text-zinc-400 mt-1">
             <span class="font-semibold text-ink dark:text-white tabular-nums">{{ totalUnits }}</span> units ·
             <span class="font-semibold text-ink dark:text-white tabular-nums">{{ count }}</span> entries ·
@@ -91,6 +91,45 @@
           </p>
         </div>
 
+        <!-- What just went in.
+             This is the whole reason it's safe to hide the table below while
+             adding: without some acknowledgement, a form that silently clears
+             itself is indistinguishable from one that failed. -->
+        <div
+          v-if="sessionAdds.length"
+          class="mb-4 rounded-xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 px-3.5 py-3"
+        >
+          <div class="flex items-center justify-between gap-3 mb-1.5">
+            <p class="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+              Added {{ sessionAdds.length }} {{ sessionAdds.length === 1 ? "card" : "cards" }}
+            </p>
+            <button
+              type="button"
+              class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline"
+              @click="undoLastAdd"
+              :disabled="undoBusy"
+            >
+              {{ undoBusy ? "Removing…" : "Undo last" }}
+            </button>
+          </div>
+          <ul class="space-y-0.5">
+            <li
+              v-for="a in sessionAdds.slice(0, 4)"
+              :key="a.id"
+              class="text-[12px] text-emerald-900/80 dark:text-emerald-200/80 flex justify-between gap-3"
+            >
+              <span class="truncate">{{ a.label }}</span>
+              <span v-if="a.qty > 1" class="shrink-0 tabular-nums">×{{ a.qty }}</span>
+            </li>
+          </ul>
+          <p
+            v-if="sessionAdds.length > 4"
+            class="text-[11px] text-emerald-700/70 dark:text-emerald-400/70 mt-1"
+          >
+            and {{ sessionAdds.length - 4 }} more
+          </p>
+        </div>
+
         <!-- Enter manually: the same form Listings uses (catalogue search on
              top, product type, card details, print details), so adding to
              inventory and listing a card look and behave identically. The only
@@ -152,13 +191,26 @@
             {{ manualError }}
           </div>
 
-          <button
-            type="submit"
-            :disabled="manualBusy || !cardForm.cardName.trim()"
-            class="w-full bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ manualBusy ? "Adding…" : "Add to inventory" }}
-          </button>
+          <div class="flex gap-2">
+            <button
+              type="submit"
+              :disabled="manualBusy || !cardForm.cardName.trim()"
+              class="flex-1 bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <!-- The form already clears and stays open, so this IS the
+                   add-another loop. Saying so is the only thing that was
+                   missing — the old label read like a one-shot action. -->
+              {{ manualBusy ? "Adding…" : sessionAdds.length ? "Add another card" : "Add to inventory" }}
+            </button>
+            <button
+              v-if="sessionAdds.length"
+              type="button"
+              class="px-5 py-3 rounded-lg font-bold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.03] dark:hover:bg-white/[0.06] transition-colors"
+              @click="finishAdding"
+            >
+              Done
+            </button>
+          </div>
         </form>
       </div>
 
@@ -168,8 +220,27 @@
         @finished="onScanFinished"
       />
 
-      <!-- Inventory list -->
-      <div v-if="loading" class="flex justify-center py-16">
+      <!-- Inventory list.
+           Collapsed while the add panel is open: the table runs to fifty rows
+           and pushes the form off screen, and during a run of adds it isn't
+           what you're looking at anyway. The "just added" strip inside the
+           panel carries the confirmation the table would otherwise provide. -->
+      <div
+        v-if="addOpen && count > 0"
+        class="surface rounded-2xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
+      >
+        <p class="text-[13px] text-gray-500 dark:text-zinc-400">
+          Your {{ count }} {{ count === 1 ? "item is" : "items are" }} hidden while you're adding.
+        </p>
+        <button
+          class="text-xs font-semibold text-pokemon-red hover:underline"
+          @click="finishAdding"
+        >
+          Show inventory
+        </button>
+      </div>
+
+      <div v-else-if="loading" class="flex justify-center py-16">
         <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red"/>
       </div>
 
@@ -186,7 +257,7 @@
 
       <template v-else>
         <!-- Status filter + count + select all -->
-        <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <div id="inventory-list" class="flex items-center justify-between gap-3 mb-3 flex-wrap scroll-mt-4">
           <TabStrip v-model="statusFilter" :tabs="filterTabs" />
           <div class="flex items-center gap-3">
             <button
@@ -392,15 +463,31 @@
             </select>
           </div>
         </div>
-        <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-3">
-          Lists with the catalog image. Add a real photo from the listing later for graded/played cards.
+        <p
+          v-if="listPhotoRule.required && !listPhotoOk"
+          class="mt-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 px-3 py-2.5 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300"
+        >
+          {{ listPhotoRule.reason }}
+          <button
+            type="button"
+            class="block mt-1.5 font-bold underline"
+            @click="addPhotoToListingCandidate"
+          >
+            Add a photo now
+          </button>
+        </p>
+        <p v-else class="text-[11px] text-gray-400 dark:text-zinc-500 mt-3">
+          <template v-if="!listingLive?.photos?.length">
+            Lists with the catalogue image — fine at this price and condition,
+            but your own photo always sells better.
+          </template>
           Shipping is quoted live from your pickup address at checkout — you don't set a price here.
         </p>
         <div class="flex gap-2 mt-4">
           <button @click="listing = null" class="flex-1 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200">Cancel</button>
           <button
             @click="confirmList"
-            :disabled="listingBusy || !listForm.price"
+            :disabled="listingBusy || !listForm.price || (listPhotoRule.required && !listPhotoOk)"
             class="flex-1 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             <span v-if="listingBusy" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
@@ -501,6 +588,11 @@ import type { AddMethod } from "~/components/AddMethodPicker.vue";
 import type { CardFormData } from "~/components/CardFormFields.vue";
 import { FREE_SCAN_LIMIT } from "~/composables/useScanQuota";
 import type { InventoryItem } from "~/composables/useInventory";
+import {
+  HIGH_VALUE_THRESHOLD,
+  photoRequirement,
+  photoRequirementMet,
+} from "~/shared/photo-policy";
 
 definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Inventory | TCGo" });
@@ -677,13 +769,36 @@ const bulkList = async () => {
     router.push("/seller/verify");
     return;
   }
+  // Bulk is where this matters most: CSV and scanner rows arrive with no
+  // photographs at all, so without a check here a whole import could be
+  // published against catalogue images in one click.
+  const eligible = priced.filter((i) =>
+    photoRequirementMet(
+      photoRequirement(
+        /^(PSA|CGC|TAG|BGS|Beckett|ACE)\b/i.test(i.condition || "") ? "Graded" : "Ungraded",
+        i.condition,
+        i.listPrice,
+      ),
+      i.photos?.length ?? 0,
+    ),
+  );
+  const needPhotos = priced.length - eligible.length;
+
+  if (!eligible.length) {
+    alert(
+      `None of these can be listed yet: ${needPhotos} need your own photo (graded, sealed, top condition, or over RM${HIGH_VALUE_THRESHOLD}). Add a photo from the thumbnail in the table.`,
+    );
+    return;
+  }
+
   const skipped = targets.length - priced.length;
-  let msg = `List ${priced.length} item${priced.length === 1 ? "" : "s"} for sale at their set prices?`;
+  let msg = `List ${eligible.length} item${eligible.length === 1 ? "" : "s"} for sale at their set prices?`;
   if (skipped) msg += `\n${skipped} skipped (no price set).`;
+  if (needPhotos) msg += `\n${needPhotos} skipped (needs your own photo).`;
   if (!confirm(msg)) return;
   bulkBusy.value = true;
   try {
-    for (const i of priced) {
+    for (const i of eligible) {
       await listItem(i.id, {
         sellerName: profile.value?.customName || user.value!.displayName || "Anonymous",
         sellerUid: user.value!.uid,
@@ -839,20 +954,26 @@ const addManual = async () => {
             .filter(Boolean)
             .join(" ")
         : f.condition;
-    await addItem({
+    const qty = Math.max(1, f.quantity || 1);
+    // Built before resetManual() wipes the form it reads from.
+    const label = [name, f.cardSet.trim(), f.cardNumber.trim() && `#${f.cardNumber.trim()}`, condition]
+      .filter(Boolean)
+      .join(" · ");
+    const newId = await addItem({
       productId: pickedProductId.value,
       cardName: name,
       setName: f.cardSet.trim(),
       number: f.cardNumber.trim(),
       rarity: f.rarity || "",
       condition,
-      quantity: Math.max(1, f.quantity || 1),
+      quantity: qty,
       listPrice: manualPrice.value || 0,
       stockImageUrl: importedImageUrl.value,
       photos,
       notes: f.description || "",
       source: "manual",
     });
+    if (newId) noteAdded(newId, label, qty);
     resetManual();
   } catch (e: any) {
     manualError.value = e?.message || "Could not add this item.";
@@ -864,6 +985,7 @@ const addManual = async () => {
 const closeAdd = () => {
   addOpen.value = false;
   scanAdded.value = 0;
+  sessionAdds.value = [];
 };
 
 /**
@@ -876,7 +998,7 @@ const onScanFinished = async () => {
   const matched = scanQueue.value.filter((i) => i.productId && i.cardName);
   scanAdded.value = 0;
   for (const item of matched) {
-    await addItem({
+    const id = await addItem({
       productId: item.productId!,
       cardName: item.cardName!,
       setName: item.cardSet ?? "",
@@ -886,12 +1008,63 @@ const onScanFinished = async () => {
       stockImageUrl: item.imageUrl ?? "",
       source: "scan",
     });
+    // Same strip as manual adds, so scanning a stack and typing one in read
+    // the same way.
+    if (id) {
+      noteAdded(
+        id,
+        [item.cardName, item.cardSet, item.cardNumber && `#${item.cardNumber}`]
+          .filter(Boolean)
+          .join(" · "),
+        1,
+      );
+    }
     scanAdded.value++;
   }
   clearScanQueue();
 };
 
 const addOpen = ref(false);
+
+/**
+ * What was added since the panel was opened.
+ *
+ * Exists because the add form clears itself and stays open — which is the
+ * right behaviour for adding a stack of cards, but leaves nothing on screen
+ * to say it worked. Without this the only confirmation is the table further
+ * down the page, and that table is exactly what we now hide while adding.
+ */
+const sessionAdds = ref<{ id: string; label: string; qty: number }[]>([]);
+const undoBusy = ref(false);
+
+const noteAdded = (id: string, label: string, qty: number) => {
+  // Newest first — the last card added is the one you're checking.
+  sessionAdds.value.unshift({ id, label, qty });
+};
+
+const undoLastAdd = async () => {
+  const last = sessionAdds.value[0];
+  if (!last || undoBusy.value) return;
+  undoBusy.value = true;
+  try {
+    await removeItem(last.id);
+    sessionAdds.value.shift();
+  } catch {
+    // Already gone (removed from the table in another tab) — drop it from the
+    // strip either way rather than leaving an undo button that never works.
+    sessionAdds.value.shift();
+  } finally {
+    undoBusy.value = false;
+  }
+};
+
+/** Close the panel and put the seller back in front of what they just built. */
+const finishAdding = () => {
+  closeAdd();
+  nextTick(() => {
+    document.getElementById("inventory-list")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+};
 
 const handleRemove = async (id: string) => {
   if (!confirm("Remove this item from inventory?")) return;
@@ -924,11 +1097,46 @@ const openListDialog = (item: InventoryItem) => {
   };
 };
 
+// Recomputed as the seller changes price or condition in the dialog, so the
+// requirement appears the moment their own input triggers it rather than
+// after they press the button.
+const listPhotoRule = computed(() =>
+  photoRequirement(
+    // Inventory rows don't carry a product type; a graded item is recorded by
+    // its condition string ("PSA 10"). Treat that as graded so slabs are
+    // caught from this path too.
+    /^(PSA|CGC|TAG|BGS|Beckett|ACE)\b/i.test(listForm.value.condition || "")
+      ? "Graded"
+      : "Ungraded",
+    listForm.value.condition,
+    listForm.value.price,
+  ),
+);
+// Read the photo count off the live items array, not off `listing` — that's a
+// snapshot taken when the dialog opened, so adding a photo from inside the
+// dialog would update Firestore and leave the warning on screen forever.
+const listingLive = computed(() =>
+  listing.value ? items.value.find((i) => i.id === listing.value!.id) ?? listing.value : null,
+);
+const listPhotoOk = computed(() =>
+  photoRequirementMet(listPhotoRule.value, listingLive.value?.photos?.length ?? 0),
+);
+
+/** Jump straight to the inline uploader for the item being listed. */
+const addPhotoToListingCandidate = () => {
+  if (!listing.value) return;
+  openPhotoPicker(listing.value);
+};
+
 const confirmList = async () => {
   if (!listing.value || !user.value || listingBusy.value) return;
   if (!sellerReady.value) {
     alert("Complete seller verification before listing.");
     router.push("/seller/verify");
+    return;
+  }
+  if (!listPhotoOk.value) {
+    alert(listPhotoRule.value.reason);
     return;
   }
   listingBusy.value = true;

@@ -158,9 +158,14 @@ export const useInventory = () => {
     );
   };
 
-  const addItem = async (input: InventoryItemInput) => {
+  /** Returns the new item's id so callers can reference what they just added. */
+  const addItem = async (input: InventoryItemInput): Promise<string> => {
     if (!user.value || !firestore) throw new Error("Not authenticated");
-    await addDoc(collection(firestore, "inventory"), buildItem(input, user.value.uid));
+    const ref = await addDoc(
+      collection(firestore, "inventory"),
+      buildItem(input, user.value.uid),
+    );
+    return ref.id;
   };
 
   // Bulk insert (CSV import). Firestore batches cap at 500 writes; chunk to
