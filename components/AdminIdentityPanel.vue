@@ -57,7 +57,7 @@
 <script setup lang="ts">
 const props = defineProps<{ uid: string; name: string }>();
 
-const { authedFetch } = useAuthedFetch();
+const { mcFetch } = useMcFetch();
 
 interface Identity {
   found: boolean;
@@ -89,7 +89,7 @@ const toggle = async () => {
   loading.value = true;
   error.value = "";
   try {
-    data.value = await authedFetch<Identity>(
+    data.value = await mcFetch<Identity>(
       `/api/admin/identity?uid=${encodeURIComponent(props.uid)}`,
     );
   } catch (e: any) {

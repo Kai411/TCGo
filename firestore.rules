@@ -270,6 +270,40 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Mint Condition operations console. Staff credentials, sessions, roles,
+    // the ID counters, the operations log and the auto-payout settings.
+    //
+    // Every one of these is denied to the browser outright. The console does
+    // not use Firebase Auth at all — it talks to /api/mc/* over its own
+    // session cookie, and those routes run through the Admin SDK, which
+    // ignores rules. So there is no legitimate client read here, and a great
+    // deal that must never be readable: password hashes, live session tokens,
+    // and a log that names which staff member did what.
+    match /staff/{staffId} {
+      allow read, write: if false;
+    }
+    match /staffRoles/{roleId} {
+      allow read, write: if false;
+    }
+    match /staffSessions/{tokenHash} {
+      allow read, write: if false;
+    }
+    match /staffCounters/{prefix} {
+      allow read, write: if false;
+    }
+    match /errorLogs/{logId} {
+      allow read, write: if false;
+    }
+    match /actionLogs/{logId} {
+      allow read, write: if false;
+    }
+    match /autoPayoutRuns/{runId} {
+      allow read, write: if false;
+    }
+    match /settings/{docId} {
+      allow read, write: if false;
+    }
+
     // Deny anything not matched above.
     match /{document=**} {
       allow read, write: if false;

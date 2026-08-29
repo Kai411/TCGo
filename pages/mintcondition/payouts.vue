@@ -1,10 +1,17 @@
 <template>
   <div class="max-w-5xl mx-auto">
     <div v-if="!isAdmin" class="text-center py-12">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg">Access denied.</p>
+      <p class="text-gray-500 dark:text-zinc-400 text-lg">
+        Your role doesn't include access to payouts.
+      </p>
+      <p class="text-[13px] text-ink-soft dark:text-zinc-500 mt-1.5">
+        Ask an admin to grant it if you need it.
+      </p>
     </div>
 
     <template v-else>
+      <AutoPayoutPanel class="mb-6" />
+
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-ink dark:text-white">Payouts</h1>
         <button
@@ -118,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: "admin" });
+definePageMeta({ layout: "admin", middleware: "mintcondition" });
 useHead({ title: "Payouts — TCGo Admin" });
 
 import {
@@ -131,9 +138,9 @@ useHead({ title: "Admin · Payouts | TCGo" });
 
 const STATUSES: PayoutBatchStatus[] = ["queued", "processing", "paid", "failed"];
 
-const { isAdmin } = useAdmin();
-const { user } = useAuth();
-const { authedFetch } = useAuthedFetch();
+const { me, can } = useStaffAuth();
+const isAdmin = computed(() => can("payouts.view"));
+const { mcFetch } = useMcFetch();
 
 const payouts = ref<PayoutBatch[]>([]);
 const totals = ref<Record<string, number>>({});
@@ -150,7 +157,7 @@ const load = async () => {
   loading.value = true;
   error.value = "";
   try {
-    const res = await authedFetch<{ payouts: PayoutBatch[]; totals: Record<string, number> }>(
+    const res = await mcFetch<{ payouts: PayoutBatch[]; totals: Record<string, number> }>(
       "/api/payouts/list",
     );
     payouts.value = res.payouts;
@@ -162,8 +169,10 @@ const load = async () => {
   }
 };
 
-// isAdmin depends on the auth listener, so wait for the user before loading.
-watch(user, load, { immediate: true });
+// Keyed on the staff session, not the Firebase user: a staff-only account
+// never signs into Firebase, so watching `user` would leave this page
+// permanently loading for exactly the people it's built for.
+watch(() => me.value?.permissions, load, { immediate: true });
 
 const visible = computed(() => payouts.value.filter((p) => p.status === tab.value));
 const countFor = (s: PayoutBatchStatus) => payouts.value.filter((p) => p.status === s).length;
@@ -188,17 +197,17 @@ const run = async (id: string, fn: () => Promise<unknown>) => {
 
 const execute = (p: PayoutBatch) =>
   confirm(`Send RM ${fmt(p.amount)} to ${p.recipient.name} (${p.recipient.bankName} ${p.recipient.bankAccountNumber})?`)
-    ? run(p.id, () => authedFetch("/api/payouts/execute", { method: "POST", body: { payoutId: p.id } }))
+    ? run(p.id, () => mcFetch("/api/payouts/execute", { method: "POST", body: { payoutId: p.id } }))
     : undefined;
 
 const refresh = (p: PayoutBatch) =>
-  run(p.id, () => authedFetch("/api/payouts/refresh", { method: "POST", body: { payoutId: p.id } }));
+  run(p.id, () => mcFetch("/api/payouts/refresh", { method: "POST", body: { payoutId: p.id } }));
 
 const markManual = (p: PayoutBatch) => {
   const reference = prompt(`Bank reference for the RM ${fmt(p.amount)} transfer to ${p.recipient.name}:`);
   if (!reference?.trim()) return;
   return run(p.id, () =>
-    authedFetch("/api/payouts/mark-manual", {
+    mcFetch("/api/payouts/mark-manual", {
       method: "POST",
       body: { payoutId: p.id, reference: reference.trim() },
     }),

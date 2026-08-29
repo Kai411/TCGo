@@ -16,6 +16,7 @@ import {
 import { requireUser } from "~/server/utils/auth";
 import { regionForState, totalForRegion } from "~/shared/shipping";
 import { quoteOrderShipping } from "~/server/utils/shipping";
+import { noteError } from "~/server/utils/oplog";
 
 // An order is payable while the seller hasn't shipped it. `pending` and
 // `confirmed` both mean "money not collected yet" — the seller confirming a
@@ -133,6 +134,16 @@ export default defineEventHandler(async (event) => {
   if (!res.ok) {
     const text = await res.text();
     console.error("[billplz] bill creation failed:", res.status, text);
+    noteError({
+      area: "payment",
+      severity: "critical",
+      code: "billplz.bill_create_failed",
+      message: `Billplz refused to create a bill (HTTP ${res.status}).`,
+      orderId,
+      userUid: caller.uid,
+      context: { httpStatus: res.status, response: text.slice(0, 400), amountSen: amount },
+      hint: "The buyer saw a payment error and could not check out. Check the Billplz collection id and API key.",
+    });
     throw createError({ statusCode: 502, message: "Payment provider error" });
   }
   const bill = (await res.json()) as { id: string; url: string };

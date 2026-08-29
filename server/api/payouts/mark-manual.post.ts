@@ -4,12 +4,13 @@
 // a manual payout with no reference isn't an audit trail.
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
-import { requireAdmin } from "~/server/utils/auth";
+import { requireStaff } from "~/server/utils/staff-auth";
+import { noteAction } from "~/server/utils/oplog";
 import { settlePayout } from "~/server/utils/payouts";
 import type { PayoutBatch } from "~/shared/payout-ledger";
 
 export default defineEventHandler(async (event) => {
-  const admin = await requireAdmin(event);
+  const actor = await requireStaff(event, "payouts.manual");
   const { payoutId, reference } = (await readBody(event)) as {
     payoutId?: string;
     reference?: string;
@@ -29,7 +30,19 @@ export default defineEventHandler(async (event) => {
     return { ok: true, status: "paid", unchanged: true };
   }
 
-  await ref.update({ executedByUid: admin.uid, executedAt: batch.executedAt ?? Date.now() });
+  await ref.update({ executedByUid: actor.staffId,
+    executedByName: actor.name, executedAt: batch.executedAt ?? Date.now() });
   await settlePayout(db, ref, batch, "paid", { manualReference: ref_ });
+
+  noteAction({
+    area: "payout",
+    action: "payout.marked_manual",
+    actor,
+    subject: payoutId,
+    summary: `Recorded RM${batch.amount?.toFixed?.(2) ?? batch.amount} paid by hand (ref ${ref_}).`,
+    detail: { amount: batch.amount, reference: ref_, orderCount: batch.orderIds?.length },
+    event,
+  });
+
   return { ok: true, status: "paid" };
 });

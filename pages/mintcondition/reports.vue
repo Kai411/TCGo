@@ -1,7 +1,12 @@
 <template>
   <div class="max-w-4xl mx-auto">
     <div v-if="!isAdmin" class="text-center py-12">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg">Access denied.</p>
+      <p class="text-gray-500 dark:text-zinc-400 text-lg">
+        Your role doesn't include access to reports.
+      </p>
+      <p class="text-[13px] text-ink-soft dark:text-zinc-500 mt-1.5">
+        Ask an admin to grant it if you need it.
+      </p>
     </div>
 
     <template v-else>
@@ -196,19 +201,61 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: "admin" });
+definePageMeta({ layout: "admin", middleware: "mintcondition" });
 useHead({ title: "Reports — TCGo Admin" });
 
 import { REPORT_TYPES } from "~/composables/useReports";
 
-const { isAdmin } = useAdmin();
-const {
-  pendingReports,
-  reviewedReports,
-  loading,
-  approveReport,
-  dismissReport,
-} = useAdminReports();
+const { me, can } = useStaffAuth();
+const isAdmin = computed(() => can("reports.view"));
+const { mcFetch } = useMcFetch();
+
+// Loaded through the server rather than the live Firestore listener the
+// marketplace admin used: a staff session has no Firebase identity, so the
+// client-side query the composable runs is denied by the rules before it
+// returns a single document.
+const reports = ref<any[]>([]);
+const loading = ref(true);
+const loadError = ref("");
+
+const load = async () => {
+  if (!isAdmin.value) {
+    loading.value = false;
+    return;
+  }
+  loading.value = true;
+  loadError.value = "";
+  try {
+    const res = await mcFetch<{ reports: any[] }>("/api/mc/reports");
+    reports.value = res.reports;
+  } catch (e: any) {
+    loadError.value = e?.data?.message || e?.message || "Couldn't load reports.";
+  } finally {
+    loading.value = false;
+  }
+};
+watch(() => me.value?.permissions, load, { immediate: true });
+
+const pendingReports = computed(() => reports.value.filter((r) => r.status === "pending"));
+const reviewedReports = computed(() => reports.value.filter((r) => r.status !== "pending"));
+
+const review = async (
+  reportId: string,
+  verdict: "approved" | "dismissed",
+  penalty: number,
+  note: string,
+) => {
+  await mcFetch("/api/mc/reports/review", {
+    method: "POST",
+    body: { reportId, verdict, penalty, note },
+  });
+  await load();
+};
+
+const approveReport = (reportId: string, penalty: number, note: string) =>
+  review(reportId, "approved", penalty, note);
+const dismissReport = (reportId: string, note: string) =>
+  review(reportId, "dismissed", 0, note);
 
 const tab = ref<"pending" | "reviewed">("pending");
 const penaltyInputs = ref<Record<string, number>>({});

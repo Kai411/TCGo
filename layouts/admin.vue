@@ -20,7 +20,35 @@
             >Admin</span
           >
         </div>
+
+        <div v-if="me?.signedIn" class="flex items-center gap-2 shrink-0">
+          <NuxtLink
+            to="/mintcondition/account"
+            class="hidden sm:flex flex-col items-end leading-tight group"
+          >
+            <span class="text-[11px] font-mono font-bold group-hover:underline">{{ me.staffId }}</span>
+            <span class="text-[10px] text-ink-soft dark:text-zinc-500">{{ me.roleName }}</span>
+          </NuxtLink>
+          <button
+            class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border border-black/[0.08] dark:border-white/[0.10] text-ink-muted dark:text-zinc-300"
+            @click="logout"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
+
+      <!-- The bridge is meant to be temporary; saying so is the only thing
+           that stops it quietly becoming permanent. -->
+      <p
+        v-if="me?.legacy"
+        class="px-4 pb-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-400"
+      >
+        Signed in through the marketplace admin bridge, not a staff account.
+        Create one on
+        <NuxtLink to="/mintcondition/staff" class="underline font-semibold">Staff</NuxtLink>
+        and use that instead.
+      </p>
     </header>
 
     <div class="lg:flex">
@@ -142,16 +170,34 @@ const IconChart = () =>
     h("line", { x1: "6", y1: "20", x2: "6", y2: "14" }),
   ]);
 
-const navItems = [
-  { to: "/mintcondition", label: "Overview", icon: IconDashboard, exact: true },
-  { to: "/mintcondition/payouts", label: "Payouts", icon: IconWallet },
-  { to: "/mintcondition/reports", label: "Reports", icon: IconFlag },
+const IconList = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("line", { x1: "8", y1: "6", x2: "21", y2: "6" }),
+    h("line", { x1: "8", y1: "12", x2: "21", y2: "12" }),
+    h("line", { x1: "8", y1: "18", x2: "21", y2: "18" }),
+    h("line", { x1: "3", y1: "6", x2: "3.01", y2: "6" }),
+    h("line", { x1: "3", y1: "12", x2: "3.01", y2: "12" }),
+    h("line", { x1: "3", y1: "18", x2: "3.01", y2: "18" }),
+  ]);
+
+const { me, can, logout } = useStaffAuth();
+
+// Hiding a link isn't access control — the server rejects the call regardless.
+// It's so nobody spends their day clicking into pages that will only tell them
+// no.
+const allNav = [
+  { to: "/mintcondition", label: "Overview", icon: IconDashboard, exact: true, perm: "overview.view" },
+  { to: "/mintcondition/payouts", label: "Payouts", icon: IconWallet, perm: "payouts.view" },
+  { to: "/mintcondition/reports", label: "Reports", icon: IconFlag, perm: "reports.view" },
+  { to: "/mintcondition/logs", label: "Logs", icon: IconList, perm: "logs.view" },
+  { to: "/mintcondition/staff", label: "Staff", icon: IconUsers, perm: "staff.view" },
 ];
+
+const navItems = computed(() => allNav.filter((i) => can(i.perm)));
 
 // Signposts for what this dashboard is meant to grow into, so the nav doesn't
 // silently imply these already exist somewhere else.
 const soonItems: { label: string; icon: any }[] = [
-  { label: "Users", icon: IconUsers },
   { label: "Accounting", icon: IconChart },
 ];
 

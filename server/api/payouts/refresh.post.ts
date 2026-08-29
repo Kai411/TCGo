@@ -5,13 +5,13 @@
 // call repeatedly (settling is idempotent on the batch's status).
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
-import { requireAdmin } from "~/server/utils/auth";
+import { requireStaff } from "~/server/utils/staff-auth";
 import { getMassPaymentInstruction, mapInstructionStatus } from "~/server/utils/billplz";
 import { settlePayout } from "~/server/utils/payouts";
 import type { PayoutBatch } from "~/shared/payout-ledger";
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event);
+  await requireStaff(event, "payouts.view");
   const { payoutId } = (await readBody(event)) as { payoutId?: string };
   if (!payoutId) throw createError({ statusCode: 400, message: "payoutId required" });
 

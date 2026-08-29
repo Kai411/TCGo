@@ -1,7 +1,12 @@
 <template>
   <div class="max-w-6xl mx-auto">
     <div v-if="!isAdmin" class="text-center py-12">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg">Access denied.</p>
+      <p class="text-gray-500 dark:text-zinc-400 text-lg">
+        Your role doesn't include access to the dashboard.
+      </p>
+      <p class="text-[13px] text-ink-soft dark:text-zinc-500 mt-1.5">
+        Ask an admin to grant it if you need it.
+      </p>
     </div>
 
     <template v-else>
@@ -297,7 +302,7 @@
 import { MARKETPLACE_MONTHLY, POS_MONTHLY, BETA_RATE } from "~/shared/pricing";
 import type { FinanceSummary, TopUpProjection, SstPosition } from "~/shared/finance";
 
-definePageMeta({ layout: "admin" });
+definePageMeta({ layout: "admin", middleware: "mintcondition" });
 useHead({ title: "Operations — TCGo Admin" });
 
 interface Overview {
@@ -318,9 +323,9 @@ interface Overview {
   counts: { users: number; orders: number; payoutsQueued: number };
 }
 
-const { isAdmin } = useAdmin();
-const { user } = useAuth();
-const { authedFetch } = useAuthedFetch();
+const { me, can } = useStaffAuth();
+const isAdmin = computed(() => can("finance.view"));
+const { mcFetch } = useMcFetch();
 
 const data = ref<Overview | null>(null);
 const loading = ref(false);
@@ -361,7 +366,7 @@ const load = async () => {
   loading.value = true;
   error.value = "";
   try {
-    data.value = await authedFetch<Overview>("/api/admin/overview");
+    data.value = await mcFetch<Overview>("/api/admin/overview");
   } catch (e: any) {
     error.value = e?.data?.message || e?.message || "Couldn't load the dashboard.";
   } finally {
@@ -369,8 +374,10 @@ const load = async () => {
   }
 };
 
-// isAdmin depends on the auth listener, so wait for the user before loading.
-watch(user, load, { immediate: true });
+// Keyed on the staff session, not the Firebase user: a staff-only account
+// never signs into Firebase, so watching `user` would leave this page
+// permanently loading for exactly the people it's built for.
+watch(() => me.value?.permissions, load, { immediate: true });
 
 const fmt = (n: number) =>
   n.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });

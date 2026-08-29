@@ -10,6 +10,7 @@
 
 import crypto from "node:crypto";
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
+import { noteError } from "~/server/utils/oplog";
 import {
   DIDIT_WEBHOOK_MAX_SKEW_SECONDS,
   kycStatusFor,
@@ -91,6 +92,14 @@ export default defineEventHandler(async (event) => {
     crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
   if (!ok) {
     console.error("[didit webhook] bad signature", { sessionId: parsed?.session_id });
+    noteError({
+      area: "kyc",
+      severity: "critical",
+      code: "didit.bad_signature",
+      message: "A Didit webhook arrived with an invalid signature and was rejected.",
+      context: { sessionId: parsed?.session_id },
+      hint: "Either the webhook secret is out of step with Didit's dashboard, or someone is posting forged verification results.",
+    });
     throw createError({ statusCode: 401, message: "Invalid signature" });
   }
 
@@ -129,6 +138,14 @@ export default defineEventHandler(async (event) => {
   if (uid.includes("/") || /^__.*__$/.test(uid) || uid.length > 1500) {
     console.error("[didit webhook] unusable vendor_data, dropping", {
       sessionId: parsed.session_id,
+    });
+    noteError({
+      area: "kyc",
+      severity: "error",
+      code: "didit.unusable_vendor_data",
+      message: "A Didit verification result carried a uid we can't address, so it was dropped.",
+      context: { sessionId: parsed.session_id },
+      hint: "That person's verification will never apply. Have them start again.",
     });
     return { ok: true, ignored: "unusable vendor_data" };
   }

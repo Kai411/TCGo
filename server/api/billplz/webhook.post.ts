@@ -12,6 +12,7 @@ import { verifyBillplzSignature } from "~/server/utils/billplz";
 import { computeSellerPayout, platformFeeFor } from "~/shared/payouts";
 import { bookShipmentForOrder } from "~/server/utils/book-shipment";
 import { sendInvoiceForOrder } from "~/server/utils/send-invoice";
+import { noteError } from "~/server/utils/oplog";
 
 export default defineEventHandler(async (event) => {
   const body = (await readBody(event)) as Record<string, string>;
@@ -43,6 +44,14 @@ export default defineEventHandler(async (event) => {
     .get();
   if (orders.empty) {
     console.error("[billplz webhook] no order for bill", billId);
+    noteError({
+      area: "payment",
+      severity: "error",
+      code: "billplz.orphan_callback",
+      message: `Billplz reported a payment for bill ${billId} with no matching order.`,
+      context: { billId },
+      hint: "Money may have been collected against a deleted or re-created order. Reconcile against the Billplz dashboard.",
+    });
     return { ok: true, ignored: "order not found" };
   }
   const orderRef = orders.docs[0].ref;
@@ -65,6 +74,15 @@ export default defineEventHandler(async (event) => {
       "[billplz webhook] amount mismatch",
       { billId, expectedSen, paidSen },
     );
+    noteError({
+      area: "payment",
+      severity: "critical",
+      code: "billplz.amount_mismatch",
+      message: `Billplz collected ${paidSen} sen for an order priced at ${expectedSen} sen.`,
+      orderId: orderRef.id,
+      context: { billId, expectedSen, paidSen },
+      hint: "The order was NOT settled and no cards were marked sold. Refund or collect the difference, then settle by hand.",
+    });
     await orderRef.update({
       paymentAmountMismatch: { expectedSen, paidSen, at: Date.now() },
     });
@@ -148,6 +166,15 @@ export default defineEventHandler(async (event) => {
     }
   } catch (e: any) {
     console.error("[billplz webhook] shipment booking failed:", e?.message || e);
+    noteError({
+      area: "shipping",
+      severity: "error",
+      code: "shipping.autobook_failed",
+      message: `Couldn't book the courier automatically after payment: ${e?.message || e}`,
+      orderId: orderRef.id,
+      error: e,
+      hint: "The buyer has paid but there's no waybill. The seller can retry from the order page, or book it by hand.",
+    });
     shipment = { booked: false, reason: e?.message || "Booking failed" };
   }
 
@@ -161,6 +188,15 @@ export default defineEventHandler(async (event) => {
     if (!mail.sent) console.warn("[billplz webhook] invoice not emailed:", mail.reason);
   } catch (e: any) {
     console.error("[billplz webhook] invoice email failed:", e?.message || e);
+    noteError({
+      area: "email",
+      severity: "warning",
+      code: "email.invoice_failed",
+      message: `Invoice email failed to send: ${e?.message || e}`,
+      orderId: orderRef.id,
+      error: e,
+      hint: "The payment itself went through. Resend the invoice from the order once mail is working.",
+    });
   }
 
   return { ok: true, shipmentBooked: shipment.booked, invoiceEmailed };

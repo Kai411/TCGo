@@ -7,11 +7,11 @@
 // bank details or anything Didit holds on our behalf.
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
-import { requireAdmin } from "~/server/utils/auth";
+import { requireStaff } from "~/server/utils/staff-auth";
 import type { KycStatus } from "~/shared/didit";
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event);
+  await requireStaff(event, "identity.view");
 
   const uid = String(getQuery(event).uid || "").trim();
   if (!uid || uid.includes("/") || /^__.*__$/.test(uid)) {

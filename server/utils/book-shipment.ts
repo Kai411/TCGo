@@ -18,6 +18,7 @@ import {
 import { quoteOrderShipping } from "~/server/utils/shipping";
 import { stateName } from "~/shared/my-states";
 import { PARCEL_DIMS, parcelWeightKg } from "~/shared/parcel";
+import { noteError } from "~/server/utils/oplog";
 
 // Couriers don't collect on Sundays; schedule the next working day. Delyva
 // wants ISO8601 with an explicit offset, and MY is always +0800.
@@ -183,6 +184,15 @@ export const bookShipmentForOrder = async (
     await orderRef.update({
       shipmentClaimedAt: null,
       shipmentError: e?.message || "Booking failed",
+    });
+    noteError({
+      area: "shipping",
+      severity: "error",
+      code: "shipping.book_failed",
+      message: `Courier booking failed for order ${orderId}: ${e?.message || e}`,
+      orderId,
+      error: e,
+      hint: "The claim was released, so a retry is safe. Check the Delyva balance and the pickup address.",
     });
     throw e;
   }

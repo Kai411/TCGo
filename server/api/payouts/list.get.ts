@@ -1,13 +1,13 @@
 // Admin payout queue. Served from the server (rather than read directly from
-// the browser) so full bank details are only ever exposed behind requireAdmin,
-// regardless of what the Firestore rules allow.
+// the browser) so full bank details are only ever exposed behind the
+// payouts.view permission, regardless of what the Firestore rules allow.
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
-import { requireAdmin } from "~/server/utils/auth";
+import { requireStaff } from "~/server/utils/staff-auth";
 import type { PayoutBatch } from "~/shared/payout-ledger";
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event);
+  await requireStaff(event, "payouts.view");
   const db = getAdminFirestore();
 
   const snap = await db

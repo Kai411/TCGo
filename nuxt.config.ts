@@ -215,6 +215,10 @@ export default defineNuxtConfig({
     // The workflow id is per-session config, not a secret — see shared/didit.ts.
     diditApiKey: "",
     diditWebhookSecret: "",
+    // Shared secret for scheduled jobs (the automatic payout runner). Empty
+    // means the scheduled path is refused outright — automation you forgot to
+    // configure should not be automation anyone can trigger.
+    cronSecret: "",
     // Delyva (courier aggregator) — live shipping quotes at checkout.
     // delyvaApiBase empty = production; set it to the sandbox base URL
     // (with matching sandbox credentials) to test without real money.

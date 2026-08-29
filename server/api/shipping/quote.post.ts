@@ -14,6 +14,7 @@ import { delyvaQuote } from "~/server/utils/delyva";
 import { parcelWeightKg } from "~/shared/parcel";
 import { stateName } from "~/shared/my-states";
 import { quoteForOrder, type HandoverPreference } from "~/shared/shipping-quote";
+import { noteError } from "~/server/utils/oplog";
 
 export default defineEventHandler(async (event) => {
   await requireUser(event);
@@ -64,6 +65,24 @@ export default defineEventHandler(async (event) => {
     seller.handoverPreference === "pickup" ? "pickup" : "dropoff";
   const quote = quoteForOrder(rates, preference, seller.preferredCouriers ?? []);
   if (!quote) {
+    // A checkout that can't be completed, so it's worth seeing even though
+    // nothing technically errored — a route with no coverage looks identical
+    // to a misconfigured courier list from the buyer's side.
+    noteError({
+      area: "shipping",
+      severity: "warning",
+      code: "shipping.no_courier",
+      message: `No courier available ${seller.pickupPostcode} → ${destination.postcode}.`,
+      userUid: sellerUid,
+      context: {
+        fromPostcode: String(seller.pickupPostcode),
+        toPostcode: String(destination.postcode),
+        weightKg,
+        ratesReturned: rates.length,
+        preference,
+      },
+      hint: "The buyer couldn't check out. Check the seller's preferred couriers and the Delyva service coverage.",
+    });
     return { available: false, reason: "No courier serves this route right now." };
   }
 

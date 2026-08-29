@@ -10,7 +10,7 @@
 // this should become a nightly rollup document rather than a live scan.
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
-import { requireAdmin } from "~/server/utils/auth";
+import { requireStaff } from "~/server/utils/staff-auth";
 import {
   summariseFinance,
   projectTopUp,
@@ -33,7 +33,7 @@ const DAY = 24 * 60 * 60 * 1000;
 const dayKey = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event);
+  await requireStaff(event, "finance.view");
   const db = getAdminFirestore();
   const now = Date.now();
 
