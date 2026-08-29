@@ -1,0 +1,259 @@
+rules_version = '2';
+
+// TCGo Firestore security rules.
+//
+// WHY THIS FILE EXISTS
+// Listings, auctions and inventory are written straight from the browser with
+// addDoc — there is no server route in the path. That makes every check in the
+// Vue pages a UX convenience, not a control: an authenticated user can open
+// devtools and write whatever they like. These rules are the only thing that
+// actually enforces "you must be verified to sell".
+//
+// The Firebase Admin SDK bypasses rules entirely, so every Nitro route (the
+// Billplz webhook, the Didit webhook, payouts, shipping) keeps working
+// untouched. Anything that must not be self-served is written server-side.
+//
+// DEPLOY:  firebase deploy --only firestore:rules
+// A collection with no match block below is DENIED — add one before shipping
+// a new collection.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // Keep in sync with shared/admins.ts.
+    function isAdmin() {
+      return signedIn() &&
+        request.auth.uid in ['sFXZjtYD13dT2DYE7XDaTwtx4Dn1'];
+    }
+
+    function profileOf(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    // The seller gate. kycStatus is written ONLY by the Didit webhook through
+    // the Admin SDK (see the users rules below), so this cannot be self-
+    // certified — which is the whole point.
+    function kycVerified() {
+      return signedIn() && profileOf(request.auth.uid).kycStatus == 'verified';
+    }
+
+    // Fields the client must never set or change on its own profile. Each is
+    // written by a server route holding evidence the browser doesn't have:
+    // the Didit webhook (kyc*), the Stripe webhook (tier/subscription*), and
+    // admin moderation (trustScore).
+    function protectedProfileFields() {
+      return [
+        'kycStatus', 'kycStatusAt', 'kycVerifiedAt', 'kycVerifiedName',
+        'kycSessionId', 'kycStartedAt', 'kycDocumentType', 'kycIssuingState',
+        'kycDeclineReason',
+        'tier', 'subscriptionStatus', 'stripeCustomerId',
+        'stripeSubscriptionId', 'currentPeriodEnd', 'cancelAtPeriodEnd',
+        'trustScore'
+      ];
+    }
+
+    // Favouriting and view-interest bump counters on someone else's listing.
+    // That's engagement, not editing, so it's allowed for any signed-in user —
+    // but ONLY these keys, and hasOnly means nothing else may ride along.
+    function onlyEngagementCounters() {
+      return signedIn() && request.resource.data.diff(resource.data)
+        .affectedKeys().hasOnly(['favouriteCount', 'interestedCount'].toSet());
+    }
+
+    function touchesProtectedProfileFields() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys().hasAny(protectedProfileFields().toSet());
+    }
+
+    // ── users ────────────────────────────────────────────────────────
+    //
+    // NOTE (known gap, tracked separately): reads are open to any signed-in
+    // user because public profile pages render another seller's name, photo
+    // and trust score, and Firestore cannot filter fields on read. That means
+    // identityNumber and bank details on this document are readable by any
+    // authenticated user. The fix is to move those into a
+    // users/{uid}/private/* subdocument — done as its own change, because it
+    // needs a data migration. These rules do not make that worse; they stop
+    // it being writable, which is the part that matters for the seller gate.
+    match /users/{uid} {
+      allow read: if signedIn();
+
+      // A new profile is created by the client on first sign-in, and that
+      // document legitimately carries tier and trustScore — so pin their
+      // values rather than forbidding the keys, and forbid the rest outright.
+      // Nobody self-issues a verified, premium, high-trust account.
+      allow create: if isOwner(uid)
+        && request.resource.data.get('tier', 'free') == 'free'
+        && request.resource.data.get('trustScore', 100) == 100
+        && !request.resource.data.keys().hasAny([
+             'kycStatus', 'kycStatusAt', 'kycVerifiedAt', 'kycVerifiedName',
+             'kycSessionId', 'kycStartedAt', 'kycDocumentType',
+             'kycIssuingState', 'kycDeclineReason',
+             'subscriptionStatus', 'stripeCustomerId', 'stripeSubscriptionId',
+             'currentPeriodEnd', 'cancelAtPeriodEnd'
+           ].toSet());
+
+      allow update: if isOwner(uid) && !touchesProtectedProfileFields();
+      allow delete: if false;
+
+      // Reserved for the sensitive-fields migration noted above.
+      match /private/{docId} {
+        allow read, write: if false; // server (Admin SDK) only
+      }
+    }
+
+    // ── cards (marketplace listings) ─────────────────────────────────
+    //
+    // THE SELLER GATE. Creating a listing requires a verified identity.
+    match /cards/{cardId} {
+      allow read: if true; // public shop
+
+      allow create: if isOwner(request.resource.data.sellerUid)
+        && kycVerified();
+
+      // Edits stay with the seller, and the listing can't be handed to
+      // someone else. `sold` is flipped by the payment webhook server-side.
+      allow update: if isAdmin()
+        || onlyEngagementCounters()
+        || (isOwner(resource.data.sellerUid)
+            && kycVerified()
+            && request.resource.data.sellerUid == resource.data.sellerUid);
+
+      allow delete: if isAdmin() || isOwner(resource.data.sellerUid);
+    }
+
+    // ── auctions ─────────────────────────────────────────────────────
+    // Same gate. Bids live in RTDB and are governed by its own rules.
+    match /auctions/{auctionId} {
+      allow read: if true;
+
+      allow create: if isOwner(request.resource.data.sellerUid)
+        && kycVerified();
+
+      allow update: if isAdmin()
+        || onlyEngagementCounters()
+        || (isOwner(resource.data.sellerUid)
+            && kycVerified()
+            && request.resource.data.sellerUid == resource.data.sellerUid);
+
+      allow delete: if isAdmin() || isOwner(resource.data.sellerUid);
+    }
+
+    // ── inventory (private stock ledger) ─────────────────────────────
+    //
+    // Deliberately NOT behind the KYC gate: cataloguing what you own isn't
+    // selling, and making people verify before they can even try the POS or
+    // scanner would cost us users for no safety gain. The gate belongs on the
+    // moment stock becomes publicly purchasable — cards and auctions above.
+    match /inventory/{itemId} {
+      allow read: if isOwner(resource.data.userUid) || isAdmin();
+      allow create: if isOwner(request.resource.data.userUid);
+      allow update: if isOwner(resource.data.userUid)
+        && request.resource.data.userUid == resource.data.userUid;
+      allow delete: if isOwner(resource.data.userUid) || isAdmin();
+    }
+
+    // ── compiledOrders ───────────────────────────────────────────────
+    //
+    // Buyers create orders from the cart; both parties read their own. Money
+    // fields (status, paidAt, payout*, shipment*, billplz*) are written only
+    // by server routes through the Admin SDK, so the narrow client updates
+    // allowed here can't settle an order or move a payout along.
+    match /compiledOrders/{orderId} {
+      allow read: if isAdmin()
+        || isOwner(resource.data.buyerUid)
+        || isOwner(resource.data.sellerUid);
+
+      allow create: if isOwner(request.resource.data.buyerUid)
+        && request.resource.data.status == 'pending';
+
+      // Buyer may edit an unpaid order (add items, set the address) or cancel
+      // it. Separately the buyer confirms receipt on a shipped order — that
+      // one matters: it's what starts the payout hold clock, so it has to stay
+      // the buyer's to give and cannot be the seller declaring their own
+      // parcel delivered. Everything involving money settles server-side.
+      allow update: if isAdmin()
+        || (isOwner(resource.data.buyerUid)
+            && resource.data.status == 'pending')
+        || (isOwner(resource.data.buyerUid)
+            && resource.data.status == 'shipped'
+            && request.resource.data.status == 'delivered')
+        || (isOwner(resource.data.sellerUid)
+            && request.resource.data.status in ['shipped', 'delivered', 'cancelled']);
+
+      allow delete: if isAdmin();
+    }
+
+    // ── orders (legacy, pre-compiledOrders) ──────────────────────────
+    match /orders/{orderId} {
+      allow read: if isAdmin()
+        || isOwner(resource.data.buyerUid)
+        || isOwner(resource.data.sellerUid);
+      allow create: if isOwner(request.resource.data.buyerUid);
+      allow update: if isAdmin()
+        || isOwner(resource.data.buyerUid)
+        || isOwner(resource.data.sellerUid);
+      allow delete: if isAdmin();
+    }
+
+    // ── favourites ───────────────────────────────────────────────────
+    match /favourites/{favId} {
+      allow read: if signedIn();
+      allow create: if isOwner(request.resource.data.userId);
+      allow update: if isOwner(resource.data.userId);
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // ── userCollection (personal collection tracking) ────────────────
+    match /userCollection/{entryId} {
+      allow read: if isOwner(resource.data.userUid) || isAdmin();
+      allow create: if isOwner(request.resource.data.userUid);
+      allow update: if isOwner(resource.data.userUid)
+        && request.resource.data.userUid == resource.data.userUid;
+      allow delete: if isOwner(resource.data.userUid);
+    }
+
+    // ── reports (user moderation) ────────────────────────────────────
+    //
+    // A reporter may file and read their own; only an admin may review. The
+    // verdict fields are admin-only so nobody can dismiss a report about
+    // themselves.
+    match /reports/{reportId} {
+      allow read: if isAdmin() || isOwner(resource.data.reporterUid);
+      allow create: if isOwner(request.resource.data.reporterUid)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.reportedUid != request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── server-only collections ──────────────────────────────────────
+    //
+    // The Admin SDK ignores rules, so denying everything here costs the
+    // server nothing and keeps payout ledgers and webhook receipts entirely
+    // out of the browser's reach. Admins read payouts through
+    // /api/payouts/list, which returns bank details behind requireAdmin.
+    match /payouts/{payoutId} {
+      allow read, write: if false;
+    }
+
+    match /webhookEvents/{eventId} {
+      allow read, write: if false;
+    }
+
+    // Deny anything not matched above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

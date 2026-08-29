@@ -64,6 +64,10 @@
                   <strong>{{ report.reporterName }}</strong> reported
                   <strong>{{ report.reportedName }}</strong>
                 </p>
+                <AdminIdentityPanel
+                  :uid="report.reportedUid"
+                  :name="report.reportedName"
+                />
               </div>
               <span class="text-xs text-gray-400 dark:text-zinc-500">{{
                 formatDate(report.createdAt)

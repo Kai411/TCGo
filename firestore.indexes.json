@@ -1,0 +1,15 @@
+{
+  "indexes": [
+    {
+      "comment": "Seller payout query: /api/payouts/request filters by seller, method and status.",
+      "collectionGroup": "compiledOrders",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sellerUid", "order": "ASCENDING" },
+        { "fieldPath": "paymentMethod", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
