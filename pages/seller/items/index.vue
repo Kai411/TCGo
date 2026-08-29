@@ -40,7 +40,7 @@
             class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors"
           >
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-            Add card
+            Add inventory
           </button>
         </div>
       </div>
@@ -91,125 +91,75 @@
           </p>
         </div>
 
-        <!-- Enter manually: search the catalogue first, hand-entry as the
-             fallback underneath. Same shape as the Listings/Auctions form,
-             where the catalogue picker also sits at the top of manual entry. -->
-        <div v-else>
-          <form @submit.prevent="runSearch" class="flex gap-2">
-            <input
-              v-model="searchInput"
-              type="search"
-              enterkeyhint="search"
-              placeholder='Search the catalogue — e.g. "charizard 151"'
-              class="tcgo-input flex-1 min-w-0"
+        <!-- Enter manually: the same form Listings uses (catalogue search on
+             top, product type, card details, print details), so adding to
+             inventory and listing a card look and behave identically. The only
+             differences: photos are optional here, and nothing is published. -->
+        <form v-else @submit.prevent="addManual" class="space-y-4">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <CardFormFields
+              v-model="cardForm"
+              @import-image="handleImportImage"
+              @catalog-select="handleCatalogSelect"
             />
-            <button type="submit" class="shrink-0 px-4 py-2 rounded-lg text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink">
-              Search
-            </button>
-          </form>
-          <div v-if="searchLoading" class="flex justify-center py-5">
-            <div class="animate-spin rounded-full h-5 w-5 border-2 border-ink/10 border-t-pokemon-red" />
-          </div>
-          <div
-            v-if="searchResults.length"
-            class="mt-3 flex items-center justify-between gap-3"
-          >
-            <p class="text-[11px] text-ink-muted dark:text-zinc-400 tabular-price">
-              {{ searchTotal }} result{{ searchTotal === 1 ? "" : "s" }}
-            </p>
-            <div v-if="searchTotalPages > 1" class="flex items-center gap-1">
-              <button
-                type="button"
-                :disabled="searchPage === 0 || searchLoading"
-                @click="goToSearchPage(searchPage - 1)"
-                aria-label="Previous page"
-                class="p-1 rounded-md text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-              </button>
-              <span class="text-[11px] font-semibold tabular-price text-ink dark:text-white min-w-[3.5rem] text-center">
-                {{ searchPage + 1 }} / {{ searchTotalPages }}
-              </span>
-              <button
-                type="button"
-                :disabled="searchPage >= searchTotalPages - 1 || searchLoading"
-                @click="goToSearchPage(searchPage + 1)"
-                aria-label="Next page"
-                class="p-1 rounded-md text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-              </button>
+
+            <!-- Photos (optional for stock; the catalogue image is the fallback) -->
+            <div class="surface rounded-2xl p-5 space-y-3 lg:col-span-2">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-bold text-ink dark:text-zinc-100">Photos <span class="text-ink-muted dark:text-zinc-400 font-normal">(optional)</span></h3>
+                <span class="text-xs text-gray-400 dark:text-zinc-500">{{ selectedFiles.length }}/{{ MAX_PHOTOS }}</span>
+              </div>
+              <input ref="fileInput" type="file" accept="image/*" multiple class="hidden" @change="handleFileSelect" />
+              <div class="grid grid-cols-4 gap-2">
+                <label
+                  v-if="selectedFiles.length < MAX_PHOTOS"
+                  class="cursor-pointer aspect-[5/7] rounded-lg border-2 border-dashed border-gray-300 dark:border-white/[0.10] flex flex-col items-center justify-center gap-1 text-gray-400 dark:text-zinc-500 hover:border-pokemon-blue hover:text-pokemon-blue transition-colors"
+                  @click="fileInput?.click()"
+                >
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+                  <span class="text-[10px] font-medium">Add</span>
+                </label>
+                <div v-for="(file, index) in selectedFiles" :key="index" class="relative group aspect-[5/7]">
+                  <img :src="file.preview" class="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-white/[0.08]" />
+                  <button
+                    type="button"
+                    @click="removeFile(index)"
+                    class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                  >✕</button>
+                </div>
+                <div v-if="!selectedFiles.length && importedImageUrl" class="relative aspect-[5/7]" title="Catalogue image">
+                  <CardImage :src="importedImageUrl" :alt="cardForm.cardName" />
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 dark:text-zinc-500">PNG, JPG, WEBP · up to 5 MB each · without a photo the catalogue image is used</p>
+            </div>
+
+            <!-- Cost / list price -->
+            <div class="surface rounded-2xl p-5">
+              <FormField label="List price (RM)">
+                <div class="relative">
+                  <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500 dark:text-zinc-400 pointer-events-none">RM</span>
+                  <input v-model.number="manualPrice" type="number" min="0" step="0.01" placeholder="0.00" class="tcgo-input pl-10 tabular-price" />
+                </div>
+              </FormField>
+              <p class="text-xs text-gray-400 dark:text-zinc-500 mt-2">
+                Used as the asking price when you list this item later. You can change it any time from the table.
+              </p>
             </div>
           </div>
-          <div v-if="searchResults.length" class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <button
-              v-for="card in searchResults"
-              :key="card.productId"
-              type="button"
-              @click="quickAdd(card)"
-              class="text-left surface rounded-xl overflow-hidden hover:border-pokemon-red transition-colors"
-            >
-              <div class="aspect-[2.5/3.5]"><CardImage :src="card.imageUrl" :alt="card.name" /></div>
-              <div class="p-2">
-                <p class="text-[11px] font-semibold truncate text-ink dark:text-white">{{ card.name }}</p>
-                <p class="text-[10px] text-ink-muted dark:text-zinc-400 truncate">{{ card.setName }}</p>
-                <p v-if="card.price" class="text-[11px] font-bold text-ink dark:text-white tabular-price mt-0.5">
-                  RM {{ card.price.market.toFixed(2) }}
-                </p>
-                <p class="text-[11px] font-bold text-pokemon-red mt-0.5">+ Add</p>
-              </div>
-            </button>
+
+          <div v-if="manualError" class="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm">
+            {{ manualError }}
           </div>
 
-          <!-- Hand entry. Inventory had no route for anything the catalogue
-               doesn't carry (sealed product, oddities, non-English printings). -->
-          <div class="mt-5 pt-5 border-t border-black/[0.06] dark:border-white/[0.08]">
-            <button
-              type="button"
-              @click="handOpen = !handOpen"
-              class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
-              :aria-expanded="handOpen"
-            >
-              <svg class="w-3.5 h-3.5 transition-transform" :class="handOpen ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-              {{ searched && !searchResults.length ? "No match — add it by hand" : "Not in the catalogue? Add it by hand" }}
-            </button>
-
-            <form v-show="handOpen" class="grid sm:grid-cols-2 gap-3 mt-4" @submit.prevent="addByHand">
-              <FormField label="Card name" required class="sm:col-span-2">
-                <input v-model="handForm.cardName" type="text" required class="tcgo-input" placeholder="e.g. Charizard ex" />
-              </FormField>
-              <FormField label="Set">
-                <input v-model="handForm.setName" type="text" class="tcgo-input" placeholder="e.g. Obsidian Flames" />
-              </FormField>
-              <FormField label="Number">
-                <input v-model="handForm.number" type="text" class="tcgo-input tabular-price" placeholder="e.g. 199/165" />
-              </FormField>
-              <FormField label="Condition">
-                <select v-model="handForm.condition" class="tcgo-input">
-                  <option value="">Not set</option>
-                  <option v-for="c in UNGRADED_CONDITIONS" :key="c" :value="c">{{ c }}</option>
-                </select>
-              </FormField>
-              <FormField label="Quantity">
-                <input v-model.number="handForm.quantity" type="number" min="1" step="1" class="tcgo-input tabular-price" />
-              </FormField>
-              <FormField label="Cost / list price (RM)" class="sm:col-span-2">
-                <input v-model.number="handForm.listPrice" type="number" min="0" step="0.01" class="tcgo-input tabular-price" placeholder="0.00" />
-              </FormField>
-              <div class="sm:col-span-2 flex justify-end">
-                <button
-                  type="submit"
-                  :disabled="!handForm.cardName.trim() || handBusy"
-                  class="px-5 py-2.5 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-50"
-                >
-                  {{ handBusy ? "Adding…" : "Add to inventory" }}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          <button
+            type="submit"
+            :disabled="manualBusy || !cardForm.cardName.trim()"
+            class="w-full bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {{ manualBusy ? "Adding…" : "Add to inventory" }}
+          </button>
+        </form>
       </div>
 
       <CardScanner
@@ -230,7 +180,7 @@
         </p>
         <div class="mt-5 flex items-center justify-center gap-2">
           <NuxtLink to="/seller/import" class="px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors">Bulk add</NuxtLink>
-          <button @click="addOpen = true" class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200">Add manually</button>
+          <button @click="addOpen = true" class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200">Add inventory</button>
         </div>
       </div>
 
@@ -455,8 +405,8 @@
 <script setup lang="ts">
 import type { CatalogMatch } from "~/composables/useCardCatalog";
 import type { AddMethod } from "~/components/AddMethodPicker.vue";
+import type { CardFormData } from "~/components/CardFormFields.vue";
 import { FREE_SCAN_LIMIT } from "~/composables/useScanQuota";
-import { UNGRADED_CONDITIONS } from "~/composables/useCardConstants";
 import type { InventoryItem } from "~/composables/useInventory";
 
 definePageMeta({ layout: "seller" });
@@ -487,8 +437,9 @@ const {
   unlistItem,
   markItemSold,
   setLabelQueue,
+  syncListingsToInventory,
 } = useInventory();
-const { searchCatalog } = useCardCatalog();
+const { cards, loading: cardsLoading } = useCards();
 const { isPremium, remaining: scanRemaining } = useScanQuota();
 const { queue: scanQueue, clear: clearScanQueue } = useScanQueue();
 const { sellerReady } = useSellerKyc();
@@ -511,6 +462,20 @@ onMounted(() => {
 watch(user, (u) => {
   if (u) listenMyInventory();
 });
+
+// Every listing the seller owns must show up here too. Once both the
+// inventory and the marketplace feeds have loaded, mirror any listing that
+// has no inventory row (the composable makes this a once-per-uid no-op).
+watch(
+  [loading, cardsLoading, user],
+  ([invLoading, cLoading, u]) => {
+    if (invLoading || cLoading || !u) return;
+    syncListingsToInventory(cards.value).catch((e) =>
+      console.error("[inventory] listing sync failed:", e),
+    );
+  },
+  { immediate: true },
+);
 
 // ── Filter + pagination ───────────────────────────────────────────────
 const PAGE_SIZE = 20;
@@ -686,49 +651,122 @@ const addMode = ref<AddMethod>("scan");
 const scannerOpen = ref(false);
 const scanAdded = ref(0);
 
-// ── Enter by hand ─────────────────────────────────────────────────────
-const blankHandForm = () => ({
+// ── Enter manually: the Listings form, minus publishing ──────────────
+const blankCardForm = (): CardFormData => ({
+  productType: "Ungraded",
   cardName: "",
-  setName: "",
-  number: "",
+  cardSet: "",
+  cardNumber: "",
   condition: "",
+  gradingProvider: "",
+  grade: "",
+  customGradingProvider: "",
+  description: "",
+  language: "EN",
+  tcgType: "Pokemon",
+  rarity: "",
+  variant: "",
+  edition: "",
+  artist: "",
+  certNumber: "",
   quantity: 1,
-  listPrice: 0,
+  negotiable: false,
+  pickupAvailable: false,
 });
-const handForm = ref(blankHandForm());
-const handBusy = ref(false);
-const handOpenManual = ref(false);
-// Opens itself when a search found nothing — that's exactly the moment the
-// seller needs the fallback.
-const handOpen = computed({
-  get: () => handOpenManual.value || (searched.value && searchResults.value.length === 0),
-  set: (v: boolean) => (handOpenManual.value = v),
-});
+const cardForm = ref<CardFormData>(blankCardForm());
+const manualPrice = ref<number | null>(null);
+const manualBusy = ref(false);
+const manualError = ref("");
 
-const addByHand = async () => {
-  const name = handForm.value.cardName.trim();
-  if (!name || handBusy.value) return;
-  handBusy.value = true;
-  try {
-    await addItem({
-      // Explicitly null: a hand-entered item has no catalogue match, which is
-      // exactly what distinguishes it from a searched or scanned one.
-      productId: null,
-      cardName: name,
-      setName: handForm.value.setName.trim(),
-      number: handForm.value.number.trim(),
-      condition: handForm.value.condition,
-      quantity: Math.max(1, handForm.value.quantity || 1),
-      listPrice: handForm.value.listPrice || 0,
-      source: "manual",
-    });
-    handForm.value = blankHandForm();
-  } finally {
-    handBusy.value = false;
-  }
+// Catalogue pick: CardFormFields fills the text fields itself; we keep the
+// product id (for price history / QR labels) and the stock image.
+const importedImageUrl = ref("");
+const pickedProductId = ref<number | null>(null);
+const handleImportImage = (url: string) => {
+  importedImageUrl.value = url;
+};
+const handleCatalogSelect = (card: CatalogMatch) => {
+  pickedProductId.value = card.productId ?? null;
+  if (card.price?.market && !manualPrice.value) manualPrice.value = card.price.market;
 };
 
+// Photos — same picker as Listings, but optional here.
+interface SelectedFile {
+  file: File;
+  preview: string;
+}
+const MAX_PHOTOS = 3;
+const fileInput = ref<HTMLInputElement | null>(null);
+const selectedFiles = ref<SelectedFile[]>([]);
+const handleFileSelect = (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  if (!input.files) return;
+  for (const file of Array.from(input.files)) {
+    if (!file.type.startsWith("image/")) continue;
+    if (file.size > 5 * 1024 * 1024) {
+      manualError.value = `${file.name} is too large (max 5MB)`;
+      continue;
+    }
+    if (selectedFiles.value.length >= MAX_PHOTOS) {
+      manualError.value = `Maximum ${MAX_PHOTOS} photos`;
+      break;
+    }
+    selectedFiles.value.push({ file, preview: URL.createObjectURL(file) });
+  }
+  input.value = "";
+};
+const removeFile = (index: number) => {
+  URL.revokeObjectURL(selectedFiles.value[index].preview);
+  selectedFiles.value.splice(index, 1);
+};
 
+const resetManual = () => {
+  selectedFiles.value.forEach((f) => URL.revokeObjectURL(f.preview));
+  selectedFiles.value = [];
+  cardForm.value = blankCardForm();
+  manualPrice.value = null;
+  importedImageUrl.value = "";
+  pickedProductId.value = null;
+};
+
+const addManual = async () => {
+  manualError.value = "";
+  const f = cardForm.value;
+  const name = f.cardName.trim();
+  if (!name || manualBusy.value) return;
+  manualBusy.value = true;
+  try {
+    const photos: string[] = [];
+    for (const sf of selectedFiles.value) photos.push(await uploadImage(sf.file));
+    // Ungraded → condition; Graded → "PSA 10"-style label so the table
+    // still shows something meaningful in the condition column.
+    const condition =
+      f.productType === "Graded" && f.gradingProvider
+        ? [f.gradingProvider === "Others" ? f.customGradingProvider : f.gradingProvider, f.grade]
+            .filter(Boolean)
+            .join(" ")
+        : f.condition;
+    await addItem({
+      productId: pickedProductId.value,
+      cardName: name,
+      setName: f.cardSet.trim(),
+      number: f.cardNumber.trim(),
+      rarity: f.rarity || "",
+      condition,
+      quantity: Math.max(1, f.quantity || 1),
+      listPrice: manualPrice.value || 0,
+      stockImageUrl: importedImageUrl.value,
+      photos,
+      notes: f.description || "",
+      source: "manual",
+    });
+    resetManual();
+  } catch (e: any) {
+    manualError.value = e?.message || "Could not add this item.";
+  } finally {
+    manualBusy.value = false;
+  }
+};
 
 const closeAdd = () => {
   addOpen.value = false;
@@ -760,69 +798,7 @@ const onScanFinished = async () => {
   clearScanQueue();
 };
 
-// ── Manual add via catalog search ─────────────────────────────────────
 const addOpen = ref(false);
-const searchInput = ref("");
-const searchResults = ref<CatalogMatch[]>([]);
-const searchLoading = ref(false);
-const searched = ref(false);
-
-// Same page size and pager as CardSearchPicker, so adding a card behaves
-// identically here and in the Listings/Auctions form.
-const SEARCH_PAGE_SIZE = 8;
-const searchTotal = ref(0);
-const searchPage = ref(0);
-const lastSearchQuery = ref("");
-
-const searchTotalPages = computed(() =>
-  Math.max(1, Math.ceil(searchTotal.value / SEARCH_PAGE_SIZE)),
-);
-
-/** Fetch one page, replacing what's on screen. */
-const fetchSearchPage = async (n: number) => {
-  searchLoading.value = true;
-  try {
-    const { results, total } = await searchCatalog(lastSearchQuery.value, {
-      limit: SEARCH_PAGE_SIZE,
-      page: n,
-      language: "EN",
-    });
-    searchResults.value = results;
-    searchTotal.value = total || searchTotal.value;
-    searchPage.value = n;
-  } finally {
-    searchLoading.value = false;
-  }
-};
-
-const runSearch = async () => {
-  const q = searchInput.value.trim();
-  if (q.length < 2) return;
-  searched.value = true;
-  lastSearchQuery.value = q;
-  searchTotal.value = 0;
-  await fetchSearchPage(0);
-};
-
-const goToSearchPage = async (n: number) => {
-  if (searchLoading.value) return;
-  const target = Math.min(Math.max(0, n), searchTotalPages.value - 1);
-  if (target === searchPage.value) return;
-  await fetchSearchPage(target);
-};
-
-const quickAdd = async (card: CatalogMatch) => {
-  await addItem({
-    productId: card.productId,
-    cardName: card.name,
-    setName: card.setName,
-    number: card.number ?? "",
-    rarity: card.rarity ?? "",
-    listPrice: card.price?.market ?? 0,
-    stockImageUrl: card.imageUrl ?? "",
-    source: "manual",
-  });
-};
 
 const handleRemove = async (id: string) => {
   if (!confirm("Remove this item from inventory?")) return;

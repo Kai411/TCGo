@@ -359,6 +359,78 @@ export const useInventory = () => {
     });
   };
 
+  // Backfill: every marketplace listing the seller owns should also appear in
+  // inventory. Listings created before the bridge existed (or through any
+  // path that skipped it) have no mirror, so create one per unlinked card.
+  // Idempotent — only cards with no inventory item pointing at them are
+  // written, and only once per uid per session.
+  let syncedUid: string | null = null;
+  const syncListingsToInventory = async (
+    cards: Array<{
+      id: string;
+      sellerUid: string;
+      cardName: string;
+      cardSet?: string;
+      cardNumber?: string;
+      rarity?: string;
+      condition?: string;
+      price: number;
+      imageUrl?: string;
+      imageUrls?: string[];
+      quantity?: number;
+      productId?: number;
+      inventoryId?: string;
+      sold: boolean;
+      createdAt: number;
+    }>,
+  ): Promise<number> => {
+    if (!user.value || !firestore) return 0;
+    if (syncedUid === user.value.uid) return 0;
+    const uid = user.value.uid;
+    const linked = new Set(
+      items.value.map((i) => i.listingId).filter((id): id is string => !!id),
+    );
+    const known = new Set(items.value.map((i) => i.id));
+    const missing = cards.filter(
+      (c) =>
+        c.sellerUid === uid &&
+        !linked.has(c.id) &&
+        !(c.inventoryId && known.has(c.inventoryId)),
+    );
+    syncedUid = uid;
+    if (!missing.length) return 0;
+
+    const batch = writeBatch(firestore);
+    for (const c of missing) {
+      const base = buildItem(
+        {
+          productId: c.productId ?? null,
+          cardName: c.cardName,
+          setName: c.cardSet,
+          number: c.cardNumber,
+          rarity: c.rarity,
+          condition: c.condition,
+          quantity: c.quantity,
+          listPrice: c.price,
+          stockImageUrl: c.imageUrls?.[0] || c.imageUrl,
+          source: "manual",
+        },
+        uid,
+      );
+      batch.set(doc(collection(firestore, "inventory")), {
+        ...base,
+        // Keep the original listing date so the row sorts where the seller
+        // expects it, not at the top as if it were added today.
+        createdAt: c.createdAt || base.createdAt,
+        status: c.sold ? "sold" : "listed",
+        listingId: c.id,
+        ...(c.sold ? { saleChannel: "online" } : {}),
+      });
+    }
+    await batch.commit();
+    return missing.length;
+  };
+
   const count = computed(() => items.value.length);
   const totalUnits = computed(() =>
     items.value.reduce((s, i) => s + (i.quantity || 0), 0),
@@ -387,6 +459,7 @@ export const useInventory = () => {
     markItemSold,
     markSoldByListingId,
     createListedFromCard,
+    syncListingsToInventory,
     labelQueue,
     setLabelQueue,
   };
