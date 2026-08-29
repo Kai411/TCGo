@@ -87,8 +87,10 @@ export default defineNuxtConfig({
     },
   },
   app: {
-    // Subtle fade + lift between routes; keyframes live in tailwind.css.
-    pageTransition: { name: "page", mode: "out-in" },
+    // NOTE: no `pageTransition` here on purpose. An out-in <Transition>
+    // around nested routes (pages/cards/[id].vue → <NuxtPage/>) left the next
+    // page blank after leaving a card. Route animation is a CSS enter
+    // animation on a route-keyed wrapper in layouts/default.vue instead.
     head: {
       title: "TCGo Marketplace - Buy, Sell & Auction Pokemon Cards in Malaysia",
       htmlAttrs: { lang: "en" },

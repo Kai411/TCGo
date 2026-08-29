@@ -212,10 +212,14 @@
 
       <!-- Underline tabs -->
       <div class="hairline mb-6">
-        <div class="flex items-center gap-5 sm:gap-6 -mb-px">
+        <div
+          ref="containerEl"
+          class="relative flex items-center gap-5 sm:gap-6 -mb-px"
+        >
           <button
             v-for="tab in tabs"
             :key="tab.id"
+            :ref="(el) => setTabRef(tab.id, el)"
             @click="activeTab = tab.id"
             class="relative pb-3 pt-1 text-base sm:text-lg font-bold tracking-tightest transition-colors ease-premium"
             :class="
@@ -235,11 +239,13 @@
             >
               {{ tab.count }}
             </span>
-            <span
-              v-if="activeTab === tab.id"
-              class="absolute left-0 right-0 -bottom-px h-[2px] bg-pokemon-red rounded-full"
-            />
           </button>
+          <!-- Single underline that slides between tabs -->
+          <span
+            aria-hidden="true"
+            class="absolute left-0 -bottom-px h-[2px] bg-pokemon-red rounded-full transition-[transform,width,opacity] duration-300 ease-premium"
+            :style="indicatorStyle"
+          />
         </div>
       </div>
 
@@ -628,6 +634,15 @@ const tabs = computed(() => {
   });
   return base;
 });
+
+// Sliding red underline under the active tab. Re-measure when the active
+// tab changes and when labels/counts change (they alter tab widths).
+const { containerEl, setTabRef, indicatorStyle, measure } = useTabIndicator();
+onMounted(() => nextTick(() => measure(activeTab.value)));
+watch(
+  () => [activeTab.value, tabs.value.map((t) => `${t.id}:${t.count}`).join()],
+  () => nextTick(() => measure(activeTab.value)),
+);
 
 const emptyFavouritesCaption = computed(() =>
   isOwnProfile.value
