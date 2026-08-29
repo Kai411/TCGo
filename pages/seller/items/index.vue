@@ -280,8 +280,10 @@
                   </p>
                   <select
                     :value="item.condition"
+                    :disabled="item.status === 'listed'"
+                    :title="item.status === 'listed' ? 'Unlist to change condition' : undefined"
                     @change="updateItem(item.id, { condition: ($event.target as HTMLSelectElement).value })"
-                    class="mt-1 max-w-full text-[11px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white"
+                    class="mt-1 max-w-full text-[11px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option value="">Condition…</option>
                     <option v-for="c in conditionOptions(item.condition)" :key="c" :value="c">{{ c }}</option>
@@ -301,8 +303,10 @@
                   <input
                     type="number" min="1" step="1"
                     :value="item.quantity"
+                    :disabled="item.status === 'listed'"
+                    :title="item.status === 'listed' ? 'Unlist to change quantity' : undefined"
                     @change="updateItem(item.id, { quantity: Math.max(1, Number(($event.target as HTMLInputElement).value)) })"
-                    class="w-full text-sm text-right px-1.5 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums"
+                    class="w-full text-sm text-right px-1.5 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </td>
                 <!-- Status -->
@@ -414,38 +418,43 @@
     >
       <div class="surface rounded-2xl w-full max-w-md p-5 border border-black/[0.06] dark:border-white/[0.08] max-h-[90vh] overflow-y-auto">
         <h3 class="text-base font-bold text-ink dark:text-white mb-1">Edit item</h3>
-        <p v-if="editing.status === 'listed'" class="text-xs text-gray-500 dark:text-zinc-400 mb-4">
-          This item is listed — changes update the marketplace listing too.
+        <p v-if="editLocked" class="text-xs text-amber-600 dark:text-amber-400 mb-4">
+          This item is live on the marketplace — only the price can be changed.
+          Unlist it first to edit the card details.
         </p>
         <p v-else class="text-xs text-gray-500 dark:text-zinc-400 mb-4">Update the card details in your inventory.</p>
         <div class="space-y-3">
-          <div>
-            <label class="edit-label">Card name</label>
-            <input v-model.trim="editForm.cardName" type="text" class="edit-input" />
-          </div>
-          <div class="grid grid-cols-[1fr_6rem] gap-3">
+          <!-- Same rule as the listing edit page: everything but price is
+               read-only while listed. A disabled fieldset greys the lot. -->
+          <fieldset :disabled="editLocked" class="space-y-3 disabled:opacity-50">
             <div>
-              <label class="edit-label">Set</label>
-              <input v-model.trim="editForm.setName" type="text" class="edit-input" />
+              <label class="edit-label">Card name</label>
+              <input v-model.trim="editForm.cardName" type="text" class="edit-input" />
             </div>
-            <div>
-              <label class="edit-label">Number</label>
-              <input v-model.trim="editForm.number" type="text" placeholder="92/100" class="edit-input" />
+            <div class="grid grid-cols-[1fr_6rem] gap-3">
+              <div>
+                <label class="edit-label">Set</label>
+                <input v-model.trim="editForm.setName" type="text" class="edit-input" />
+              </div>
+              <div>
+                <label class="edit-label">Number</label>
+                <input v-model.trim="editForm.number" type="text" placeholder="92/100" class="edit-input" />
+              </div>
             </div>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="edit-label">Rarity</label>
-              <input v-model.trim="editForm.rarity" type="text" class="edit-input" />
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="edit-label">Rarity</label>
+                <input v-model.trim="editForm.rarity" type="text" class="edit-input" />
+              </div>
+              <div>
+                <label class="edit-label">Condition</label>
+                <select v-model="editForm.condition" class="edit-input">
+                  <option value="">Condition…</option>
+                  <option v-for="c in conditionOptions(editForm.condition)" :key="c" :value="c">{{ c }}</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label class="edit-label">Condition</label>
-              <select v-model="editForm.condition" class="edit-input">
-                <option value="">Condition…</option>
-                <option v-for="c in conditionOptions(editForm.condition)" :key="c" :value="c">{{ c }}</option>
-              </select>
-            </div>
-          </div>
+          </fieldset>
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="edit-label">Price (RM)</label>
@@ -453,12 +462,12 @@
             </div>
             <div>
               <label class="edit-label">Quantity</label>
-              <input v-model.number="editForm.quantity" type="number" min="1" step="1" class="edit-input tabular-nums" />
+              <input v-model.number="editForm.quantity" type="number" min="1" step="1" :disabled="editLocked" class="edit-input tabular-nums disabled:opacity-50" />
             </div>
           </div>
           <div>
             <label class="edit-label">Notes</label>
-            <textarea v-model.trim="editForm.notes" rows="2" class="edit-input resize-none" placeholder="Defects, provenance, anything a buyer should know…" />
+            <textarea v-model.trim="editForm.notes" rows="2" :disabled="editLocked" class="edit-input resize-none disabled:opacity-50" placeholder="Defects, provenance, anything a buyer should know…" />
           </div>
         </div>
         <div class="flex gap-2 mt-5">
@@ -971,22 +980,32 @@ const openEditDialog = (item: InventoryItem) => {
   };
 };
 
+// Listed items follow the listing-edit rule: price only. Anything else must
+// go through unlist → edit → relist so the live listing never drifts.
+const editLocked = computed(() => editing.value?.status === "listed");
+
 const confirmEdit = async () => {
   if (!editing.value || editBusy.value) return;
   const f = editForm.value;
   if (!f.cardName) return;
   editBusy.value = true;
   try {
-    await updateItem(editing.value.id, {
-      cardName: f.cardName,
-      setName: f.setName,
-      number: f.number,
-      rarity: f.rarity,
-      condition: f.condition,
-      listPrice: Math.max(0, Number(f.listPrice) || 0),
-      quantity: Math.max(1, Math.floor(Number(f.quantity) || 1)),
-      notes: f.notes,
-    });
+    const price = Math.max(0, Number(f.listPrice) || 0);
+    await updateItem(
+      editing.value.id,
+      editLocked.value
+        ? { listPrice: price }
+        : {
+            cardName: f.cardName,
+            setName: f.setName,
+            number: f.number,
+            rarity: f.rarity,
+            condition: f.condition,
+            listPrice: price,
+            quantity: Math.max(1, Math.floor(Number(f.quantity) || 1)),
+            notes: f.notes,
+          },
+    );
     editing.value = null;
   } catch (e: any) {
     alert(e?.message || "Could not save changes.");
