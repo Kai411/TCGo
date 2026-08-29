@@ -18,12 +18,15 @@
 
     <template v-else>
       <div class="flex items-center justify-between mb-4">
-        <NuxtLink
-          to="/"
+        <!-- A button, not a NuxtLink: a NuxtLink would also push "/" on top of
+             our history.back(), and that second navigation scrolls to top. -->
+        <button
+          type="button"
+          @click="goBackToShop"
           class="text-sm text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200"
         >
           ← Back to shop
-        </NuxtLink>
+        </button>
         <NuxtLink
           v-if="isOwnListing && !card.sold"
           :to="`/seller/listings/${card.id}/edit`"
@@ -270,9 +273,16 @@
                 </NuxtLink>
               </div>
 
-              <!-- Interested count -->
-              <div v-if="card.interestedCount > 0" class="mt-4">
-                <p class="text-xs text-gray-500 dark:text-zinc-400">
+              <!-- Engagement: views + interested -->
+              <div
+                v-if="(card.viewCount ?? 0) > 0 || card.interestedCount > 0"
+                class="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-zinc-400"
+              >
+                <p v-if="(card.viewCount ?? 0) > 0">
+                  👁 {{ card.viewCount }}
+                  {{ card.viewCount === 1 ? "view" : "views" }}
+                </p>
+                <p v-if="card.interestedCount > 0">
                   🔥 {{ card.interestedCount }}
                   {{ card.interestedCount === 1 ? "person" : "people" }}
                   interested
@@ -344,13 +354,21 @@ const route = useRoute();
 const cardId = route.params.id as string;
 
 const router = useRouter();
-const { cards, loading, markInterested } = useCards();
+const { cards, loading, markInterested, recordView } = useCards();
 const { firestore } = useFirebase();
 const { user, signInWithGoogle } = useAuth();
 const { profile: myProfile } = useMyProfile();
 const { addToCart, isInCart } = useCart();
 
 const inCart = computed(() => (card.value ? isInCart(card.value.id) : false));
+
+// Prefer real history so the shop resumes at the same page/scroll; fall back
+// to "/" for deep links opened in a fresh tab (the shop restores from its own
+// session state either way).
+const goBackToShop = () => {
+  if (import.meta.client && window.history.state?.back) router.back();
+  else router.push("/");
+};
 
 // Buyer-interest signal. Originally fired on "Contact Seller"; with that gone
 // and Buy Now no longer a panel to open, adding to cart is the equivalent
@@ -408,6 +426,21 @@ const conditionShort = (condition: string): string => {
 
 const isOwnListing = computed(
   () => user.value && card.value && card.value.sellerUid === user.value.uid,
+);
+
+// Count a view once the listing has resolved. Waits for auth to settle so a
+// seller opening their own card isn't counted; recordView dedupes per session.
+const { authLoading } = useAuth();
+const viewRecorded = ref(false);
+watch(
+  [card, authLoading],
+  ([c, authBusy]) => {
+    if (viewRecorded.value || !c || authBusy) return;
+    if (user.value && c.sellerUid === user.value.uid) return;
+    viewRecorded.value = true;
+    recordView(c.id).catch(() => {});
+  },
+  { immediate: true },
 );
 
 const { origin } = useRequestURL();

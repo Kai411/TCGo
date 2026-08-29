@@ -237,17 +237,20 @@
                 <th class="text-right font-semibold px-1.5 py-2 w-20">Price</th>
                 <th class="text-right font-semibold px-1.5 py-2 w-12">Qty</th>
                 <th class="text-left font-semibold px-2 py-2 w-20 hidden sm:table-cell">Status</th>
-                <th class="px-2 py-2 w-24"></th>
+                <th class="px-2 py-2 w-[8.5rem]"></th>
               </tr>
             </thead>
+            <!-- Every cell is align-middle so checkbox, thumbnail, inputs, status
+                 pill and action icons share one centre line regardless of how
+                 many lines the card name wraps to. -->
             <tbody class="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
               <tr v-for="item in pagedItems" :key="item.id" :class="isSelected(item.id) ? 'bg-pokemon-red/[0.03]' : ''">
                 <!-- Select -->
-                <td class="px-3 py-2 align-top">
-                  <input type="checkbox" :checked="isSelected(item.id)" @change="toggleSelect(item.id)" class="rounded mt-1" :aria-label="`Select ${item.cardName}`" />
+                <td class="px-3 py-2.5 align-middle">
+                  <input type="checkbox" :checked="isSelected(item.id)" @change="toggleSelect(item.id)" class="rounded align-middle" :aria-label="`Select ${item.cardName}`" />
                 </td>
                 <!-- Thumbnail — click to add/replace photo -->
-                <td class="px-1 py-2 align-top">
+                <td class="px-1 py-2.5 align-middle">
                   <button
                     type="button"
                     @click="openPhotoPicker(item)"
@@ -270,7 +273,7 @@
                   </button>
                 </td>
                 <!-- Card -->
-                <td class="px-2 py-2 align-top">
+                <td class="px-2 py-2.5 align-middle">
                   <p class="font-medium text-ink dark:text-white leading-snug line-clamp-2 break-words" :title="item.cardName">{{ item.cardName }}</p>
                   <p class="text-[11px] text-gray-500 dark:text-zinc-400 truncate">
                     {{ [item.setName, item.number].filter(Boolean).join(" · ") }}
@@ -281,11 +284,11 @@
                     class="mt-1 max-w-full text-[11px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white"
                   >
                     <option value="">Condition…</option>
-                    <option v-for="c in CONDITIONS" :key="c" :value="c">{{ c }}</option>
+                    <option v-for="c in conditionOptions(item.condition)" :key="c" :value="c">{{ c }}</option>
                   </select>
                 </td>
                 <!-- Price -->
-                <td class="px-1.5 py-2 text-right align-top">
+                <td class="px-1.5 py-2.5 text-right align-middle">
                   <input
                     type="number" min="0" step="0.01"
                     :value="item.listPrice"
@@ -294,7 +297,7 @@
                   />
                 </td>
                 <!-- Qty -->
-                <td class="px-1.5 py-2 text-right align-top">
+                <td class="px-1.5 py-2.5 text-right align-middle">
                   <input
                     type="number" min="1" step="1"
                     :value="item.quantity"
@@ -303,14 +306,17 @@
                   />
                 </td>
                 <!-- Status -->
-                <td class="px-2 py-2 align-top hidden sm:table-cell">
+                <td class="px-2 py-2.5 align-middle hidden sm:table-cell">
                   <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="statusClass(item.status)">
                     {{ statusLabel(item.status) }}
                   </span>
                 </td>
                 <!-- Actions (icon buttons) -->
-                <td class="px-2 py-2 align-top">
+                <td class="px-2 py-2.5 align-middle">
                   <div class="flex items-center justify-end gap-0.5">
+                    <button @click="openEditDialog(item)" title="Edit details" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 dark:text-zinc-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:text-ink dark:hover:text-white transition-colors">
+                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                    </button>
                     <template v-if="item.status === 'in_stock'">
                       <button @click="openListDialog(item)" title="List for sale" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-pokemon-red hover:bg-pokemon-red/10 transition-colors">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59A2 2 0 0 0 3.83 11l9.58 9.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83z"/><circle cx="7" cy="7" r="1.4" fill="currentColor" stroke="none"/></svg>
@@ -399,8 +405,86 @@
         </div>
       </div>
     </div>
+
+    <!-- Edit-details dialog -->
+    <div
+      v-if="editing"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+      @click.self="editing = null"
+    >
+      <div class="surface rounded-2xl w-full max-w-md p-5 border border-black/[0.06] dark:border-white/[0.08] max-h-[90vh] overflow-y-auto">
+        <h3 class="text-base font-bold text-ink dark:text-white mb-1">Edit item</h3>
+        <p v-if="editing.status === 'listed'" class="text-xs text-gray-500 dark:text-zinc-400 mb-4">
+          This item is listed — changes update the marketplace listing too.
+        </p>
+        <p v-else class="text-xs text-gray-500 dark:text-zinc-400 mb-4">Update the card details in your inventory.</p>
+        <div class="space-y-3">
+          <div>
+            <label class="edit-label">Card name</label>
+            <input v-model.trim="editForm.cardName" type="text" class="edit-input" />
+          </div>
+          <div class="grid grid-cols-[1fr_6rem] gap-3">
+            <div>
+              <label class="edit-label">Set</label>
+              <input v-model.trim="editForm.setName" type="text" class="edit-input" />
+            </div>
+            <div>
+              <label class="edit-label">Number</label>
+              <input v-model.trim="editForm.number" type="text" placeholder="92/100" class="edit-input" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="edit-label">Rarity</label>
+              <input v-model.trim="editForm.rarity" type="text" class="edit-input" />
+            </div>
+            <div>
+              <label class="edit-label">Condition</label>
+              <select v-model="editForm.condition" class="edit-input">
+                <option value="">Condition…</option>
+                <option v-for="c in conditionOptions(editForm.condition)" :key="c" :value="c">{{ c }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="edit-label">Price (RM)</label>
+              <input v-model.number="editForm.listPrice" type="number" min="0" step="0.01" class="edit-input tabular-nums" />
+            </div>
+            <div>
+              <label class="edit-label">Quantity</label>
+              <input v-model.number="editForm.quantity" type="number" min="1" step="1" class="edit-input tabular-nums" />
+            </div>
+          </div>
+          <div>
+            <label class="edit-label">Notes</label>
+            <textarea v-model.trim="editForm.notes" rows="2" class="edit-input resize-none" placeholder="Defects, provenance, anything a buyer should know…" />
+          </div>
+        </div>
+        <div class="flex gap-2 mt-5">
+          <button @click="editing = null" class="flex-1 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200">Cancel</button>
+          <button
+            @click="confirmEdit"
+            :disabled="editBusy || !editForm.cardName"
+            class="flex-1 py-2 rounded-lg text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            <span v-if="editBusy" class="animate-spin rounded-full h-4 w-4 border-b-2 border-current"/>
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.edit-label {
+  @apply block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1;
+}
+.edit-input {
+  @apply w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white;
+}
+</style>
 
 <script setup lang="ts">
 import type { CatalogMatch } from "~/composables/useCardCatalog";
@@ -851,6 +935,63 @@ const confirmList = async () => {
     alert(e?.message || "Could not list this item.");
   } finally {
     listingBusy.value = false;
+  }
+};
+
+// Legacy / imported rows can carry a condition string that isn't in our
+// list (or a bare "NM"). Keep it selectable so the dropdown never shows blank.
+const conditionOptions = (current: string) =>
+  current && !CONDITIONS.includes(current) ? [current, ...CONDITIONS] : CONDITIONS;
+
+// ── Edit-details dialog ───────────────────────────────────────────────
+const editing = ref<InventoryItem | null>(null);
+const editBusy = ref(false);
+const editForm = ref({
+  cardName: "",
+  setName: "",
+  number: "",
+  rarity: "",
+  condition: "",
+  listPrice: 0,
+  quantity: 1,
+  notes: "",
+});
+
+const openEditDialog = (item: InventoryItem) => {
+  editing.value = item;
+  editForm.value = {
+    cardName: item.cardName || "",
+    setName: item.setName || "",
+    number: item.number || "",
+    rarity: item.rarity || "",
+    condition: item.condition || "",
+    listPrice: item.listPrice || 0,
+    quantity: item.quantity || 1,
+    notes: item.notes || "",
+  };
+};
+
+const confirmEdit = async () => {
+  if (!editing.value || editBusy.value) return;
+  const f = editForm.value;
+  if (!f.cardName) return;
+  editBusy.value = true;
+  try {
+    await updateItem(editing.value.id, {
+      cardName: f.cardName,
+      setName: f.setName,
+      number: f.number,
+      rarity: f.rarity,
+      condition: f.condition,
+      listPrice: Math.max(0, Number(f.listPrice) || 0),
+      quantity: Math.max(1, Math.floor(Number(f.quantity) || 1)),
+      notes: f.notes,
+    });
+    editing.value = null;
+  } catch (e: any) {
+    alert(e?.message || "Could not save changes.");
+  } finally {
+    editBusy.value = false;
   }
 };
 

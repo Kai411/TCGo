@@ -152,5 +152,29 @@ export const useCards = () => {
     await deleteDoc(cardDoc);
   };
 
-  return { cards, loading, createCard, markAsSold, markInterested, deleteCard };
+  // View counter. Counted once per browser session per listing so a buyer
+  // refreshing the page (or bouncing between photos) doesn't inflate it.
+  // Sellers opening their own listing are skipped by the caller.
+  const recordView = async (cardId: string) => {
+    if (!import.meta.client) return;
+    const key = `tcgo:viewed:card:${cardId}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      // Storage blocked (private mode) — still count, just without dedupe.
+    }
+    const cardDoc = doc(firestore!, "cards", cardId);
+    await updateDoc(cardDoc, { viewCount: increment(1) });
+  };
+
+  return {
+    cards,
+    loading,
+    createCard,
+    markAsSold,
+    markInterested,
+    recordView,
+    deleteCard,
+  };
 };

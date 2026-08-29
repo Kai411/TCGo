@@ -17,7 +17,8 @@ export type SortKey =
   | "price-asc"
   | "price-desc"
   | "ending-soon"
-  | "most-bids";
+  | "most-bids"
+  | "most-viewed";
 
 export interface FilterableItem {
   rarity?: string;
@@ -32,6 +33,7 @@ export interface FilterableItem {
   createdAt?: number;
   endsAt?: number;
   bidCount?: number;
+  viewCount?: number;
 }
 
 const inBucket = (endsAt: number | undefined, bucket: TimeLeftBucket) => {
@@ -141,6 +143,12 @@ export const useListingFilters = (options?: {
         return copy.sort((a, b) => (a.endsAt ?? 0) - (b.endsAt ?? 0));
       case "most-bids":
         return copy.sort((a, b) => (b.bidCount ?? 0) - (a.bidCount ?? 0));
+      case "most-viewed":
+        return copy.sort(
+          (a, b) =>
+            (b.viewCount ?? 0) - (a.viewCount ?? 0) ||
+            (b.createdAt ?? 0) - (a.createdAt ?? 0),
+        );
       case "newest":
       default:
         return copy.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));

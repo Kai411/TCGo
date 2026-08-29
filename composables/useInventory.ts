@@ -193,6 +193,32 @@ export const useInventory = () => {
       next.primaryImage = photos[0] || stock;
     }
     await updateDoc(doc(firestore, "inventory", id), next);
+
+    // Mirror sellable fields onto the live marketplace listing so an edit in
+    // inventory doesn't leave the shop showing a stale price/condition.
+    const current = items.value.find((i) => i.id === id);
+    if (current?.status === "listed" && current.listingId) {
+      const mirror: Record<string, unknown> = {};
+      if (patch.listPrice !== undefined) mirror.price = patch.listPrice;
+      if (patch.condition !== undefined) mirror.condition = patch.condition;
+      if (patch.quantity !== undefined) mirror.quantity = patch.quantity;
+      if (patch.cardName !== undefined) mirror.cardName = patch.cardName;
+      if (patch.setName !== undefined) mirror.cardSet = patch.setName;
+      if (patch.number !== undefined) mirror.cardNumber = patch.number;
+      if (patch.rarity !== undefined) mirror.rarity = patch.rarity;
+      if (patch.notes !== undefined) mirror.description = patch.notes;
+      if (next.primaryImage !== undefined) {
+        mirror.imageUrl = next.primaryImage;
+        mirror.imageUrls = next.primaryImage ? [next.primaryImage] : [];
+      }
+      if (Object.keys(mirror).length) {
+        try {
+          await updateDoc(doc(firestore, "cards", current.listingId), mirror);
+        } catch (e) {
+          console.warn("[useInventory] listing mirror failed:", e);
+        }
+      }
+    }
   };
 
   const removeItem = async (id: string) => {

@@ -56,6 +56,8 @@ const formatPrice = (price: number): string => {
   });
 };
 
+const viewCount = computed(() => props.card?.viewCount ?? 0);
+
 // Auction-specific
 const bidCount = computed(() => (props.auction as any)?.bidCount ?? 0);
 
@@ -242,7 +244,26 @@ const timerClasses = computed(() => {
             >
               @{{ item.seller }}
             </span>
-            <div v-if="!isAuction" class="flex items-center gap-1.5 shrink-0">
+            <div v-if="!isAuction" class="flex items-center gap-2 shrink-0">
+              <span
+                v-if="viewCount > 0"
+                class="inline-flex items-center gap-0.5 text-[11px] tabular-nums text-ink-muted dark:text-zinc-400"
+                :title="`${viewCount} view${viewCount === 1 ? '' : 's'}`"
+              >
+                <svg
+                  class="w-3 h-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                {{ viewCount }}
+              </span>
               <FavouriteButton
                 :item-id="item?.id || ''"
                 item-type="card"

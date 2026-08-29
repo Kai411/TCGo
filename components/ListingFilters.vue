@@ -301,6 +301,7 @@ const sortOptions = computed(() => {
     { value: "newest" as const, label: "Newest" },
     { value: "price-asc" as const, label: "Price: low to high" },
     { value: "price-desc" as const, label: "Price: high to low" },
+    { value: "most-viewed" as const, label: "Most viewed" },
   ];
   if (props.showAuctionSort) {
     base.push(
