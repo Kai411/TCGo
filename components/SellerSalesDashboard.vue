@@ -3,7 +3,7 @@
     <!-- ── Needs attention ─────────────────────────────────────────────
          Actionable queues come first: the dashboard's job is to tell a
          seller what to do next, not to lead with a vanity number. -->
-    <section>
+    <section data-tour="dashboard-attention">
       <p class="eyebrow mb-2.5">Needs attention</p>
       <div class="grid grid-cols-3 gap-2 sm:gap-3">
         <button
@@ -37,7 +37,7 @@
     </section>
 
     <!-- ── Revenue + trend ─────────────────────────────────────────── -->
-    <section class="surface rounded-2xl p-4 sm:p-5">
+    <section data-tour="dashboard-sales" class="surface rounded-2xl p-4 sm:p-5">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p class="eyebrow">Completed sales</p>

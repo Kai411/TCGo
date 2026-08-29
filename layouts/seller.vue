@@ -17,6 +17,7 @@
         <div class="flex items-center gap-2 shrink-0">
           <NuxtLink
             to="/seller/settings"
+            data-tour="settings"
             aria-label="Seller settings"
             class="p-2 rounded-full text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors"
             :class="route.path === '/seller/settings' ? '!text-pokemon-red' : ''"
@@ -38,6 +39,7 @@
             v-for="item in navItems"
             :key="item.to"
             :to="item.to"
+            :data-tour="item.tour"
             class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
             :class="
               isActive(item)
@@ -62,6 +64,28 @@
               <span class="ml-auto text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-black/[0.05] dark:bg-white/[0.06]">Soon</span>
             </div>
           </div>
+
+          <!-- Learn: things *about* the product rather than parts of it, so
+               they sit apart from the working destinations above. -->
+          <div class="pt-3 mt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
+            <p class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-soft dark:text-zinc-600">Learn</p>
+            <NuxtLink
+              to="/landing"
+              data-tour="nav-pricing"
+              class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+            >
+              <IconSparkle class="w-4 h-4 shrink-0" />
+              Plans &amp; pricing
+            </NuxtLink>
+            <button
+              type="button"
+              @click="startTour"
+              class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+            >
+              <IconCompass class="w-4 h-4 shrink-0" />
+              Take the tour
+            </button>
+          </div>
         </nav>
       </aside>
 
@@ -82,14 +106,25 @@
           v-for="item in navItems"
           :key="item.to"
           :to="item.to"
+          :data-tour="item.tour"
           class="relative flex flex-col items-center justify-center gap-0.5 shrink-0 min-w-[68px] flex-1 text-[9px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
           :class="isActive(item) ? '!text-pokemon-red' : ''"
         >
           <component :is="item.icon" class="w-5 h-5" />
           <span>{{ item.label }}</span>
         </NuxtLink>
+        <NuxtLink
+          to="/landing"
+          data-tour="nav-pricing"
+          class="relative flex flex-col items-center justify-center gap-0.5 shrink-0 min-w-[68px] flex-1 text-[9px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
+        >
+          <IconSparkle class="w-5 h-5" />
+          <span>Pricing</span>
+        </NuxtLink>
       </div>
     </nav>
+
+    <SellerOnboardingTour />
   </div>
 </template>
 
@@ -146,14 +181,29 @@ const IconWallet = () =>
     h("line", { x1: "2", y1: "10", x2: "22", y2: "10" }),
   ]);
 
+const IconSparkle = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("path", { d: "M12 3l1.9 5.6L19.5 10.5l-5.6 1.9L12 18l-1.9-5.6L4.5 10.5l5.6-1.9z" }),
+    h("path", { d: "M19 3v3M17.5 4.5h3M5 17v3M3.5 18.5h3" }),
+  ]);
+
+const IconCompass = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("circle", { cx: "12", cy: "12", r: "9" }),
+    h("polygon", { points: "15.5 8.5 13.5 13.5 8.5 15.5 10.5 10.5" }),
+  ]);
+
+const { start: startTour } = useSellerTour();
+
+// `tour` ids are what SellerOnboardingTour points its spotlight at.
 const navItems = [
-  { to: "/seller", label: "Dashboard", icon: IconDashboard, exact: true },
-  { to: "/seller/pos", label: "POS", icon: IconScan },
-  { to: "/seller/orders", label: "Orders", icon: IconOrders },
-  { to: "/seller/items", label: "Inventory", icon: IconBox },
-  { to: "/seller/listings", label: "Listings", icon: IconTag },
-  { to: "/seller/auctions", label: "Auctions", icon: IconGavel },
-  { to: "/seller/funds", label: "Funds", icon: IconWallet },
+  { to: "/seller", label: "Dashboard", icon: IconDashboard, exact: true, tour: "nav-dashboard" },
+  { to: "/seller/pos", label: "POS", icon: IconScan, tour: "nav-pos" },
+  { to: "/seller/orders", label: "Orders", icon: IconOrders, tour: "nav-orders" },
+  { to: "/seller/items", label: "Inventory", icon: IconBox, tour: "nav-items" },
+  { to: "/seller/listings", label: "Listings", icon: IconTag, tour: "nav-listings" },
+  { to: "/seller/auctions", label: "Auctions", icon: IconGavel, tour: "nav-auctions" },
+  { to: "/seller/funds", label: "Funds", icon: IconWallet, tour: "nav-funds" },
   // Bulk add is reached from inside Inventory rather than the top-level nav —
   // it's an occasional import, not a daily destination.
 ];
