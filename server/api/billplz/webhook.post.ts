@@ -9,7 +9,12 @@
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { verifyBillplzSignature } from "~/server/utils/billplz";
-import { computeSellerPayout, platformFeeFor } from "~/shared/payouts";
+import {
+  computeSellerPayout,
+  platformFeeFor,
+  recordedFee,
+  shippingReimbursement,
+} from "~/shared/payouts";
 import { effectiveRate } from "~/shared/pricing";
 import { bookShipmentForOrder } from "~/server/utils/book-shipment";
 import { sendInvoiceForOrder } from "~/server/utils/send-invoice";
@@ -91,9 +96,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const now = Date.now();
-  // Provisional payout figure for the seller's funds page. It is recomputed
-  // from the same shared helper at payout time, once we know whether the
-  // platform or the seller ended up paying for postage.
+  // Provisional payout: shippingReimbursement depends on whether we end up
+  // booking the label, and booking happens further down this handler. The
+  // figure is corrected immediately after — see the refresh below. Do not
+  // rely on this value; it is written early only so the order is never
+  // without one.
   const platformFee = platformFeeFor(order);
   const sellerPayout = computeSellerPayout(order);
 
@@ -180,6 +187,42 @@ export default defineEventHandler(async (event) => {
       hint: "The buyer has paid but there's no waybill. The seller can retry from the order page, or book it by hand.",
     });
     shipment = { booked: false, reason: e?.message || "Booking failed" };
+  }
+
+  // Settle the payout now the booking outcome is known.
+  //
+  // The figure above was computed before the label existed, so it included a
+  // shipping reimbursement the seller is not owed once the platform buys the
+  // label — paying it would mean covering the same postage twice, to the
+  // courier and again to the seller. This was previously masked by the payout
+  // route recomputing at request time; that recompute has been removed
+  // (it re-priced commission at whatever rate was current), so the stored
+  // figure has to be right.
+  //
+  // Commission is carried through untouched: it was struck on the subtotal
+  // when payment landed, and who buys the label has nothing to do with it.
+  try {
+    const settledSnap = await orderRef.get();
+    const settled = settledSnap.data() as any;
+    const fee = recordedFee(settled);
+    const finalPayout =
+      Math.round(
+        ((settled.subtotal || 0) - fee + shippingReimbursement(settled)) * 100,
+      ) / 100;
+    if (finalPayout !== settled.sellerPayout) {
+      await orderRef.update({ sellerPayout: finalPayout });
+    }
+  } catch (e: any) {
+    console.error("[billplz webhook] payout refresh failed:", e?.message || e);
+    noteError({
+      area: "payment",
+      severity: "error",
+      code: "payout.refresh_failed",
+      message: `Couldn't settle the payout figure after booking: ${e?.message || e}`,
+      orderId: orderRef.id,
+      error: e,
+      hint: "The order may still carry the pre-booking payout, which includes postage the platform already paid the courier. Check sellerPayout before releasing funds.",
+    });
   }
 
   // Email the invoice. Non-fatal for the same reason as booking: Billplz
