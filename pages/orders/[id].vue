@@ -1,10 +1,10 @@
 <template>
   <div class="max-w-5xl mx-auto">
     <NuxtLink
-      to="/activity?tab=purchases"
+      :to="backTo"
       class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white mb-4"
     >
-      ← Back to orders
+      ← {{ backLabel }}
     </NuxtLink>
 
     <div v-if="loading" class="flex justify-center py-16">
@@ -581,6 +581,30 @@ const role = computed<"buyer" | "seller" | null>(() => {
   if (order.value.sellerUid === user.value.uid) return "seller";
   return null;
 });
+
+// One order page serves both sides, so "back" has to mean different things.
+// It was hardcoded to the buyer's list, which sent a seller reviewing their
+// own sale to a purchases tab that will never contain it.
+//
+// Driven off `role` rather than the previous route: role is a fact about this
+// order, whereas history is empty on a hard refresh or a link opened from an
+// email, which is exactly when being dumped somewhere wrong is most annoying.
+// `role` is null until the order loads, and this link renders above the
+// spinner — so fall back to where the user actually came from for that first
+// moment, rather than flashing the buyer destination at a seller.
+const cameFromSeller = computed(() =>
+  String((router.options.history.state?.back as string) || "").startsWith("/seller"),
+);
+const viewingAsSeller = computed(() =>
+  role.value ? role.value === "seller" : cameFromSeller.value,
+);
+
+const backTo = computed(() =>
+  viewingAsSeller.value ? "/seller/orders" : "/activity?tab=purchases",
+);
+const backLabel = computed(() =>
+  viewingAsSeller.value ? "Back to sales" : "Back to orders",
+);
 
 // Mirrors the v-ifs inside the actions card. Kept adjacent to them so a new
 // button added there without updating this shows up as a missing card rather

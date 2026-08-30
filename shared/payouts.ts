@@ -120,9 +120,22 @@ export const computeSellerPayout = (order: PayableOrder): number =>
 export const recordedFee = (order: PayableOrder): number =>
   order.platformFee != null ? round2(order.platformFee) : platformFeeFor(order);
 
-/** Service tax actually charged on this order. */
+/**
+ * Service tax actually charged on this order.
+ *
+ * An absent sstAmount means ZERO, not "work it out" — and this is the one
+ * accessor here that must not fall back to a fresh calculation. The field
+ * only started being written once SST was wired up, which was necessarily
+ * before registration, so an order without it was charged no tax. Deriving
+ * instead would hand every pre-registration order an 8% bill the day
+ * SST_REGISTERED flips, which is the same re-pricing trap platformFeeRate
+ * exists to close.
+ *
+ * recordedFee can safely derive because a legacy order WAS charged
+ * something and the calculation approximates it. Here the answer is known.
+ */
 export const recordedSst = (order: PayableOrder): number =>
-  order.sstAmount != null ? round2(order.sstAmount) : sstForOrder(order);
+  order.sstAmount != null ? round2(order.sstAmount) : 0;
 
 /** Seller's share actually recorded for this order. */
 export const recordedPayout = (order: PayableOrder): number =>
