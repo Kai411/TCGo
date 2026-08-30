@@ -1,6 +1,6 @@
 // Dev utility: wipe order history for a clean test run.
 //
-// DELETES:   compiledOrders, orders (legacy), payouts
+// DELETES:   compiledOrders, orders (legacy), payouts, posSales
 // PRESERVES: inventory, cards, auctions, users, userCollection, favourites
 //
 // Inventory is never touched — "active items" stay exactly as they are. Note
@@ -16,7 +16,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
 const env = Object.fromEntries(
   readFileSync(new URL("../.env", import.meta.url), "utf8")
@@ -38,7 +38,10 @@ const args = process.argv.slice(2);
 const confirmed = args.includes("--yes");
 const resetSold = args.includes("--reset-sold");
 
-const TARGETS = ["compiledOrders", "orders", "payouts"];
+// posSales are counter sales — the same category of history as an online
+// order, and they feed the dashboard's takings and discount figures, so a
+// "clean dashboard" has to include them.
+const TARGETS = ["compiledOrders", "orders", "payouts", "posSales"];
 const PRESERVED = ["inventory", "cards", "auctions", "users", "userCollection", "favourites", "reports"];
 
 console.log("Will DELETE   :", TARGETS.join(", "));
@@ -57,8 +60,16 @@ for (const name of TARGETS) {
 // Show inventory impact without changing it.
 const inv = await db.collection("inventory").get();
 const sold = inv.docs.filter((d) => d.data().status === "sold");
+// Deleting posSales orphans any hold pointing at one. A reserved item whose
+// sale no longer exists can never be released by the normal path, so those
+// are always freed — not optional, and nothing to do with --reset-sold.
+const held = inv.docs.filter((d) => d.data().status === "reserved");
+const heldCards = await db.collection("cards").where("status", "==", "reserved").get();
 console.log("");
 console.log(`  inventory        ${String(inv.size).padStart(4)} doc(s) — PRESERVED (${sold.length} marked sold)`);
+if (held.size || heldCards.size) {
+  console.log(`  POS holds        ${String(held.size).padStart(4)} item(s), ${heldCards.size} listing(s) — will be RELEASED`);
+}
 
 if (!total) {
   console.log("\nNothing to delete.");
@@ -88,6 +99,29 @@ for (const name of TARGETS) {
   console.log(`  deleted ${docs.length} from ${name}`);
 }
 
+// Release orphaned POS holds. Always — a hold with no sale behind it is
+// stock locked out of the marketplace with nothing able to unlock it.
+if (held.size || heldCards.size) {
+  const batch = db.batch();
+  for (const d of held.docs) {
+    batch.update(d.ref, {
+      status: d.data().listingId ? "listed" : "in_stock",
+      reservedForSaleId: FieldValue.delete(),
+      reservedUntil: FieldValue.delete(),
+      updatedAt: Date.now(),
+    });
+  }
+  for (const d of heldCards.docs) {
+    batch.update(d.ref, {
+      status: "active",
+      reservedForSaleId: FieldValue.delete(),
+      reservedUntil: FieldValue.delete(),
+    });
+  }
+  await batch.commit();
+  console.log(`  released ${held.size} held item(s) and ${heldCards.size} listing(s)`);
+}
+
 if (resetSold && sold.length) {
   for (let i = 0; i < sold.length; i += 400) {
     const batch = db.batch();
@@ -97,6 +131,7 @@ if (resetSold && sold.length) {
         soldAt: null,
         soldPrice: null,
         saleChannel: null,
+        posSaleId: FieldValue.delete(),
         updatedAt: Date.now(),
       });
     }

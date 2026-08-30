@@ -86,8 +86,11 @@
                 :aria-label="`Select all items from ${group.sellerName}`"
               />
               <div>
+                <!-- "Compiled order" is what we call this internally, after
+                     the compiledOrders collection. A buyer has no idea what it
+                     means; they want to know who they're buying from. -->
                 <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
-                  Compiled order
+                  Sold by
                 </p>
                 <NuxtLink
                   :to="`/profile/${group.sellerUid}`"
