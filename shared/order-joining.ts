@@ -24,6 +24,20 @@
 // This is also why booking moved off the payment webhook: auto-booking closed
 // the window instantly, before a second order could ever exist.
 
+/**
+ * What a buyer pays to add an order to a parcel that hasn't gone out yet.
+ *
+ * Not shipping — the postage on that parcel is already paid. This covers the
+ * combined parcel weighing more than the one that was quoted: the label is
+ * re-quoted at booking and a heavier box costs more, and something has to
+ * carry that or every join quietly costs the platform money.
+ *
+ * Deliberately far below a second delivery. Joining should always be the
+ * obvious choice for the buyer; the alternative is another RM 6 and a second
+ * parcel to wait for.
+ */
+export const JOIN_FEE_MYR = 1.0;
+
 export interface JoinableOrder {
   status?: string;
   /** Set once a courier label has been bought. Closes the window. */

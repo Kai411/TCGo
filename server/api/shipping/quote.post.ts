@@ -16,6 +16,7 @@ import { stateName } from "~/shared/my-states";
 import { quoteForOrder, type HandoverPreference } from "~/shared/shipping-quote";
 import { noteError } from "~/server/utils/oplog";
 import { findOpenParcelFor } from "~/server/utils/open-parcel";
+import { JOIN_FEE_MYR } from "~/shared/order-joining";
 
 export default defineEventHandler(async (event) => {
   const caller = await requireUser(event);
@@ -45,9 +46,12 @@ export default defineEventHandler(async (event) => {
   if (openParcel) {
     return {
       available: true,
-      shipping: 0,
+      // Not postage — that is paid. This covers the combined parcel being
+      // heavier than the one already quoted.
+      shipping: JOIN_FEE_MYR,
       joinsOrderId: openParcel.id,
       joinsOrderShortId: openParcel.id.slice(0, 8),
+      joinFee: JOIN_FEE_MYR,
       courier: openParcel.shippingCourier || "",
       serviceId: openParcel.shippingServiceId || "",
       serviceCode: openParcel.shippingServiceCode || "",

@@ -1,9 +1,9 @@
 // Folding a just-paid order into the parcel it was quoted against.
 //
-// The buyer was charged no shipping at checkout because /api/shipping/quote
-// found an open parcel from the same seller to the same address. This is the
-// other half of that promise: the two orders become one, so one label ships
-// one box.
+// The buyer was charged a small join fee instead of full postage at checkout,
+// because /api/shipping/quote found an open parcel from the same seller to the
+// same address. This is the other half of that promise: the two orders become
+// one, so one label ships one box.
 //
 // Runs from the payment webhook, not from a seller pressing a button. The
 // seller never asked for this and shouldn't have to — from their side an
@@ -46,20 +46,21 @@ export const joinPaidOrderToParcel = async (
     const parent = parentSnap.data() as any;
 
     // The seller may have bought a label between checkout and payment. The
-    // parcel is closed and this order has to travel on its own — but it was
-    // charged nothing for postage, so the platform is buying that label. Say
-    // so loudly rather than letting it disappear into the courier bill.
+    // parcel is closed and this order has to travel on its own — but it paid
+    // a join fee, not postage, so the platform is covering most of that
+    // label. Say so loudly rather than letting it vanish into the courier
+    // bill.
     if (!isOpenParcel(parent)) {
       noteError({
         area: "shipping",
         severity: "warning",
         code: "parcel.closed_before_join",
         message:
-          `Order ${orderId.slice(0, 8)} was quoted free shipping to join ` +
+          `Order ${orderId.slice(0, 8)} was quoted a join fee for ` +
           `${child.joinsOrderId.slice(0, 8)}, but that parcel was labelled first.`,
         orderId,
         context: { parentId: child.joinsOrderId, parentStatus: parent.status },
-        hint: "The buyer paid no postage on this order, so the platform covers its label. Book it as normal.",
+        hint: "The buyer paid a join fee rather than postage, so the platform covers most of this label. Book it as normal.",
       });
       // Clear the link so nothing tries again, and flag it for the seller.
       tx.update(childRef, {
@@ -80,11 +81,16 @@ export const joinPaidOrderToParcel = async (
     // Money adds up rather than being recomputed. Each order was charged its
     // own commission when it settled, at whatever rate applied then, and
     // combining two parcels is not an occasion to re-price either of them.
-    // The child contributes no shipping — that is the entire point.
+    // The child contributes its join fee, not a second postage charge.
     tx.update(parentRef, {
       items,
       subtotal: round2((parent.subtotal || 0) + (child.subtotal || 0)),
       total: round2((parent.total || 0) + (child.total || 0)),
+      // The child's join fee is money collected toward this parcel, so it
+      // belongs on the parcel's shipping line. Booking keeps it with the
+      // platform (it bought the label), which is what pays for the extra
+      // weight the join added.
+      shipping: round2((parent.shipping || 0) + (child.shipping || 0)),
       platformFee: round2((parent.platformFee || 0) + (child.platformFee || 0)),
       sstAmount: round2((parent.sstAmount || 0) + (child.sstAmount || 0)),
       sellerPayout: round2((parent.sellerPayout || 0) + (child.sellerPayout || 0)),

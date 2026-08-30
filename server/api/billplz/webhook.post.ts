@@ -175,8 +175,8 @@ export default defineEventHandler(async (event) => {
   // anyway, since the parcel sits on the seller's desk until they pack it.
 
   // Fold this into the parcel it was quoted against, if it was quoted against
-  // one. The buyer paid no shipping on the strength of that, so this is the
-  // half of the bargain we owe them.
+  // one. The buyer paid a join fee instead of postage on the strength of
+  // that, so this is the half of the bargain we owe them.
   //
   // Non-fatal on purpose: Billplz retries a non-2xx callback, and re-running
   // settlement to fix a combining problem would be a far worse outcome than
@@ -195,7 +195,7 @@ export default defineEventHandler(async (event) => {
       message: `Couldn't combine this order into the parcel it was quoted against: ${e?.message || e}`,
       orderId: orderRef.id,
       error: e,
-      hint: "The buyer paid no shipping on this order. It will ship on its own label at platform cost unless combined by hand.",
+      hint: "The buyer paid a join fee, not postage. It will ship on its own label at mostly platform cost unless combined by hand.",
     });
   }
 
