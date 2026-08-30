@@ -42,8 +42,48 @@ export const planById = (id: string | undefined | null): Plan =>
 //
 // Flip BETA_PRICING to false at launch and per-plan rates take over with no
 // other change.
-export const BETA_PRICING = true;
+//
+// Now false: launch pricing is live. Orders settled during beta keep the 2%
+// they were charged — the rate travels with the order as platformFeeRate, so
+// nothing already sold is re-priced by this flag. See shared/payouts.ts.
+export const BETA_PRICING = false;
 export const BETA_RATE = 0.02;
+
+// ── How the fee reads on a statement ──────────────────────────────────
+//
+// One number is opaque. Split in two, a seller can see what they are paying
+// for: the cost of moving the money, and the platform itself.
+//
+// PRESENTATION ONLY. The total charged is exactly the rate above; this
+// decides how it is *described*. It is deliberately not what TCGo pays its
+// payment provider — Billplz charges RM 1.25 flat per collection, not a
+// percentage, so the real cost is a bigger share of a small order and a tiny
+// share of a large one. The surplus on large orders is the platform's, and
+// what it funds is a TCGo decision.
+export const FEE_SPLIT_PROCESSING = 0.5;
+
+/**
+ * Split a fee into its two published halves.
+ *
+ * The halves are made to sum to the fee exactly rather than rounded
+ * independently — otherwise a RM 0.05 fee shows as two lines of RM 0.03 and
+ * a seller can watch the statement fail to add up.
+ */
+export const splitFee = (fee: number) => {
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const processing = round2(fee * FEE_SPLIT_PROCESSING);
+  return { processing, platform: round2(fee - processing) };
+};
+
+/** The two halves as percentages, for the pricing page. */
+export const feeSplitRates = (planId: PlanId = "free") => {
+  const rate = effectiveRate(planId) * 100;
+  const processing = Math.round(rate * FEE_SPLIT_PROCESSING * 100) / 100;
+  return {
+    processing,
+    platform: Math.round((rate - processing) * 100) / 100,
+  };
+};
 
 /** The commission actually charged today, for a seller on `planId`. */
 export const effectiveRate = (planId: PlanId = "free"): number =>

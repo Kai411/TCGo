@@ -166,8 +166,12 @@
             See full pricing
             <span aria-hidden="true">→</span>
           </NuxtLink>
-          <p class="mt-4 text-xs text-ink-soft">
-            2% while we're in beta — 4% at public launch.
+          <p v-if="BETA_PRICING" class="mt-4 text-xs text-ink-soft">
+            {{ (BETA_RATE * 100).toFixed(0) }}% while we're in beta —
+            {{ (STANDARD_RATE * 100).toFixed(0) }}% at public launch.
+          </p>
+          <p v-else class="mt-4 text-xs text-ink-soft">
+            Nothing to pay until a card sells.
           </p>
         </div>
       </div>
@@ -186,7 +190,8 @@
         </h2>
         <p class="reveal-init mx-auto mt-4 max-w-lg text-base text-white/60">
           Set up your shop, import your stock, and take your first synced sale
-          today. Free while we're in beta.
+          today.
+          {{ BETA_PRICING ? "Free while we're in beta." : "Free to start — no listing fees." }}
         </p>
         <div
           class="reveal-init mt-9 flex flex-col sm:flex-row gap-3 justify-center"
@@ -220,6 +225,8 @@
 </template>
 
 <script setup lang="ts">
+import { BETA_PRICING, BETA_RATE, STANDARD_RATE } from "~/shared/pricing";
+
 definePageMeta({ layout: "landing" });
 
 useHead({

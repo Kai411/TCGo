@@ -4,11 +4,13 @@
       v-for="(line, i) in lines"
       :key="i"
       :class="[
-        'flex items-baseline justify-between gap-3 py-2',
-
+        'flex items-baseline justify-between gap-3',
+        line.kind === 'sub' ? 'py-1 pl-4' : 'py-2',
         line.kind === 'total'
           ? 'mt-1 pt-3 border-t border-black/[0.10] dark:border-white/[0.14]'
-          : 'border-b border-black/[0.04] dark:border-white/[0.05]',
+          : line.kind === 'sub'
+            ? ''
+            : 'border-b border-black/[0.04] dark:border-white/[0.05]',
       ]"
     >
       <div class="min-w-0">
@@ -19,13 +21,15 @@
               ? 'text-sm font-bold text-ink dark:text-white'
               : line.kind === 'gross'
                 ? 'text-sm font-semibold text-ink dark:text-white'
-                : 'text-sm text-gray-600 dark:text-zinc-300',
+                : line.kind === 'sub'
+                  ? 'text-xs text-gray-500 dark:text-zinc-400'
+                  : 'text-sm text-gray-600 dark:text-zinc-300',
           ]"
         >
           {{ line.label }}
         </p>
         <p
-          v-if="line.note && showNotes"
+          v-if="line.note && showNotes && line.kind !== 'sub'"
           class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5"
         >
           {{ line.note }}
@@ -36,6 +40,8 @@
           'shrink-0 tabular-nums',
           line.kind === 'total'
             ? 'text-lg font-extrabold text-ink dark:text-white'
+            : line.kind === 'sub'
+              ? 'text-xs text-gray-500 dark:text-zinc-400'
             : line.kind === 'credit'
               ? 'text-sm font-semibold text-emerald-600 dark:text-emerald-400'
               : line.amount < 0

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { BETA_PRICING } from "~/shared/pricing";
 definePageMeta({
   layout: "landing",
 });
@@ -87,6 +88,10 @@ useHead({
             <strong>2% a sale during beta</strong> — every plan is charged 2%
             while we're in beta. At public launch that becomes 4%, or 3% on the
             Vendor plan.
+            <em v-if="!BETA_PRICING">
+              Superseded: launch pricing is now live. Sales made during beta
+              were charged 2% and stay that way.
+            </em>
           </li>
           <li>
             <strong>Two subscriptions</strong> — Pro at RM4.99 a month lifts the

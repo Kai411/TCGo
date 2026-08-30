@@ -13,7 +13,7 @@
 // fallback for orders written before those fields existed, nothing more.
 
 import { recordedFee, recordedPayout } from "~/shared/payouts";
-import { BETA_RATE, PLANS } from "~/shared/pricing";
+import { BETA_RATE, PLANS, splitFee } from "~/shared/pricing";
 
 export interface SettlementOrder {
   subtotal?: number;
@@ -32,7 +32,7 @@ export interface SettlementLine {
   label: string;
   /** Signed: positive is money in, negative is money out. */
   amount: number;
-  kind: "gross" | "credit" | "deduction" | "total";
+  kind: "gross" | "credit" | "deduction" | "sub" | "total";
   note?: string;
 }
 
@@ -120,6 +120,24 @@ export const settlementLines = (order: SettlementOrder): SettlementLine[] => {
     note: "Charged once, when the buyer paid. Nothing further is deducted at payout.",
   });
 
+  // What that fee is for. Indented under it and summing to it exactly, so the
+  // statement still reads as one deduction rather than two.
+  if (fee > 0) {
+    const split = splitFee(fee);
+    lines.push({
+      label: "Payment processing",
+      amount: -split.processing,
+      kind: "sub",
+      note: "Moving the money — FPX collection and the bank transfer out.",
+    });
+    lines.push({
+      label: "Platform commission",
+      amount: -split.platform,
+      kind: "sub",
+      note: "Listings, market data, courier booking and support.",
+    });
+  }
+
   lines.push({
     label: "Your payout",
     amount: payoutAmount(order),
@@ -130,16 +148,13 @@ export const settlementLines = (order: SettlementOrder): SettlementLine[] => {
 };
 
 /**
- * The postage explanation, for orders where TCGo bought the label.
+ * The postage aside, for orders where TCGo bought the label.
  *
- * A seller who sees the buyer paid RM 7.12 and reads a RM 1.10 payout will
- * ask where the rest went, so answer it before they have to — but as an
- * aside, not as a line in their statement.
+ * The seller's question is only ever "where did the shipping go", so it
+ * answers that and stops. Longer versions explained things nobody asked.
  */
 export const shippingNote = (order: SettlementOrder): string => {
   const shipping = round2(order.shipping || 0);
   if (!order.shipmentOrderNo || shipping <= 0) return "";
-  return `The buyer also paid RM ${shipping.toFixed(
-    2,
-  )} for shipping. That went to the courier for the label we booked — it was never part of your sale.`;
+  return `Shipping (RM ${shipping.toFixed(2)}) went straight to the courier.`;
 };

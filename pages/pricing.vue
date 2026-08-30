@@ -17,10 +17,12 @@
           drops to 3%.
         </p>
         <p
+          v-if="BETA_PRICING"
           class="reveal-init mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[13px] font-semibold text-emerald-700"
         >
           <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          {{ (BETA_RATE * 100).toFixed(0) }}% while we're in beta — 4% at public launch
+          {{ (BETA_RATE * 100).toFixed(0) }}% while we're in beta —
+          {{ (STANDARD_RATE * 100).toFixed(0) }}% at public launch
         </p>
       </div>
     </section>
@@ -81,6 +83,7 @@
           month online — past that, subscribing costs less than not.
         </p>
         <p
+          v-if="BETA_PRICING"
           class="reveal-init mt-2 text-center text-xs font-medium text-emerald-700 dark:text-emerald-400"
         >
           During beta every plan is charged
@@ -510,7 +513,7 @@
         </h2>
         <p class="reveal-init mx-auto mt-4 max-w-lg text-base text-white/60">
           Set up your shop, import your stock, and list your first card today.
-          Free while we're in beta.
+          {{ BETA_PRICING ? "Free while we're in beta." : "Free to start — no listing fees." }}
         </p>
         <div
           class="reveal-init mt-9 flex flex-col justify-center gap-3 sm:flex-row"
@@ -550,7 +553,9 @@ import {
   STANDARD_RATE,
   POS_RATE,
   POS_BREAKEVEN,
+  BETA_PRICING,
   BETA_RATE,
+  feeSplitRates,
 } from "~/shared/pricing";
 
 definePageMeta({ layout: "landing" });
@@ -561,24 +566,28 @@ useHead({
     {
       name: "description",
       content:
-        "TCGo charges Malaysian card sellers a flat 4% per sale — 2.5% payment processing plus a 1.5% platform fee. No listing fees, no minimum order, and buyers pay no platform fee. The in-store POS is RM99 a month.",
+        "TCGo charges Malaysian card sellers a flat 4% per sale — half payment processing, half platform commission. No listing fees, no minimum order, and buyers pay no platform fee. The in-store POS is RM69.99 a month.",
     },
   ],
 });
 
-// Split the way a settlement statement reads, so the 4% is legible as cost
-// recovery plus the platform's cut rather than one opaque number. Keep in
-// sync with PLATFORM_FEE_PERCENT in shared/payouts.ts.
+// Split the way a settlement statement reads, so the rate is legible as cost
+// recovery plus the platform's cut rather than one opaque number.
+//
+// Derived from shared/pricing rather than typed here: this page and the
+// settlement statement a seller sees after every sale have to describe the
+// same fee the same way, and hardcoding it is how they drift apart.
+const split = feeSplitRates();
 const feeLines = [
   {
     label: "Payment processing",
-    note: "FPX online banking, charged at cost",
-    rate: "2.5%",
+    note: "Moving the money — FPX collection and the bank transfer out",
+    rate: `${split.processing}%`,
   },
   {
-    label: "Platform fee",
-    note: "Listings, marketplace, support and market data",
-    rate: "1.5%",
+    label: "Platform commission",
+    note: "Listings, market data, courier booking and support",
+    rate: `${split.platform}%`,
   },
 ];
 
