@@ -541,6 +541,7 @@ import {
 useHead({ title: "Order | TCGo Marketplace" });
 
 const route = useRoute();
+const router = useRouter();
 const { user } = useAuth();
 const { firestore } = useFirebase();
 const { authedFetch } = useAuthedFetch();
