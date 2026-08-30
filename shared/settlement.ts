@@ -32,7 +32,7 @@ export interface SettlementLine {
   label: string;
   /** Signed: positive is money in, negative is money out. */
   amount: number;
-  kind: "gross" | "sub" | "deduction" | "total";
+  kind: "gross" | "credit" | "deduction" | "total";
   note?: string;
 }
 
@@ -78,12 +78,19 @@ export const rateCharged = (order: SettlementOrder): number | null => {
 };
 
 /**
- * Statement lines, in the order a seller reads them: what the buyer paid,
- * then each deduction, then the payout.
+ * Statement lines, in the order a seller reads them: what they sold, what
+ * came off it, what they get.
  *
- * Shipping appears twice on purpose — once as money the buyer handed over,
- * once as money that went straight back out to the courier. Netting them into
- * a single line is how sellers end up believing we kept their postage.
+ * Deliberately does NOT open with what the buyer paid. An earlier version
+ * did — "Buyer paid RM 7.12" at the top, "Your payout RM 1.10" at the
+ * bottom — and it read as though RM 6 had been taken from the seller. It
+ * hadn't: the buyer's postage went to the courier and was never part of the
+ * sale. Showing money that was never theirs, then deducting it again, invents
+ * a loss the seller then has to be talked out of.
+ *
+ * So the statement starts at the sale. Shipping appears only when it is
+ * genuinely the seller's money — when they bought the label and we owe it
+ * back. Otherwise it is a footnote; see shippingNote().
  */
 export const settlementLines = (order: SettlementOrder): SettlementLine[] => {
   const subtotal = round2(order.subtotal || 0);
@@ -93,23 +100,16 @@ export const settlementLines = (order: SettlementOrder): SettlementLine[] => {
   const platformBooked = !!order.shipmentOrderNo;
 
   const lines: SettlementLine[] = [
-    {
-      label: "Buyer paid",
-      amount: round2(order.total ?? subtotal + shipping),
-      kind: "gross",
-    },
-    { label: "Card subtotal", amount: subtotal, kind: "sub" },
+    { label: "Card sold", amount: subtotal, kind: "gross" },
   ];
 
-  if (shipping > 0) {
-    lines.push({ label: "Shipping", amount: shipping, kind: "sub" });
+  // Money owed back to the seller, not money passing through.
+  if (!platformBooked && shipping > 0) {
     lines.push({
-      label: platformBooked ? "Shipping — label booked by TCGo" : "Shipping — you booked the label",
-      amount: platformBooked ? -shipping : 0,
-      kind: "deduction",
-      note: platformBooked
-        ? "We paid the courier, so the postage stays with us."
-        : "You paid the courier, so the postage comes back to you.",
+      label: "Shipping reimbursed",
+      amount: shipping,
+      kind: "credit",
+      note: "You booked the label, so the buyer's postage comes back to you.",
     });
   }
 
@@ -127,4 +127,19 @@ export const settlementLines = (order: SettlementOrder): SettlementLine[] => {
   });
 
   return lines;
+};
+
+/**
+ * The postage explanation, for orders where TCGo bought the label.
+ *
+ * A seller who sees the buyer paid RM 7.12 and reads a RM 1.10 payout will
+ * ask where the rest went, so answer it before they have to — but as an
+ * aside, not as a line in their statement.
+ */
+export const shippingNote = (order: SettlementOrder): string => {
+  const shipping = round2(order.shipping || 0);
+  if (!order.shipmentOrderNo || shipping <= 0) return "";
+  return `The buyer also paid RM ${shipping.toFixed(
+    2,
+  )} for shipping. That went to the courier for the label we booked — it was never part of your sale.`;
 };
