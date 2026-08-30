@@ -15,6 +15,15 @@
 //   node scripts/backfill-payouts.mjs           # dry run
 //   node scripts/backfill-payouts.mjs --yes     # apply
 //
+// --reprice additionally restates the COMMISSION at today's rate. That is
+// normally the one thing never to do — a sale charged 2% during beta stays
+// charged 2%, which is why platformFeeRate travels with the order. It exists
+// for test data seeded under an old rate, and it needs
+// --experimental-strip-types to read the rate from shared/pricing.ts:
+//
+//   node --experimental-strip-types scripts/backfill-payouts.mjs --reprice
+//   node --experimental-strip-types scripts/backfill-payouts.mjs --reprice --yes
+//
 // Orders whose money has already moved are never rewritten. A payout that is
 // queued, processing or paid has been acted on at the recorded amount, and
 // silently changing the number would hide a real overpayment rather than
@@ -42,6 +51,22 @@ if (!getApps().length) {
 }
 const db = getFirestore();
 const confirmed = process.argv.includes("--yes");
+const reprice = process.argv.includes("--reprice");
+
+// Only loaded when asked for: the import needs type stripping, and the plain
+// repair path must keep working under a bare `node`.
+const { effectiveRate } = reprice
+  ? await import("../shared/pricing.ts")
+  : { effectiveRate: null };
+
+if (reprice) {
+  console.log(
+    `RESTATING COMMISSION at today's rate ` +
+      `(free ${(effectiveRate("free") * 100).toFixed(2)}%, ` +
+      `vendor ${(effectiveRate("vendor") * 100).toFixed(2)}%).`,
+  );
+  console.log("This rewrites what a sale was charged. Test data only.\n");
+}
 
 const round2 = (n) => Math.round(n * 100) / 100;
 const SETTLED = ["paid", "shipped", "delivered"];
@@ -61,11 +86,17 @@ for (const doc of snap.docs) {
   if (o.sellerPayout == null) continue;
 
   // Exactly what the webhook now computes once booking is known.
-  const fee = o.platformFee != null ? round2(o.platformFee) : 0;
+  const rate = reprice ? effectiveRate(o.sellerPlan) : null;
+  const fee = reprice
+    ? round2((o.subtotal || 0) * rate)
+    : o.platformFee != null
+      ? round2(o.platformFee)
+      : 0;
   const reimbursement = o.shipmentOrderNo ? 0 : round2(o.shipping || 0);
   const correct = round2((o.subtotal || 0) - fee + reimbursement);
   const stored = round2(o.sellerPayout);
-  if (correct === stored) continue;
+  const feeChanged = reprice && fee !== round2(o.platformFee ?? 0);
+  if (correct === stored && !feeChanged) continue;
 
   const row = {
     id: doc.id,
@@ -79,6 +110,9 @@ for (const doc of snap.docs) {
     correct,
     delta: round2(correct - stored),
     payoutStatus: o.payoutStatus ?? "pending",
+    newFee: reprice ? fee : null,
+    newRate: rate,
+    oldFee: round2(o.platformFee ?? 0),
   };
   (MONEY_MOVED.includes(row.payoutStatus) ? locked : fixable).push(row);
 }
@@ -92,6 +126,9 @@ const show = (rows, title) => {
         ` sub ${r.subtotal.toFixed(2).padStart(8)}` +
         ` ship ${r.shipping.toFixed(2).padStart(6)}` +
         ` ${r.booked ? "booked  " : "unbooked"}` +
+        (r.newFee !== null
+          ? `  fee ${r.oldFee.toFixed(2)}→${r.newFee.toFixed(2)}`
+          : "") +
         `  ${r.stored.toFixed(2).padStart(8)} → ${r.correct.toFixed(2).padStart(8)}` +
         `  (${r.delta > 0 ? "+" : ""}${r.delta.toFixed(2)})`,
     );
@@ -124,7 +161,12 @@ if (!confirmed) {
 for (let i = 0; i < fixable.length; i += 400) {
   const batch = db.batch();
   for (const r of fixable.slice(i, i + 400)) {
-    batch.update(r.ref, { sellerPayout: r.correct });
+    batch.update(r.ref, {
+      sellerPayout: r.correct,
+      // Record the rate alongside the fee so the statement never has to
+      // divide it back out of a sen-rounded figure.
+      ...(reprice ? { platformFee: r.newFee, platformFeeRate: r.newRate } : {}),
+    });
   }
   await batch.commit();
 }
