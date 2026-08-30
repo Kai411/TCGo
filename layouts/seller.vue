@@ -196,9 +196,19 @@ const IconCompass = () =>
 const { start: startTour } = useSellerTour();
 
 // `tour` ids are what SellerOnboardingTour points its spotlight at.
+const IconReceipt = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("path", { d: "M4 2v20l2.5-1.5L9 22l3-1.5L15 22l2.5-1.5L20 22V2l-2.5 1.5L15 2l-3 1.5L9 2 6.5 3.5z" }),
+    h("line", { x1: "8", y1: "9", x2: "16", y2: "9" }),
+    h("line", { x1: "8", y1: "13", x2: "14", y2: "13" }),
+  ]);
+
 const navItems = [
   { to: "/seller", label: "Dashboard", icon: IconDashboard, exact: true, tour: "nav-dashboard" },
   { to: "/seller/pos", label: "POS", icon: IconScan, tour: "nav-pos" },
+  // Sits next to POS because that's what fills it — counter takings, not
+  // marketplace orders, which have their own queue below.
+  { to: "/seller/sales", label: "Sales", icon: IconReceipt },
   { to: "/seller/orders", label: "Orders", icon: IconOrders, tour: "nav-orders" },
   { to: "/seller/items", label: "Inventory", icon: IconBox, tour: "nav-items" },
   { to: "/seller/listings", label: "Listings", icon: IconTag, tour: "nav-listings" },

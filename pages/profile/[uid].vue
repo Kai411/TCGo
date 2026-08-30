@@ -589,16 +589,35 @@ const formatMyr = (n: number) =>
     maximumFractionDigits: 2,
   });
 
+// Available first, sold pushed to the bottom, newest first within each group.
+//
+// Sold cards stay on the profile — they're the seller's track record, and a
+// shop with visible history reads as a real one. But they aren't buyable, so
+// leading with five greyed-out SOLD tiles makes an active seller look closed.
 const userCards = computed(() =>
   cards.value
     .filter((c: any) => c.sellerUid === uid)
-    .sort((a: any, b: any) => b.createdAt - a.createdAt),
+    .sort((a: any, b: any) => {
+      if (!!a.sold !== !!b.sold) return a.sold ? 1 : -1;
+      return b.createdAt - a.createdAt;
+    }),
 );
 
+// Same rule for auctions: live ones first, ended ones after.
 const userAuctions = computed(() =>
   auctions.value
     .filter((a: any) => a.sellerUid === uid)
-    .sort((a: any, b: any) => b.createdAt - a.createdAt),
+    .sort((a: any, b: any) => {
+      // `settled` doesn't exist on an auction — status does. An auction is
+      // over when it left "active", or when its clock ran out regardless of
+      // whether settlement has caught up yet.
+      const over = (x: any) =>
+        (x.status && x.status !== "active") || (x.endsAt ?? 0) < Date.now();
+      const aEnded = over(a);
+      const bEnded = over(b);
+      if (aEnded !== bEnded) return aEnded ? 1 : -1;
+      return b.createdAt - a.createdAt;
+    }),
 );
 
 const favouriteCards = computed(() => {

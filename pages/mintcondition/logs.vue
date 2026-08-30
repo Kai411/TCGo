@@ -116,14 +116,21 @@
       <div
         v-for="r in rows"
         :key="r.id"
-        class="surface rounded-lg border border-black/[0.06] dark:border-white/[0.08] px-3.5 py-2.5 flex items-start gap-3 flex-wrap"
+        class="surface rounded-lg border border-black/[0.06] dark:border-white/[0.08] px-3.5 py-2.5 flex items-start gap-3"
       >
-        <span class="text-[11px] font-mono text-ink-soft dark:text-zinc-600 shrink-0 w-32">
+        <span class="text-[11px] font-mono text-ink-soft dark:text-zinc-600 shrink-0 w-28 tabular-nums">
           {{ fmt(r.at) }}
         </span>
-        <span class="font-mono text-[11px] font-bold shrink-0 w-16">{{ r.actor }}</span>
+        <!-- Fixed width with truncate, not just fixed width: a staff ID is
+             five characters but the legacy marketplace-admin bridge logs a
+             28-character Firebase uid, which overflowed the column and printed
+             straight through the summary next to it. -->
+        <span
+          class="font-mono text-[11px] font-bold shrink-0 w-16 truncate"
+          :title="r.actorName ? `${r.actor} — ${r.actorName}` : r.actor"
+        >{{ actorLabel(r.actor) }}</span>
         <span class="text-[13px] flex-1 min-w-0 break-words">{{ r.summary }}</span>
-        <code class="text-[10px] text-ink-soft dark:text-zinc-600 shrink-0">{{ r.action }}</code>
+        <code class="hidden sm:block text-[10px] text-ink-soft dark:text-zinc-600 shrink-0 max-w-[10rem] truncate">{{ r.action }}</code>
       </div>
     </div>
 
@@ -162,6 +169,12 @@ const error = ref("");
 const busy = ref("");
 
 const areaLabel = (a: string) => LOG_AREAS.find((x) => x.key === a)?.label ?? a;
+
+// Staff IDs are short and meant to be read. A Firebase uid isn't — it only
+// appears for actions taken through the legacy admin bridge, where all the
+// reader needs is "not a staff account"; the full value is on hover.
+const actorLabel = (actor: string) =>
+  !actor ? "—" : actor.length <= 8 ? actor : `${actor.slice(0, 6)}…`;
 
 const fmt = (ms: number) =>
   new Date(ms).toLocaleString("en-MY", {
