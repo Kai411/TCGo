@@ -82,6 +82,11 @@ export default defineEventHandler(async (event) => {
     subtotal: totals.subtotal,
     discountTotal: totals.discountTotal,
     total: totals.total,
+    // Written as an explicit zero, not left absent. Cash never touches a rail
+    // TCGo can bill against, so there is no fee to take — and a missing field
+    // would read as "not recorded yet" to anything summing these rows.
+    platformFee: 0,
+    platformFeeRate: 0,
     status: "paid",
     method: "cash",
     createdAt: now,

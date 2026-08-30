@@ -21,40 +21,36 @@
 // holds the money until the parcel is delivered and then pays out via
 // Billplz — which is why `posSales` never touches the payout ledger.
 //
-// TCGo TAKES NO CUT OF A COUNTER SALE.
+// WHAT TCGo TAKES AT THE COUNTER
 //
-// The till is free, and nothing is charged per counter transaction. At the
-// counter the seller keeps everything except HitPay's own 1.2% DuitNow QR fee,
-// which HitPay deducts from their settlement.
+// There is no POS subscription. TCGo charges POS_PLATFORM_RATE (0.8%) of each
+// counter sale instead, on top of HitPay's own 1.2% DuitNow QR fee. The shop
+// sees 2.0% all-in and keeps the rest, settled to their own bank.
 //
-// This is a deliberate decision, not an unfinished one. Three reasons:
+// The commission is attached with `platform_commission_amount` on the charge,
+// computed here from shared/pricing.ts. HitPay splits it at settlement: the
+// shop's share goes to the shop, ours to the platform account.
 //
-//   - TCGo's marginal cost on a counter sale is zero. HitPay charges the
-//     platform nothing for this rail, so a percentage would be rent on
-//     infrastructure we don't operate.
-//   - It would be trivially avoidable. cash-sale.post.ts writes the identical
-//     posSales row, so a shop taking payment on its own DuitNow standee and
-//     pressing "Cash" pays nothing and still gets the stock sync. A fee here
-//     would pay sellers to misreport their takings.
-//   - It stacks against free. A static merchant DuitNow QR is 0% under the
-//     BNM waiver. HitPay's 1.2% buys automatic reconciliation and is a fair
-//     trade; 2%+ is worse than a card terminal and the standee wins.
+// ONE RULE, AND IT IS EASY TO BREAK BY ACCIDENT:
 //
-// What the till earns instead is inventory. Cards scanned into it become
-// listings, and listings commission at 4% — see shared/pricing.ts.
+//   Leave the Commission Rate in the HitPay dashboard (Settings → Platform)
+//   at ZERO. X-PLATFORM-KEY is what attaches the platform relationship, and
+//   that same header is what applies a dashboard commission rate — so a rate
+//   set there would be charged ON TOP of the amount this file sends, and
+//   every shop in the country would be double-billed with no code change and
+//   nothing in this repo to show for it. The rate lives in pricing.ts; the
+//   dashboard stays at zero.
 //
-// Two things follow, and both are easy to break by accident:
-//
-//   1. Never send `platform_commission_amount` on a counter charge.
-//   2. Leave the Commission Rate in the HitPay dashboard (Settings →
-//      Platform) at ZERO. X-PLATFORM-KEY is sent for the platform
-//      relationship and unified webhooks, but that same header is what
-//      applies a dashboard commission rate — so setting one there would
-//      start skimming every counter sale in the country with no code
-//      change and nothing in this repo to show for it.
+// CASH SALES ARE NOT CHARGED. Cash never touches this rail, so there is
+// nothing to take a commission out of — see cash-sale.post.ts, which records
+// the same posSales row with a zero fee. That is also the honest weakness of
+// charging per transaction: a shop can take payment on its own DuitNow
+// standee, press "Cash", and pay nothing while keeping the stock sync. 0.8%
+// is set low enough that the dodge is not worth the bother; if takings start
+// drifting into the cash column, that is the number to revisit.
 //
 // HitPay charges the platform itself nothing: no licensing fee, no monthly,
-// no per-transaction cost to TCGo.
+// no per-transaction cost to TCGo. Our 0.8% is gross margin on the rail.
 //
 // STATUS: the HitPay request/response shapes below follow HitPay's published
 // API docs but have NOT been exercised against a live account — TCGo has no
@@ -116,6 +112,15 @@ export interface PosPaymentProvider {
   readonly name: string;
   createDuitNowCharge(input: {
     amountSen: number;
+    /**
+     * TCGo's cut, in sen, out of `amountSen`. Not added on top — the customer
+     * pays amountSen and HitPay splits it at settlement.
+     *
+     * Only meaningful when the shop has its own connected account. Charging
+     * the platform account already keeps every sen, so a commission on it
+     * would be a split with ourselves; callers pass 0 there.
+     */
+    commissionSen?: number;
     reference: string;
     description: string;
     webhookUrl: string;
@@ -210,7 +215,14 @@ const mapHitpayStatus = (status: string): PosChargeStatus => {
 const hitpay: PosPaymentProvider = {
   name: "hitpay",
 
-  async createDuitNowCharge({ amountSen, reference, description, webhookUrl, merchant }) {
+  async createDuitNowCharge({
+    amountSen,
+    commissionSen = 0,
+    reference,
+    description,
+    webhookUrl,
+    merchant,
+  }) {
     const res = await fetch(`${hitpayBase()}/payment-requests`, {
       method: "POST",
       headers: hitpayHeaders(merchant),
@@ -219,6 +231,13 @@ const hitpay: PosPaymentProvider = {
         // keeps every caller in sen and this the only place that knows.
         amount: (amountSen / 100).toFixed(2),
         currency: "MYR",
+        // TCGo's share of the amount above. Omitted entirely at zero rather
+        // than sent as "0.00": a commission field on a charge that isn't
+        // being split is noise in HitPay's records, and on the platform's own
+        // account it would be a split with ourselves.
+        ...(commissionSen > 0
+          ? { platform_commission_amount: (commissionSen / 100).toFixed(2) }
+          : {}),
         payment_methods: ["duitnow"],
         // The whole point: without this HitPay returns a hosted checkout URL
         // instead of a payload we can draw at the till.

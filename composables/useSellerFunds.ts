@@ -16,6 +16,7 @@
 // use, so what the seller is quoted is what the server will actually send.
 
 import { computed } from "vue";
+import { WITHDRAWAL_FEE } from "~/shared/pricing";
 import type { CompiledOrder } from "~/composables/useCompiledOrders";
 import {
   PAYOUT_HOLD_DAYS,
@@ -106,11 +107,23 @@ export const useSellerFunds = () => {
   // Seller requests payout of everything currently available. The server
   // re-derives eligibility and amounts — this is a request, not an instruction.
   const requestPayout = async () => {
-    return await authedFetch<{ payoutId: string; orders: number; amount: number }>(
-      "/api/payouts/request",
-      { method: "POST" },
-    );
+    return await authedFetch<{
+      payoutId: string;
+      orders: number;
+      amount: number;
+      grossAmount: number;
+      withdrawalFee: number;
+    }>("/api/payouts/request", { method: "POST" });
   };
+
+  // What would actually land if they withdrew right now. The server recomputes
+  // this and is the authority; showing it here means the button doesn't quote
+  // one number and the bank another.
+  const withdrawalFee = WITHDRAWAL_FEE;
+  const payoutPreview = computed(() =>
+    Math.round((availableTotal.value - WITHDRAWAL_FEE) * 100) / 100,
+  );
+  const canWithdraw = computed(() => payoutPreview.value > 0);
 
   return {
     entries,
@@ -123,6 +136,9 @@ export const useSellerFunds = () => {
     queuedTotal,
     fundsTotal,
     lastFailureReason,
+    withdrawalFee,
+    payoutPreview,
+    canWithdraw,
     requestPayout,
   };
 };

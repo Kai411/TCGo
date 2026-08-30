@@ -56,8 +56,19 @@ export interface FinanceOrder {
 export interface FinancePayout {
   status?: string;
   amount?: number;
+  /** Recovered from the seller. Absent on batches predating the fee. */
+  withdrawalFee?: number;
   executedAt?: number;
   autoPayoutSupported?: boolean;
+}
+
+/** A counter sale. Only `paid` ones carry a fee. */
+export interface FinancePosSale {
+  status?: string;
+  method?: string;
+  total?: number;
+  platformFee?: number;
+  paidAt?: number;
 }
 
 /** Orders that represent collected money. Only these carry revenue or cost. */
@@ -103,6 +114,18 @@ export const commissionAtLaunch = (
 /** Billplz takes its collection fee on every settled order. */
 export const orderProcessingCost = (): number => BILLPLZ_FPX_FEE;
 
+/** Counter sales that actually took money. */
+export const isSettledPosSale = (s: FinancePosSale): boolean => s.status === "paid";
+
+/**
+ * TCGo's cut of a counter sale, as recorded.
+ *
+ * Absent means zero — a row written before the counter fee existed was taken
+ * during the free period. Never re-derived from today's rate.
+ */
+export const posPlatformRevenue = (s: FinancePosSale): number =>
+  round2(s.platformFee || 0);
+
 // ── Aggregate ────────────────────────────────────────────────────────
 
 export interface SubscriptionCounts {
@@ -125,6 +148,12 @@ export interface FinanceSummary {
    *  implied by shippingRevenue minus courierCost, never added on top. */
   shippingMargin: number;
   subscriptionRevenue: number;
+  /** Counter sales that took money, and TCGo's 0.8% of them. */
+  posSaleCount: number;
+  posVolume: number;
+  posRevenue: number;
+  /** Withdrawal fees recovered. Offsets billplzPayoutFees, near-exactly. */
+  withdrawalFeeRevenue: number;
   revenue: number;
 
   // Costs
@@ -147,6 +176,7 @@ export const summariseFinance = (
   payouts: FinancePayout[],
   subscriptions: SubscriptionCounts = { pro: 0 },
   planForSeller: (uid: string | undefined) => PlanId = () => "free",
+  posSales: FinancePosSale[] = [],
 ): FinanceSummary => {
   const settled = orders.filter(isSettled);
 
@@ -159,7 +189,10 @@ export const summariseFinance = (
   const subscriptionRevenue = round2(
     subscriptions.pro * (PLANS.find((p) => p.id === "pro")?.monthly ?? 0),
   );
-  const revenue = round2(commission + postage + subscriptionRevenue);
+  // The counter. Volume is the shop's money and never ours; only the fee is.
+  const posSettled = posSales.filter(isSettledPosSale);
+  const posVolume = sum(posSettled.map((s) => s.total || 0));
+  const posRevenue = sum(posSettled.map(posPlatformRevenue));
 
   const courier = sum(settled.map(courierCost));
   const collectionFees = round2(settled.length * BILLPLZ_FPX_FEE);
@@ -169,6 +202,16 @@ export const summariseFinance = (
     (p) => p.executedAt && p.autoPayoutSupported !== false,
   );
   const payoutFees = round2(executedPayouts.length * BILLPLZ_PAYOUT_FEE);
+
+  // Recovered from the seller on the way out. Counted from what each batch
+  // actually charged rather than multiplying by today's constant, so batches
+  // requested before the fee existed stay at zero instead of inventing
+  // revenue that was never collected.
+  const withdrawalFeeRevenue = sum(executedPayouts.map((p) => p.withdrawalFee || 0));
+
+  const revenue = round2(
+    commission + postage + subscriptionRevenue + posRevenue + withdrawalFeeRevenue,
+  );
 
   const costs = round2(courier + collectionFees + payoutFees);
   const netProfit = round2(revenue - costs);
@@ -182,6 +225,10 @@ export const summariseFinance = (
     shippingRevenue: postage,
     shippingMargin: round2(postage - courier),
     subscriptionRevenue,
+    posSaleCount: posSettled.length,
+    posVolume,
+    posRevenue,
+    withdrawalFeeRevenue,
     revenue,
     courierCost: courier,
     billplzCollectionFees: collectionFees,

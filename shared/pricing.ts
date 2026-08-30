@@ -21,9 +21,8 @@
 // looking at the same sale see the same deduction, and nobody has to be told
 // why their neighbour pays less.
 //
-// The till is free (see server/utils/pos-payment.ts). It feeds inventory into
-// the marketplace, and the marketplace is where the 4% is earned — charging
-// for it would throttle the only line that makes money.
+// The till has no subscription. It charges per counter sale instead — see
+// POS_PLATFORM_RATE below.
 //
 // Structurally plain (no Vue imports) so Nitro can use it too.
 
@@ -41,6 +40,46 @@ export interface Plan {
 export const STANDARD_RATE = 0.04;
 
 export const MARKETPLACE_MONTHLY = 4.99;
+
+// ── The counter ───────────────────────────────────────────────────────
+//
+// No subscription. The till is free to install and free to keep; TCGo takes
+// a percentage of what goes through it instead, so a shop that sells nothing
+// over the counter pays nothing.
+//
+// The shop sees one all-in number: 2.0%. That is HitPay's 1.2% for moving the
+// money plus TCGo's 0.8% for the till, and it is deliberately a round figure
+// because a shopkeeper reconciling a day's takings should not need a
+// calculator to check it.
+//
+// CASH IS NOT CHARGED, and cannot be. Cash never touches a rail we can bill
+// against — see server/api/pos/cash-sale.post.ts. That also means the fee is
+// avoidable by a shop willing to take payment on its own DuitNow standee and
+// press "Cash", which is why 0.8% is set low enough that the dodge isn't
+// worth the bother. If counter volume ever starts drifting into the cash
+// column, that is the number to look at first.
+export const POS_PLATFORM_RATE = 0.008;
+
+/** HitPay's own DuitNow QR rate. Not ours — shown so the 2.0% adds up. */
+export const POS_PROVIDER_RATE = 0.012;
+
+/** What the shop pays all-in on a counter QR sale, as a fraction. */
+export const POS_ALL_IN_RATE = POS_PLATFORM_RATE + POS_PROVIDER_RATE;
+
+/** TCGo's cut of one counter sale. Rounded to the sen HitPay will deduct. */
+export const posPlatformFee = (total: number): number =>
+  Math.round(Math.max(0, total) * POS_PLATFORM_RATE * 100) / 100;
+
+// ── Getting paid out ──────────────────────────────────────────────────
+//
+// Billplz charges RM 1.25 per Payment Order. This recovers it exactly —
+// not a margin, a pass-through, which is why it is the same 1.25 rather than
+// a rounder number that would quietly earn.
+//
+// Charged per withdrawal, not per order, so it is entirely within the
+// seller's control: batching a month of sales into one request costs the same
+// RM 1.25 as cashing out a single card.
+export const WITHDRAWAL_FEE = 1.25;
 
 // Free scans a month before Pro is worth buying. Mirrors FREE_SCAN_LIMIT in
 // composables/useScanQuota.ts, which is what actually enforces it — this copy

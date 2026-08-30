@@ -24,6 +24,7 @@ import {
   BILLPLZ_PAYOUT_FEE,
   type FinanceOrder,
   type FinancePayout,
+  type FinancePosSale,
 } from "~/shared/finance";
 import type { PlanId } from "~/shared/pricing";
 
@@ -37,19 +38,20 @@ export default defineEventHandler(async (event) => {
   const db = getAdminFirestore();
   const now = Date.now();
 
-  const [orderSnap, payoutSnap, userSnap] = await Promise.all([
+  const [orderSnap, payoutSnap, userSnap, posSnap] = await Promise.all([
     db.collection("compiledOrders").limit(SCAN_LIMIT).get(),
     db.collection("payouts").limit(SCAN_LIMIT).get(),
     db.collection("users").limit(SCAN_LIMIT).get(),
+    db.collection("posSales").limit(SCAN_LIMIT).get(),
   ]);
 
   const orders = orderSnap.docs.map((d) => d.data() as FinanceOrder & { paidAt?: number });
   const payouts = payoutSnap.docs.map((d) => d.data() as FinancePayout);
+  const posSales = posSnap.docs.map((d) => d.data() as FinancePosSale & { paidAt?: number });
   const users = userSnap.docs.map((d) => d.data() as { tier?: string; plan?: string });
 
   // Subscriptions. `tier: premium` is the built Stripe membership (Pro), and
-  // it is the only paid plan — the till is free, so there is nothing else to
-  // count.
+  // it is the only paid plan — the till bills per sale, not per month.
   const proCount = users.filter((u) => u.tier === "premium").length;
 
   // Both plans commission at the same rate, so this only affects the "what
@@ -68,21 +70,25 @@ export default defineEventHandler(async (event) => {
     (o.paidAt ?? 0) >= from;
   const payoutsWithin = (from: number) => (p: FinancePayout) =>
     (p.executedAt ?? 0) >= from;
+  const posWithin = (from: number) => (s: FinancePosSale & { paidAt?: number }) =>
+    (s.paidAt ?? 0) >= from;
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
 
-  const allTime = summariseFinance(orders, payouts, subs, planForSeller);
+  const allTime = summariseFinance(orders, payouts, subs, planForSeller, posSales);
   const last30 = summariseFinance(
     orders.filter(within(now - 30 * DAY)),
     payouts.filter(payoutsWithin(now - 30 * DAY)),
     subs,
     planForSeller,
+    posSales.filter(posWithin(now - 30 * DAY)),
   );
   const thisMonth = summariseFinance(
     orders.filter(within(monthStart)),
     payouts.filter(payoutsWithin(monthStart)),
     subs,
     planForSeller,
+    posSales.filter(posWithin(monthStart)),
   );
 
   // ── Float projections ───────────────────────────────────────────────
@@ -110,6 +116,7 @@ export default defineEventHandler(async (event) => {
     // Annualise the current subscriber base rather than counting one month.
     { pro: subs.pro * 12 },
     planForSeller,
+    posSales.filter(posWithin(now - 365 * DAY)),
   );
   const tax = {
     sst: sstPosition(rolling12.revenue),

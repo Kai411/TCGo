@@ -25,6 +25,7 @@ import {
 } from "~/server/utils/pos-payment";
 import { sellerMerchant } from "~/server/utils/pos-merchant";
 import { posTotals, toSen, round2 } from "~/shared/pos-sale";
+import { posPlatformFee, POS_PLATFORM_RATE } from "~/shared/pricing";
 import type { PosSaleLine, PosPaymentMethod } from "~/shared/pos-sale";
 import { noteError } from "~/server/utils/oplog";
 
@@ -92,6 +93,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: "A QR payment needs a total above RM 0" });
   }
 
+  // TCGo's 0.8% of this sale. Recorded on the row alongside the rate it was
+  // struck at, for the same reason online orders carry platformFeeRate: the
+  // fee a sale was charged is history, and re-deriving it from a constant
+  // would restate every past sale the day that constant moves.
+  const platformFee = posPlatformFee(totals.total);
+
   const now = Date.now();
   const saleRef = db.collection("posSales").doc();
   await saleRef.set({
@@ -100,6 +107,8 @@ export default defineEventHandler(async (event) => {
     subtotal: totals.subtotal,
     discountTotal: totals.discountTotal,
     total: totals.total,
+    platformFee,
+    platformFeeRate: POS_PLATFORM_RATE,
     status: "awaiting_payment",
     method,
     createdAt: now,
@@ -165,6 +174,9 @@ export default defineEventHandler(async (event) => {
   try {
     const charge = await posPaymentProvider().createDuitNowCharge({
       amountSen: toSen(totals.total),
+      // Split only when the money is landing in someone else's account.
+      // On the platform's own account there is nothing to split.
+      commissionSen: isSellerConnected(merchant) ? toSen(platformFee) : 0,
       reference: saleRef.id,
       description: `${lines.length} card${lines.length === 1 ? "" : "s"} · TCGo counter sale`,
       webhookUrl: `${siteUrl}/api/pos/webhook`,
@@ -181,6 +193,7 @@ export default defineEventHandler(async (event) => {
       total: totals.total,
       subtotal: totals.subtotal,
       discountTotal: totals.discountTotal,
+      platformFee,
       reservedUntil,
     };
   } catch (e: any) {

@@ -7,6 +7,7 @@
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
 import { recordedPayout, isPayoutEligible, sumAmounts } from "~/shared/payouts";
+import { WITHDRAWAL_FEE } from "~/shared/pricing";
 import { toPayoutRecipient } from "~/shared/payout-details";
 import { bankName } from "~/shared/banks";
 import type { PayoutBatch } from "~/shared/payout-ledger";
@@ -44,9 +45,29 @@ export default defineEventHandler(async (event) => {
   // is the amount that leaves the bank account, so recomputing it would pay a
   // beta-era sale at launch rates the day the constant changes.
   const amounts = eligible.map((d) => recordedPayout(d.data() as any));
-  const amount = sumAmounts(amounts);
-  if (amount <= 0) {
+  const grossAmount = sumAmounts(amounts);
+  if (grossAmount <= 0) {
     throw createError({ statusCode: 400, message: "No funds are available for payout yet." });
+  }
+
+  // The withdrawal fee recovers what Billplz charges to send the transfer.
+  // Charged per request rather than per order, so batching is the seller's
+  // lever: one request covering twenty sales costs the same RM 1.25 as one
+  // covering a single card.
+  //
+  // Refused rather than clamped when the fee would swallow the payout. A
+  // transfer of RM 0.00 costs TCGo the full RM 1.25 to send and gives the
+  // seller nothing, and silently shipping it would look like theft on a
+  // statement. Better to tell them to wait for one more sale.
+  const amount = Math.round((grossAmount - WITHDRAWAL_FEE) * 100) / 100;
+  if (amount <= 0) {
+    throw createError({
+      statusCode: 400,
+      message:
+        `Withdrawing costs RM ${WITHDRAWAL_FEE.toFixed(2)}, and you have ` +
+        `RM ${grossAmount.toFixed(2)} available — so there'd be nothing left to send. ` +
+        `Wait until you've a little more, then withdraw it all in one go.`,
+    });
   }
 
   const payoutRef = db.collection("payouts").doc();
@@ -57,6 +78,8 @@ export default defineEventHandler(async (event) => {
     sellerEmail: profile?.email || caller.email,
     orderIds: eligible.map((d) => d.id),
     amount,
+    grossAmount,
+    withdrawalFee: WITHDRAWAL_FEE,
     status: "queued",
     recipient: {
       bankCode: recipient.bankCode,
@@ -85,5 +108,11 @@ export default defineEventHandler(async (event) => {
   });
   await writes.commit();
 
-  return { payoutId: payoutRef.id, orders: eligible.length, amount };
+  return {
+    payoutId: payoutRef.id,
+    orders: eligible.length,
+    amount,
+    grossAmount,
+    withdrawalFee: WITHDRAWAL_FEE,
+  };
 });

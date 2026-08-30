@@ -16,7 +16,18 @@ export interface PayoutBatch {
   sellerName: string;
   sellerEmail?: string;
   orderIds: string[];
-  amount: number; // MYR, sum of the per-order payouts at request time
+  /**
+   * MYR actually transferred — what Billplz is instructed to send, and what
+   * lands in the seller's account. This is `grossAmount` minus
+   * `withdrawalFee`, and it is deliberately the field named `amount` so that
+   * anything reading a batch without knowing about the fee still reads the
+   * figure that moved.
+   */
+  amount: number;
+  /** Sum of the per-order payouts before the withdrawal fee. */
+  grossAmount?: number;
+  /** Recovers the Billplz Payment Order fee. Struck at request time. */
+  withdrawalFee?: number;
   status: PayoutBatchStatus;
 
   // The account the money was actually sent to, snapshotted at request time so

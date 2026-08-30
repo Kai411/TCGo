@@ -38,10 +38,20 @@
           <p class="text-3xl sm:text-4xl font-bold tabular-price text-white mt-2 tracking-tightest">
             RM {{ fmt(availableTotal) }}
           </p>
+          <!-- The fee is stated before the button, not after. A seller who
+               reads "available RM 40" and banks RM 38.75 has been surprised
+               by their own money, which is the one surprise to never allow. -->
+          <p v-if="availableTotal > 0" class="text-xs text-white/70 mt-2">
+            Withdrawing costs RM {{ fmt(withdrawalFee) }}, so
+            <span class="font-semibold text-white">RM {{ fmt(Math.max(0, payoutPreview)) }}</span>
+            reaches your bank. It's charged per payout, not per order — one
+            request covering ten sales costs the same as one covering a single
+            card.
+          </p>
           <div class="mt-4 flex flex-wrap items-center gap-3">
             <button
               @click="doRequestPayout"
-              :disabled="availableTotal <= 0 || requesting"
+              :disabled="!canWithdraw || requesting"
               class="px-4 py-2 rounded-lg text-sm font-bold bg-white text-ink hover:bg-white/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
             >
               <span v-if="requesting" class="animate-spin rounded-full h-4 w-4 border-b-2 border-ink" />
@@ -176,6 +186,9 @@ const {
   queued,
   paidOut,
   availableTotal,
+  withdrawalFee,
+  payoutPreview,
+  canWithdraw,
   lockedTotal,
   queuedTotal,
   lastFailureReason,
@@ -248,19 +261,28 @@ const bankLine = computed(() => {
 
 const requesting = ref(false);
 const doRequestPayout = async () => {
-  if (requesting.value || availableTotal.value <= 0) return;
+  if (requesting.value || !canWithdraw.value) return;
   if (!bankLine.value) {
     if (confirm("Add your bank account and IC number first to receive payouts. Go to verification?")) {
       navigateTo("/seller/verify");
     }
     return;
   }
-  if (!confirm(`Request payout of RM ${fmt(availableTotal.value)} to ${bankLine.value}?`)) return;
+  if (
+    !confirm(
+      `Withdraw RM ${fmt(availableTotal.value)} to ${bankLine.value}?\n\n` +
+        `Withdrawal fee  −RM ${fmt(withdrawalFee)}\n` +
+        `Reaches your bank  RM ${fmt(payoutPreview.value)}`,
+    )
+  )
+    return;
   requesting.value = true;
   try {
     const res = await requestPayout();
     alert(
-      `Payout of RM ${fmt(res.amount)} requested for ${res.orders} order${res.orders === 1 ? "" : "s"}. We'll transfer to your bank shortly.`,
+      `RM ${fmt(res.amount)} on its way for ${res.orders} order${res.orders === 1 ? "" : "s"} ` +
+        `(RM ${fmt(res.grossAmount)} less the RM ${fmt(res.withdrawalFee)} withdrawal fee). ` +
+        `We'll transfer to your bank shortly.`,
     );
   } catch (e: any) {
     alert(e?.data?.message || e?.message || "Couldn't request payout. Please try again.");

@@ -13,8 +13,8 @@
           class="reveal-init mx-auto mt-5 max-w-xl text-base leading-relaxed text-ink-muted sm:text-lg"
         >
           No listing fees, no minimum order, nothing to pay until a card
-          actually sells. The in-store till is free, and subscribing never
-          changes your rate.
+          actually sells. The in-store till has no subscription, and
+          subscribing never changes your rate.
         </p>
         <p
           v-if="BETA_PRICING"
@@ -97,10 +97,11 @@
             Money taken at your counter
           </h3>
           <p class="mt-1.5 text-[13px] leading-relaxed text-ink-muted">
-            The till is free on every plan, including the free one. In-store
-            payments settle straight into your own bank account — we never hold
-            your counter takings and never charge a percentage on them. What
-            you see below is the payment provider's rate, not ours.
+            No subscription and nothing to install — sell nothing over the
+            counter and you pay nothing. Takings settle straight into your own
+            bank account; we never hold them. On a QR sale the rate below is
+            all-in: HitPay's share for moving the money, plus ours for the
+            till.
           </p>
           <div class="mt-5 grid gap-3 sm:grid-cols-3">
             <div
@@ -549,6 +550,10 @@ import {
   MARKETPLACE_MONTHLY,
   STANDARD_RATE,
   FREE_SCANS_MONTHLY,
+  POS_ALL_IN_RATE,
+  POS_PLATFORM_RATE,
+  POS_PROVIDER_RATE,
+  WITHDRAWAL_FEE,
   BETA_PRICING,
   BETA_RATE,
   feeSplitRates,
@@ -652,24 +657,23 @@ const plans = [
 // the published in-person rate from a platform acquirer.
 const counterMethods = [
   {
-    rate: "0%",
+    rate: `${(POS_ALL_IN_RATE * 100).toFixed(1)}%`,
     name: "DuitNow QR",
-    note: "Free for micro and small merchants under the BNM waiver. Straight to your bank.",
+    note: `${(POS_PROVIDER_RATE * 100).toFixed(1)}% to move the money, ${(POS_PLATFORM_RATE * 100).toFixed(1)}% for the till. Settles to your own bank.`,
   },
   {
-    rate: "1.4%",
+    rate: "Soon",
     name: "Tap to pay",
-    note: "Contactless cards and wallets on the shop's own phone. Minimum 30 sen.",
+    note: "Contactless cards and wallets on the shop's own phone. Not live yet.",
   },
   {
     rate: "0%",
     name: "Cash",
-    note: "Recorded in the till and counted in your reports like any other sale.",
+    note: "Nothing to charge — recorded in the till and counted in your reports all the same.",
   },
 ];
 
 // ── Calculator ──────────────────────────────────────────────────────
-const WITHDRAWAL_FEE = 1.25;
 
 const avgSale = ref(35);
 const salesPerMonth = ref(12);
@@ -737,7 +741,7 @@ const includedFree = [
   },
   {
     title: "Direct counter settlement",
-    body: "In-store takings go straight to your own bank — we never hold them.",
+    body: "In-store takings go straight to your own bank — we never hold them, and cash is never charged.",
   },
   {
     title: "Courier waybills",
@@ -772,11 +776,11 @@ const faqs = [
   },
   {
     q: "What does the in-store till cost?",
-    a: "Nothing, on either plan. Money taken at your counter goes straight from your customer to your own bank by cash, DuitNow QR or a card tapped on your phone — it never passes through us, so there's nothing for us to take a cut of and no per-sale charge. Sell 100 cards over the counter or none at all, the till is free.",
+    a: "There's no subscription — sell nothing over the counter and you pay nothing. On a DuitNow QR sale you pay 2.0% all in: 1.2% to move the money and 0.8% for the till. Cash costs nothing at all, because it never passes through us. Takings settle straight into your own bank either way; we never hold them.",
   },
   {
     q: "Do I need a subscription to sell online?",
-    a: "No. Selling costs 4% a sale on both plans, the free one included, and the till is free too. Pro at RM4.99 lifts the 20-a-month cap on card scans — that's the whole difference.",
+    a: "No. Selling costs 4% a sale on both plans, the free one included, and the till needs no subscription either. Pro at RM4.99 lifts the 20-a-month cap on card scans — that's the whole difference.",
   },
   {
     q: "What does tap-to-pay cost?",
