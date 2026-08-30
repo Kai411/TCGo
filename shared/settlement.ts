@@ -12,8 +12,8 @@
 // 2% would silently restate as 4% on launch day. Recomputation is the
 // fallback for orders written before those fields existed, nothing more.
 
-import { recordedFee, recordedPayout } from "~/shared/payouts";
-import { BETA_RATE, PLANS, splitFee } from "~/shared/pricing";
+import { recordedFee, recordedPayout, recordedSst } from "~/shared/payouts";
+import { BETA_RATE, PLANS, splitFee, SST_RATE } from "~/shared/pricing";
 
 export interface SettlementOrder {
   subtotal?: number;
@@ -22,6 +22,9 @@ export interface SettlementOrder {
   platformFee?: number;
   /** Rate the fee was struck at, as a fraction. Recorded at settlement. */
   platformFeeRate?: number;
+  /** Service tax charged on the fee. Recorded at settlement; zero if we
+   *  weren't SST-registered at the time. */
+  sstAmount?: number;
   sellerPayout?: number;
   /** Set when TCGo booked the courier label and paid for it. */
   shipmentOrderNo?: string | null;
@@ -45,6 +48,10 @@ export const feeCharged = (order: SettlementOrder): number =>
 /** What actually reaches the bank. */
 export const payoutAmount = (order: SettlementOrder): number =>
   recordedPayout(order as any);
+
+/** Service tax charged on this order. Zero before TCGo was SST-registered. */
+export const sstCharged = (order: SettlementOrder): number =>
+  recordedSst(order as any);
 
 /** Every rate TCGo has ever charged, as percentages. */
 const KNOWN_RATES = [...new Set([BETA_RATE, ...PLANS.map((p) => p.rate)])].map(
@@ -135,6 +142,19 @@ export const settlementLines = (order: SettlementOrder): SettlementLine[] => {
       amount: -split.platform,
       kind: "sub",
       note: "Listings, market data, courier booking and support.",
+    });
+  }
+
+  // Only when there is tax to show. A zero line on every statement invites
+  // "why is this here", and before registration the honest answer is that it
+  // isn't charged at all.
+  const sst = sstCharged(order);
+  if (sst > 0) {
+    lines.push({
+      label: `SST (${round2(SST_RATE * 100)}%)`,
+      amount: -sst,
+      kind: "deduction",
+      note: "Service tax on the TCGo fee, not on your sale.",
     });
   }
 

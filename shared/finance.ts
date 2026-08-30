@@ -20,7 +20,7 @@
 //     what launch rates would have earned is shown beside it so the discount
 //     is visible rather than invisible.
 
-import { PLANS, planById, type PlanId } from "~/shared/pricing";
+import { PLANS, planById, SST_RATE, type PlanId } from "~/shared/pricing";
 
 // ── Third-party unit costs ───────────────────────────────────────────
 // Billplz Basic: RM1.25 per FPX collection and per Payment Order payout.
@@ -28,9 +28,10 @@ import { PLANS, planById, type PlanId } from "~/shared/pricing";
 export const BILLPLZ_FPX_FEE = 1.25;
 export const BILLPLZ_PAYOUT_FEE = 1.25;
 
-// Malaysian SST. Not charged today — registration is required once taxable
-// service turnover passes the threshold in any rolling 12 months.
-export const SST_RATE = 0.08;
+// Malaysian SST. The rate and the registered flag live in shared/pricing
+// alongside everything else TCGo charges, so the payout maths and this
+// module can't disagree about whether tax is being collected.
+export { SST_RATE, SST_REGISTERED } from "~/shared/pricing";
 export const SST_THRESHOLD = 500_000;
 
 const round2 = (n: number) => Math.round(n * 100) / 100;

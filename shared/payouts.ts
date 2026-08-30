@@ -15,7 +15,7 @@
 // forecast and the money actually deducted here can never quote three
 // different numbers.
 export { effectiveRate } from "~/shared/pricing";
-import { effectiveRate, type PlanId } from "~/shared/pricing";
+import { effectiveRate, sstOn, type PlanId } from "~/shared/pricing";
 
 /** @deprecated Read the rate via effectiveRate() — it varies by plan at launch. */
 export const PLATFORM_FEE_PERCENT = effectiveRate();
@@ -41,6 +41,8 @@ export interface PayableOrder {
    * of RM 1.12 stores as RM 0.02 and reads back as 1.79%.
    */
   platformFeeRate?: number;
+  /** Service tax recorded at settlement. Authoritative once written. */
+  sstAmount?: number;
   /** Seller's share recorded at settlement. Authoritative once written. */
   sellerPayout?: number;
   shipping?: number;
@@ -81,9 +83,21 @@ export const platformFeeFor = (order: PayableOrder): number =>
 export const shippingReimbursement = (order: PayableOrder): number =>
   order.shipmentOrderNo ? 0 : round2(order.shipping || 0);
 
+/**
+ * Service tax on this order's fee. Zero until TCGo is SST-registered.
+ *
+ * Charged on the fee, not the sale: the card is the seller's supply, ours is
+ * the service we take a commission for.
+ */
+export const sstForOrder = (order: PayableOrder): number =>
+  sstOn(platformFeeFor(order));
+
 export const computeSellerPayout = (order: PayableOrder): number =>
   round2(
-    (order.subtotal || 0) - platformFeeFor(order) + shippingReimbursement(order),
+    (order.subtotal || 0) -
+      platformFeeFor(order) -
+      sstForOrder(order) +
+      shippingReimbursement(order),
   );
 
 // ── The record, not the recalculation ────────────────────────────────
@@ -105,6 +119,10 @@ export const computeSellerPayout = (order: PayableOrder): number =>
 /** Commission actually charged on this order. */
 export const recordedFee = (order: PayableOrder): number =>
   order.platformFee != null ? round2(order.platformFee) : platformFeeFor(order);
+
+/** Service tax actually charged on this order. */
+export const recordedSst = (order: PayableOrder): number =>
+  order.sstAmount != null ? round2(order.sstAmount) : sstForOrder(order);
 
 /** Seller's share actually recorded for this order. */
 export const recordedPayout = (order: PayableOrder): number =>

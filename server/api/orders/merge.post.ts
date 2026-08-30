@@ -25,6 +25,7 @@ import { bookShipmentForOrder, type BookResult } from "~/server/utils/book-shipm
 import {
   recordedFee,
   recordedPayout,
+  recordedSst,
   shippingReimbursement,
   sumAmounts,
 } from "~/shared/payouts";
@@ -185,6 +186,7 @@ export default defineEventHandler(async (event) => {
         // re-price sales that are already paid for, at whatever rate happens
         // to be configured on the day someone merges them.
         platformFee: sumAmounts(sorted.map(recordedFee)),
+        sstAmount: sumAmounts(sorted.map(recordedSst)),
         sellerPayout: sumAmounts(sorted.map(recordedPayout)),
         // Only meaningful when every order in the group was struck at the
         // same rate. Mixed rates have no single rate to name, so the field is
@@ -252,11 +254,12 @@ export default defineEventHandler(async (event) => {
     const freshSnap = await db.collection("compiledOrders").doc(primary.id).get();
     const freshOrder = freshSnap.data() as any;
     const fee = recordedFee(freshOrder);
+    const sst = recordedSst(freshOrder);
     const payout =
       Math.round(
-        ((freshOrder.subtotal || 0) - fee + shippingReimbursement(freshOrder)) * 100,
+        ((freshOrder.subtotal || 0) - fee - sst + shippingReimbursement(freshOrder)) * 100,
       ) / 100;
-    await freshSnap.ref.update({ platformFee: fee, sellerPayout: payout });
+    await freshSnap.ref.update({ platformFee: fee, sstAmount: sst, sellerPayout: payout });
   }
 
   return {

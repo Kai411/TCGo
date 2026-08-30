@@ -14,6 +14,7 @@ import {
   platformFeeFor,
   recordedFee,
   shippingReimbursement,
+  sstForOrder,
 } from "~/shared/payouts";
 import { effectiveRate } from "~/shared/pricing";
 import { bookShipmentForOrder } from "~/server/utils/book-shipment";
@@ -112,6 +113,9 @@ export default defineEventHandler(async (event) => {
     // Stored, not derived later: the sen-rounded fee can't be divided back
     // into the rate it came from on small orders.
     platformFeeRate: effectiveRate((order as any).sellerPlan),
+    // Zero until TCGo is SST-registered, but recorded either way so an order
+    // settled before registration is never retro-taxed by the flag flipping.
+    sstAmount: sstForOrder(order),
     sellerPayout,
     payoutStatus: "pending",
     billplzPaidAt: get("paid_at") || null,
@@ -205,9 +209,10 @@ export default defineEventHandler(async (event) => {
     const settledSnap = await orderRef.get();
     const settled = settledSnap.data() as any;
     const fee = recordedFee(settled);
+    const sst = settled.sstAmount ?? 0;
     const finalPayout =
       Math.round(
-        ((settled.subtotal || 0) - fee + shippingReimbursement(settled)) * 100,
+        ((settled.subtotal || 0) - fee - sst + shippingReimbursement(settled)) * 100,
       ) / 100;
     if (finalPayout !== settled.sellerPayout) {
       await orderRef.update({ sellerPayout: finalPayout });

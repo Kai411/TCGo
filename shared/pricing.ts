@@ -49,6 +49,30 @@ export const planById = (id: string | undefined | null): Plan =>
 export const BETA_PRICING = false;
 export const BETA_RATE = 0.02;
 
+// ── SST ───────────────────────────────────────────────────────────────
+//
+// Malaysian service tax on OUR fee — never on the sale itself. A seller's
+// card is their supply, not ours; what we supply is the service, so 8% sits
+// on the commission and nothing else.
+//
+// Off until TCGo is registered, because charging tax you are not registered
+// to collect is not a rounding decision. Registration becomes mandatory once
+// taxable service turnover passes RM 500,000 in any rolling 12 months —
+// sstPosition() in shared/finance.ts tracks how close that is, and the admin
+// dashboard shows it.
+//
+// Flip SST_REGISTERED once the registration number is issued and it applies
+// everywhere: the payout maths, the settlement statement and the pricing
+// page. Orders settled before the flip keep the tax they were charged,
+// which is none, because sstAmount travels with the order the same way
+// platformFeeRate does.
+export const SST_RATE = 0.08;
+export const SST_REGISTERED = false;
+
+/** Service tax on a fee. Zero until registration. */
+export const sstOn = (fee: number): number =>
+  SST_REGISTERED ? Math.round(fee * SST_RATE * 100) / 100 : 0;
+
 // ── How the fee reads on a statement ──────────────────────────────────
 //
 // One number is opaque. Split in two, a seller can see what they are paying
