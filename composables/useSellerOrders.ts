@@ -1,5 +1,6 @@
 import type { CompiledOrder } from "~/composables/useCompiledOrders";
 import { mergeGroupKey } from "~/shared/merge-orders";
+import { isOpenParcel } from "~/shared/order-joining";
 
 /**
  * Seller-side order queues, merge detection and the ship dialog.
@@ -80,17 +81,22 @@ export const useSellerOrders = () => {
   const needsWaybill = computed(() => toShip.value.filter((o) => !hasWaybill(o)));
 
   // ── Mergeable detection ─────────────────────────────────────────────
-  // Paid-and-unshipped orders to the same buyer AND the same destination.
-  // A booked waybill does NOT exclude an order any more: the merge route
-  // cancels the group's labels and books one fresh waybill for the combined
-  // parcel. Auctions never merge (their "item" is the auction doc, and
-  // settlement assumes one auction per order); flagged payments wait for an
-  // admin.
+  // Paid orders to the same buyer and destination that have no label yet.
+  //
+  // A booked waybill now DOES exclude an order. Merging used to cancel the
+  // group's labels and book a fresh one, which meant two courier calls that
+  // could each fail halfway and left the seller holding a printed waybill for
+  // a parcel that no longer existed. Once a label is printed the parcel is
+  // decided; see shared/order-joining.ts.
+  //
+  // This should also be rare now: a second order to an open parcel is
+  // combined automatically when it is paid, so the seller usually never sees
+  // a merge prompt at all. What is left here are orders that predate the
+  // change, or ones whose automatic join failed.
   const mergeableGroups = computed<MergeableGroup[]>(() => {
     const byDest = new Map<string, CompiledOrder[]>();
     for (const o of sellerCompiledOrders.value) {
-      if (!isAwaitingShipment(o)) continue;
-      if (o.auctionId || o.paymentAmountMismatch || o.mergedInto) continue;
+      if (!isOpenParcel(o)) continue;
       const key = mergeGroupKey(o);
       if (!byDest.has(key)) byDest.set(key, []);
       byDest.get(key)!.push(o);

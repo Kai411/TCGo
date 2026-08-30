@@ -17,8 +17,8 @@ import {
   sstForOrder,
 } from "~/shared/payouts";
 import { effectiveRate } from "~/shared/pricing";
-import { bookShipmentForOrder } from "~/server/utils/book-shipment";
 import { sendInvoiceForOrder } from "~/server/utils/send-invoice";
+import { joinPaidOrderToParcel } from "~/server/utils/join-parcel";
 import { noteError } from "~/server/utils/oplog";
 
 export default defineEventHandler(async (event) => {
@@ -162,73 +162,47 @@ export default defineEventHandler(async (event) => {
     );
   }
 
-  // Book the courier now that the money is in, so the seller has a waybill
-  // waiting rather than a button to press.
+  // The courier is NOT booked here any more.
   //
-  // Deliberately after everything else and deliberately non-fatal: this spends
-  // from the Delyva wallet and calls a third party, and neither may break
-  // payment settlement. Billplz retries non-2xx callbacks, so throwing here
-  // would re-run the whole settlement. A failure leaves the order `paid` with
-  // `shipmentError` set, and the seller can retry from the order page.
-  let shipment: { booked: boolean; reason?: string } = {
-    booked: false,
-    reason: "not attempted",
-  };
+  // Auto-booking at payment closed the door on combining orders the instant
+  // money landed: a buyer who ordered twice from the same seller an hour
+  // apart got two labels, two parcels, and paid postage twice. The seller now
+  // books when they are actually ready to pack, which leaves a window where a
+  // second order can join the first and ship on one label — see
+  // shared/order-joining.ts.
+  //
+  // Nothing is lost by waiting: the label was never used at this point
+  // anyway, since the parcel sits on the seller's desk until they pack it.
+
+  // Fold this into the parcel it was quoted against, if it was quoted against
+  // one. The buyer paid no shipping on the strength of that, so this is the
+  // half of the bargain we owe them.
+  //
+  // Non-fatal on purpose: Billplz retries a non-2xx callback, and re-running
+  // settlement to fix a combining problem would be a far worse outcome than
+  // two parcels. A failure is recorded on the order and logged.
   try {
-    shipment = await bookShipmentForOrder(db, orderRef.id);
-    if (!shipment.booked) {
-      console.warn("[billplz webhook] shipment not booked:", shipment.reason);
+    const join = await joinPaidOrderToParcel(db, orderRef.id);
+    if (join.joined) {
+      console.info(`[billplz webhook] order ${orderRef.id} joined ${join.into}`);
     }
   } catch (e: any) {
-    console.error("[billplz webhook] shipment booking failed:", e?.message || e);
+    console.error("[billplz webhook] parcel join failed:", e?.message || e);
     noteError({
       area: "shipping",
       severity: "error",
-      code: "shipping.autobook_failed",
-      message: `Couldn't book the courier automatically after payment: ${e?.message || e}`,
+      code: "parcel.join_failed",
+      message: `Couldn't combine this order into the parcel it was quoted against: ${e?.message || e}`,
       orderId: orderRef.id,
       error: e,
-      hint: "The buyer has paid but there's no waybill. The seller can retry from the order page, or book it by hand.",
+      hint: "The buyer paid no shipping on this order. It will ship on its own label at platform cost unless combined by hand.",
     });
-    shipment = { booked: false, reason: e?.message || "Booking failed" };
   }
 
-  // Settle the payout now the booking outcome is known.
-  //
-  // The figure above was computed before the label existed, so it included a
-  // shipping reimbursement the seller is not owed once the platform buys the
-  // label — paying it would mean covering the same postage twice, to the
-  // courier and again to the seller. This was previously masked by the payout
-  // route recomputing at request time; that recompute has been removed
-  // (it re-priced commission at whatever rate was current), so the stored
-  // figure has to be right.
-  //
-  // Commission is carried through untouched: it was struck on the subtotal
-  // when payment landed, and who buys the label has nothing to do with it.
-  try {
-    const settledSnap = await orderRef.get();
-    const settled = settledSnap.data() as any;
-    const fee = recordedFee(settled);
-    const sst = settled.sstAmount ?? 0;
-    const finalPayout =
-      Math.round(
-        ((settled.subtotal || 0) - fee - sst + shippingReimbursement(settled)) * 100,
-      ) / 100;
-    if (finalPayout !== settled.sellerPayout) {
-      await orderRef.update({ sellerPayout: finalPayout });
-    }
-  } catch (e: any) {
-    console.error("[billplz webhook] payout refresh failed:", e?.message || e);
-    noteError({
-      area: "payment",
-      severity: "error",
-      code: "payout.refresh_failed",
-      message: `Couldn't settle the payout figure after booking: ${e?.message || e}`,
-      orderId: orderRef.id,
-      error: e,
-      hint: "The order may still carry the pre-booking payout, which includes postage the platform already paid the courier. Check sellerPayout before releasing funds.",
-    });
-  }
+  // No booking has happened yet, so the payout recorded above already has
+  // the shipping reimbursement in it and is correct as written. It is
+  // refreshed again by book-shipment when the seller buys the label, which is
+  // the point the postage stops being theirs.
 
   // Email the invoice. Non-fatal for the same reason as booking: Billplz
   // retries non-2xx callbacks, and a mail provider hiccup must not re-run
@@ -251,5 +225,5 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  return { ok: true, shipmentBooked: shipment.booked, invoiceEmailed };
+  return { ok: true, invoiceEmailed };
 });

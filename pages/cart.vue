@@ -159,15 +159,35 @@
             </div>
             <div class="flex justify-between text-gray-600 dark:text-zinc-300">
               <span>
-                Shipping<template v-if="quoteFor(group.sellerUid)?.courier">
+                Shipping<template v-if="quoteFor(group.sellerUid)?.courier && !joinsFor(group.sellerUid)">
                   · {{ quoteFor(group.sellerUid)!.courier }}</template>
               </span>
               <span v-if="quotesLoading" class="text-gray-400 dark:text-zinc-500">Calculating…</span>
+              <span
+                v-else-if="joinsFor(group.sellerUid)"
+                class="font-semibold text-emerald-600 dark:text-emerald-400"
+              >
+                Free
+              </span>
               <span v-else-if="quoteFor(group.sellerUid)" class="tabular-nums">
                 RM {{ groupShipping(group).toFixed(2) }}
               </span>
               <span v-else class="text-gray-400 dark:text-zinc-500">—</span>
             </div>
+
+            <!-- A zero shipping line with no explanation reads as a bug, and
+                 the buyer is owed the reason: they already paid postage on a
+                 parcel from this seller that hasn't gone out yet. -->
+            <p
+              v-if="joinsFor(group.sellerUid)"
+              class="flex items-start gap-1.5 text-[11px] leading-relaxed text-emerald-700 dark:text-emerald-400"
+            >
+              <svg class="w-3.5 h-3.5 shrink-0 mt-px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              Ships with your existing order from {{ group.sellerName }} — no
+              shipping fee. Both arrive in one parcel.
+            </p>
             <p v-if="quoteError(group.sellerUid)" class="text-[11px] text-amber-600 dark:text-amber-400">
               {{ quoteError(group.sellerUid) }}
             </p>
@@ -332,9 +352,14 @@ interface GroupQuote {
   serviceId: string;
   serviceCode: string;
   quotedRate: number;
+  joinsOrderId?: string | null;
 }
 const quotes = ref<Record<string, GroupQuote>>({});
 const quoteErrors = ref<Record<string, string>>({});
+// Short id of the parcel a group is joining, for the line that explains why
+// its shipping is free.
+const joinsOrder = ref<Record<string, string>>({});
+const joinsFor = (sellerUid: string): string => joinsOrder.value[sellerUid] || "";
 const quotesLoading = ref(false);
 
 const quoteFor = (sellerUid: string): GroupQuote | undefined => quotes.value[sellerUid];
@@ -350,6 +375,7 @@ const refreshQuotes = async () => {
   quotesLoading.value = true;
   const nextQuotes: Record<string, GroupQuote> = {};
   const nextErrors: Record<string, string> = {};
+  const joinsBySeller: Record<string, string> = {};
   try {
     await Promise.all(
       groupedBySeller.value.map(async (g) => {
@@ -362,6 +388,8 @@ const refreshQuotes = async () => {
             serviceId?: string;
             serviceCode?: string;
             quotedRate?: number;
+            joinsOrderId?: string;
+            joinsOrderShortId?: string;
           }>("/api/shipping/quote", {
             method: "POST",
             body: {
@@ -377,7 +405,11 @@ const refreshQuotes = async () => {
               serviceId: res.serviceId || "",
               serviceCode: res.serviceCode || "",
               quotedRate: res.quotedRate ?? 0,
+              joinsOrderId: res.joinsOrderId ?? null,
             };
+            if (res.joinsOrderShortId) {
+              joinsBySeller[g.sellerUid] = res.joinsOrderShortId;
+            }
           } else {
             nextErrors[g.sellerUid] = res.reason || "Shipping unavailable for this seller.";
           }
@@ -390,6 +422,7 @@ const refreshQuotes = async () => {
   } finally {
     quotes.value = nextQuotes;
     quoteErrors.value = nextErrors;
+    joinsOrder.value = joinsBySeller;
     quotesLoading.value = false;
   }
 };

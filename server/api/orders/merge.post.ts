@@ -99,7 +99,31 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // ── Paid: cancel every existing waybill, all-or-nothing ─────────────
+  // ── Paid: every order must still be an open parcel ──────────────────
+  //
+  // Merging a labelled order used to be allowed: the route cancelled the
+  // group's waybills and booked a fresh one. That is two courier calls that
+  // can each fail halfway, and a seller holding a printed label for a parcel
+  // that no longer exists. Once a label is bought the parcel is decided.
+  //
+  // Combining now happens before anyone pays twice — see
+  // shared/order-joining.ts — so this refuses rather than unwinds.
+  if (mode === "paid") {
+    const labelled = sorted.filter((o) => o.shipmentOrderNo || o.shipmentClaimedAt);
+    if (labelled.length) {
+      throw createError({
+        statusCode: 409,
+        message:
+          labelled.length === sorted.length
+            ? "These orders already have waybills. Ship them as they are."
+            : `Order ${labelled[0]!.id.slice(0, 8)} already has a waybill, so it can't be combined. Ship it separately.`,
+      });
+    }
+  }
+
+  // Retained for orders that somehow still carry a label — the guard above
+  // means this should never run, and it stays only so an old client calling
+  // this route cannot leave a half-cancelled group behind.
   let waybillsCancelled = 0;
   if (mode === "paid") {
     for (const o of sorted) {

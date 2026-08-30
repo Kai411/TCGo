@@ -11,6 +11,11 @@
 
 import type { Firestore } from "firebase-admin/firestore";
 import {
+  recordedFee,
+  recordedSst,
+  shippingReimbursement,
+} from "~/shared/payouts";
+import {
   delyvaCreateOrder,
   delyvaCancelOrder,
   delyvaOrderState,
@@ -172,6 +177,30 @@ export const bookShipmentForOrder = async (
       ...(consignmentNo ? { trackingNumber: consignmentNo } : {}),
       shipmentError: null,
     });
+
+    // Booking is the moment the postage stops being the seller's. Until a
+    // label exists the buyer's shipping is reimbursed to them; once the
+    // platform has bought one, it isn't. The payout has to move with that,
+    // and this is the only place that knows it happened.
+    //
+    // Commission is untouched — it was struck on the subtotal when the buyer
+    // paid, and who buys the label has nothing to do with it.
+    try {
+      const settled = (await orderRef.get()).data() as any;
+      const payout =
+        Math.round(
+          ((settled.subtotal || 0) -
+            recordedFee(settled) -
+            recordedSst(settled) +
+            shippingReimbursement(settled)) *
+            100,
+        ) / 100;
+      if (payout !== settled.sellerPayout) {
+        await orderRef.update({ sellerPayout: payout });
+      }
+    } catch (e: any) {
+      console.error("[book-shipment] payout refresh failed:", e?.message || e);
+    }
 
     return {
       booked: true,

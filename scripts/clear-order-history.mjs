@@ -71,7 +71,9 @@ if (held.size || heldCards.size) {
   console.log(`  POS holds        ${String(held.size).padStart(4)} item(s), ${heldCards.size} listing(s) — will be RELEASED`);
 }
 
-if (!total) {
+// --reset-sold is about inventory, not orders, so it still has work to do
+// when the order collections are already empty.
+if (!total && !(resetSold && sold.length) && !(held.size || heldCards.size)) {
   console.log("\nNothing to delete.");
   process.exit(0);
 }

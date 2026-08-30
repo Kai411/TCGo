@@ -15,9 +15,10 @@ import { parcelWeightKg } from "~/shared/parcel";
 import { stateName } from "~/shared/my-states";
 import { quoteForOrder, type HandoverPreference } from "~/shared/shipping-quote";
 import { noteError } from "~/server/utils/oplog";
+import { findOpenParcelFor } from "~/server/utils/open-parcel";
 
 export default defineEventHandler(async (event) => {
-  await requireUser(event);
+  const caller = await requireUser(event);
   const body = (await readBody(event)) as {
     sellerUid?: string;
     itemCount?: number;
@@ -30,6 +31,30 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = getAdminFirestore();
+
+  // Is there already a parcel from this seller waiting to go out to this same
+  // address? If so the buyer has paid postage on it and hasn't received it
+  // yet, so charging again for a box that hasn't been sealed would be billing
+  // twice for one delivery. Answered here rather than in the cart so
+  // create-bill can't be talked into a different number.
+  const openParcel = await findOpenParcelFor(db, {
+    buyerUid: caller.uid,
+    sellerUid,
+    destination,
+  });
+  if (openParcel) {
+    return {
+      available: true,
+      shipping: 0,
+      joinsOrderId: openParcel.id,
+      joinsOrderShortId: openParcel.id.slice(0, 8),
+      courier: openParcel.shippingCourier || "",
+      serviceId: openParcel.shippingServiceId || "",
+      serviceCode: openParcel.shippingServiceCode || "",
+      quotedRate: 0,
+    };
+  }
+
   const sellerSnap = await db.collection("users").doc(sellerUid).get();
   const seller = sellerSnap.data() as any;
   if (!seller?.pickupPostcode || !seller?.pickupState) {

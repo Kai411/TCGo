@@ -64,6 +64,10 @@ export interface CompiledOrder {
   // seller-set figure. Cart sets it at checkout; create-bill fills it in for
   // orders that never went through the cart (auction wins, legacy orders).
   shippingQuoted?: boolean;
+  /** Ships inside another order's parcel; combined once this one is paid. */
+  joinsOrderId?: string | null;
+  /** Orders folded into this one, once they have been. */
+  joinedOrderIds?: string[];
   shippingCourier?: string;
   shippingQuotedRate?: number; // raw courier rate before the buffer
   shippingServiceId?: string;
@@ -155,6 +159,12 @@ export interface QuotedShipping {
   serviceId: string;
   serviceCode: string;
   quotedRate: number;
+  /**
+   * The already-paid, not-yet-labelled order this one ships with. Set by
+   * /api/shipping/quote when it finds one; shipping is zero in that case
+   * because the buyer already paid postage on that parcel.
+   */
+  joinsOrderId?: string | null;
 }
 
 export interface CompiledOrderInputItem {
@@ -387,6 +397,10 @@ export const useCompiledOrders = () => {
               shippingQuotedRate: quoted.quotedRate,
             }
           : {}),
+        // Recorded so the payment webhook knows to fold this into the parcel
+        // the buyer already paid postage on. Without it the zero shipping on
+        // this order would just be a discount nobody accounted for.
+        ...(quoted?.joinsOrderId ? { joinsOrderId: quoted.joinsOrderId } : {}),
         status: "pending",
         paymentMethod: "billplz",
         createdAt: Date.now(),
