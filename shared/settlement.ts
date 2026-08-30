@@ -12,7 +12,7 @@
 // 2% would silently restate as 4% on launch day. Recomputation is the
 // fallback for orders written before those fields existed, nothing more.
 
-import { computeSellerPayout, platformFeeFor } from "~/shared/payouts";
+import { recordedFee, recordedPayout } from "~/shared/payouts";
 
 export interface SettlementOrder {
   subtotal?: number;
@@ -37,11 +37,11 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /** What was actually charged, not what today's rate would charge. */
 export const feeCharged = (order: SettlementOrder): number =>
-  order.platformFee != null ? round2(order.platformFee) : platformFeeFor(order as any);
+  recordedFee(order as any);
 
 /** What actually reaches the bank. */
 export const payoutAmount = (order: SettlementOrder): number =>
-  order.sellerPayout != null ? round2(order.sellerPayout) : computeSellerPayout(order as any);
+  recordedPayout(order as any);
 
 /**
  * The rate this order was charged at, derived from the fee rather than read

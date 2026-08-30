@@ -19,7 +19,7 @@ import { computed } from "vue";
 import type { CompiledOrder } from "~/composables/useCompiledOrders";
 import {
   PAYOUT_HOLD_DAYS,
-  computeSellerPayout,
+  recordedPayout,
   isPayoutTrackable,
   payoutEligibleAt,
 } from "~/shared/payouts";
@@ -43,14 +43,11 @@ export const categorizeFunds = (
   const out: FundEntry[] = [];
   for (const o of orders) {
     if (!isPayoutTrackable(o)) continue;
-    // The figure written at settlement wins. computeSellerPayout reads today's
-    // rate, so recomputing would re-price history: on the day BETA_PRICING
-    // flips, every settled-but-unpaid order would restate from 2% to 4% and
-    // every seller's balance would drop overnight — even though the webhook
-    // had already charged and recorded 2%. Recomputation is the fallback for
-    // orders written before the webhook stored these fields.
+    // recordedPayout reads what settlement wrote, falling back to a fresh
+    // calculation only for orders that predate those fields. See the note in
+    // shared/payouts.ts for why this must never re-price.
     const ps = o.payoutStatus ?? "pending";
-    const amount = o.sellerPayout ?? computeSellerPayout(o);
+    const amount = recordedPayout(o);
     if (amount <= 0) continue;
 
     if (ps === "paid") {

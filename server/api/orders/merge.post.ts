@@ -22,7 +22,12 @@ import { requireUser } from "~/server/utils/auth";
 import { delyvaCancelOrder } from "~/server/utils/delyva";
 import { billplzDeleteBill, billplzBillState } from "~/server/utils/billplz";
 import { bookShipmentForOrder, type BookResult } from "~/server/utils/book-shipment";
-import { computeSellerPayout, platformFeeFor } from "~/shared/payouts";
+import {
+  recordedFee,
+  recordedPayout,
+  shippingReimbursement,
+  sumAmounts,
+} from "~/shared/payouts";
 import {
   mergeModeFor,
   sortForMerge,
@@ -174,9 +179,13 @@ export default defineEventHandler(async (event) => {
         shippingServiceCode: null,
         shippingQuotedRate: null,
         shippingWeightKg: null,
-        // Provisional; refreshed after the rebooking outcome is known.
-        platformFee: platformFeeFor(money),
-        sellerPayout: computeSellerPayout(money),
+        // Carried over, not recalculated. Each of these orders was charged
+        // when its own payment settled, so the merged order owes exactly the
+        // sum of those fees — recomputing against the combined subtotal would
+        // re-price sales that are already paid for, at whatever rate happens
+        // to be configured on the day someone merges them.
+        platformFee: sumAmounts(sorted.map(recordedFee)),
+        sellerPayout: sumAmounts(sorted.map(recordedPayout)),
       });
     } else {
       tx.update(primaryRef, {
@@ -228,14 +237,19 @@ export default defineEventHandler(async (event) => {
     } catch (e: any) {
       booking = { booked: false, reason: e?.message || "Booking failed" };
     }
-    // Refresh the provisional payout now the booking outcome is known — with
-    // a platform waybill the shipping money stays with the platform.
+    // Booking changes ONE thing about the money: with a platform waybill the
+    // buyer's postage stays with the platform instead of being reimbursed.
+    // The commission is untouched — it was charged when each order settled,
+    // and who ends up buying the label has nothing to do with it. So the fee
+    // is carried through and only the shipping side is re-derived.
     const freshSnap = await db.collection("compiledOrders").doc(primary.id).get();
     const freshOrder = freshSnap.data() as any;
-    await freshSnap.ref.update({
-      platformFee: platformFeeFor(freshOrder),
-      sellerPayout: computeSellerPayout(freshOrder),
-    });
+    const fee = recordedFee(freshOrder);
+    const payout =
+      Math.round(
+        ((freshOrder.subtotal || 0) - fee + shippingReimbursement(freshOrder)) * 100,
+      ) / 100;
+    await freshSnap.ref.update({ platformFee: fee, sellerPayout: payout });
   }
 
   return {

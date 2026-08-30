@@ -6,7 +6,7 @@
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
-import { computeSellerPayout, isPayoutEligible, sumAmounts } from "~/shared/payouts";
+import { recordedPayout, isPayoutEligible, sumAmounts } from "~/shared/payouts";
 import { toPayoutRecipient } from "~/shared/payout-details";
 import { bankName } from "~/shared/banks";
 import type { PayoutBatch } from "~/shared/payout-ledger";
@@ -40,7 +40,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: "No funds are available for payout yet." });
   }
 
-  const amounts = eligible.map((d) => computeSellerPayout(d.data() as any));
+  // What the order recorded at settlement — never a fresh calculation. This
+  // is the amount that leaves the bank account, so recomputing it would pay a
+  // beta-era sale at launch rates the day the constant changes.
+  const amounts = eligible.map((d) => recordedPayout(d.data() as any));
   const amount = sumAmounts(amounts);
   if (amount <= 0) {
     throw createError({ statusCode: 400, message: "No funds are available for payout yet." });

@@ -33,6 +33,10 @@ export type PayoutStatus =
 
 export interface PayableOrder {
   subtotal?: number;
+  /** Commission recorded at settlement. Authoritative once written. */
+  platformFee?: number;
+  /** Seller's share recorded at settlement. Authoritative once written. */
+  sellerPayout?: number;
   shipping?: number;
   total?: number;
   status?: string;
@@ -76,6 +80,30 @@ export const computeSellerPayout = (order: PayableOrder): number =>
     (order.subtotal || 0) - platformFeeFor(order) + shippingReimbursement(order),
   );
 
+// ── The record, not the recalculation ────────────────────────────────
+//
+// platformFeeFor and computeSellerPayout above read TODAY'S rate. That is
+// what you want when pricing a sale that is happening now, and wrong for
+// every sale that already happened.
+//
+// The Billplz webhook writes platformFee and sellerPayout onto the order at
+// the moment payment settles. From then on those are history: a card sold
+// during beta was charged 2%, and it stays charged 2% after BETA_PRICING
+// flips to false, after the seller moves to Vendor, after anything. Reading
+// the constants again would re-price the past — and at the payout route that
+// is not a display bug, it is paying the seller the wrong amount.
+//
+// Use these anywhere an order has already settled. Use the two above only
+// when creating the record, or for an order that predates it.
+
+/** Commission actually charged on this order. */
+export const recordedFee = (order: PayableOrder): number =>
+  order.platformFee != null ? round2(order.platformFee) : platformFeeFor(order);
+
+/** Seller's share actually recorded for this order. */
+export const recordedPayout = (order: PayableOrder): number =>
+  order.sellerPayout != null ? round2(order.sellerPayout) : computeSellerPayout(order);
+
 // Only online (Billplz) money is held by the platform. Manual/WhatsApp orders
 // and POS sales never enter the payout rail — the seller already has that cash.
 export const isPayoutTrackable = (order: PayableOrder): boolean =>
@@ -96,7 +124,7 @@ export const isPayoutEligible = (
   if (!isPayoutTrackable(order)) return false;
   const ps = order.payoutStatus ?? "pending";
   if (ps !== "pending" && ps !== "failed") return false;
-  if (computeSellerPayout(order) <= 0) return false;
+  if (recordedPayout(order) <= 0) return false;
   const eligible = payoutEligibleAt(order);
   return eligible !== null && now >= eligible;
 };
