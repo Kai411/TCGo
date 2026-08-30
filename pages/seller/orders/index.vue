@@ -25,23 +25,13 @@
       </div>
 
       <template v-else>
-        <!-- Action strip: the two things a seller actually does next -->
-        <div v-if="toShip.length" class="grid sm:grid-cols-2 gap-3 mb-5">
-          <button
-            type="button"
-            @click="tab = 'toship'"
-            class="surface rounded-2xl p-4 text-left transition-shadow hover:shadow-card-hover"
-          >
-            <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-emerald-500" />
-              <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400">
-                Waybill ready — just hand over
-              </p>
-            </div>
-            <p class="mt-2 text-2xl font-bold text-ink dark:text-white tabular-price">
-              {{ readyToHandOver.length }}
-            </p>
-          </button>
+        <!-- Where each order is, not what paperwork it has.
+             These used to split "to ship" by whether a waybill existed, and
+             both halves went to the same tab — so the split named a
+             distinction the seller couldn't act on separately. The waybill
+             state still shows per order inside the list, which is where it's
+             useful. -->
+        <div v-if="toShip.length || shipped.length" class="grid sm:grid-cols-2 gap-3 mb-5">
           <button
             type="button"
             @click="tab = 'toship'"
@@ -50,11 +40,41 @@
             <div class="flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-amber-500" />
               <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400">
-                Needs a waybill
+                To ship
               </p>
             </div>
             <p class="mt-2 text-2xl font-bold text-ink dark:text-white tabular-price">
-              {{ needsWaybill.length }}
+              {{ toShip.length }}
+            </p>
+            <!-- The one bit of the old split worth keeping, as a footnote
+                 rather than a whole card: it only appears when there's
+                 something to do about it. -->
+            <p
+              v-if="needsWaybill.length"
+              class="mt-1 text-[11px] text-ink-soft dark:text-zinc-500"
+            >
+              {{ needsWaybill.length }} still {{ needsWaybill.length === 1 ? "needs" : "need" }} a waybill
+            </p>
+            <p v-else class="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400">
+              All labelled — just hand over
+            </p>
+          </button>
+          <button
+            type="button"
+            @click="tab = 'shipped'"
+            class="surface rounded-2xl p-4 text-left transition-shadow hover:shadow-card-hover"
+          >
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-blue-500" />
+              <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400">
+                In transit
+              </p>
+            </div>
+            <p class="mt-2 text-2xl font-bold text-ink dark:text-white tabular-price">
+              {{ shipped.length }}
+            </p>
+            <p class="mt-1 text-[11px] text-ink-soft dark:text-zinc-500">
+              With the courier — nothing to do
             </p>
           </button>
         </div>
@@ -152,7 +172,6 @@ const { loadingSeller, listenSellerCompiledOrders } = useCompiledOrders();
 
 const {
   toShip,
-  readyToHandOver,
   needsWaybill,
   shipped,
   mergeableGroups,

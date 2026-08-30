@@ -22,7 +22,7 @@ export const ORDER_QUEUE_LABELS: Record<OrderQueue, string> = {
   toship: "To ship",
   awaiting: "Awaiting payment",
   mergeable: "Mergeable",
-  shipped: "Shipped",
+  shipped: "In transit",
   delivered: "Delivered",
   cancelled: "Cancelled",
   all: "All orders",
