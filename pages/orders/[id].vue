@@ -393,6 +393,27 @@
             </template>
           </div>
         </div>
+
+        <!-- Settlement — seller only.
+             The seller's money was previously a single net figure on the
+             funds page with nothing anywhere explaining how it got there.
+             Every deduction is itemised here, read off what was actually
+             charged at settlement rather than recomputed from today's rate. -->
+        <div
+          v-if="role === 'seller' && showSettlement"
+          class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5"
+        >
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <h2 class="text-sm font-bold text-ink dark:text-white">Settlement</h2>
+            <span
+              class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+              :class="settlementBadge.cls"
+            >
+              {{ settlementBadge.label }}
+            </span>
+          </div>
+          <SettlementBreakdown :order="order" :hint="settlementHint" />
+        </div>
       </div>
     </template>
 
@@ -511,6 +532,11 @@ import {
   compiledOrderStatusColor,
 } from "~/composables/useCompiledOrders";
 import { MY_STATES, stateName } from "~/composables/useSellerKyc";
+import {
+  isPayoutTrackable,
+  payoutEligibleAt,
+  PAYOUT_HOLD_DAYS,
+} from "~/shared/payouts";
 
 useHead({ title: "Order | TCGo Marketplace" });
 
@@ -662,6 +688,40 @@ const addr = ref({
 });
 
 const { profile: myProfile } = useMyProfile();
+
+// ── Settlement ────────────────────────────────────────────────────────
+// Only online orders carry a settlement: manual and POS sales never enter
+// the payout rail, so there is nothing for us to have deducted.
+const showSettlement = computed(
+  () => !!order.value && isPayoutTrackable(order.value as any),
+);
+
+const settlementBadge = computed(() => {
+  const o = order.value as any;
+  const status = o?.payoutStatus ?? "pending";
+  if (status === "paid")
+    return { label: "Paid out", cls: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" };
+  if (status === "queued" || status === "processing")
+    return { label: "Payout in progress", cls: "bg-blue-500/10 text-blue-700 dark:text-blue-400" };
+  const eligibleAt = payoutEligibleAt(o);
+  if (eligibleAt !== null && Date.now() >= eligibleAt)
+    return { label: "Available", cls: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" };
+  return { label: "Locked", cls: "bg-ink/[0.06] dark:bg-white/[0.08] text-ink-muted dark:text-zinc-400" };
+});
+
+const settlementHint = computed(() => {
+  const o = order.value as any;
+  const status = o?.payoutStatus ?? "pending";
+  if (status === "paid") return "Paid out to your bank account.";
+  if (status === "queued" || status === "processing")
+    return "Included in a payout that's on its way to your bank.";
+  const eligibleAt = payoutEligibleAt(o);
+  if (eligibleAt === null)
+    return `Unlocks ${PAYOUT_HOLD_DAYS} days after the parcel is delivered.`;
+  if (Date.now() >= eligibleAt) return "Ready to withdraw from your Funds page.";
+  const d = new Date(eligibleAt);
+  return `Unlocks on ${d.toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" })}.`;
+});
 
 // The delivery address saved in settings, if it's complete enough to ship to.
 // Postcode and state are the two the courier quote actually needs.

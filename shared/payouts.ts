@@ -59,9 +59,15 @@ export const platformFeeFor = (order: PayableOrder): number =>
 // credit, so the shipping the buyer paid stays with the platform — paying it
 // out again would mean covering postage twice.
 //
-// There is no platform-booked path today (sellers dispatch with their own
-// label and enter a tracking number), so in practice this always reimburses.
-// The check stays so the sums remain correct the moment booking lands.
+// TCGo books every label now — the Billplz webhook books through Delyva the
+// moment payment settles, so in the normal flow shipmentOrderNo is always set
+// and postage is never reimbursed. Sellers are not meant to ship with their
+// own labels at all.
+//
+// The reimbursement branch is the safety net, not an alternative flow: when a
+// booking fails the order carries shipmentError and the seller may dispatch it
+// themselves out of pocket. Hard-coding this to zero would quietly keep the
+// postage they paid for. Reimburse if and only if we did not pay the courier.
 export const shippingReimbursement = (order: PayableOrder): number =>
   order.shipmentOrderNo ? 0 : round2(order.shipping || 0);
 

@@ -81,16 +81,20 @@
           </p>
         </NuxtLink>
 
-        <div class="surface rounded-xl p-4">
+        <NuxtLink
+          to="/seller/funds/locked"
+          class="surface rounded-xl p-4 hover:shadow-card-hover transition-shadow"
+        >
           <div class="flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-gray-300 dark:bg-zinc-600" />
             <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">Locked</p>
+            <svg class="w-3 h-3 ml-auto text-ink-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </div>
           <p class="text-xl font-extrabold text-ink dark:text-white tabular-nums mt-1">RM {{ fmt(lockedTotal) }}</p>
           <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">
             {{ locked.length }} order{{ locked.length === 1 ? "" : "s" }} · until delivered + {{ holdDays }}d
           </p>
-        </div>
+        </NuxtLink>
 
         <!-- Paid this month. Counts money that actually landed, keyed off
              payoutPaidAt, so it can't be inflated by a requested-but-unpaid
@@ -133,19 +137,6 @@
         </p>
       </section>
 
-      <!-- Locked detail -->
-      <section v-if="locked.length" class="mb-6">
-        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">Locked funds</p>
-        <div class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06]">
-          <div v-for="e in locked" :key="e.order.id" class="flex items-center gap-3 px-3 py-2.5">
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-ink dark:text-white truncate">{{ e.order.buyerName }} · {{ e.order.items.length }} item{{ e.order.items.length === 1 ? "" : "s" }}</p>
-              <p class="text-[11px] text-gray-500 dark:text-zinc-400">{{ lockReason(e) }}</p>
-            </div>
-            <span class="shrink-0 text-sm font-bold text-ink dark:text-white tabular-nums">RM {{ fmt(e.amount) }}</span>
-          </div>
-        </div>
-      </section>
 
       <!-- Payout history -->
       <section>
@@ -254,12 +245,6 @@ const bankLine = computed(() => {
   const tail = p!.bankAccountNumber!.slice(-4);
   return `${bankName(resolveBankCode(p!.bankCode, p!.bankName))} ••••${tail}`;
 });
-
-const lockReason = (e: FundEntry): string => {
-  if (e.order.status !== "delivered") return "Awaiting delivery";
-  if (e.eligibleAt) return `Unlocks ${fmtDate(e.eligibleAt)}`;
-  return "Held";
-};
 
 const requesting = ref(false);
 const doRequestPayout = async () => {

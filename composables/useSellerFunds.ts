@@ -43,11 +43,14 @@ export const categorizeFunds = (
   const out: FundEntry[] = [];
   for (const o of orders) {
     if (!isPayoutTrackable(o)) continue;
-    // Recompute rather than trusting a stored figure, except once a payout has
-    // been requested — at that point the amount is frozen on the order.
+    // The figure written at settlement wins. computeSellerPayout reads today's
+    // rate, so recomputing would re-price history: on the day BETA_PRICING
+    // flips, every settled-but-unpaid order would restate from 2% to 4% and
+    // every seller's balance would drop overnight — even though the webhook
+    // had already charged and recorded 2%. Recomputation is the fallback for
+    // orders written before the webhook stored these fields.
     const ps = o.payoutStatus ?? "pending";
-    const frozen = ps === "queued" || ps === "processing" || ps === "paid";
-    const amount = frozen ? (o.sellerPayout ?? 0) : computeSellerPayout(o);
+    const amount = o.sellerPayout ?? computeSellerPayout(o);
     if (amount <= 0) continue;
 
     if (ps === "paid") {
