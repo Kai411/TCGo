@@ -81,55 +81,7 @@
 
         <TabStrip v-model="tab" :tabs="tabs" class="mb-4" />
 
-        <!-- Mergeable groups -->
-        <div v-if="tab === 'mergeable'" class="space-y-4">
-          <p
-            v-if="!mergeableGroups.length"
-            class="text-sm text-ink-soft dark:text-zinc-500 py-3"
-          >
-            No mergeable orders right now.
-          </p>
-          <div
-            v-for="group in mergeableGroups"
-            :key="group.key"
-            class="rounded-2xl border-2 border-amber-300 dark:border-amber-500/40 bg-amber-50/70 dark:bg-amber-500/[0.07] p-4"
-          >
-            <div class="flex items-start justify-between gap-3 flex-wrap mb-3">
-              <div class="min-w-0">
-                <p class="text-sm font-bold text-amber-900 dark:text-amber-200">
-                  {{ group.orders.length }} orders from {{ group.buyerName }} can be merged
-                </p>
-                <p class="text-xs text-amber-700 dark:text-amber-300/80 mt-0.5">
-                  Same buyer, same address, paid. Combine into one parcel with a
-                  single waybill — any labels already bought are cancelled and
-                  one new label is booked for the combined parcel.
-                </p>
-              </div>
-              <button
-                @click="handleMerge(group)"
-                :disabled="merging"
-                class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-amber-500 text-ink hover:bg-amber-400 transition-colors disabled:opacity-60"
-              >
-                <span
-                  v-if="merging"
-                  class="animate-spin rounded-full h-4 w-4 border-b-2 border-ink"
-                />
-                Merge {{ group.orders.length }} orders
-              </button>
-            </div>
-            <div class="grid lg:grid-cols-2 gap-3 items-start">
-              <CompiledOrderCard
-                v-for="order in group.orders"
-                :key="order.id"
-                :order="order"
-                role="seller"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Straight queue -->
-        <div v-else>
+        <div>
           <EmptyState v-if="!visible.length" :headline="emptyLabel" :caption="emptyCaption" />
           <div v-else class="grid lg:grid-cols-2 gap-3 items-start">
             <div v-for="order in visible" :key="order.id" class="relative">
@@ -174,19 +126,15 @@ const {
   toShip,
   needsWaybill,
   shipped,
-  mergeableGroups,
   queue,
   queueCount,
   syncTracking,
-  merging,
-  handleMerge,
   startAutoMerge,
 } = useSellerOrders();
 
 const QUEUES: OrderQueue[] = [
   "toship",
   "awaiting",
-  "mergeable",
   "shipped",
   "delivered",
   "cancelled",

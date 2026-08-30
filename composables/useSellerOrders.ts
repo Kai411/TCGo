@@ -1,6 +1,5 @@
 import type { CompiledOrder } from "~/composables/useCompiledOrders";
-import { mergeGroupKey } from "~/shared/merge-orders";
-import { isOpenParcel } from "~/shared/order-joining";
+
 
 /**
  * Seller-side order queues, merge detection and the ship dialog.
@@ -13,7 +12,6 @@ import { isOpenParcel } from "~/shared/order-joining";
 export type OrderQueue =
   | "toship"
   | "awaiting"
-  | "mergeable"
   | "shipped"
   | "delivered"
   | "cancelled"
@@ -22,20 +20,11 @@ export type OrderQueue =
 export const ORDER_QUEUE_LABELS: Record<OrderQueue, string> = {
   toship: "To ship",
   awaiting: "Awaiting payment",
-  mergeable: "Mergeable",
   shipped: "In transit",
   delivered: "Delivered",
   cancelled: "Cancelled",
   all: "All orders",
 };
-
-export interface MergeableGroup {
-  /** buyer + destination — orders only merge when both match. */
-  key: string;
-  buyerUid: string;
-  buyerName: string;
-  orders: CompiledOrder[];
-}
 
 /**
  * A paid order still sitting with the seller. "confirmed" is the legacy manual
@@ -80,52 +69,6 @@ export const useSellerOrders = () => {
   /** Subset of `toShip` with no label yet. */
   const needsWaybill = computed(() => toShip.value.filter((o) => !hasWaybill(o)));
 
-  // ── Mergeable detection ─────────────────────────────────────────────
-  // Paid orders to the same buyer and destination that have no label yet.
-  //
-  // A booked waybill now DOES exclude an order. Merging used to cancel the
-  // group's labels and book a fresh one, which meant two courier calls that
-  // could each fail halfway and left the seller holding a printed waybill for
-  // a parcel that no longer existed. Once a label is printed the parcel is
-  // decided; see shared/order-joining.ts.
-  //
-  // This should also be rare now: a second order to an open parcel is
-  // combined automatically when it is paid, so the seller usually never sees
-  // a merge prompt at all. What is left here are orders that predate the
-  // change, or ones whose automatic join failed.
-  const mergeableGroups = computed<MergeableGroup[]>(() => {
-    const byDest = new Map<string, CompiledOrder[]>();
-    for (const o of sellerCompiledOrders.value) {
-      if (!isOpenParcel(o)) continue;
-      const key = mergeGroupKey(o);
-      if (!byDest.has(key)) byDest.set(key, []);
-      byDest.get(key)!.push(o);
-    }
-    const groups: MergeableGroup[] = [];
-    for (const [key, orders] of byDest) {
-      if (orders.length >= 2) {
-        orders.sort((a, b) => a.createdAt - b.createdAt);
-        groups.push({
-          key,
-          buyerUid: orders[0]!.buyerUid,
-          buyerName: orders[0]!.buyerName,
-          orders,
-        });
-      }
-    }
-    return groups;
-  });
-
-  const mergeableOrderIds = computed(() => {
-    const set = new Set<string>();
-    for (const g of mergeableGroups.value) for (const o of g.orders) set.add(o.id);
-    return set;
-  });
-
-  const nonMergeableSales = computed(() =>
-    sellerCompiledOrders.value.filter((o) => !mergeableOrderIds.value.has(o.id)),
-  );
-
   const queue = (q: OrderQueue): CompiledOrder[] => {
     switch (q) {
       case "toship":
@@ -138,15 +81,12 @@ export const useSellerOrders = () => {
         return delivered.value;
       case "cancelled":
         return cancelled.value;
-      case "mergeable":
-        return mergeableGroups.value.flatMap((g) => g.orders);
       default:
         return sellerCompiledOrders.value;
     }
   };
 
-  const queueCount = (q: OrderQueue) =>
-    q === "mergeable" ? mergeableGroups.value.length : queue(q).length;
+  const queueCount = (q: OrderQueue) => queue(q).length;
 
   // ── Courier-driven status ───────────────────────────────────────────
   // The manual "Mark shipped" dialog is gone: order status now follows the
@@ -194,30 +134,15 @@ export const useSellerOrders = () => {
     }
   };
 
-  // ── Merge ───────────────────────────────────────────────────────────
-  const merging = ref(false);
-  const handleMerge = async (group: MergeableGroup) => {
-    if (merging.value) return;
-    const withWaybill = group.orders.filter(hasWaybill).length;
-    const lines = [
-      `Merge ${group.orders.length} orders from ${group.buyerName} into one parcel?`,
-    ];
-    if (withWaybill) {
-      lines.push(
-        `${withWaybill} waybill${withWaybill > 1 ? "s" : ""} already bought will be cancelled and one new waybill booked for the combined parcel.`,
-      );
-    }
-    if (!confirm(lines.join("\n\n"))) return;
-    merging.value = true;
-    try {
-      await mergeOrders(group.orders.map((o) => o.id));
-    } catch (e: any) {
-      // authedFetch surfaces H3 errors on e.data.message.
-      alert(e?.data?.message || e?.message || "Could not merge orders.");
-    } finally {
-      merging.value = false;
-    }
-  };
+  // Sellers can no longer merge orders by hand, and the button is gone.
+  //
+  // Anything still combinable is a pair the buyer paid two shipping fees for,
+  // so combining them and keeping the difference is precisely the unfairness
+  // that shared/order-joining.ts exists to prevent. Two parcels is the honest
+  // outcome: it is what was paid for. Orders that CAN be combined for free are
+  // now joined automatically at payment and the seller never sees a prompt.
+  //
+  // /api/orders/merge survives for recovery, and refuses labelled orders.
 
   /**
    * Defensive auto-merge of duplicate *pending* orders from one buyer — they
@@ -259,13 +184,9 @@ export const useSellerOrders = () => {
     shipped,
     delivered,
     cancelled,
-    mergeableGroups,
-    nonMergeableSales,
     queue,
     queueCount,
     syncTracking,
-    merging,
-    handleMerge,
     startAutoMerge,
   };
 };

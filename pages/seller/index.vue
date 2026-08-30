@@ -23,7 +23,6 @@
       <SellerSalesDashboard
         v-else
         :orders="sellerCompiledOrders"
-        :mergeable-count="mergeableGroups.length"
         :pos-sales="posSales"
         @select="goToOrders"
       />
@@ -40,7 +39,7 @@ const { user, signInWithGoogle } = useAuth();
 const { sellerCompiledOrders, loadingSeller, listenSellerCompiledOrders } =
   useCompiledOrders();
 const { items: inventoryItems, listenMyInventory } = useInventory();
-const { mergeableGroups, startAutoMerge } = useSellerOrders();
+const { startAutoMerge } = useSellerOrders();
 
 // Direct (POS / manual) sales — folded into the dashboard's sales stats.
 const posSales = computed(() =>

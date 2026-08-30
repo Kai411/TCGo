@@ -208,14 +208,28 @@
     <section>
       <div class="flex items-center justify-between mb-2.5">
         <p class="eyebrow">Recent sales</p>
-        <button
-          v-if="orders.length"
-          @click="$emit('select', 'all')"
-          class="text-[11px] font-semibold text-pokemon-red hover:underline inline-flex items-center gap-0.5"
-        >
-          View all
-          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-        </button>
+        <div class="flex items-center gap-3">
+          <!-- Two destinations because this list mixes two things: counter
+               sales have their own page with receipts, marketplace orders
+               live in the order queue. One "View all" could only ever be
+               right for half the rows. -->
+          <NuxtLink
+            v-if="posCount"
+            to="/seller/sales"
+            class="text-[11px] font-semibold text-pokemon-red hover:underline inline-flex items-center gap-0.5"
+          >
+            Counter sales
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+          </NuxtLink>
+          <button
+            v-if="orders.length"
+            @click="$emit('select', 'all')"
+            class="text-[11px] font-semibold text-pokemon-red hover:underline inline-flex items-center gap-0.5"
+          >
+            Orders
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+          </button>
+        </div>
       </div>
       <p v-if="!recentSales.length" class="text-sm text-ink-soft dark:text-zinc-500 py-3">
         No sales yet.
@@ -266,8 +280,7 @@ import { isAwaitingShipment } from "~/composables/useSellerOrders";
 const props = withDefaults(
   defineProps<{
     orders: CompiledOrder[];
-    // Count of mergeable groups (2+ paid unshipped orders, same buyer + address).
-    mergeableCount: number;
+
     // Direct (POS / manual) inventory sales — folded into the sales stats.
     posSales?: InventoryItem[];
   }>(),
@@ -333,14 +346,6 @@ const actionTiles = computed(() => [
     tone: "border-black/[0.08] dark:border-white/[0.10] bg-black/[0.02] dark:bg-white/[0.04]",
     iconClass: "text-ink-muted dark:text-zinc-400",
   },
-  {
-    key: "mergeable",
-    label: "Mergeable",
-    icon: IconMerge,
-    count: props.mergeableCount,
-    tone: "border-emerald-300 dark:border-emerald-500/40 bg-emerald-50/70 dark:bg-emerald-500/[0.07]",
-    iconClass: "text-emerald-600 dark:text-emerald-400",
-  },
 ]);
 
 // ── Unified completed sales (online delivered orders + direct/POS sales) ──
@@ -365,16 +370,38 @@ const unifiedSales = computed<SaleEntry[]>(() => {
     source: "online",
     href: `/orders/${o.id}`,
   }));
-  const pos: SaleEntry[] = (props.posSales ?? []).map((i) => ({
-    id: i.id,
-    name: i.cardName,
-    itemsCount: 1,
-    value: i.soldPrice ?? i.listPrice ?? 0,
-    ts: i.soldAt ?? i.updatedAt ?? 0,
-    image: i.primaryImage ?? "",
-    source: "pos",
-    href: null,
-  }));
+  // Grouped by the counter sale that produced them. These are inventory rows,
+  // one per card, so a three-card sale used to render as three "1 item" lines
+  // at three separate prices — which reads as three customers. posSaleId is
+  // written by the POS when the sale settles, so it's the receipt to group on.
+  //
+  // Items with no posSaleId (marked sold by hand from the Items table) have no
+  // receipt to group into or link to, so they stay one row each.
+  const posGroups = new Map<string, InventoryItem[]>();
+  for (const i of props.posSales ?? []) {
+    const key = i.posSaleId || `item:${i.id}`;
+    const bucket = posGroups.get(key);
+    if (bucket) bucket.push(i);
+    else posGroups.set(key, [i]);
+  }
+
+  const pos: SaleEntry[] = [...posGroups.entries()].map(([key, group]) => {
+    const first = group[0]!;
+    const saleId = first.posSaleId;
+    return {
+      id: key,
+      name:
+        group.length > 1
+          ? `${first.cardName} + ${group.length - 1} more`
+          : first.cardName,
+      itemsCount: group.length,
+      value: group.reduce((t, i) => t + (i.soldPrice ?? i.listPrice ?? 0), 0),
+      ts: Math.max(...group.map((i) => i.soldAt ?? i.updatedAt ?? 0)),
+      image: first.primaryImage ?? "",
+      source: "pos",
+      href: saleId ? `/seller/sales/${saleId}` : null,
+    };
+  });
   return [...online, ...pos];
 });
 
