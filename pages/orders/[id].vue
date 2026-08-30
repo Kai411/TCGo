@@ -213,11 +213,19 @@
                   Mark received
                 </button>
                 <button
-                  v-if="order.status === 'pending' || order.status === 'confirmed'"
+                  v-if="order.status === 'pending'"
                   @click="handleCancel"
                   class="px-4 py-2 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-500/10 transition-colors"
                 >
                   Cancel order
+                </button>
+                <button
+                  v-if="canCancelPaid"
+                  @click="cancelPaidOrder"
+                  :disabled="cancellingOrder"
+                  class="px-4 py-2 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-500/10 transition-colors disabled:opacity-60"
+                >
+                  {{ cancellingOrder ? "Cancelling…" : "Cancel & refund" }}
                 </button>
               </template>
 
@@ -239,6 +247,14 @@
                   class="px-4 py-2 rounded-lg text-sm font-semibold border border-red-200 dark:border-red-500/30 text-red-600 hover:bg-red-500/10 transition-colors disabled:opacity-60"
                 >
                   {{ cancelling ? "Cancelling…" : "Cancel shipment" }}
+                </button>
+                <button
+                  v-if="canCancelPaid"
+                  @click="cancelPaidOrder"
+                  :disabled="cancellingOrder"
+                  class="px-4 py-2 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-500/10 transition-colors disabled:opacity-60"
+                >
+                  {{ cancellingOrder ? "Cancelling…" : "Cancel & refund buyer" }}
                 </button>
                 <!-- Manual fallback only. Order status normally follows the
                      courier's own scans (/api/shipping/track), so this appears
@@ -392,6 +408,31 @@
               </p>
             </template>
           </div>
+        </div>
+
+        <!-- Refund state. A cancelled order has to say where the money is,
+             because Billplz has no refund API and it is moved by hand — a
+             silent "cancelled" reads as "you have been refunded". -->
+        <div
+          v-if="order.status === 'cancelled' && order.refundStatus"
+          class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5"
+        >
+          <h2 class="text-sm font-bold text-ink dark:text-white mb-2">Refund</h2>
+          <div class="flex items-baseline justify-between gap-3">
+            <p class="text-sm text-gray-600 dark:text-zinc-300">
+              {{ order.refundStatus === "refunded" ? "Refunded" : "Refund being processed" }}
+            </p>
+            <p class="text-lg font-extrabold text-ink dark:text-white tabular-nums">
+              RM {{ (order.refundAmount ?? order.total ?? 0).toFixed(2) }}
+            </p>
+          </div>
+          <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-1.5">
+            {{
+              order.refundStatus === "refunded"
+                ? "Back on the account you paid from."
+                : "Returned to the account you paid from, usually within a few working days."
+            }}
+          </p>
         </div>
 
         <!-- Settlement — seller only.
@@ -713,6 +754,45 @@ const addr = ref({
 });
 
 const { profile: myProfile } = useMyProfile();
+
+// ── Cancel a paid order ──
+// Either side can, while the money is in and the parcel hasn't gone. The
+// server stops the courier first and refuses the whole thing if the courier
+// won't release it — a cancelled order whose parcel still ships is the one
+// outcome with no clean recovery.
+const cancellingOrder = ref(false);
+const canCancelPaid = computed(() => {
+  const o = order.value as any;
+  if (!o || !role.value) return false;
+  return o.status === "paid" || o.status === "confirmed";
+});
+
+const cancelPaidOrder = async () => {
+  const o = order.value as any;
+  if (!o || cancellingOrder.value) return;
+  const total = (o.total ?? 0).toFixed(2);
+  const warning = o.shipmentOrderNo
+    ? "\n\nThe booked waybill will be cancelled too."
+    : "";
+  if (
+    !confirm(
+      `Cancel this order and refund RM ${total} to the buyer?${warning}\n\nThe cards go back on sale.`,
+    )
+  ) {
+    return;
+  }
+  cancellingOrder.value = true;
+  try {
+    await authedFetch("/api/orders/cancel", {
+      method: "POST",
+      body: { orderId: o.id },
+    });
+  } catch (e: any) {
+    alert(e?.data?.message || e?.message || "Couldn't cancel this order.");
+  } finally {
+    cancellingOrder.value = false;
+  }
+};
 
 // ── Settlement ────────────────────────────────────────────────────────
 // Only online orders carry a settlement: manual and POS sales never enter

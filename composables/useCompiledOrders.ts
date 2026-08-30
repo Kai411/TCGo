@@ -150,6 +150,15 @@ export interface CompiledOrder {
   mergedFrom?: string[]; // on the surviving order: ids it absorbed
   mergedAt?: number;
   mergedInto?: string; // on an absorbed (cancelled) order: surviving id
+  // ── Refund, on a cancelled order ────────────────────────────────────
+  // "pending" means owed and not yet sent. Billplz has no refund API, so
+  // the money is moved by hand from their dashboard and only then does this
+  // become "refunded" — see server/api/orders/cancel.post.ts.
+  refundStatus?: "pending" | "refunded" | "failed";
+  refundAmount?: number;
+  refundBillplzBillId?: string | null;
+  refundedAt?: number;
+  cancelledBy?: "buyer" | "seller" | "admin";
 }
 
 // A frozen courier quote, carried from the cart onto the order.
