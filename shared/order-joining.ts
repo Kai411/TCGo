@@ -32,11 +32,18 @@
  * re-quoted at booking and a heavier box costs more, and something has to
  * carry that or every join quietly costs the platform money.
  *
- * Deliberately far below a second delivery. Joining should always be the
- * obvious choice for the buyer; the alternative is another RM 6 and a second
- * parcel to wait for.
+ * SET TO MATCH THE COLLECTION FEE, NOT ROUNDED DOWN.
+ * A joined order buys no second label, so it never earns the ~RM 1.24 postage
+ * buffer that a standalone order does — but Billplz still charges RM 1.25 to
+ * collect it. At RM 1.00 the join was 25 sen short before the heavier label
+ * was even considered, which pushed break-even from RM 0.25 to RM 6.25 and
+ * put 38 of the 113 live listings underwater as joined orders. At RM 1.25 a
+ * joined order is exactly as profitable as a standalone one.
+ *
+ * Still far below a second delivery. Joining stays the obvious choice for the
+ * buyer: RM 1.25 against another RM 6 and a second parcel to wait for.
  */
-export const JOIN_FEE_MYR = 1.0;
+export const JOIN_FEE_MYR = 1.25;
 
 export interface JoinableOrder {
   status?: string;
