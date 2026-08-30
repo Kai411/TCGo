@@ -23,10 +23,25 @@
 //
 // TCGo TAKES NO CUT OF A COUNTER SALE.
 //
-// The POS is paid for by subscription: it is the Vendor plan (see
-// shared/pricing.ts, POS_MONTHLY). Plan.rate is commission on ONLINE sales
-// only. At the counter the seller keeps everything except HitPay's own
-// 1.2% DuitNow QR fee, which HitPay deducts from their settlement.
+// The till is free, and nothing is charged per counter transaction. At the
+// counter the seller keeps everything except HitPay's own 1.2% DuitNow QR fee,
+// which HitPay deducts from their settlement.
+//
+// This is a deliberate decision, not an unfinished one. Three reasons:
+//
+//   - TCGo's marginal cost on a counter sale is zero. HitPay charges the
+//     platform nothing for this rail, so a percentage would be rent on
+//     infrastructure we don't operate.
+//   - It would be trivially avoidable. cash-sale.post.ts writes the identical
+//     posSales row, so a shop taking payment on its own DuitNow standee and
+//     pressing "Cash" pays nothing and still gets the stock sync. A fee here
+//     would pay sellers to misreport their takings.
+//   - It stacks against free. A static merchant DuitNow QR is 0% under the
+//     BNM waiver. HitPay's 1.2% buys automatic reconciliation and is a fair
+//     trade; 2%+ is worse than a card terminal and the standee wins.
+//
+// What the till earns instead is inventory. Cards scanned into it become
+// listings, and listings commission at 4% — see shared/pricing.ts.
 //
 // Two things follow, and both are easy to break by accident:
 //

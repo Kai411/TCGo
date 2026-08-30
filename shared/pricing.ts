@@ -4,9 +4,30 @@
 // here, so the number a seller is quoted and the number we forecast revenue
 // against can never drift apart.
 //
+// ONE COMMISSION RATE, EVERY PLAN
+// ───────────────────────────────
+// A subscription buys features. It never buys a cheaper rate.
+//
+// There used to be a Vendor plan at RM 69.99 that dropped commission to 3%,
+// and it was wrong in two ways at once. It was never actually charged —
+// `sellerPlan` is read in three places and written in none, so effectiveRate()
+// fell through to the standard rate for everyone — and the arithmetic didn't
+// work either: against a flat 4% plus the RM 4.99 plan, Vendor only earned
+// TCGo more from sellers under ~RM 6,500 of online sales a month, which are
+// exactly the sellers who would never pay RM 69.99. It made its money from
+// people who wouldn't buy it.
+//
+// Keeping one rate also keeps the settlement statement honest. Two sellers
+// looking at the same sale see the same deduction, and nobody has to be told
+// why their neighbour pays less.
+//
+// The till is free (see server/utils/pos-payment.ts). It feeds inventory into
+// the marketplace, and the marketplace is where the 4% is earned — charging
+// for it would throttle the only line that makes money.
+//
 // Structurally plain (no Vue imports) so Nitro can use it too.
 
-export type PlanId = "free" | "pro" | "vendor";
+export type PlanId = "free" | "pro";
 
 export interface Plan {
   id: PlanId;
@@ -18,15 +39,21 @@ export interface Plan {
 }
 
 export const STANDARD_RATE = 0.04;
-export const POS_RATE = 0.03;
 
 export const MARKETPLACE_MONTHLY = 4.99;
-export const POS_MONTHLY = 69.99;
 
+// Free scans a month before Pro is worth buying. Mirrors FREE_SCAN_LIMIT in
+// composables/useScanQuota.ts, which is what actually enforces it — this copy
+// exists so the pricing page can quote the number without importing a Vue
+// composable into the Nitro build.
+export const FREE_SCANS_MONTHLY = 20;
+
+// Both plans commission at STANDARD_RATE. `rate` stays per-plan rather than
+// being hoisted to a single constant so that if the rates ever do diverge
+// again, every call site already reads the right one.
 export const PLANS: Plan[] = [
   { id: "free", name: "Free", monthly: 0, rate: STANDARD_RATE },
   { id: "pro", name: "Pro", monthly: MARKETPLACE_MONTHLY, rate: STANDARD_RATE },
-  { id: "vendor", name: "Vendor", monthly: POS_MONTHLY, rate: POS_RATE },
 ];
 
 export const planById = (id: string | undefined | null): Plan =>
@@ -34,11 +61,7 @@ export const planById = (id: string | undefined | null): Plan =>
 
 // ── Beta pricing ──────────────────────────────────────────────────────
 //
-// During beta every seller pays a single reduced rate regardless of plan —
-// half the standard 4%. A flat beta rate is deliberate: layering the Vendor
-// discount on top would put the commission at 1%, below what an order costs
-// us to process, and it would make "what am I paying" harder to answer during
-// exactly the period we're asking people to take a chance on us.
+// During beta every seller paid a single reduced rate — half the standard 4%.
 //
 // Flip BETA_PRICING to false at launch and per-plan rates take over with no
 // other change.
@@ -109,9 +132,14 @@ export const feeSplitRates = (planId: PlanId = "free") => {
   };
 };
 
-/** The commission actually charged today, for a seller on `planId`. */
+/**
+ * The commission actually charged today, for a seller on `planId`.
+ *
+ * Both live plans commission at the same rate, so the argument changes
+ * nothing right now. It is kept because orders record the rate they were
+ * struck at and the parameter is what a future divergence would flow through
+ * — and because dropping it would silently re-price the beta orders that
+ * still carry a sellerPlan-shaped field.
+ */
 export const effectiveRate = (planId: PlanId = "free"): number =>
   BETA_PRICING ? BETA_RATE : planById(planId).rate;
-
-/** Online sales a month at which Vendor's 1pp discount covers its subscription. */
-export const POS_BREAKEVEN = Math.round(POS_MONTHLY / (STANDARD_RATE - POS_RATE));

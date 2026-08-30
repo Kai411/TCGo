@@ -7,14 +7,14 @@
         <h1
           class="reveal-init mt-4 text-display font-bold tracking-tightest text-ink"
         >
-          4% a sale. 3% with Vendor.
+          4% a sale. Every plan.
         </h1>
         <p
           class="reveal-init mx-auto mt-5 max-w-xl text-base leading-relaxed text-ink-muted sm:text-lg"
         >
           No listing fees, no minimum order, nothing to pay until a card
-          actually sells. Run your counter on TCGo too and every online sale
-          drops to 3%.
+          actually sells. The in-store till is free, and subscribing never
+          changes your rate.
         </p>
         <p
           v-if="BETA_PRICING"
@@ -30,7 +30,7 @@
     <!-- Plans -->
     <section class="px-4 py-10">
       <div ref="plansSection" class="container mx-auto max-w-5xl">
-        <div class="grid gap-4 lg:grid-cols-3">
+        <div class="mx-auto grid max-w-3xl gap-4 sm:grid-cols-2">
           <div
             v-for="plan in plans"
             :key="plan.name"
@@ -78,9 +78,9 @@
           </div>
         </div>
         <p class="reveal-init mt-4 text-center text-xs text-ink-soft">
-          Subscriptions are billed monthly and cancel any time. Vendor's 3% pays
-          for itself once you're selling about RM{{ posBreakeven }} a
-          month online — past that, subscribing costs less than not.
+          Billed monthly, cancel any time. Pro buys scans, not a discount —
+          selling costs {{ (STANDARD_RATE * 100).toFixed(0) }}% on both plans,
+          so there is never a rate to work out.
         </p>
         <p
           v-if="BETA_PRICING"
@@ -97,9 +97,10 @@
             Money taken at your counter
           </h3>
           <p class="mt-1.5 text-[13px] leading-relaxed text-ink-muted">
-            In-store payments settle straight into your own bank account. We
-            never hold your counter takings and never charge a percentage on
-            them — you're paying the card networks, not us.
+            The till is free on every plan, including the free one. In-store
+            payments settle straight into your own bank account — we never hold
+            your counter takings and never charge a percentage on them. What
+            you see below is the payment provider's rate, not ours.
           </p>
           <div class="mt-5 grid gap-3 sm:grid-cols-3">
             <div
@@ -262,14 +263,12 @@
                 of your online revenue, all in.
               </p>
               <p
-                v-if="posSaving > 0"
+                v-if="scansNeeded > FREE_SCANS_MONTHLY"
                 class="mt-2 rounded-xl bg-emerald-400/15 px-4 py-3 text-xs text-emerald-200"
               >
-                On Vendor you'd keep
-                <span class="font-bold text-emerald-100"
-                  >RM{{ money(posSaving) }}</span
-                >
-                more a month, even after the subscription.
+                Listing {{ scansNeeded }} cards a month puts you past the free
+                scan cap of {{ FREE_SCANS_MONTHLY }} — that's what Pro is for.
+                Your rate doesn't change.
               </p>
             </div>
           </div>
@@ -307,10 +306,9 @@
               >
             </div>
             <p class="mt-4 rounded-xl bg-ink/[0.03] px-4 py-3 text-xs leading-relaxed text-ink-muted">
-              On <span class="font-semibold text-ink">Vendor</span> the
-              platform fee drops to 0.5% — your subscription already covers it —
-              so you pay <span class="font-semibold text-ink">3.0%</span>.
-              Payment processing stays at cost either way.
+              The same {{ (STANDARD_RATE * 100).toFixed(1) }}% on both plans.
+              A subscription buys features, never a cheaper rate — so the
+              number on your settlement is the number on this page.
             </p>
           </div>
 
@@ -549,10 +547,8 @@
 <script setup lang="ts">
 import {
   MARKETPLACE_MONTHLY,
-  POS_MONTHLY,
   STANDARD_RATE,
-  POS_RATE,
-  POS_BREAKEVEN,
+  FREE_SCANS_MONTHLY,
   BETA_PRICING,
   BETA_RATE,
   feeSplitRates,
@@ -566,7 +562,7 @@ useHead({
     {
       name: "description",
       content:
-        "TCGo charges Malaysian card sellers a flat 4% per sale — half payment processing, half platform commission. No listing fees, no minimum order, and buyers pay no platform fee. The in-store POS is RM69.99 a month.",
+        "TCGo charges Malaysian card sellers a flat 4% per sale on every plan — half payment processing, half platform commission. No listing fees, no minimum order, and buyers pay no platform fee. The in-store POS is free.",
     },
   ],
 });
@@ -593,10 +589,14 @@ const feeLines = [
 
 // Two subscriptions sit on top of the per-sale 4%.
 //
-// Marketplace (RM4.99) unlocks unlimited AI card scans — the free tier caps at
-// 20 a month. POS (RM69.99) adds the in-store till. The POS price is
-// deliberately under the general-purpose Malaysian entry tier (StoreHub
-// ~RM102, Qashier ~RM158) because we're buying density in a small market.
+// Two plans, one rate. Pro (RM4.99) unlocks unlimited AI card scans — the free
+// tier caps at 20 a month. It does NOT change commission, and no plan does:
+// see the note at the top of shared/pricing.ts for why the Vendor tier and its
+// 3% were removed.
+//
+// The till is free on both plans. It is an inventory funnel — cards scanned
+// into it become listings, and listings are where the 4% is earned — so
+// charging for it would throttle the only line that makes money.
 //
 // Counter takings never touch our payment rail: DuitNow QR settles straight to
 // the shop's own bank at 0% for micro and small merchants (BNM waiver), and
@@ -615,12 +615,13 @@ const plans = [
     defaults: { avgSale: 35, salesPerMonth: 12, withdrawals: 1 },
     price: "RM0",
     period: "/month",
-    plus: "+ 4% per online sale",
+    plus: `+ ${(STANDARD_RATE * 100).toFixed(0)}% per online sale`,
     who: "For collectors clearing shelf space and sellers testing the water.",
     featured: false,
     features: [
       "Unlimited listings",
-      "20 card scans a month",
+      `${FREE_SCANS_MONTHLY} card scans a month`,
+      "Point-of-sale till, in full",
       "Live market pricing",
       "Courier waybills at cost",
       "Auctions and offers",
@@ -634,33 +635,13 @@ const plans = [
     defaults: { avgSale: 45, salesPerMonth: 70, withdrawals: 2 },
     price: `RM${MARKETPLACE_MONTHLY}`,
     period: "/month",
-    plus: "+ 4% per online sale",
-    who: "For sellers listing in volume, where the scan cap starts to bite.",
-    featured: false,
+    plus: `+ ${(STANDARD_RATE * 100).toFixed(0)}% per online sale — the same rate`,
+    who: "For a shop or a serious seller, where the scan cap starts to bite.",
+    featured: true,
     features: [
       "Everything in Free",
       "Unlimited card scans",
       "Scan straight into a listing",
-    ],
-  },
-  {
-    id: "vendor",
-    name: "Vendor",
-    rate: POS_RATE,
-    monthly: POS_MONTHLY,
-    defaults: { avgSale: 65, salesPerMonth: 200, withdrawals: 4 },
-    price: `RM${POS_MONTHLY}`,
-    period: "/month",
-    plus: "+ 3% per online sale",
-    who: "For a shop with a counter. Everything above, plus the till — and a point off every online sale.",
-    featured: true,
-    features: [
-      "Everything in Pro",
-      "3% on online sales, not 4%",
-      "Point-of-sale on your phone",
-      "One stock count, counter and online",
-      "Price tags and label printing",
-      "Daily takings and reports",
     ],
   },
 ];
@@ -708,8 +689,6 @@ const currentPlan = computed(
 const feeRate = computed(() => currentPlan.value.rate);
 const marketplaceFee = computed(() => revenue.value * feeRate.value);
 
-// What the shop would save by moving to POS from whatever they've picked.
-// Negative means the subscription still costs more than the point it saves.
 const subscription = computed(() => currentPlan.value.monthly);
 
 watch(selectedPlan, () => {
@@ -719,12 +698,12 @@ watch(selectedPlan, () => {
   withdrawals.value = d.withdrawals;
 });
 
-const posSaving = computed(() => {
-  if (selectedPlan.value === "vendor") return 0;
-  const now = revenue.value * currentPlan.value.rate + subscription.value;
-  const onPos = revenue.value * POS_RATE + POS_MONTHLY;
-  return now - onPos;
-});
+// Listing is what consumes scans, so sales-per-month is the honest proxy for
+// whether the free cap will hold. Shown only on Free — on Pro there's no cap
+// to hit, and the panel would be telling them something they already bought.
+const scansNeeded = computed(() =>
+  selectedPlan.value === "free" ? salesPerMonth.value : 0,
+);
 const withdrawalFee = computed(() => withdrawals.value * WITHDRAWAL_FEE);
 const totalCost = computed(
   () => marketplaceFee.value + withdrawalFee.value + subscription.value,
@@ -770,7 +749,6 @@ const includedFree = [
 // unbranded for the TCG row: it comes from one seller's settlement statement,
 // not a published rate card, so naming the platform would overstate it.
 const comparison = [
-  { name: "TCGo on Vendor", rate: "3.0%", fee: "RM2.52", keep: "RM81.48", us: true },
   { name: "TCGo", rate: "4.0%", fee: "RM3.36", keep: "RM80.64", us: true },
   {
     name: "Other TCG marketplaces",
@@ -789,16 +767,16 @@ const comparison = [
 
 const faqs = [
   {
-    q: "How does the 3% on Vendor work?",
-    a: "Subscribe to Vendor and every online sale is charged 3% instead of 4% — there's nothing to claim and no minimum. Because the point you save grows with your sales, the plan pays for itself at around RM7,000 of online sales a month, and costs you less than not subscribing above that.",
+    q: "Does subscribing lower my rate?",
+    a: "No, and that's deliberate. Selling costs 4% on both plans, so there's no rate to work out and no version of you that pays less than the seller next to you. Pro buys unlimited card scans — a feature, not a discount.",
   },
   {
-    q: "Why is the till a subscription instead of a percentage?",
-    a: "Money taken at your counter never passes through us — it goes straight from your customer to your own bank, by cash, DuitNow QR or a card tapped on your phone. There's nothing for us to take a cut of, so the till is priced by the month instead. Sell 100 cards over the counter or none at all, the price doesn't move.",
+    q: "What does the in-store till cost?",
+    a: "Nothing, on either plan. Money taken at your counter goes straight from your customer to your own bank by cash, DuitNow QR or a card tapped on your phone — it never passes through us, so there's nothing for us to take a cut of and no per-sale charge. Sell 100 cards over the counter or none at all, the till is free.",
   },
   {
     q: "Do I need a subscription to sell online?",
-    a: "No. Selling costs 4% a sale on every plan, the free one included. Pro at RM4.99 lifts the 20-a-month cap on card scans, and Vendor at RM69.99 adds the in-store till and drops your commission to 3%.",
+    a: "No. Selling costs 4% a sale on both plans, the free one included, and the till is free too. Pro at RM4.99 lifts the 20-a-month cap on card scans — that's the whole difference.",
   },
   {
     q: "What does tap-to-pay cost?",
@@ -833,8 +811,6 @@ const faqs = [
     a: "Not today. TCGo does not currently charge service tax on its fees. If that changes as the platform grows, we'll tell sellers before it takes effect.",
   },
 ];
-
-const posBreakeven = POS_BREAKEVEN.toLocaleString("en-MY");
 
 const hero = ref<HTMLElement>();
 const plansSection = ref<HTMLElement>();

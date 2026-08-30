@@ -94,10 +94,15 @@ useHead({
             </em>
           </li>
           <li>
-            <strong>Two subscriptions</strong> — Pro at RM4.99 a month lifts the
-            20-a-month cap on card scans. Vendor at RM69.99 a month adds the
-            in-store point-of-sale and drops commission to 3%. In-store takings
-            settle straight to your own bank and are never charged a percentage.
+            <strong>One subscription, one rate</strong> — Pro at RM4.99 a month
+            lifts the 20-a-month cap on card scans. That is the only thing it
+            changes: selling costs 4% on every plan, and the in-store
+            point-of-sale is free for everyone. In-store takings settle straight
+            to your own bank and are never charged a percentage.
+            <em>
+              The RM69.99 Vendor plan and its 3% rate have been withdrawn —
+              nobody was ever charged the 3%, so no past sale changes.
+            </em>
           </li>
         </ul>
 

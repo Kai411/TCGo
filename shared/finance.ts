@@ -107,7 +107,6 @@ export const orderProcessingCost = (): number => BILLPLZ_FPX_FEE;
 
 export interface SubscriptionCounts {
   pro: number;
-  vendor: number;
 }
 
 export interface FinanceSummary {
@@ -146,7 +145,7 @@ export interface FinanceSummary {
 export const summariseFinance = (
   orders: FinanceOrder[],
   payouts: FinancePayout[],
-  subscriptions: SubscriptionCounts = { pro: 0, vendor: 0 },
+  subscriptions: SubscriptionCounts = { pro: 0 },
   planForSeller: (uid: string | undefined) => PlanId = () => "free",
 ): FinanceSummary => {
   const settled = orders.filter(isSettled);
@@ -158,8 +157,7 @@ export const summariseFinance = (
   );
   const postage = sum(settled.map(shippingRevenue));
   const subscriptionRevenue = round2(
-    subscriptions.pro * (PLANS.find((p) => p.id === "pro")?.monthly ?? 0) +
-      subscriptions.vendor * (PLANS.find((p) => p.id === "vendor")?.monthly ?? 0),
+    subscriptions.pro * (PLANS.find((p) => p.id === "pro")?.monthly ?? 0),
   );
   const revenue = round2(commission + postage + subscriptionRevenue);
 

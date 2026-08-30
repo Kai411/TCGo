@@ -47,23 +47,23 @@ export default defineEventHandler(async (event) => {
   const payouts = payoutSnap.docs.map((d) => d.data() as FinancePayout);
   const users = userSnap.docs.map((d) => d.data() as { tier?: string; plan?: string });
 
-  // Subscriptions. `tier: premium` is the built Stripe membership (Pro).
-  // Vendor has no billing behind it yet — reported as unimplemented rather
-  // than as a zero that looks like "nobody subscribed".
+  // Subscriptions. `tier: premium` is the built Stripe membership (Pro), and
+  // it is the only paid plan — the till is free, so there is nothing else to
+  // count.
   const proCount = users.filter((u) => u.tier === "premium").length;
-  const vendorCount = users.filter((u) => u.plan === "vendor").length;
 
-  // Nobody carries a paid seller plan yet, so every seller commissions at the
-  // standard rate. Reads `plan` so this starts working the moment it's set.
+  // Both plans commission at the same rate, so this only affects the "what
+  // would launch rates have earned" forecast, never money actually charged.
+  // Reads `plan` so it keeps working if the rates ever diverge again.
   const planByUid = new Map<string, PlanId>();
   userSnap.docs.forEach((d) => {
     const plan = (d.data() as { plan?: string }).plan;
-    if (plan === "vendor" || plan === "pro") planByUid.set(d.id, plan);
+    if (plan === "pro") planByUid.set(d.id, plan);
   });
   const planForSeller = (uid: string | undefined): PlanId =>
     (uid && planByUid.get(uid)) || "free";
 
-  const subs = { pro: proCount, vendor: vendorCount };
+  const subs = { pro: proCount };
   const within = (from: number) => (o: FinanceOrder & { paidAt?: number }) =>
     (o.paidAt ?? 0) >= from;
   const payoutsWithin = (from: number) => (p: FinancePayout) =>
@@ -108,7 +108,7 @@ export default defineEventHandler(async (event) => {
     orders.filter(within(now - 365 * DAY)),
     payouts.filter(payoutsWithin(now - 365 * DAY)),
     // Annualise the current subscriber base rather than counting one month.
-    { pro: subs.pro * 12, vendor: subs.vendor * 12 },
+    { pro: subs.pro * 12 },
     planForSeller,
   );
   const tax = {
@@ -147,10 +147,6 @@ export default defineEventHandler(async (event) => {
     series,
     subscriptions: {
       pro: proCount,
-      vendor: vendorCount,
-      // Vendor billing isn't built; the dashboard says so rather than
-      // implying nobody has bought it.
-      vendorImplemented: false,
     },
     float,
     tax,

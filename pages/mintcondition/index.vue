@@ -173,17 +173,9 @@
                 </p>
               </div>
               <div>
-                <div class="flex items-baseline justify-between gap-3">
-                  <span class="text-sm text-ink dark:text-zinc-200">Vendor</span>
-                  <span class="text-lg font-bold tabular-nums text-ink dark:text-white">{{
-                    data.subscriptions.vendor
-                  }}</span>
-                </div>
-                <p
-                  v-if="!data.subscriptions.vendorImplemented"
-                  class="text-xs text-amber-600 dark:text-amber-400 mt-0.5"
-                >
-                  Billing not built yet — this will read 0 regardless.
+                <p class="text-xs text-ink-soft dark:text-zinc-500">
+                  The only paid plan. The till is free, and commission is 4% on
+                  every plan.
                 </p>
               </div>
               <div class="pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
@@ -299,7 +291,7 @@
 </template>
 
 <script setup lang="ts">
-import { MARKETPLACE_MONTHLY, POS_MONTHLY, BETA_RATE } from "~/shared/pricing";
+import { MARKETPLACE_MONTHLY, BETA_RATE } from "~/shared/pricing";
 import type { FinanceSummary, TopUpProjection, SstPosition } from "~/shared/finance";
 
 definePageMeta({ layout: "admin", middleware: "mintcondition" });
@@ -312,7 +304,7 @@ interface Overview {
   last30: FinanceSummary;
   thisMonth: FinanceSummary;
   series: { date: string; revenue: number; cost: number; orders: number }[];
-  subscriptions: { pro: number; vendor: number; vendorImplemented: boolean };
+  subscriptions: { pro: number };
   float: { delyva: TopUpProjection; billplz: TopUpProjection };
   tax: {
     sst: SstPosition;
@@ -347,10 +339,7 @@ const summary = computed<FinanceSummary | null>(() =>
 );
 
 const mrr = computed(() =>
-  data.value
-    ? data.value.subscriptions.pro * MARKETPLACE_MONTHLY +
-      data.value.subscriptions.vendor * POS_MONTHLY
-    : 0,
+  data.value ? data.value.subscriptions.pro * MARKETPLACE_MONTHLY : 0,
 );
 
 // Subscription revenue is a monthly run-rate, not a figure earned inside the

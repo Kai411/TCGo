@@ -62,8 +62,7 @@ const { effectiveRate } = reprice
 if (reprice) {
   console.log(
     `RESTATING COMMISSION at today's rate ` +
-      `(free ${(effectiveRate("free") * 100).toFixed(2)}%, ` +
-      `vendor ${(effectiveRate("vendor") * 100).toFixed(2)}%).`,
+      `(${(effectiveRate("free") * 100).toFixed(2)}%, every plan).`,
   );
   console.log("This rewrites what a sale was charged. Test data only.\n");
 }
