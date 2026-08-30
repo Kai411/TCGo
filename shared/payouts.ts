@@ -35,6 +35,12 @@ export interface PayableOrder {
   subtotal?: number;
   /** Commission recorded at settlement. Authoritative once written. */
   platformFee?: number;
+  /**
+   * The rate that fee was struck at, as a fraction. Recorded because it
+   * cannot be reliably recovered from the fee: MYR rounds to the sen, so 2%
+   * of RM 1.12 stores as RM 0.02 and reads back as 1.79%.
+   */
+  platformFeeRate?: number;
   /** Seller's share recorded at settlement. Authoritative once written. */
   sellerPayout?: number;
   shipping?: number;

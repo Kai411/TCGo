@@ -186,6 +186,13 @@ export default defineEventHandler(async (event) => {
         // to be configured on the day someone merges them.
         platformFee: sumAmounts(sorted.map(recordedFee)),
         sellerPayout: sumAmounts(sorted.map(recordedPayout)),
+        // Only meaningful when every order in the group was struck at the
+        // same rate. Mixed rates have no single rate to name, so the field is
+        // cleared and the statement falls back to deriving one.
+        platformFeeRate:
+          new Set(sorted.map((o: any) => o.platformFeeRate ?? null)).size === 1
+            ? ((sorted[0] as any).platformFeeRate ?? null)
+            : null,
       });
     } else {
       tx.update(primaryRef, {

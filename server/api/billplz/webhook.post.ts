@@ -10,6 +10,7 @@
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { verifyBillplzSignature } from "~/server/utils/billplz";
 import { computeSellerPayout, platformFeeFor } from "~/shared/payouts";
+import { effectiveRate } from "~/shared/pricing";
 import { bookShipmentForOrder } from "~/server/utils/book-shipment";
 import { sendInvoiceForOrder } from "~/server/utils/send-invoice";
 import { noteError } from "~/server/utils/oplog";
@@ -101,6 +102,9 @@ export default defineEventHandler(async (event) => {
     status: "paid",
     paidAt: now,
     platformFee,
+    // Stored, not derived later: the sen-rounded fee can't be divided back
+    // into the rate it came from on small orders.
+    platformFeeRate: effectiveRate((order as any).sellerPlan),
     sellerPayout,
     payoutStatus: "pending",
     billplzPaidAt: get("paid_at") || null,

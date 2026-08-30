@@ -13,12 +13,15 @@
 // fallback for orders written before those fields existed, nothing more.
 
 import { recordedFee, recordedPayout } from "~/shared/payouts";
+import { BETA_RATE, PLANS } from "~/shared/pricing";
 
 export interface SettlementOrder {
   subtotal?: number;
   shipping?: number;
   total?: number;
   platformFee?: number;
+  /** Rate the fee was struck at, as a fraction. Recorded at settlement. */
+  platformFeeRate?: number;
   sellerPayout?: number;
   /** Set when TCGo booked the courier label and paid for it. */
   shipmentOrderNo?: string | null;
@@ -43,15 +46,35 @@ export const feeCharged = (order: SettlementOrder): number =>
 export const payoutAmount = (order: SettlementOrder): number =>
   recordedPayout(order as any);
 
+/** Every rate TCGo has ever charged, as percentages. */
+const KNOWN_RATES = [...new Set([BETA_RATE, ...PLANS.map((p) => p.rate)])].map(
+  (r) => round2(r * 100),
+);
+
 /**
- * The rate this order was charged at, derived from the fee rather than read
- * from config — so a beta order keeps saying 2% after launch flips to 4%.
- * Null when there's no subtotal to divide by.
+ * The rate this order was charged at, as a percentage.
+ *
+ * Read from the record where possible. Deriving it from the fee — which is
+ * what this used to do — breaks on small orders, because the fee is stored to
+ * the sen: 2% of RM 1.12 is RM 0.0224, banks to RM 0.02, and divides back to
+ * 1.79%. The seller was charged 2% and the statement said 1.79%.
+ *
+ * For orders settled before the rate was recorded, the derivation carries at
+ * most half a sen of error, which is a known bound: ±(0.005 / subtotal). If a
+ * rate we actually charge sits inside that window, it is the one that was
+ * charged, so snap to it. Outside the window the figure is real — a merged
+ * order blending two rates, say — and is shown as-is.
  */
 export const rateCharged = (order: SettlementOrder): number | null => {
+  if (order.platformFeeRate != null) return round2(order.platformFeeRate * 100);
+
   const subtotal = order.subtotal || 0;
   if (subtotal <= 0) return null;
-  return round2((feeCharged(order) / subtotal) * 100);
+
+  const derived = (feeCharged(order) / subtotal) * 100;
+  const tolerance = (0.005 / subtotal) * 100;
+  const match = KNOWN_RATES.find((r) => Math.abs(derived - r) <= tolerance);
+  return match ?? round2(derived);
 };
 
 /**
