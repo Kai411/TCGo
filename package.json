@@ -7,6 +7,7 @@
   },
   "scripts": {
     "build": "nuxt build",
+    "test": "node --test --experimental-strip-types --import ./test/register.mjs 'test/**/*.test.ts'",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
