@@ -10,6 +10,7 @@ import {
   reload,
   type User,
 } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 import { computed, ref } from "vue";
 
 const user = ref<User | null>(null);
@@ -81,8 +82,24 @@ export const useAuth = () => {
     displayName?: string,
   ) => {
     const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
-    if (displayName?.trim()) {
-      await updateProfile(cred.user, { displayName: displayName.trim() });
+
+    const name = displayName?.trim();
+    if (name) {
+      // Two writes, because the name has to reach two places.
+      //
+      // Auth carries it for anything reading the token; Firestore's
+      // customName is what the app actually displays. useProfile's listener
+      // creates that document the instant the account exists — which is
+      // BEFORE this line runs — so it seeds customName from an Auth profile
+      // that is still nameless. Writing it here, merged, is what makes the
+      // name entered at signup the name on the settings page.
+      await updateProfile(cred.user, { displayName: name });
+      const { firestore } = useFirebase();
+      await setDoc(
+        doc(firestore!, "users", cred.user.uid),
+        { displayName: name, customName: name },
+        { merge: true },
+      );
     }
     await requestCode(email, "verify_email");
   };

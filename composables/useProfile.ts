@@ -183,6 +183,21 @@ export const useMyProfile = () => {
                   uid: u.uid,
                 } as UserProfile;
                 isNewUser.value = false;
+
+                // Adopt the Auth display name for accounts that were created
+                // before registration wrote it here. Those profiles carry an
+                // empty customName, so the settings field showed "Anonymous"
+                // while the header — which reads the Auth token — showed the
+                // real name. Writes once, then the condition stops matching.
+                if (!data.customName && u.displayName) {
+                  updateDoc(profileDoc, {
+                    customName: u.displayName,
+                    displayName: u.displayName,
+                  }).catch(() => {
+                    // Not worth surfacing: the name is cosmetic and the user
+                    // can set it on the settings page regardless.
+                  });
+                }
               } else {
                 // New user — create a minimal profile and flag them
                 const now = new Date();
@@ -195,7 +210,12 @@ export const useMyProfile = () => {
                   uid: u.uid,
                   displayName: u.displayName || "Anonymous",
                   photoURL: u.photoURL || "",
-                  customName: "",
+                  // Seeded from the Auth profile so a Google sign-in arrives
+                  // already named. Email signups race this — the listener
+                  // fires the moment the account exists, before the display
+                  // name has been written to it — so registerWithEmail also
+                  // writes customName itself once it knows the value.
+                  customName: u.displayName || "",
                   phone: "",
                   whatsappNumber: "",
                   usePhoneAsWhatsapp: true,
@@ -206,7 +226,10 @@ export const useMyProfile = () => {
                   scansUsed: 0,
                   scansResetAt: firstOfNextMonth,
                 };
-                setDoc(profileDoc, newProfile);
+                // Merged, not overwritten: registration may already have
+                // written the display name into this document a moment ago,
+                // and a bare setDoc would erase it.
+                setDoc(profileDoc, newProfile, { merge: true });
                 profile.value = newProfile;
                 isNewUser.value = true;
               }
