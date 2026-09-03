@@ -265,6 +265,13 @@ const IconReceipt = () =>
     h("line", { x1: "8", y1: "13", x2: "14", y2: "13" }),
   ]);
 
+const IconMore = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("circle", { cx: "5", cy: "12", r: "1" }),
+    h("circle", { cx: "12", cy: "12", r: "1" }),
+    h("circle", { cx: "19", cy: "12", r: "1" }),
+  ]);
+
 const navItems = [
   { to: "/seller", label: "Dashboard", icon: IconDashboard, exact: true, tour: "nav-dashboard" },
   { to: "/seller/pos", label: "POS", icon: IconScan, tour: "nav-pos" },
@@ -346,10 +353,4 @@ watch(
   () => (openSheet.value = null),
 );
 
-const IconMore = () =>
-  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
-    h("circle", { cx: "5", cy: "12", r: "1" }),
-    h("circle", { cx: "12", cy: "12", r: "1" }),
-    h("circle", { cx: "19", cy: "12", r: "1" }),
-  ]);
 </script>
