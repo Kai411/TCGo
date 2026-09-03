@@ -101,6 +101,11 @@ const WIPE = [
   "favourites",
   "notifications",
   "authCodes",
+  // Webhook replay guard — one doc per delivery, created with .create() so a
+  // repeat fails and is ignored. Safe to clear with the data it protects:
+  // the sessions and users these dedupe no longer exist, so a replayed
+  // delivery now finds nothing to apply and is dropped anyway.
+  "webhookEvents",
   "reports",
   "actionLogs",
   "errorLogs",
