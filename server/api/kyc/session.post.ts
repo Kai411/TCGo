@@ -30,8 +30,30 @@ export default defineEventHandler(async (event) => {
     return { alreadyVerified: true, url: null, sessionId: profile.kycSessionId ?? null };
   }
 
-  const siteUrl =
-    (config.public.siteUrl as string) || getRequestURL(event).origin;
+  // Where Didit sends the user back.
+  //
+  // Prefers the request's own origin over the configured siteUrl, because a
+  // stale siteUrl sends people to a host that no longer resolves — which is
+  // exactly what a dead Cloudflare quick-tunnel URL left in .env did. The
+  // origin is always the host they are actually on.
+  //
+  // The webhook is a separate thing entirely: it is configured in the Didit
+  // dashboard, not here, and it is what writes kycStatus. Verification still
+  // completes even if the user never follows this callback home.
+  const siteUrl = getRequestURL(event).origin || (config.public.siteUrl as string);
+
+  // Return them where they started. Onboarding sends people here mid-signup,
+  // and dumping a buyer on the seller verification page is disorienting.
+  //
+  // Only a same-site path is ever accepted: taking a full URL from the client
+  // and handing it to a third party to redirect through is an open redirect,
+  // and a verified-identity flow is a high-trust place to have one.
+  const body = (await readBody(event).catch(() => ({}))) as { returnTo?: string };
+  const requested = typeof body?.returnTo === "string" ? body.returnTo : "";
+  const returnTo =
+    requested.startsWith("/") && !requested.startsWith("//")
+      ? requested
+      : "/seller/verify";
 
   const res = await fetch(`${DIDIT_BASE}/v3/session/`, {
     method: "POST",
@@ -40,7 +62,7 @@ export default defineEventHandler(async (event) => {
       workflow_id: DIDIT_KYC_WORKFLOW_ID,
       // Our Firebase uid. The webhook reads this back to find the profile.
       vendor_data: caller.uid,
-      callback: `${siteUrl}/seller/verify?kyc=done`,
+      callback: `${siteUrl}${returnTo}${returnTo.includes("?") ? "&" : "?"}kyc=done`,
       // Echoed on every webhook for this session — useful when reading
       // deliveries in the console months later.
       metadata: { app: "tcgo", email: caller.email ?? null },

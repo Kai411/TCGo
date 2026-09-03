@@ -131,6 +131,8 @@ const tone = computed(() => {
   }
 });
 
+const route = useRoute();
+
 const start = async () => {
   if (starting.value) return;
   starting.value = true;
@@ -138,7 +140,10 @@ const start = async () => {
   try {
     const res = await authedFetch<{ url: string | null; alreadyVerified?: boolean }>(
       "/api/kyc/session",
-      { method: "POST", body: {} },
+      // Come back to whichever page launched this. Onboarding and the seller
+      // verify page both mount this card, and each wants the user returned to
+      // itself. The server only honours a same-site path.
+      { method: "POST", body: { returnTo: route.path } },
     );
     if (!res.url) return; // already verified — the profile listener reflects it
 
