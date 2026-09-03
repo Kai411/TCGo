@@ -5,10 +5,10 @@
         Sign in to manage your orders.
       </p>
       <button
-        @click="signInWithGoogle"
+        @click="goToLogin"
         class="bg-ink text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
       >
-        Sign in with Google
+        Sign in
       </button>
     </div>
 
@@ -119,7 +119,8 @@ useHead({ title: "Seller · Orders | TCGo" });
 
 const route = useRoute();
 const router = useRouter();
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { loadingSeller, listenSellerCompiledOrders } = useCompiledOrders();
 
 const {

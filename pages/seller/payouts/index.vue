@@ -2,8 +2,8 @@
   <div class="max-w-3xl mx-auto">
     <div v-if="!user" class="text-center py-16">
       <p class="text-ink-muted dark:text-zinc-400 text-lg mb-4">Sign in to view your payouts.</p>
-      <button @click="signInWithGoogle" class="bg-ink text-white px-6 py-3 rounded-lg font-medium">
-        Sign in with Google
+      <button @click="goToLogin" class="bg-ink text-white px-6 py-3 rounded-lg font-medium">
+        Sign in
       </button>
     </div>
 
@@ -70,7 +70,8 @@ import { PAYOUT_STATUS_LABEL as LABEL, type PayoutBatch } from "~/shared/payout-
 definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Payouts | TCGo" });
 
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { authedFetch } = useAuthedFetch();
 
 const payouts = ref<PayoutBatch[]>([]);

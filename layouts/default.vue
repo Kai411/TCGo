@@ -2,6 +2,7 @@
   <div
     class="min-h-screen bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 transition-colors"
   >
+    <BetaGate />
     <AppNavbar />
     <main class="container mx-auto px-4 py-8 pb-28 lg:pb-12">
       <!-- Keyed on path so each page replays the enter animation. -->
@@ -20,7 +21,6 @@
         <span>© {{ new Date().getFullYear() }} TCGo Marketplace</span>
       </div>
     </footer>
-    <BetaGate />
     <InstallPrompt />
   </div>
 </template>

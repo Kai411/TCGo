@@ -5,10 +5,10 @@
         Sign in to manage your seller settings.
       </p>
       <button
-        @click="signInWithGoogle"
+        @click="goToLogin"
         class="bg-ink text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
       >
-        Sign in with Google
+        Sign in
       </button>
     </div>
 
@@ -143,7 +143,8 @@ import { stateName } from "~/shared/my-states";
 definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Settings | TCGo" });
 
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { profile, updateProfile } = useMyProfile();
 const { sellerReady } = useSellerKyc();
 const { authedFetch } = useAuthedFetch();

@@ -17,8 +17,8 @@
       <p class="mt-2 text-sm text-gray-500 dark:text-zinc-400 max-w-sm mx-auto">
         Payment results are only shown to the account that placed the order.
       </p>
-      <button type="button" :class="[BTN, BTN_DARK]" class="mt-6" @click="signInWithGoogle">
-        Sign in with Google
+      <button type="button" :class="[BTN, BTN_DARK]" class="mt-6" @click="goToLogin">
+        Sign in
       </button>
     </section>
 
@@ -108,7 +108,8 @@ defineProps<{
 
 const emit = defineEmits<{ pay: [] }>();
 
-const { signInWithGoogle } = useAuth();
+const {} = useAuth();
+const { goToLogin } = useSignInGate();
 
 const BTN =
   "inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokemon-red/40 disabled:opacity-60";

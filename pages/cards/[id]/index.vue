@@ -296,7 +296,7 @@
                    quoted live in one place instead of two. -->
               <button
                 v-if="!user"
-                @click="signInWithGoogle"
+                @click="goToLogin"
                 class="w-full bg-gray-900 text-white py-3 rounded-lg text-sm font-bold hover:bg-gray-700 transition-colors"
               >
                 Sign in to buy
@@ -361,7 +361,8 @@ const cardId = route.params.id as string;
 const router = useRouter();
 const { cards, loading, markInterested, recordView } = useCards();
 const { firestore } = useFirebase();
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { profile: myProfile } = useMyProfile();
 const { addToCart, isInCart } = useCart();
 

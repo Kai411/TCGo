@@ -24,5 +24,16 @@ export const useSignInGate = () => {
     return false;
   };
 
-  return { requireSignIn };
+  /**
+   * Send someone to the login page, keeping their place.
+   *
+   * The click handler for every "Sign in" button. Previously those called
+   * signInWithGoogle() directly, which made Google the only way in and threw
+   * away the page the visitor was on.
+   */
+  const goToLogin = () => {
+    navigateTo({ path: "/login", query: { next: route.fullPath } });
+  };
+
+  return { requireSignIn, goToLogin };
 };

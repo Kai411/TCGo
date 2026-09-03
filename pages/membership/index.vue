@@ -68,7 +68,7 @@
 
         <div v-else-if="!user" class="space-y-2">
           <button
-            @click="signInWithGoogle"
+            @click="goToLogin"
             class="w-full bg-amber-500 hover:bg-amber-400 text-ink font-bold py-3 rounded-xl transition-colors"
           >
             Sign in to upgrade
@@ -126,7 +126,8 @@ definePageMeta({
 
 useHead({ title: 'Pricing | TCGo Marketplace' });
 
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { profile } = useMyProfile();
 const { isPremium, hasClaimedBonus, claimBonusScans } = useScanQuota();
 

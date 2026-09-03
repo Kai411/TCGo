@@ -15,6 +15,7 @@
              duplicating them up here just crowded the bar. Settings takes the
              slot instead — it's the one destination with no other entry point. -->
         <div class="flex items-center gap-2 shrink-0">
+          <NotificationBell />
           <NuxtLink
             to="/seller/settings"
             data-tour="settings"

@@ -5,10 +5,10 @@
         Sign in to manage your inventory.
       </p>
       <button
-        @click="signInWithGoogle"
+        @click="goToLogin"
         class="bg-ink text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
       >
-        Sign in with Google
+        Sign in
       </button>
     </div>
 
@@ -35,7 +35,8 @@ definePageMeta({ layout: "seller" });
 useHead({ title: "Seller Dashboard | TCGo" });
 
 const router = useRouter();
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { sellerCompiledOrders, loadingSeller, listenSellerCompiledOrders } =
   useCompiledOrders();
 const { items: inventoryItems, listenMyInventory } = useInventory();

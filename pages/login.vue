@@ -1,5 +1,8 @@
 <template>
-  <div class="min-h-[80vh] flex items-center justify-center px-4 py-12">
+  <div class="min-h-screen bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 flex flex-col items-center justify-center px-4 py-12">
+    <NuxtLink to="/" class="mb-8 text-2xl font-extrabold tracking-tightest text-ink dark:text-white">
+      TCG<span class="text-pokemon-red">o</span>
+    </NuxtLink>
     <div class="w-full max-w-sm">
       <!-- Heading changes with the step so the page always says what it wants
            from you. A form that silently swaps its fields is the fastest way
@@ -194,7 +197,10 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
 
-definePageMeta({ layout: "default" });
+// No layout: a login screen with the marketplace nav on it offers a signed-out
+// visitor a cart, a seller dashboard and a search they can't use. The page
+// stands on its own.
+definePageMeta({ layout: false });
 useHead({ title: "Sign in | TCGo" });
 
 const MIN_PASSWORD = 8;

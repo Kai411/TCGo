@@ -2,7 +2,7 @@
   <div class="max-w-3xl mx-auto">
     <div v-if="!user" class="text-center py-16">
       <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to view your funds.</p>
-      <button @click="signInWithGoogle" class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors">Sign in with Google</button>
+      <button @click="goToLogin" class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors">Sign in</button>
     </div>
 
     <template v-else>
@@ -177,7 +177,8 @@ import { payoutDetailsComplete } from "~/shared/payout-details";
 definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Funds | TCGo" });
 
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { profile } = useMyProfile();
 const { listenSellerCompiledOrders } = useCompiledOrders();
 const {

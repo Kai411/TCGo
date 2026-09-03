@@ -232,10 +232,10 @@
             <div v-if="!user && !isEnded" class="mt-4 text-center">
               <p class="text-gray-500 dark:text-zinc-400 text-sm mb-3">Sign in to place a bid</p>
               <button
-                @click="signInWithGoogle"
+                @click="goToLogin"
                 class="bg-gray-900 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
               >
-                Sign in with Google
+                Sign in
               </button>
             </div>
 
@@ -432,7 +432,8 @@ const auctionId = route.params.id as string;
 
 const { auction, bids, loading, placeBid, setAutoBid } =
   useAuctionDetail(auctionId);
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { profile: myProfile } = useMyProfile();
 
 // Image gallery

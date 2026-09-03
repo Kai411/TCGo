@@ -224,10 +224,10 @@
         <div v-if="!user">
           <p class="text-sm text-gray-500 dark:text-zinc-400 text-center mb-2">Sign in to place orders</p>
           <button
-            @click="signInWithGoogle"
+            @click="goToLogin"
             class="w-full bg-gray-900 text-white py-3 rounded-lg font-bold hover:bg-gray-700 transition-colors"
           >
-            Sign in with Google
+            Sign in
           </button>
         </div>
 
@@ -266,7 +266,8 @@ useHead({ title: "Cart | TCGo Marketplace" });
 
 const router = useRouter();
 const { items, cartTotal, removeFromCart, clearCart } = useCart();
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { profile } = useMyProfile();
 const { createCompiledOrders } = useCompiledOrders();
 

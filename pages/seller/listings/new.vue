@@ -5,10 +5,10 @@
         You need to sign in to list a card.
       </p>
       <button
-        @click="signInWithGoogle"
+        @click="goToLogin"
         class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors"
       >
-        Sign in with Google
+        Sign in
       </button>
     </div>
 
@@ -596,7 +596,8 @@ watch(
   },
   { immediate: true },
 );
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { profile } = useMyProfile();
 const { isPremium, remaining: scanRemaining } = useScanQuota();
 const {

@@ -2,8 +2,8 @@
   <div class="max-w-4xl mx-auto">
     <div v-if="!user" class="text-center py-16">
       <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to manage your listings.</p>
-      <button @click="signInWithGoogle" class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors">
-        Sign in with Google
+      <button @click="goToLogin" class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors">
+        Sign in
       </button>
     </div>
 
@@ -107,7 +107,8 @@ interface TabItem {
 definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Listings | TCGo" });
 
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { cards, loading: cardsLoading, markAsSold } = useCards();
 const { markSoldByListingId } = useInventory();
 

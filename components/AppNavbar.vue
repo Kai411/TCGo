@@ -245,9 +245,17 @@
               <NuxtLink
                 to="/seller"
                 @click="sellMenuOpen = false"
-                class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
+                class="flex items-center justify-between gap-2 px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
               >
                 Seller Dashboard
+                <!-- The dot follows the seller into the marketplace: a new
+                     order is worth knowing about from wherever they are, not
+                     only once they've already opened the dashboard. -->
+                <span
+                  v-if="sellerHasUnread"
+                  class="w-2 h-2 rounded-full bg-pokemon-red shrink-0"
+                  aria-label="Unread seller notifications"
+                />
               </NuxtLink>
             </div>
           </Transition>
@@ -272,7 +280,7 @@
         </NuxtLink>
         <button
           v-else
-          @click="signInWithGoogle"
+          @click="goToLogin"
           class="hidden lg:inline-flex px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
         >
           Sign In
@@ -342,7 +350,8 @@
 <script setup lang="ts">
 import { h, computed } from "vue";
 
-const { user, authLoading, signInWithGoogle } = useAuth();
+const {user, authLoading} = useAuth();
+const { goToLogin } = useSignInGate();
 const { profile } = useMyProfile();
 const { isAdmin } = useAdmin();
 const { cartCount } = useCart();
@@ -493,4 +502,10 @@ watch(
     cartOpen.value = false;
   },
 );
+
+// ── Seller notification dot ───────────────────────────────────────────
+// The bell itself lives in the seller layout; out here only the dot matters,
+// so this listens for the count and nothing else.
+const { hasUnread: sellerHasUnread, listen: listenNotifications } = useNotifications();
+watch(() => user.value?.uid, () => listenNotifications(), { immediate: true });
 </script>

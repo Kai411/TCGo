@@ -178,7 +178,8 @@
 </template>
 
 <script setup lang="ts">
-const { user, authLoading, signInWithGoogle, signOut } = useAuth();
+const {user, authLoading,  signOut} = useAuth();
+const { goToLogin } = useSignInGate();
 const { profile } = useMyProfile();
 const { isAdmin } = useAdmin();
 
@@ -190,7 +191,7 @@ const handleSignOut = () => {
 };
 
 const handleSignIn = () => {
-  signInWithGoogle();
+  goToLogin();
   mobileMenuOpen.value = false;
 };
 </script>

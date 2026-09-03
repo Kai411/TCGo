@@ -3,10 +3,10 @@
     <div v-if="!user" class="text-center py-12">
       <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to manage your profile.</p>
       <button
-        @click="signInWithGoogle"
+        @click="goToLogin"
         class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors"
       >
-        Sign in with Google
+        Sign in
       </button>
     </div>
 
@@ -392,7 +392,8 @@
 import type { UserProfile } from "~/composables/useProfile";
 import { MY_STATES } from "~/shared/my-states";
 
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { profile, loading, updateProfile, updateCustomName } = useMyProfile();
 const { uploadImage } = useStorage();
 const { premiumEnabled } = useFeatureFlags();

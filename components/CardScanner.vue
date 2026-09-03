@@ -68,7 +68,7 @@
           @click="handleSignIn"
           class="bg-white text-ink px-6 py-3 rounded-full font-semibold hover:opacity-90 transition-opacity"
         >
-          Sign in with Google
+          Sign in
         </button>
       </div>
 
@@ -291,7 +291,8 @@ const { uploadImage } = useStorage();
 const { lookupByNameAndNumber } = useCardCatalog();
 const { queue, addProcessing, updateItem, pickMatch, processingCount } =
   useScanQueue();
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { isPremium, remaining, used, tryConsumeScan } = useScanQuota();
 const { profile } = useMyProfile();
 const { premiumEnabled } = useFeatureFlags();
@@ -304,7 +305,7 @@ const resetDateLabel = computed(() => {
 
 const handleSignIn = async () => {
   try {
-    await signInWithGoogle();
+    goToLogin();
   } catch (e) {
     console.error("[CardScanner] sign-in failed:", e);
   }
