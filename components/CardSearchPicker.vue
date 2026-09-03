@@ -148,6 +148,7 @@ const props = defineProps<{
 const emit = defineEmits<{ (e: "select", card: CatalogMatch): void }>();
 
 const { searchCatalog, getPriceHistory, listSets } = useCardCatalog();
+const { dismissKeyboard } = useDismissKeyboard();
 
 // Set names, fetched once and reused, so a worded set in the query ("pikachu
 // surging sparks") can be recognised. Failure is silent and harmless: without
@@ -214,6 +215,7 @@ const fetchPage = async (n: number) => {
 };
 
 const runSearch = async () => {
+  dismissKeyboard();
   const raw = q.value.trim();
   if (raw.length < 2) return;
 

@@ -1,6 +1,7 @@
 <template>
   <!-- Top bar (sticky, glassy) -->
   <nav
+    ref="navEl"
     class="sticky top-0 z-40 glass shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.6)]"
   >
     <div
@@ -440,6 +441,37 @@ const mobileTabs = computed(() => {
     tabs.push({ to: "/login", label: "Sign in", icon: IconUser });
   }
   return tabs;
+});
+
+// ── Our height, published for anything that sticks beneath us ───────────
+//
+// Pages used to hardcode `top-16 lg:top-[116px]`. Those numbers were correct
+// — 64px for the single mobile row, 72 + 44 for the desktop rows — but only
+// until the nav changes, and it has changed twice recently. A page that
+// guesses wrong doesn't fail loudly; it drifts.
+//
+// ResizeObserver rather than a media query, because the height changes for
+// reasons a breakpoint doesn't describe: the tab strip is desktop-only, and
+// anything conditional in the bar moves it too.
+const navEl = ref<HTMLElement | null>(null);
+let navObserver: ResizeObserver | null = null;
+
+onMounted(() => {
+  if (!navEl.value || typeof ResizeObserver === "undefined") return;
+  const publish = () => {
+    const h = navEl.value?.offsetHeight ?? 0;
+    // Zero means it is mid-teardown; keeping the last good value beats
+    // collapsing every dependent sticky to the top of the screen.
+    if (h > 0) document.documentElement.style.setProperty("--app-nav-h", `${h}px`);
+  };
+  publish();
+  navObserver = new ResizeObserver(publish);
+  navObserver.observe(navEl.value);
+});
+
+onBeforeUnmount(() => {
+  navObserver?.disconnect();
+  navObserver = null;
 });
 
 // ── Sliding tab indicator (row 2) ───────────────────────────────────────

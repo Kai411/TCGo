@@ -86,7 +86,7 @@
         >
           <!-- Header -->
           <div
-            class="flex items-center justify-between px-4 h-16 border-b border-gray-200"
+            class="flex items-center justify-between px-5 h-16 border-b border-gray-100"
           >
             <NuxtLink
               to="/landing"
@@ -119,42 +119,58 @@
             </button>
           </div>
 
-          <!-- Nav links -->
-          <div class="flex-1 flex flex-col px-6 py-6 gap-1">
+          <!-- Nav links.
+               One rhythm: px-5 everywhere (was 4 in the header and 6 here),
+               15px text (was 18), and dividers between rows via divide-y so
+               the last item has no dangling border under it. The old sizes
+               were display type on a menu — big enough that three links
+               filled a phone screen. -->
+          <nav class="flex-1 overflow-y-auto px-5 py-2 divide-y divide-gray-100">
             <NuxtLink
-              to="/pricing"
-              class="text-lg font-medium text-gray-700 hover:text-pokemon-red py-3 border-b border-gray-100 transition-colors"
+              v-for="link in mobileLinks"
+              :key="link.to"
+              :to="link.to"
+              class="flex items-center justify-between py-3.5 text-[15px] font-medium text-gray-700 transition-colors hover:text-pokemon-red"
               active-class="!text-pokemon-red"
               @click="mobileMenuOpen = false"
             >
-              Pricing
+              {{ link.label }}
+              <svg class="h-4 w-4 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
             </NuxtLink>
-            <NuxtLink
-              to="/update-notice"
-              class="text-lg font-medium text-gray-700 hover:text-pokemon-red py-3 border-b border-gray-100 transition-colors"
-              active-class="!text-pokemon-red"
-              @click="mobileMenuOpen = false"
-            >
-              Updates
-            </NuxtLink>
-            <NuxtLink
-              to="/privacy-policy"
-              class="text-lg font-medium text-gray-700 hover:text-pokemon-red py-3 border-b border-gray-100 transition-colors"
-              active-class="!text-pokemon-red"
-              @click="mobileMenuOpen = false"
-            >
-              Privacy Policy
-            </NuxtLink>
-          </div>
+          </nav>
 
-          <!-- User section at bottom -->
-          <div class="flex px-6 py-6 border-t border-gray-200 w-full">
+          <!-- Actions. The marketplace is the primary one; signing in or out
+               is secondary and was previously unreachable here at all. -->
+          <div class="space-y-2 border-t border-gray-100 px-5 py-5">
             <NuxtLink
               to="/"
-              class="inline-flex w-full items-center justify-center gap-1 px-3.5 py-2 rounded-full text-xl font-semibold bg-pokemon-red text-white shadow-glow"
+              class="flex w-full items-center justify-center gap-1.5 rounded-full bg-pokemon-red px-4 py-3 text-[15px] font-bold text-white shadow-glow"
+              @click="mobileMenuOpen = false"
             >
-              TCGo Marketplace →
+              Go to the marketplace
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
             </NuxtLink>
+
+            <button
+              v-if="user"
+              type="button"
+              class="w-full rounded-full border border-gray-200 px-4 py-3 text-[15px] font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              @click="handleSignOut"
+            >
+              Sign out
+            </button>
+            <button
+              v-else-if="!authLoading"
+              type="button"
+              class="w-full rounded-full border border-gray-200 px-4 py-3 text-[15px] font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              @click="mobileMenuOpen = false; goToLogin()"
+            >
+              Sign in
+            </button>
           </div>
         </div>
       </Transition>
@@ -169,6 +185,13 @@ const { profile } = useMyProfile();
 const { isAdmin } = useAdmin();
 
 const mobileMenuOpen = ref(false);
+
+// One list, so a fourth link cannot arrive with different padding.
+const mobileLinks = [
+  { to: "/pricing", label: "Pricing" },
+  { to: "/update-notice", label: "Updates" },
+  { to: "/privacy-policy", label: "Privacy policy" },
+];
 
 const handleSignOut = () => {
   signOut().then(() => navigateTo("/"));

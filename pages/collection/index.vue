@@ -2,16 +2,15 @@
   <div>
     <!-- ── Sticky top: summary + search/filter ─────────────────────── -->
     <div
-      class="sticky top-16 lg:top-[116px] z-30 -mx-4 px-4 bg-canvas/95 dark:bg-canvas-inverse/95 backdrop-blur border-b border-black/[0.06] dark:border-white/[0.08]"
+      class="sticky z-30 -mx-4 px-4 bg-canvas/95 dark:bg-canvas-inverse/95 backdrop-blur border-b border-black/[0.06] dark:border-white/[0.08]"
+      :style="{ top: 'var(--app-nav-h, 4rem)' }"
     >
-      <!-- Summary strip → links to the full collection on the profile -->
-
-      <div class="min-w-0">
-        <p class="font-bold text-ink dark:text-white leading-tight py-2"></p>
-      </div>
-
-      <!-- Search row: [scanner] [search] [filter] -->
-      <div class="flex items-center gap-2 pb-3">
+      <!-- Search row: [scanner] [search] [filter].
+           An empty <p class="py-2"> used to sit above this — the remains of a
+           summary strip — adding ~24px of padding to a block that looked like
+           it had none. Symmetric padding now, so the bar sits the same
+           distance from the nav as it does from the results. -->
+      <div class="flex items-center gap-2 py-3">
         <!-- Scanner placeholder — not yet implemented -->
         <button
           type="button"
@@ -474,7 +473,11 @@ const hasMoreResults = computed(
   () => searchResults.value.length < searchTotal.value,
 );
 
+const { dismissKeyboard } = useDismissKeyboard();
+
 const runSearch = async () => {
+  // Results are about to replace the screen; the keyboard would cover them.
+  dismissKeyboard();
   appliedQuery.value = searchInput.value;
   const trimmed = parsed.value.name.trim();
   // Need a name (≥2) OR a filter to search.

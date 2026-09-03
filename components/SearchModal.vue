@@ -315,12 +315,17 @@ const topSellers = computed(() => {
     .map(([name, count]) => ({ name, count }));
 });
 
+const { dismissKeyboard } = useDismissKeyboard();
+
 const commit = () => {
   if (query.value.trim()) remember(query.value);
   close();
 };
 
 const onEnter = () => {
+  // Blurred, not closed: the modal shows results in place, and the keyboard
+  // sitting over them is the whole complaint.
+  dismissKeyboard(inputEl.value);
   if (query.value.trim()) remember(query.value);
 };
 
