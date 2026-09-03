@@ -171,6 +171,13 @@
         <AddressBook />
       </div>
 
+      <div
+        v-if="!loading"
+        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] mt-4"
+      >
+        <BuyerQrCard />
+      </div>
+
       <!-- Seller settings moved out to /seller/settings.
            Shipping, couriers and staff are shop operations, not buyer profile
            preferences — mixing them here made this page a grab-bag and buried

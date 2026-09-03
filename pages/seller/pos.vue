@@ -174,6 +174,11 @@
         :attempt-declined="attemptDeclined"
         :failed-reason="failedReason"
         :qr-enabled="qrEnabled"
+        :receipt-sent-to="receiptSentTo"
+        :sending-receipt="sendingReceipt"
+        :receipt-error="receiptError"
+        @send-receipt="sendReceipt"
+        @scan-buyer="armBuyerScan"
         @pay="startPayment"
         @cancel="cancelPayment"
         @close="closeSheet"
@@ -185,6 +190,7 @@
 
 <script setup lang="ts">
 import type { InventoryItem } from "~/composables/useInventory";
+import { isPlausibleEmail, parseBuyerQr } from "~/shared/buyer-qr";
 import { posTotals, lineDiscount } from "~/shared/pos-sale";
 import type { PosPaymentMethod } from "~/shared/pos-sale";
 
@@ -248,6 +254,12 @@ const addItem = (item: InventoryItem) => {
 const removeLine = (i: number) => {
   const [gone] = stash.value.splice(i, 1);
   if (gone) blocked.value = blocked.value.filter((b) => b.itemId !== gone.id);
+};
+
+const resetReceipt = () => {
+  receiptSentTo.value = "";
+  receiptError.value = "";
+  awaitingBuyerScan.value = false;
 };
 
 const clearCart = () => {
@@ -380,6 +392,16 @@ const loop = () => {
 };
 
 const handleDecoded = (raw: string) => {
+  // A customer code, when the till is waiting for one. Checked before the
+  // inventory branch and before the `paying` guard below — this is the one
+  // scan that is only ever wanted AFTER a payment, not during a sale.
+  const buyerUid = parseBuyerQr(raw);
+  if (buyerUid) {
+    if (!awaitingBuyerScan.value) return;
+    void resolveBuyer(raw);
+    return;
+  }
+
   if (!raw.startsWith("tcgo:inv:")) return; // ignore foreign QR codes silently
   // Scanning is meaningless once a payment is on screen, and adding to a cart
   // whose total is already being charged would silently undercharge.
@@ -427,6 +449,64 @@ const paying = computed(() => sheetOpen.value && phase.value !== "choose" && pha
 const blocked = ref<BlockedItem[]>([]);
 const blockedIds = computed(() => new Set(blocked.value.map((b) => b.itemId)));
 const saleId = ref("");
+
+// ── Receipt ──────────────────────────────────────────────────────────
+// Offered once the money is in. The sale stands whether or not this succeeds,
+// so every failure here is reported without touching the sale record.
+const receiptSentTo = ref("");
+const sendingReceipt = ref(false);
+const receiptError = ref("");
+/** True while the camera should treat a customer code as the thing it wants. */
+const awaitingBuyerScan = ref(false);
+
+const sendReceipt = async (email: string) => {
+  const addr = email.trim();
+  if (!addr || sendingReceipt.value || !saleId.value) return;
+  if (!isPlausibleEmail(addr)) {
+    receiptError.value = "That doesn't look like an email address.";
+    return;
+  }
+  sendingReceipt.value = true;
+  receiptError.value = "";
+  try {
+    const res = await authedFetch<{ to: string; sandbox: boolean }>(
+      "/api/pos/send-receipt",
+      { method: "POST", body: { saleId: saleId.value, email: addr } },
+    );
+    receiptSentTo.value = res.to;
+    awaitingBuyerScan.value = false;
+  } catch (e: any) {
+    receiptError.value =
+      e?.data?.message || e?.message || "Couldn't send that. Try again.";
+  } finally {
+    sendingReceipt.value = false;
+  }
+};
+
+/** Point the camera at the customer's phone instead of a price tag. */
+const armBuyerScan = async () => {
+  receiptError.value = "";
+  awaitingBuyerScan.value = true;
+  if (!scanning.value) await startCamera();
+  showToast("Scan the customer's TCGo code");
+};
+
+const resolveBuyer = async (code: string) => {
+  try {
+    const res = await authedFetch<{ email: string; name: string }>(
+      "/api/pos/lookup-buyer",
+      { method: "POST", body: { code } },
+    );
+    awaitingBuyerScan.value = false;
+    // Straight to sending: they scanned to avoid typing, so stopping to
+    // confirm an address they cannot read from here helps nobody.
+    await sendReceipt(res.email);
+  } catch (e: any) {
+    awaitingBuyerScan.value = false;
+    receiptError.value =
+      e?.data?.message || e?.message || "Couldn't read that customer code.";
+  }
+};
 const qrImage = ref("");
 const reservedUntil = ref(0);
 const cancelling = ref(false);
@@ -637,6 +717,9 @@ const closeSheet = () => {
   saleId.value = "";
   reservedUntil.value = 0;
   attemptDeclined.value = false;
+  // The next sale is a different customer. Carrying "sent to …" across would
+  // tell the seller a receipt had gone out for a sale that hasn't happened.
+  resetReceipt();
 };
 
 // A till left open with a live hold would keep stock locked for the full
