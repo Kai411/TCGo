@@ -8,7 +8,7 @@
     <template v-else>
       <h1 class="text-2xl font-bold text-ink dark:text-white mb-1">POS</h1>
       <p class="text-sm text-gray-500 dark:text-zinc-400 mb-5">
-        Scan your inventory QR labels to ring up an in-person sale. Adjust the price for any haggling, then take payment.
+        Scan your inventory QR labels to ring up a sale, then take payment.
       </p>
 
       <!-- Scanner -->
@@ -265,19 +265,39 @@ const primeAudio = async () => {
     if (audioCtx.state === "suspended") await audioCtx.resume();
   } catch {}
 };
+// Loud enough for a shop floor, which is a noisier room than the one this was
+// tuned in. Three things do the work:
+//
+//   - A square wave, not a sine. Its harmonics cut through background noise
+//     at the same amplitude, so it reads as much louder without clipping.
+//   - Two oscillators a fifth apart. A single tone gets lost against talking;
+//     an interval is heard as one deliberate "ding".
+//   - A real envelope. Ramping the gain instead of switching it avoids the
+//     click at each end — and the click was part of why the old beep sounded
+//     cheap rather than loud.
 const beep = () => {
   try {
     if (!audioCtx) return;
     if (audioCtx.state === "suspended") audioCtx.resume();
-    const o = audioCtx.createOscillator();
+
+    const now = audioCtx.currentTime;
     const g = audioCtx.createGain();
-    o.connect(g);
     g.connect(audioCtx.destination);
-    o.type = "sine";
-    o.frequency.value = 880;
-    g.gain.value = 0.18;
-    o.start();
-    o.stop(audioCtx.currentTime + 0.1);
+
+    // 0 → peak in 6ms, then decay. Never scheduled to exactly 0: an
+    // exponential ramp to zero is undefined and silences the tone.
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.55, now + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+
+    for (const hz of [1046.5, 1568]) {
+      const o = audioCtx.createOscillator();
+      o.type = "square";
+      o.frequency.value = hz;
+      o.connect(g);
+      o.start(now);
+      o.stop(now + 0.17);
+    }
   } catch {}
 };
 const feedback = () => {

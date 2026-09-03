@@ -97,32 +97,95 @@
 
     <!-- Mobile bottom nav -->
     <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] pb-[16px]">
-      <!-- Scrolls rather than dividing the width by the item count: with 8
-           destinations an equal-width grid gave each one ~45px on a 375px
-           screen, which is below the touch-target minimum. Every destination
-           stays reachable on mobile this way. -->
-      <div class="flex h-16 px-1 overflow-x-auto no-scrollbar">
+      <!-- Four destinations and a More sheet, rather than nine in a
+           horizontal scroller.
+           The scroller kept every destination reachable but hid most of them:
+           nothing on screen said there was more to the right, so Funds and
+           Auctions were effectively invisible. Four fits a 375px screen at a
+           full touch target, and the sheet shows the rest all at once instead
+           of a swipe at a time.
+           `More` highlights when the open page lives inside it, so the bar
+           never claims you're nowhere. -->
+      <div class="grid grid-cols-5 h-16">
         <NuxtLink
-          v-for="item in navItems"
+          v-for="item in primaryNav"
           :key="item.to"
           :to="item.to"
           :data-tour="item.tour"
-          class="relative flex flex-col items-center justify-center gap-0.5 shrink-0 min-w-[68px] flex-1 text-[9px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
+          class="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
           :class="isActive(item) ? '!text-pokemon-red' : ''"
         >
           <component :is="item.icon" class="w-5 h-5" />
           <span>{{ item.label }}</span>
         </NuxtLink>
-        <NuxtLink
-          to="/landing"
-          data-tour="nav-pricing"
-          class="relative flex flex-col items-center justify-center gap-0.5 shrink-0 min-w-[68px] flex-1 text-[9px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
+        <button
+          type="button"
+          @click="moreOpen = true"
+          :aria-expanded="moreOpen"
+          aria-haspopup="menu"
+          class="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
+          :class="moreIsActive ? '!text-pokemon-red' : ''"
         >
-          <IconSparkle class="w-5 h-5" />
-          <span>Pricing</span>
-        </NuxtLink>
+          <IconMore class="w-5 h-5" />
+          <span>More</span>
+        </button>
       </div>
     </nav>
+
+    <!-- More sheet. Everything the bar doesn't have room for, shown at once
+         rather than a swipe at a time. -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-opacity duration-150"
+        leave-active-class="transition-opacity duration-150"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="moreOpen"
+          class="lg:hidden fixed inset-0 z-50 bg-black/40"
+          @click="moreOpen = false"
+        />
+      </Transition>
+      <Transition
+        enter-active-class="transition-transform duration-200 ease-out"
+        leave-active-class="transition-transform duration-150 ease-in"
+        enter-from-class="translate-y-full"
+        leave-to-class="translate-y-full"
+      >
+        <div
+          v-if="moreOpen"
+          class="lg:hidden fixed bottom-0 inset-x-0 z-50 rounded-t-2xl bg-white dark:bg-[#17171c] border-t border-black/[0.06] dark:border-white/[0.08] pb-[env(safe-area-inset-bottom,16px)]"
+          role="menu"
+          aria-label="More seller pages"
+        >
+          <div class="flex justify-center pt-2.5 pb-1">
+            <span class="h-1 w-9 rounded-full bg-black/15 dark:bg-white/20" />
+          </div>
+          <div class="grid grid-cols-4 gap-1 px-3 pb-4 pt-1">
+            <NuxtLink
+              v-for="item in moreNav"
+              :key="item.to"
+              :to="item.to"
+              role="menuitem"
+              class="flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[11px] font-semibold text-ink dark:text-zinc-200 active:bg-black/[0.04] dark:active:bg-white/[0.06]"
+              :class="isActive(item) ? '!text-pokemon-red' : ''"
+            >
+              <component :is="item.icon" class="w-[22px] h-[22px]" />
+              <span>{{ item.label }}</span>
+            </NuxtLink>
+            <NuxtLink
+              to="/landing"
+              role="menuitem"
+              class="flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[11px] font-semibold text-ink dark:text-zinc-200 active:bg-black/[0.04] dark:active:bg-white/[0.06]"
+            >
+              <IconSparkle class="w-[22px] h-[22px]" />
+              <span>Pricing</span>
+            </NuxtLink>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <SellerOnboardingTour />
   </div>
@@ -224,4 +287,37 @@ const isActive = (item: { to: string; exact?: boolean }) => {
   if (item.exact) return route.path === item.to;
   return route.path === item.to || route.path.startsWith(item.to + "/");
 };
+
+// ── Mobile: four destinations plus a sheet ────────────────────────────
+//
+// The first four are the daily ones — the till, what it earned, what's owed
+// to the buyer, and what's on the shelf. The rest are things a seller opens
+// deliberately rather than reaches for, so they live behind More.
+//
+// The desktop sidebar keeps showing all of navItems; this split is only for
+// the bar at the bottom of a phone.
+const PRIMARY = ["/seller", "/seller/pos", "/seller/orders", "/seller/items"];
+
+const primaryNav = computed(() =>
+  PRIMARY.map((to) => navItems.find((i) => i.to === to)!).filter(Boolean),
+);
+const moreNav = computed(() => navItems.filter((i) => !PRIMARY.includes(i.to)));
+
+const moreOpen = ref(false);
+// The bar must never read as "you are nowhere": when the open page lives in
+// the sheet, More carries the active state on its behalf.
+const moreIsActive = computed(() => moreNav.value.some((i) => isActive(i)));
+
+// Any navigation closes it, including the browser's back button.
+watch(
+  () => route.fullPath,
+  () => (moreOpen.value = false),
+);
+
+const IconMore = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("circle", { cx: "5", cy: "12", r: "1" }),
+    h("circle", { cx: "12", cy: "12", r: "1" }),
+    h("circle", { cx: "19", cy: "12", r: "1" }),
+  ]);
 </script>
