@@ -20,13 +20,6 @@
             Pricing
           </NuxtLink>
           <NuxtLink
-            to="/beta"
-            class="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
-            active-class="!text-pokemon-red"
-          >
-            Beta Access
-          </NuxtLink>
-          <NuxtLink
             to="/update-notice"
             class="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
             active-class="!text-pokemon-red"
@@ -135,14 +128,6 @@
               @click="mobileMenuOpen = false"
             >
               Pricing
-            </NuxtLink>
-            <NuxtLink
-              to="/beta"
-              class="text-lg font-medium text-gray-700 hover:text-pokemon-red py-3 border-b border-gray-100 transition-colors"
-              active-class="!text-pokemon-red"
-              @click="mobileMenuOpen = false"
-            >
-              Beta Access
             </NuxtLink>
             <NuxtLink
               to="/update-notice"

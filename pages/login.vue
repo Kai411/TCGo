@@ -318,9 +318,12 @@ const submitCredentials = () =>
         error.value = `Use at least ${MIN_PASSWORD} characters.`;
         return;
       }
-      await registerWithEmail(email.value, password.value, displayName.value);
+      // Step moves BEFORE the await: registration signs the user in, and the
+      // watch above must not catch them as a signed-in visitor still sitting
+      // on the credentials step.
       purpose.value = "verify_email";
       step.value = "code";
+      await registerWithEmail(email.value, password.value, displayName.value);
       startCooldown();
       return;
     }
@@ -343,7 +346,11 @@ const submitCode = () =>
       return;
     }
     await confirmEmail(email.value, code.value);
-    await navigateTo(destination());
+    // Onboarding knows what else is outstanding; it sends them on when done.
+    await navigateTo({
+      path: "/onboarding",
+      query: route.query.next ? { next: route.query.next as string } : undefined,
+    });
   });
 
 const submitForgot = () =>
@@ -393,10 +400,21 @@ const backToStart = () => {
 };
 
 // Already signed in and verified? Nothing to do here.
+// Already signed in? Leave.
+//
+// Guarded on emailVerified, not just on `user`. Registering signs the account
+// in immediately, so this used to fire mid-registration — while `step` was
+// still "credentials" — and navigate away before the code screen rendered.
+// That is why a new account was never asked for its code.
+//
+// Unverified accounts go to /onboarding rather than the destination: that is
+// where setup is finished, and the global middleware would send them there
+// anyway.
 watch(
   user,
   (u) => {
-    if (u && step.value === "credentials") navigateTo(destination());
+    if (!u || step.value !== "credentials") return;
+    navigateTo(u.emailVerified ? destination() : "/onboarding");
   },
   { immediate: true },
 );

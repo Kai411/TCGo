@@ -51,7 +51,9 @@ service cloud.firestore {
     // still unwritable by the client, so flipping this back to true can't be
     // undone by a user setting the field on themselves.
     function kycRequired() {
-      return false;
+      // Moved with KYC_REQUIRED in shared/didit.ts. These two must agree, or
+      // the browser and the database disagree about who is allowed to sell.
+      return true;
     }
 
     // The seller gate. kycStatus is written ONLY by the Didit webhook through

@@ -203,10 +203,10 @@
             Start selling free
           </NuxtLink>
           <NuxtLink
-            to="/beta"
+            to="/login"
             class="rounded-xl border border-white/15 px-8 py-3.5 text-base font-semibold text-white transition-colors hover:border-white/35"
           >
-            Request beta access
+            Sign in
           </NuxtLink>
         </div>
       </div>

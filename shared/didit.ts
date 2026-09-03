@@ -16,12 +16,22 @@
 // firestore.rules carries its own kycRequired() switch, and rules have to be
 // deployed. Change both, together, or the browser and the database will
 // disagree about who's allowed to sell.
-export const KYC_REQUIRED = false;
+export const KYC_REQUIRED = true;
 
 export const DIDIT_BASE = "https://verification.didit.me";
 
-/** "Compliance workflow" — ID document + liveness + face match. */
-export const DIDIT_KYC_WORKFLOW_ID = "dbd8c518-dc97-4fc7-ab73-f1cff1c87bfe";
+/**
+ * "Free KYC" — ID document + liveness + face match + IP analysis.
+ *
+ * Was the "Compliance workflow" (dbd8c518…), which is billed at $0.35 a
+ * session and returned HTTP 400 "You don't have enough credits" on an account
+ * sitting at $0.00. Verified against the live API: this one creates sessions
+ * on a zero balance and the paid one does not.
+ *
+ * It is also Didit's default workflow for this application and checks strictly
+ * more than the paid one did — the paid workflow had no IP analysis.
+ */
+export const DIDIT_KYC_WORKFLOW_ID = "14412cb9-32e8-46d4-a4b9-7b871c771c7e";
 
 /** Reject webhooks whose timestamp is further than this from now (replay guard). */
 export const DIDIT_WEBHOOK_MAX_SKEW_SECONDS = 300;

@@ -23,9 +23,15 @@ export interface UserProfile {
   photoURL: string;
   customName: string;
   phone: string;
-  whatsappNumber: string;
+  /**
+   * Contact number, kept as-is when the beta programme was removed.
+   *
+   * It is a phone number and nothing more — the WhatsApp *verification* it
+   * used to gate on is gone, because there is no SMS provider on this
+   * project and the check could never actually be performed.
+   */
+  whatsappNumber?: string;
   usePhoneAsWhatsapp: boolean;
-  whatsappVerified: boolean;
   // Legacy: per-seller default shipping prices, seeded onto new listings.
   // Superseded by live quoting at checkout — kept so old listings and orders
   // still read correctly, but no longer editable and not used for new orders.
@@ -193,7 +199,6 @@ export const useMyProfile = () => {
                   phone: "",
                   whatsappNumber: "",
                   usePhoneAsWhatsapp: true,
-                  whatsappVerified: false,
                   favouritesPublic: true,
                   trustScore: 100,
                   createdAt: Date.now(),

@@ -23,12 +23,6 @@
             class="h-full w-[110px] object-cover hidden dark:block"
           />
         </NuxtLink>
-        <!-- <NuxtLink
-          to="/beta"
-          class="mb-3 px-1.5 py-0.5 rounded-full text-[9px] leading-none font-semibold tracking-widest uppercase text-ink-muted dark:text-zinc-500 bg-black/[0.05] dark:bg-white/[0.06] border border-black/[0.08] dark:border-white/[0.08] hover:text-ink dark:hover:text-zinc-300 hover:border-black/20 dark:hover:border-white/20 transition-colors"
-        >
-          Beta
-        </NuxtLink> -->
       </div>
 
       <!-- Desktop search — stretched across the centre of the top bar

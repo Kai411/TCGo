@@ -7,6 +7,7 @@
 // someone else's verification.
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
+import { noteError } from "~/server/utils/oplog";
 import { requireUser } from "~/server/utils/auth";
 import { DIDIT_BASE, DIDIT_KYC_WORKFLOW_ID } from "~/shared/didit";
 
@@ -50,9 +51,30 @@ export default defineEventHandler(async (event) => {
     // 403 means the key is missing, wrong, or revoked.
     const detail = await res.text().catch(() => "");
     console.error("[didit] session create failed", res.status, detail.slice(0, 300));
+
+    // "Try again shortly" is a lie for the two failures that never clear on
+    // their own. An exhausted balance in particular reads as a transient
+    // outage, and the person retrying is the only one who cannot fix it.
+    const outOfCredits = /credit/i.test(detail);
+    noteError({
+      area: "kyc",
+      severity: "error",
+      code: outOfCredits ? "didit.no_credits" : "didit.session_failed",
+      message: outOfCredits
+        ? "Didit rejected a session: the account is out of credits."
+        : `Didit rejected a session (HTTP ${res.status}).`,
+      userUid: caller.uid,
+      context: { status: res.status, detail: detail.slice(0, 300) },
+      hint: outOfCredits
+        ? "Top up at business.didit.me, or point DIDIT_KYC_WORKFLOW_ID at a zero-cost workflow."
+        : "Check the API key and that the workflow id belongs to the same Didit application.",
+    });
+
     throw createError({
       statusCode: 502,
-      message: "Couldn't start identity verification. Please try again shortly.",
+      message: outOfCredits
+        ? "Identity verification is briefly unavailable. We've been alerted — please try again later."
+        : "Couldn't start identity verification. Please try again shortly.",
     });
   }
 

@@ -57,7 +57,7 @@
                   Premium
                 </span>
                 <span
-                  v-if="profile.whatsappVerified"
+                  v-if="profile.kycStatus === 'verified'"
                   class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide uppercase bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
                 >
                   <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
