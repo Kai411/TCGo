@@ -199,7 +199,53 @@
           </svg>
           <span class="text-[11px] font-semibold tracking-wide uppercase">Go Premium</span>
         </NuxtLink>
+
+        <!-- Held up at a shop counter with a queue behind you, so it lives
+             one tap from where the Profile tab already lands rather than
+             three taps and a scroll into settings. Own profile only —
+             visitors never see it. -->
+        <button
+          v-if="isOwnProfile"
+          type="button"
+          @click="showBuyerQr = true"
+          class="inline-flex items-center gap-1.5 rounded-full surface px-3 py-1.5 hover:shadow-card-hover transition-shadow ease-premium"
+        >
+          <svg class="w-3.5 h-3.5 text-ink-muted dark:text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <path d="M14 14h3v3h-3zM19 19h2v2h-2z" />
+          </svg>
+          <span class="text-[11px] font-semibold tracking-wide uppercase">My code</span>
+        </button>
       </section>
+
+      <!-- Customer code -->
+      <Teleport to="body">
+        <Transition
+          enter-active-class="transition-opacity duration-150"
+          leave-active-class="transition-opacity duration-150"
+          enter-from-class="opacity-0"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="showBuyerQr"
+            class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+            @click.self="showBuyerQr = false"
+          >
+            <div class="w-full max-w-sm rounded-2xl bg-white p-5 dark:bg-[#17171c]" role="dialog" aria-label="Your customer code">
+              <BuyerQrCard />
+              <button
+                type="button"
+                @click="showBuyerQr = false"
+                class="mt-4 w-full rounded-xl border border-black/[0.10] py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-black/[0.03] dark:border-white/[0.12] dark:text-white dark:hover:bg-white/[0.05]"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
 
       <!-- Underline tabs -->
       <div class="hairline mb-6">
@@ -534,6 +580,7 @@ const { userFavourites } = useUserFavourites(uid);
 const { getScoreBadge } = useTrustScore();
 
 const isOwnProfile = computed(() => user.value?.uid === uid);
+const showBuyerQr = ref(false);
 
 const showReportForm = ref(false);
 const reportSubmitted = ref(false);
