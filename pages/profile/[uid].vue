@@ -685,7 +685,12 @@ const badgeChipVariant = (score: number) => {
   return "bg-pokemon-red/10 text-pokemon-red";
 };
 
-const handleSignOut = () => signOut();
+const handleSignOut = async () => {
+  await signOut();
+  // Staying put would leave them on a profile page they can no longer act on,
+  // and the onboarding gate would bounce a half-loaded session around.
+  await navigateTo("/");
+};
 
 const { origin } = useRequestURL();
 const profileUrl = computed(() => `${origin}/profile/${uid}`);

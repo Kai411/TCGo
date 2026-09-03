@@ -394,9 +394,14 @@ const IconUser = () =>
     h("circle", { cx: "12", cy: "8", r: "4" }),
     h("path", { d: "M4 21a8 8 0 0 1 16 0" }),
   ]);
+// A parcel, not a heartbeat. The old glyph was an activity/pulse line, which
+// reads as analytics — a reasonable icon for the page's other tab, and a
+// misleading one for a tab labelled "Orders".
 const IconActivity = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [
-    h("path", { d: "M22 12h-4l-3 9L9 3l-3 9H2" }),
+    h("path", { d: "M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z" }),
+    h("polyline", { points: "3.3 7 12 12 20.7 7" }),
+    h("line", { x1: "12", y1: "22", x2: "12", y2: "12" }),
   ]);
 const IconCollection = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [
@@ -415,9 +420,13 @@ const mobileTabs = computed(() => {
     { to: "/", label: "Shop", icon: IconShop },
     { to: "/auctions", label: "Auctions", icon: IconGavel },
   ];
+  // Collection is a public catalogue browser — signing in is only needed to
+  // ADD to a collection, so hiding the tab from guests hid the thing most
+  // likely to bring them back.
+  tabs.push({ to: "/collection", label: "Collection", icon: IconCollection });
+
   if (user.value) {
     tabs.push(
-      { to: "/collection", label: "Collection", icon: IconCollection },
       { to: "/activity", label: "Orders", icon: IconActivity },
       {
         to: `/profile/${user.value.uid}`,
@@ -426,7 +435,9 @@ const mobileTabs = computed(() => {
       },
     );
   } else {
-    tabs.push({ to: "/profile", label: "Sign in", icon: IconUser });
+    // Straight to the login page rather than /profile, which only bounced
+    // them there anyway.
+    tabs.push({ to: "/login", label: "Sign in", icon: IconUser });
   }
   return tabs;
 });

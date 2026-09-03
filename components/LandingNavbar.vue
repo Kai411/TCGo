@@ -171,7 +171,7 @@ const { isAdmin } = useAdmin();
 const mobileMenuOpen = ref(false);
 
 const handleSignOut = () => {
-  signOut();
+  signOut().then(() => navigateTo("/"));
   mobileMenuOpen.value = false;
 };
 

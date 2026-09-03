@@ -304,8 +304,15 @@ const run = async (fn: () => Promise<void>) => {
   }
 };
 
-/** Where to land once they're in. Falls back to the collection. */
-const destination = () => (route.query.next as string) || "/collection";
+/**
+ * Where to land once they're in.
+ *
+ * `next` when the gate sent them here from somewhere specific — that is the
+ * whole point of it. Otherwise the marketplace, which is what someone who
+ * just signed in came for. It used to default to /collection, which meant a
+ * plain sign-in landed on a page nobody had asked for.
+ */
+const destination = () => (route.query.next as string) || "/";
 
 const submitCredentials = () =>
   run(async () => {
