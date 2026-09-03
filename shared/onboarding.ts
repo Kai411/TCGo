@@ -161,7 +161,7 @@ export const SELLER_STEPS: SellerStep[] = [
   {
     id: "identity",
     title: "Verify your identity",
-    blurb: "MyKad or passport, plus a selfie. Buyers see a Verified badge.",
+    blurb: "Your MyKad and a selfie. Buyers see a Verified badge.",
   },
   {
     id: "contact",

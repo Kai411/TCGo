@@ -127,8 +127,8 @@
         <template v-else-if="state.current === 'identity'">
           <h1 class="text-lg font-bold text-ink dark:text-white">Verify your identity</h1>
           <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
-            A photo of your IC or passport, and a selfie. Takes about a minute,
-            and it's what keeps fake accounts off the marketplace.
+            A photo of your MyKad and a selfie. Takes about a minute, and it's
+            what keeps fake accounts off the marketplace.
           </p>
           <div class="mt-5">
             <KycVerifyCard />

@@ -57,9 +57,9 @@
         <template v-if="state.current === 'identity'">
           <h2 class="text-lg font-bold text-ink dark:text-white">Verify your identity</h2>
           <p class="mt-1.5 text-[13px] leading-relaxed text-ink-muted dark:text-zinc-400">
-            MyKad or passport, plus a selfie — about a minute. Buyers see a
-            Verified badge on your listings, and it's what lets money move to
-            your account.
+            Your MyKad and a selfie — about a minute. Buyers see a Verified
+            badge on your listings, and it's what lets money move to your
+            account.
           </p>
           <div class="mt-5"><KycVerifyCard /></div>
         </template>

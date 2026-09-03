@@ -72,7 +72,7 @@ export interface UserProfile {
   bankName?: string; // display only, denormalised from bankCode
   bankAccountNumber?: string;
   bankAccountHolder?: string;
-  identityNumber?: string; // IC/passport — required by Billplz Mass Payment
+  identityNumber?: string; // IC — required by Billplz Mass Payment
   // Pickup address for shipments — the origin we quote shipping from.
   pickupAddress1?: string;
   pickupAddress2?: string;

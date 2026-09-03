@@ -42,7 +42,7 @@
       class="mt-4 text-[11px] leading-relaxed text-gray-400 dark:text-zinc-500"
     >
       Continuing opens our verification partner, Didit, who will ask for your
-      MyKad or passport and a short face scan to confirm it's you. They process
+      MyKad and a short face scan to confirm it's you. They process
       and store the documents; TCGo keeps only the result and your verified
       name. Required under Malaysian PDPA — don't continue if you'd rather not.
     </p>
@@ -123,8 +123,8 @@ const tone = computed(() => {
         badge: "bg-gray-100 text-gray-600 dark:bg-white/[0.06] dark:text-zinc-300",
         border: "border-black/[0.06] dark:border-white/[0.08]",
         body: KYC_REQUIRED
-          ? "Confirm who you are with your MyKad or passport. It takes about a minute and only needs doing once."
-          : "Not needed to start selling yet. Verifying now with your MyKad or passport takes about a minute, shows buyers you're a real seller, and saves doing it later.",
+          ? "Confirm who you are with your MyKad. It takes about a minute and only needs doing once."
+          : "Not needed to start selling yet. Verifying now with your MyKad takes about a minute, shows buyers you're a real seller, and saves doing it later.",
         canStart: true,
         cta: "Verify identity",
       };

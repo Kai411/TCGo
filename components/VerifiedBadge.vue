@@ -39,8 +39,8 @@
         <p class="text-[13px] font-bold text-ink dark:text-white">Identity verified</p>
 
         <p class="mt-1.5 text-[12.5px] leading-relaxed text-ink-muted dark:text-zinc-400">
-          TCGo checked this member's government-issued ID against a live selfie,
-          so the name on the account is the name on their document.
+          TCGo checked this member's MyKad against a live selfie, so the name
+          on the account is the name on their IC.
         </p>
 
         <!-- The limit is stated as plainly as the claim. A badge that reads as

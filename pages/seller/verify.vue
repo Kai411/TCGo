@@ -77,7 +77,7 @@
             </div>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">IC / passport number <span class="text-pokemon-red">*</span></label>
+            <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">IC number <span class="text-pokemon-red">*</span></label>
             <input v-model="form.identityNumber" type="text" required placeholder="e.g. 900101101234" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white tabular-nums"/>
             <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">
               Required by the bank to verify the transfer recipient. We never display this to buyers.

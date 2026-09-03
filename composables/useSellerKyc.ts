@@ -10,8 +10,8 @@
 // Bank accounts in MY require IC to open, so the bank-account requirement is
 // a real-identity anchor in itself.
 //
-// Since then, document verification has been added on top (Didit — MyKad or
-// passport plus a face scan). Both are required: the bank account is what
+// Since then, document verification has been added on top (Didit — MyKad
+// plus a face scan). Both are required: the bank account is what
 // makes a payout possible at all, and the identity check is what stops
 // someone selling under a name that isn't theirs before any money moves.
 
