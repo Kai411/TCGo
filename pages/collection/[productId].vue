@@ -637,7 +637,8 @@ const productId = computed(() => Number(route.params.productId));
 
 const { getCardWithPrice, getPriceHistory, getRelatedCards } = useCardCatalog();
 const { cards: marketplaceCards, loading: listingsLoading } = useCards();
-const { user, signInWithGoogle } = useAuth();
+const { user } = useAuth();
+const { requireSignIn } = useSignInGate();
 const {
   loading: collectionLoading,
   listenMyCollection,
@@ -1015,10 +1016,7 @@ watch(
 );
 
 const handleCollectionToggle = async () => {
-  if (!user.value) {
-    await signInWithGoogle();
-    return;
-  }
+  if (!requireSignIn()) return;
   if (
     !Number.isSafeInteger(productId.value) ||
     collectionBusy.value ||
@@ -1045,10 +1043,7 @@ const handleRelatedToggle = async (id: number) => {
   if (relatedBusyIds.value.has(id)) return;
   setRelatedBusy(id, true);
   try {
-    if (!user.value) {
-      await signInWithGoogle();
-      return;
-    }
+    if (!requireSignIn()) return;
     if (collectionLoading.value) return;
     await toggleInCollection(id);
   } catch (err) {

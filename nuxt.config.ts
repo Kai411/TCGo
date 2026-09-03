@@ -223,6 +223,12 @@ export default defineNuxtConfig({
     // means the scheduled path is refused outright — automation you forgot to
     // configure should not be automation anyone can trigger.
     cronSecret: "",
+    // Keys the HMAC over email verification and password-reset codes, so a
+    // leaked Firestore export doesn't yield working codes (six digits is a
+    // small enough space to reverse from a plain hash). Optional: unset falls
+    // back to the service account, which is always present — see
+    // server/utils/auth-codes.ts. Set it to rotate codes independently.
+    authCodeSecret: "",
     // HitPay (DuitNow QR at the counter). Separate from Billplz on purpose:
     // Billplz cannot return an embeddable QR payload, only a hosted page.
     // hitpayApiKey is the platform account; each seller's own sub-merchant key
