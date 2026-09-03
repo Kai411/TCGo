@@ -98,15 +98,15 @@
 
     <!-- Mobile bottom nav -->
     <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] pb-[16px]">
-      <!-- Four destinations and a More sheet, rather than nine in a
-           horizontal scroller.
-           The scroller kept every destination reachable but hid most of them:
-           nothing on screen said there was more to the right, so Funds and
-           Auctions were effectively invisible. Four fits a 375px screen at a
-           full touch target, and the sheet shows the rest all at once instead
-           of a swipe at a time.
-           `More` highlights when the open page lives inside it, so the bar
-           never claims you're nowhere. -->
+      <!-- Three destinations and two sheets, rather than nine in a horizontal
+           scroller. The scroller kept everything reachable but signalled
+           nothing: with no hint there was more to the right, Funds and
+           Auctions were effectively invisible.
+           Inventory and More both open a sheet, because each is a place with
+           several rooms rather than a single page — grouping them keeps every
+           bar item at a full touch target on a 375px screen.
+           A sheet button highlights when the open page lives inside it, so
+           the bar never claims you're nowhere. -->
       <div class="grid grid-cols-5 h-16">
         <NuxtLink
           v-for="item in primaryNav"
@@ -120,21 +120,23 @@
           <span>{{ item.label }}</span>
         </NuxtLink>
         <button
+          v-for="(sheet, key) in SHEETS"
+          :key="key"
           type="button"
-          @click="moreOpen = true"
-          :aria-expanded="moreOpen"
+          @click="openSheet = key"
+          :aria-expanded="openSheet === key"
           aria-haspopup="menu"
           class="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
-          :class="moreIsActive ? '!text-pokemon-red' : ''"
+          :class="sheetIsActive(key) ? '!text-pokemon-red' : ''"
         >
-          <IconMore class="w-5 h-5" />
-          <span>More</span>
+          <component :is="sheet.icon" class="w-5 h-5" />
+          <span>{{ sheet.label }}</span>
         </button>
       </div>
     </nav>
 
-    <!-- More sheet. Everything the bar doesn't have room for, shown at once
-         rather than a swipe at a time. -->
+    <!-- One sheet, whichever button opened it. Two near-identical panels
+         would drift apart the first time either was touched. -->
     <Teleport to="body">
       <Transition
         enter-active-class="transition-opacity duration-150"
@@ -143,9 +145,9 @@
         leave-to-class="opacity-0"
       >
         <div
-          v-if="moreOpen"
+          v-if="openSheet"
           class="lg:hidden fixed inset-0 z-50 bg-black/40"
-          @click="moreOpen = false"
+          @click="openSheet = null"
         />
       </Transition>
       <Transition
@@ -155,33 +157,29 @@
         leave-to-class="translate-y-full"
       >
         <div
-          v-if="moreOpen"
+          v-if="openSheet"
           class="lg:hidden fixed bottom-0 inset-x-0 z-50 rounded-t-2xl bg-white dark:bg-[#17171c] border-t border-black/[0.06] dark:border-white/[0.08] pb-[env(safe-area-inset-bottom,16px)]"
           role="menu"
-          aria-label="More seller pages"
+          :aria-label="SHEETS[openSheet].label"
         >
           <div class="flex justify-center pt-2.5 pb-1">
             <span class="h-1 w-9 rounded-full bg-black/15 dark:bg-white/20" />
           </div>
-          <div class="grid grid-cols-4 gap-1 px-3 pb-4 pt-1">
+          <p class="px-4 pb-1 text-[11px] font-bold uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+            {{ SHEETS[openSheet].label }}
+          </p>
+          <div class="grid grid-cols-3 gap-1 px-3 pb-4 pt-1">
             <NuxtLink
-              v-for="item in moreNav"
+              v-for="item in SHEETS[openSheet].items"
               :key="item.to"
               :to="item.to"
+              :data-tour="item.tour"
               role="menuitem"
-              class="flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[11px] font-semibold text-ink dark:text-zinc-200 active:bg-black/[0.04] dark:active:bg-white/[0.06]"
+              class="flex flex-col items-center justify-center gap-1.5 rounded-xl px-1 py-3.5 text-center text-[11px] font-semibold leading-tight text-ink dark:text-zinc-200 active:bg-black/[0.04] dark:active:bg-white/[0.06]"
               :class="isActive(item) ? '!text-pokemon-red' : ''"
             >
               <component :is="item.icon" class="w-[22px] h-[22px]" />
               <span>{{ item.label }}</span>
-            </NuxtLink>
-            <NuxtLink
-              to="/landing"
-              role="menuitem"
-              class="flex flex-col items-center justify-center gap-1.5 rounded-xl py-3.5 text-[11px] font-semibold text-ink dark:text-zinc-200 active:bg-black/[0.04] dark:active:bg-white/[0.06]"
-            >
-              <IconSparkle class="w-[22px] h-[22px]" />
-              <span>Pricing</span>
             </NuxtLink>
           </div>
         </div>
@@ -289,30 +287,63 @@ const isActive = (item: { to: string; exact?: boolean }) => {
   return route.path === item.to || route.path.startsWith(item.to + "/");
 };
 
-// ── Mobile: four destinations plus a sheet ────────────────────────────
+// ── Mobile: three destinations plus two sheets ────────────────────────
 //
-// The first four are the daily ones — the till, what it earned, what's owed
-// to the buyer, and what's on the shelf. The rest are things a seller opens
-// deliberately rather than reaches for, so they live behind More.
+// The three are the ones opened without thinking — the till, what's owed to
+// buyers, and the dashboard they land on. Everything else groups into a
+// sheet, because each group is a place with several rooms rather than a
+// single page:
 //
-// The desktop sidebar keeps showing all of navItems; this split is only for
-// the bar at the bottom of a phone.
-const PRIMARY = ["/seller", "/seller/pos", "/seller/orders", "/seller/items"];
+//   Inventory  what you hold, and the two ways it goes on sale
+//   More       money and reference
+//
+// The desktop sidebar still lists everything flat; this split is only for the
+// bar at the bottom of a phone.
+const PRIMARY = ["/seller", "/seller/pos", "/seller/orders"];
 
 const primaryNav = computed(() =>
   PRIMARY.map((to) => navItems.find((i) => i.to === to)!).filter(Boolean),
 );
-const moreNav = computed(() => navItems.filter((i) => !PRIMARY.includes(i.to)));
 
-const moreOpen = ref(false);
-// The bar must never read as "you are nowhere": when the open page lives in
-// the sheet, More carries the active state on its behalf.
-const moreIsActive = computed(() => moreNav.value.some((i) => isActive(i)));
+type SheetKey = "inventory" | "more";
+
+const SHEETS: Record<
+  SheetKey,
+  { label: string; icon: any; items: { to: string; label: string; icon: any; tour?: string }[] }
+> = {
+  inventory: {
+    label: "Inventory",
+    icon: IconBox,
+    items: [
+      // Spelled out rather than "Inventory" twice: the sheet is already
+      // titled Inventory, so a row repeating it says nothing about what it
+      // does. This is the one that manages stock.
+      { to: "/seller/items", label: "Manage Inventory", icon: IconBox, tour: "nav-items" },
+      { to: "/seller/listings", label: "Listings", icon: IconTag, tour: "nav-listings" },
+      { to: "/seller/auctions", label: "Auctions", icon: IconGavel, tour: "nav-auctions" },
+    ],
+  },
+  more: {
+    label: "More",
+    icon: IconMore,
+    items: [
+      { to: "/seller/sales", label: "Sales", icon: IconReceipt },
+      { to: "/seller/funds", label: "Funds", icon: IconWallet, tour: "nav-funds" },
+      { to: "/landing", label: "Pricing", icon: IconSparkle },
+    ],
+  },
+};
+
+const openSheet = ref<SheetKey | null>(null);
+
+// The bar must never read as "you are nowhere": when the open page lives in a
+// sheet, that sheet's button carries the active state on its behalf.
+const sheetIsActive = (key: SheetKey) => SHEETS[key].items.some((i) => isActive(i));
 
 // Any navigation closes it, including the browser's back button.
 watch(
   () => route.fullPath,
-  () => (moreOpen.value = false),
+  () => (openSheet.value = null),
 );
 
 const IconMore = () =>
