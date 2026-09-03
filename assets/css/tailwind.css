@@ -185,3 +185,30 @@
     }
   }
 }
+
+/* iOS zooms the page in when you focus a field whose text is smaller than
+   16px. Our fields are 13–15px, so every tap on an input jumped the layout
+   and left the user pinching back out.
+
+   The fix is the font size, NOT the viewport. Adding
+   `maximum-scale=1, user-scalable=no` to the meta tag also stops the zoom,
+   and it stops pinch-zoom entirely with it — which is a real accessibility
+   loss for anyone who needs to magnify a page, and a WCAG failure. Safari
+   ignores it on newer versions anyway.
+
+   16px only below the tablet breakpoint, so the desktop type scale is
+   untouched. On a phone 16px is the right size for an input regardless —
+   this reads as a fix in both directions.
+
+   Deliberately outside @layer and marked important: Tailwind's text-*
+   utilities are a later layer and a higher specificity than a bare element
+   selector, so anything gentler simply loses. Checkboxes and radios are
+   excluded — font-size means nothing to them, and forcing it changes the
+   box metrics some browsers derive from it. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
