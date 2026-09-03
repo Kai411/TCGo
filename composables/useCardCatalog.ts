@@ -95,6 +95,49 @@ export const parseSmartQuery = (input: string): ParsedQuery => {
   };
 };
 
+/**
+ * Pull a known set name out of a query, if one is trailing.
+ *
+ * parseSmartQuery only recognises rarity abbreviations and numeric set hints
+ * ("151"), so "pikachu surging sparks" stayed one long name — and the search
+ * RPC matches `q` against the card NAME only (c.name ILIKE '%q%'), so it could
+ * never match anything. This closes that gap by checking the tail of the query
+ * against the sets that actually exist.
+ *
+ * Longest match wins: "Prismatic Evolutions" must beat "Evolutions" or a card
+ * from the wrong set comes back. Matching is anchored to the END of the query
+ * because English puts the set after the card — "pikachu surging sparks", not
+ * "surging sparks pikachu".
+ *
+ * Pure and exported so it can be tested without a database.
+ */
+export const splitKnownSet = (
+  input: string,
+  setNames: string[],
+): { name: string; setHint: string | null } => {
+  const raw = input.trim();
+  if (!raw || !setNames.length) return { name: raw, setHint: null };
+
+  const lower = raw.toLowerCase();
+  let best: string | null = null;
+
+  for (const set of setNames) {
+    const s = set.trim().toLowerCase();
+    if (!s) continue;
+    // Trailing, on a word boundary — so "ex" inside "Charizard ex" is never
+    // mistaken for a set whose name happens to end the same way.
+    if (lower === s || lower.endsWith(" " + s)) {
+      if (!best || s.length > best.length) best = s;
+    }
+  }
+  if (!best) return { name: raw, setHint: null };
+
+  const name = lower === best ? "" : raw.slice(0, raw.length - best.length).trim();
+  // Recover the set's real casing for display and for the RPC's substring match.
+  const canonical = setNames.find((n) => n.trim().toLowerCase() === best) ?? best;
+  return { name, setHint: canonical };
+};
+
 // USD → MYR conversion. TCGPlayer publishes prices in USD; we multiply by a
 // live rate fetched from /api/fx/usd-myr (cached server-side for 12h). Until
 // that resolves — and if the feed ever fails — we fall back to this static

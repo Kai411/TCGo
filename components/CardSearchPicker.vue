@@ -147,7 +147,20 @@ const props = defineProps<{
 
 const emit = defineEmits<{ (e: "select", card: CatalogMatch): void }>();
 
-const { searchCatalog, getPriceHistory } = useCardCatalog();
+const { searchCatalog, getPriceHistory, listSets } = useCardCatalog();
+
+// Set names, fetched once and reused, so a worded set in the query ("pikachu
+// surging sparks") can be recognised. Failure is silent and harmless: without
+// the list the query simply falls back to name-only matching.
+const setNames = ref<string[]>([]);
+const loadSets = async () => {
+  if (setNames.value.length) return;
+  try {
+    setNames.value = (await listSets(lang.value)).map((s) => s.name).filter(Boolean);
+  } catch {
+    setNames.value = [];
+  }
+};
 
 const q = ref("");
 const results = ref<CatalogMatch[]>([]);
@@ -168,6 +181,15 @@ const page = ref(0);
 // Frozen at search time: `q` keeps changing as the seller types, but paging
 // must keep querying whatever was actually searched.
 const lastQuery = ref("");
+// The set and rarity pulled out of the typed query.
+//
+// The catalogue RPC matches `q` against the card NAME only — set and rarity
+// are separate arguments. Sending the whole phrase as a name is why
+// "pikachu IR" and "pikachu surging sparks" returned nothing here while the
+// same words worked on the collection page: no card is *named* those things.
+// parseSmartQuery is what that page uses, and this now uses it too.
+const lastSetHint = ref<string | null>(null);
+const lastRarityHint = ref<string | null>(null);
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)));
 
@@ -179,6 +201,8 @@ const fetchPage = async (n: number) => {
       limit: PAGE_SIZE,
       page: n,
       language: lang.value,
+      setMatch: lastSetHint.value,
+      rarityMatch: lastRarityHint.value,
     });
     results.value = r;
     // Trust the latest count so "x / y" can't drift mid-browse.
@@ -190,10 +214,23 @@ const fetchPage = async (n: number) => {
 };
 
 const runSearch = async () => {
-  const query = q.value.trim();
-  if (query.length < 2) return;
+  const raw = q.value.trim();
+  if (raw.length < 2) return;
+
+  await loadSets();
+  // Set name first — it can be several words, so taking it off the end leaves
+  // parseSmartQuery a cleaner string to read rarity and numeric hints from.
+  const { name: withoutSet, setHint } = splitKnownSet(raw, setNames.value);
+  const parsed = parseSmartQuery(withoutSet || raw);
+  // A query that is ONLY a filter is still searchable — "surging sparks"
+  // with no card name should list the set. searchCatalog allows a short name
+  // when a filter is present.
+  if (parsed.name.trim().length < 2 && !setHint && !parsed.setHint && !parsed.rarityHint) return;
+
   searched.value = true;
-  lastQuery.value = query;
+  lastQuery.value = parsed.name.trim();
+  lastSetHint.value = setHint ?? parsed.setHint;
+  lastRarityHint.value = parsed.rarityHint;
   total.value = 0;
   await fetchPage(0);
 };
@@ -244,7 +281,15 @@ watch(
       return;
     }
     timer = setTimeout(async () => {
-      const { results: r } = await searchCatalog(query, { limit: 4, language: lang.value });
+      await loadSets();
+      const { name: noSet, setHint: sh } = splitKnownSet(query, setNames.value);
+      const parsed = parseSmartQuery(noSet || query);
+      const { results: r } = await searchCatalog(parsed.name.trim(), {
+        limit: 4,
+        language: lang.value,
+        setMatch: sh ?? parsed.setHint,
+        rarityMatch: parsed.rarityHint,
+      });
       // The field may have changed again while the request was in flight.
       if (!picked.value && !results.value.length) suggestions.value = r;
     }, 450);
