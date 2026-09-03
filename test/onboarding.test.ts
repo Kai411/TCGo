@@ -10,11 +10,18 @@ import assert from "node:assert/strict";
 
 import {
   ONBOARDING_STEPS,
+  SELLER_STEPS,
+  hasBankDetails,
   hasDeliveryAddress,
+  hasHandover,
   hasIdentity,
+  hasSellerContact,
   isOnboardingExempt,
+  isSellerOnboardingExempt,
   onboardingState,
+  sellerOnboardingState,
 } from "~/shared/onboarding";
+import { payoutDetailsComplete } from "~/shared/payout-details";
 import { kycStatusFor, KYC_REQUIRED } from "~/shared/didit";
 
 const address = {
@@ -74,30 +81,30 @@ describe("delivery address", () => {
   });
 });
 
-describe("onboarding state", () => {
-  const verified = { ...address, kycStatus: "verified" };
-
-  it("is complete only when all three are done", () => {
-    const s = onboardingState(verified, true);
+describe("buyer onboarding state", () => {
+  it("is complete on email plus an address", () => {
+    const s = onboardingState(address, true);
     assert.equal(s.complete, true);
     assert.equal(s.current, null);
     assert.equal(s.percent, 100);
   });
 
+  it("never asks a buyer for identity", () => {
+    // Spending money is the low-risk direction; the ID check belongs to
+    // selling, where money flows the other way.
+    const s = onboardingState({ ...address, kycStatus: "none" }, true);
+    assert.equal(s.complete, true);
+    assert.ok(!s.remaining.includes("identity" as never));
+  });
+
   it("asks for the email first", () => {
-    const s = onboardingState(verified, false);
+    const s = onboardingState(address, false);
     assert.equal(s.current, "email");
   });
 
-  it("asks for the address before identity", () => {
-    const s = onboardingState({ kycStatus: "none" }, true);
-    assert.deepEqual(s.remaining, ["address", "identity"]);
-    assert.equal(s.current, "address");
-  });
-
-  it("asks for identity last", () => {
-    const s = onboardingState(address, true);
-    assert.deepEqual(s.remaining, ["identity"]);
+  it("asks for the address once the email is done", () => {
+    const s = onboardingState({}, true);
+    assert.deepEqual(s.remaining, ["address"]);
   });
 
   it("reports a brand-new account as nothing done", () => {
@@ -109,7 +116,7 @@ describe("onboarding state", () => {
 
   it("never trusts a profile flag for email — only the token", () => {
     // Passing emailVerified: false must win even if the document claims it.
-    const s = onboardingState({ ...verified, emailVerified: true } as never, false);
+    const s = onboardingState({ ...address, emailVerified: true } as never, false);
     assert.ok(s.remaining.includes("email"));
   });
 });
@@ -138,5 +145,96 @@ describe("what stays reachable while setup is unfinished", () => {
     assert.equal(isOnboardingExempt("/login"), true);
     assert.equal(isOnboardingExempt("/login/reset"), true);
     assert.equal(isOnboardingExempt("/loginsomething"), false);
+  });
+});
+
+// ── Selling ───────────────────────────────────────────────────────────
+
+const seller = {
+  kycStatus: "verified",
+  phone: "0123456789",
+  pickupAddress1: "12 Jalan Satu",
+  pickupPostcode: "47100",
+  pickupCity: "Puchong",
+  pickupState: "sgr",
+  bankCode: "MBBEMYKL",
+  bankAccountNumber: "1234567890",
+  bankAccountHolder: "Kai Tan",
+  identityNumber: "900101101234",
+  handoverPreference: "dropoff",
+};
+
+describe("seller onboarding", () => {
+  it("is complete when all four are done", () => {
+    const s = sellerOnboardingState(seller);
+    assert.equal(s.complete, true);
+    assert.equal(s.current, null);
+    assert.equal(s.percent, 100);
+  });
+
+  it("asks for identity first — before any money can move", () => {
+    const s = sellerOnboardingState({ ...seller, kycStatus: "none" });
+    assert.equal(s.current, "identity");
+  });
+
+  it("requires identity to sell, unlike buying", () => {
+    // One profile carrying both sides' details — a delivery address for
+    // buying, pickup and bank for selling — and no verified identity.
+    const noId = { ...address, ...seller, kycStatus: "none" };
+    assert.equal(onboardingState(noId, true).complete, true, "should be able to buy");
+    assert.equal(sellerOnboardingState(noId).complete, false, "must not be able to sell");
+  });
+
+  it("reports nothing done for a fresh seller", () => {
+    const s = sellerOnboardingState({});
+    assert.equal(s.remaining.length, SELLER_STEPS.length);
+    assert.equal(s.percent, 0);
+  });
+
+  it("accepts either phone field as contact", () => {
+    const viaWhatsapp = { ...seller, phone: "", whatsappNumber: "0123456789" };
+    assert.equal(hasSellerContact(viaWhatsapp), true);
+    assert.equal(hasSellerContact({ ...seller, phone: "", whatsappNumber: "" }), false);
+  });
+
+  it("needs every part of the pickup address", () => {
+    for (const k of ["pickupAddress1", "pickupPostcode", "pickupCity", "pickupState"]) {
+      assert.equal(hasSellerContact({ ...seller, [k]: "" }), false, `${k} required`);
+    }
+  });
+
+  it("agrees with payoutDetailsComplete, which is the authority at payout time", () => {
+    // Two implementations of "can we pay this person". If they ever diverge,
+    // onboarding would wave someone through that the payout route refuses.
+    assert.equal(hasBankDetails(seller), payoutDetailsComplete(seller as never));
+    for (const k of ["bankCode", "bankAccountNumber", "bankAccountHolder", "identityNumber"]) {
+      const partial = { ...seller, [k]: "" };
+      assert.equal(
+        hasBankDetails(partial),
+        payoutDetailsComplete(partial as never),
+        `disagreed with ${k} missing`,
+      );
+    }
+  });
+
+  it("only accepts a handover option the quoting code understands", () => {
+    assert.equal(hasHandover({ handoverPreference: "dropoff" }), true);
+    assert.equal(hasHandover({ handoverPreference: "pickup" }), true);
+    assert.equal(hasHandover({ handoverPreference: "whenever" }), false);
+    assert.equal(hasHandover({}), false);
+  });
+});
+
+describe("what stays reachable while seller setup is unfinished", () => {
+  it("lets a seller reach the flow and the forms that fix it", () => {
+    for (const p of ["/seller/onboarding", "/seller/settings", "/seller/verify"]) {
+      assert.equal(isSellerOnboardingExempt(p), true, `${p} must stay open`);
+    }
+  });
+
+  it("gates the parts that take money or ship things", () => {
+    for (const p of ["/seller", "/seller/pos", "/seller/listings/new", "/seller/funds"]) {
+      assert.equal(isSellerOnboardingExempt(p), false, `${p} must be gated`);
+    }
   });
 });
