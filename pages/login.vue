@@ -1,7 +1,20 @@
 <template>
   <div class="min-h-screen bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 flex flex-col items-center justify-center px-4 py-12">
-    <NuxtLink to="/" class="mb-8 text-2xl font-extrabold tracking-tightest text-ink dark:text-white">
-      TCG<span class="text-pokemon-red">o</span>
+    <!-- The real wordmark, cropped exactly as AppNavbar does: a square sprite
+         sheet sliced by object-cover, so the height of this box is what
+         decides the crop. h-16 matches the navbar's bar height, which is what
+         makes it the same logo rather than a lookalike. -->
+    <NuxtLink to="/" class="mb-8 flex items-center h-16 shrink-0" aria-label="TCGo home">
+      <img
+        src="~/assets/images/tcgo_sprites.png"
+        alt="TCGo"
+        class="h-full w-[110px] object-cover block dark:hidden"
+      />
+      <img
+        src="/tcgo_sprites_white.png"
+        alt="TCGo"
+        class="h-full w-[110px] object-cover hidden dark:block"
+      />
     </NuxtLink>
     <div class="w-full max-w-sm">
       <!-- Heading changes with the step so the page always says what it wants
