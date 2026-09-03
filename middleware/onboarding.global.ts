@@ -25,9 +25,23 @@ export default defineNuxtRouteMiddleware((to) => {
 
   if (authLoading.value || loading.value) return;
   if (!user.value) return;
-  if (isOnboardingExempt(to.path)) return;
 
   const state = onboardingState(profile.value, !!user.value.emailVerified);
+
+  // Finished accounts never see the setup screen again.
+  //
+  // Checked BEFORE the exemption list, because /onboarding is on that list —
+  // it has to be, or the gate would bounce people away from the page it sends
+  // them to. Without this, signing in again showed a completed checklist and
+  // a "You're all set" screen nobody asked for.
+  if (to.path === "/onboarding" && state.complete) {
+    const next = typeof to.query.next === "string" ? to.query.next : "";
+    // Same-site only: `next` arrives from the URL, so a full URL here would
+    // make this an open redirect.
+    return navigateTo(next.startsWith("/") && !next.startsWith("//") ? next : "/");
+  }
+
+  if (isOnboardingExempt(to.path)) return;
   if (state.complete) return;
 
   return navigateTo({

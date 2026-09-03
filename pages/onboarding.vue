@@ -176,7 +176,7 @@ useHead({ title: "Finish setting up | TCGo" });
 const RESEND_COOLDOWN_S = 30;
 
 const { user, requestCode, confirmEmail, signOut } = useAuth();
-const { profile, updateProfile } = useMyProfile();
+const { profile, updateProfile, loading: loadingProfile } = useMyProfile();
 const route = useRoute();
 
 const busy = ref(false);
@@ -286,13 +286,30 @@ const signOutAndLeave = async () => {
   await navigateTo("/login");
 };
 
-// Someone who lands here already finished (or finishes the last step) should
-// not have to press anything.
+// The middleware turns finished accounts away from this page — but it bails
+// out while the profile is still loading, and Nuxt does not re-run middleware
+// when that data later arrives. So the page checks for itself.
+//
+// The distinction that matters is whether they SAW an unfinished step:
+//
+//   arrived already done  → leave at once, no screen, no flash
+//   finished it just now  → show "You're all set", then go
+//
+// Without that, signing in showed a celebration for work done days ago.
+const sawIncomplete = ref(false);
+
 watch(
-  () => state.value.complete,
-  (done, was) => {
-    if (done && was === false) setTimeout(finish, 900);
+  () => [loadingProfile.value, state.value.complete] as const,
+  ([stillLoading, done]) => {
+    if (stillLoading) return;
+    if (!done) {
+      sawIncomplete.value = true;
+      return;
+    }
+    if (sawIncomplete.value) setTimeout(finish, 900);
+    else finish();
   },
+  { immediate: true },
 );
 </script>
 
