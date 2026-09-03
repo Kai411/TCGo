@@ -56,8 +56,17 @@
           Verified {{ verifiedOn }}
         </p>
 
-        <p class="mt-2 text-[11px] text-ink-soft dark:text-zinc-500">
-          Checks are run by Didit. TCGo never stores your ID document.
+        <p class="mt-2 text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500">
+          Checks are run by
+          <!-- rel is not optional here: noopener closes the window.opener
+               handle a new tab would otherwise get, and this link sits in a
+               panel about trust. -->
+          <a
+            href="https://didit.me"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-semibold text-ink-muted underline underline-offset-2 hover:text-pokemon-red dark:text-zinc-400"
+          >Didit<span class="sr-only"> (opens in a new tab)</span></a>. TCGo never stores your ID document.
         </p>
       </div>
     </Transition>
