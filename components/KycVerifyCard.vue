@@ -133,6 +133,36 @@ const tone = computed(() => {
 
 const route = useRoute();
 
+// Kept from the dynamic import so teardown can reach the SDK without loading
+// it again — and without loading it at all for the users who never verify.
+let sdk: typeof import("@didit-protocol/sdk-web").DiditSdk | null = null;
+
+/**
+ * Take the modal down and let the next attempt start clean.
+ *
+ * reset() is the whole job: it calls destroy(), which calls close(), then
+ * drops the singleton so a later DiditSdk.shared builds a fresh instance.
+ * Without the drop, a second verification attempt would be handed the
+ * destroyed one. (Checked in the SDK source rather than assumed — calling
+ * all three would just be the same work twice.)
+ *
+ * Wrapped because it runs on unmount, where a throw would surface as an
+ * unhandled error during navigation rather than anything actionable.
+ */
+const teardown = () => {
+  try {
+    sdk?.reset();
+  } catch {
+    // Already gone, which is the state we wanted.
+  }
+  sdk = null;
+};
+
+// Navigating away mid-verification must not leave the overlay behind. It is
+// position-fixed with its own z-index, so it would sit over whatever page
+// came next with no way to dismiss it.
+onUnmounted(teardown);
+
 const start = async () => {
   if (starting.value) return;
   starting.value = true;
@@ -149,14 +179,34 @@ const start = async () => {
 
     // Loaded on demand: the SDK is only needed by the handful of users who
     // actually verify, and it has no business in the main bundle.
-    const { DiditSdk } = await import("@didit-protocol/sdk-web");
-    DiditSdk.shared.onComplete = () => {
-      // Deliberately does nothing but close. `onComplete` fires in the user's
-      // own browser and says the flow ended, NOT that it passed — the webhook
-      // is the only thing that may set kycStatus, and the profile listener
-      // picks that up on its own.
+    const mod = await import("@didit-protocol/sdk-web");
+    sdk = mod.DiditSdk;
+
+    sdk.shared.onComplete = () => {
+      // The webhook is the only thing that may set kycStatus — onComplete
+      // fires in the user's own browser and says the flow ENDED, not that it
+      // passed. The profile listener picks the real result up on its own.
+      //
+      // What this must do is take the modal down. closeModalOnComplete below
+      // already asks for that; calling close() as well costs nothing and
+      // covers the cancelled and failed paths, which that flag does not.
+      teardown();
     };
-    DiditSdk.shared.startVerification({ url: res.url });
+
+    sdk.shared.startVerification({
+      url: res.url,
+      configuration: {
+        // Defaults to FALSE, which is the whole bug: the modal stayed mounted
+        // after verification finished, leaving a stray close button floating
+        // over the page that asked "exit verification?" for a flow that had
+        // already ended.
+        closeModalOnComplete: true,
+        // Left on (its default). Mid-flow it is right to confirm — losing a
+        // half-finished document scan to a stray tap is worse than one extra
+        // dialog. It only read as wrong when the modal outlived the flow.
+        showExitConfirmation: true,
+      },
+    });
   } catch (e: any) {
     error.value =
       e?.data?.message || e?.message || "Couldn't start verification. Try again shortly.";
