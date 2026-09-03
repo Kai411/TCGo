@@ -162,6 +162,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, reactive, ref, watch } from "vue";
 import { MY_STATES } from "~/shared/my-states";
+import { newAddressId } from "~/shared/addresses";
 import {
   ONBOARDING_STEPS,
   onboardingState,
@@ -176,7 +177,7 @@ useHead({ title: "Finish setting up | TCGo" });
 const RESEND_COOLDOWN_S = 30;
 
 const { user, requestCode, confirmEmail, signOut } = useAuth();
-const { profile, updateProfile, loading: loadingProfile } = useMyProfile();
+const { profile, saveAddresses, loading: loadingProfile } = useMyProfile();
 const route = useRoute();
 
 const busy = ref(false);
@@ -275,7 +276,24 @@ const saveAddress = () =>
       error.value = "Fill in everything except the unit line.";
       return;
     }
-    await updateProfile({ ...addr });
+    // Written as the first card in the address book, which marks it default
+    // and mirrors it into the flat delivery* fields the cart reads. Writing
+    // those fields directly here would create an address the settings page
+    // cannot see or edit.
+    await saveAddresses([
+      {
+        id: newAddressId(),
+        label: "Home",
+        name: addr.deliveryName.trim(),
+        phone: addr.deliveryPhone.trim(),
+        line1: addr.deliveryAddress1.trim(),
+        line2: addr.deliveryAddress2.trim(),
+        postcode: addr.deliveryPostcode.trim(),
+        city: addr.deliveryCity.trim(),
+        state: addr.deliveryState,
+        isDefault: true,
+      },
+    ]);
   });
 
 // ── Exit ──────────────────────────────────────────────────────────────

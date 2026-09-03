@@ -1,4 +1,10 @@
 import {
+  defaultAddress,
+  fromFlatFields,
+  toFlatFields,
+  type Address,
+} from "~/shared/addresses";
+import {
   doc,
   onSnapshot,
   setDoc,
@@ -54,7 +60,16 @@ export interface UserProfile {
   bonusScansRemaining?: number;
   bonusScansClaimedAt?: number;
 
-  // ── Buyer delivery address ──────────────────────────────────────────
+  /**
+   * The address book. Source of truth for where things ship.
+   *
+   * The `delivery*` fields below are a MIRROR of whichever entry is default —
+   * kept because the cart, order page and onboarding gate still read them.
+   * Write through saveAddresses() so the two can never disagree.
+   */
+  addresses?: Address[];
+
+  // ── Buyer delivery address (mirror of the default address) ──────────
   // Where this user's purchases get shipped. Saved here so the cart can quote
   // live shipping before checkout — without a destination there's nothing to
   // quote against. Still editable per-order at payment time.
@@ -184,6 +199,23 @@ export const useMyProfile = () => {
                 } as UserProfile;
                 isNewUser.value = false;
 
+                // Turn a pre-address-book profile into its first card.
+                //
+                // Runs once: the condition stops matching as soon as the list
+                // exists. Migrating here rather than in a script means every
+                // profile converts on the owner's next visit, including ones
+                // created between the deploy and any migration run.
+                if (!Array.isArray(data.addresses) && data.deliveryAddress1) {
+                  const first = fromFlatFields(data);
+                  if (first) {
+                    updateDoc(profileDoc, { addresses: [first] }).catch(() => {
+                      // The flat fields still work on their own, so a failure
+                      // here degrades to the old behaviour rather than
+                      // breaking checkout.
+                    });
+                  }
+                }
+
                 // Adopt the Auth display name for accounts that were created
                 // before registration wrote it here. Those profiles carry an
                 // empty customName, so the settings field showed "Anonymous"
@@ -266,5 +298,20 @@ export const useMyProfile = () => {
     await updateProfile({ customName: newName });
   };
 
-  return { profile, loading, isNewUser, updateProfile, updateCustomName };
+  /**
+   * Write the address book, and the mirror, in one go.
+   *
+   * The ONLY thing that should write `addresses` or the `delivery*` fields.
+   * Two writes that could be made separately are two writes that will
+   * eventually disagree — and the disagreement would show up as a cart
+   * shipping to an address the user had already deleted.
+   */
+  const saveAddresses = async (list: Address[]) => {
+    await updateProfile({
+      addresses: list,
+      ...toFlatFields(defaultAddress(list)),
+    });
+  };
+
+  return { profile, loading, isNewUser, updateProfile, updateCustomName, saveAddresses };
 };

@@ -166,59 +166,9 @@
 
       <div
         v-if="!loading"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
+        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] mt-4"
       >
-        <p class="text-xl font-bold">Delivery address</p>
-        <p class="text-sm text-gray-500 dark:text-zinc-400 -mt-4">
-          Where your purchases get shipped. We use it to calculate live shipping
-          rates in your cart before you pay. You can still change it per order.
-        </p>
-
-        <div class="space-y-3">
-          <div class="grid sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">Recipient name</label>
-              <input v-model="addr.name" type="text" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"/>
-            </div>
-            <div>
-              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">Mobile number</label>
-              <input v-model="addr.phone" type="tel" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"/>
-            </div>
-          </div>
-          <div>
-            <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">Address line 1</label>
-            <input v-model="addr.address1" type="text" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"/>
-          </div>
-          <div>
-            <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">Address line 2</label>
-            <input v-model="addr.address2" type="text" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"/>
-          </div>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div>
-              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">Postcode</label>
-              <input v-model="addr.postcode" type="text" inputmode="numeric" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white tabular-nums focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"/>
-            </div>
-            <div>
-              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">City</label>
-              <input v-model="addr.city" type="text" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"/>
-            </div>
-            <div class="col-span-2 sm:col-span-1">
-              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1">State</label>
-              <select v-model="addr.state" class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red">
-                <option value="">Select…</option>
-                <option v-for="st in MY_STATES" :key="st.code" :value="st.code">{{ st.name }}</option>
-              </select>
-            </div>
-          </div>
-          <button
-            v-if="addressDirty"
-            @click="saveAddress"
-            :disabled="savingAddress"
-            class="bg-pokemon-red text-white text-sm px-4 py-1.5 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-          >
-            {{ savingAddress ? "Saving..." : "Save address" }}
-          </button>
-        </div>
+        <AddressBook />
       </div>
 
       <!-- Seller settings moved out to /seller/settings.
@@ -468,17 +418,6 @@ const phoneNumber = ref("");
 const phoneError = ref("");
 const editFavouritesPublic = ref(true);
 
-// Buyer delivery address — feeds the live shipping quote in the cart.
-const emptyAddr = () => ({
-  name: "", phone: "", address1: "", address2: "",
-  postcode: "", city: "", state: "",
-});
-const addr = ref(emptyAddr());
-const savedAddr = ref(emptyAddr());
-const savingAddress = ref(false);
-const addressDirty = computed(
-  () => JSON.stringify(addr.value) !== JSON.stringify(savedAddr.value),
-);
 
 const saving = ref(false);
 const savingPhone = ref(false);
@@ -496,17 +435,6 @@ watch(
     if (p) {
       editName.value = p.customName || p.displayName;
       editFavouritesPublic.value = p.favouritesPublic ?? true;
-      const loaded = {
-        name: p.deliveryName || p.customName || p.displayName || "",
-        phone: p.deliveryPhone || p.whatsappNumber || p.phone || "",
-        address1: p.deliveryAddress1 || "",
-        address2: p.deliveryAddress2 || "",
-        postcode: p.deliveryPostcode || "",
-        city: p.deliveryCity || "",
-        state: p.deliveryState || "",
-      };
-      addr.value = { ...loaded };
-      savedAddr.value = { ...loaded };
 
       // Parse existing phone into prefix + number
       const existing = p.whatsappNumber || p.phone || "";
@@ -566,30 +494,6 @@ const savePhone = async () => {
     }, 3000);
   } finally {
     savingPhone.value = false;
-  }
-};
-
-const saveAddress = async () => {
-  savingAddress.value = true;
-  saveSuccess.value = false;
-  try {
-    const a = addr.value;
-    await updateProfile({
-      deliveryName: a.name.trim(),
-      deliveryPhone: a.phone.trim(),
-      deliveryAddress1: a.address1.trim(),
-      deliveryAddress2: a.address2.trim(),
-      deliveryPostcode: a.postcode.trim(),
-      deliveryCity: a.city.trim(),
-      deliveryState: a.state,
-    });
-    savedAddr.value = { ...a };
-    saveSuccess.value = true;
-    setTimeout(() => {
-      saveSuccess.value = false;
-    }, 3000);
-  } finally {
-    savingAddress.value = false;
   }
 };
 
