@@ -1,3 +1,15 @@
+import { numberCandidates } from "~/shared/card-number";
+
+// Query parsing lives in shared/ so it can be tested without a Nuxt runtime.
+// Re-exported here because both search surfaces reach it through this module.
+export {
+  parseSmartQuery,
+  parseSearchQuery,
+  setAliases,
+  splitKnownSet,
+  type ParsedQuery,
+  type ParsedSearch,
+} from "~/shared/search-query";
 // Read access to the TCGo catalog hosted in Supabase.
 //
 // Two entry points:
@@ -8,135 +20,6 @@
 //
 // Both return rows that include the joined card_prices.prices JSONB so a
 // single round-trip gives us the current market price too.
-
-// ── Smart query parsing ───────────────────────────────────────────────
-//
-// Buyer-friendly natural input like:
-//   "pikachu 151"           → name="pikachu", set hint="151"
-//   "pikachu ir"            → name="pikachu", rarity="Illustration Rare"
-//   "pikachu obsidian sir"  → name="pikachu", set hint="obsidian",
-//                              rarity="Special Illustration Rare"
-//
-// Strategy: the leftmost token(s) form the name; trailing tokens that
-// match a known rarity abbreviation are lifted out; everything else
-// becomes a free-text set hint (joined with spaces). Filters caught
-// here override the user's explicit dropdown filters so smart-typing
-// always wins — the UI surfaces what got parsed via chips.
-
-// Order matters — multi-char keys are checked before single-char so
-// "SIR" doesn't get consumed as "S" + "IR".
-const RARITY_ABBREVIATIONS: Array<[RegExp, string]> = [
-  [/^sir$/i, "Special Illustration Rare"],
-  [/^ir$/i, "Illustration Rare"],
-  [/^sr$/i, "Secret Rare"],
-  [/^ur$/i, "Ultra Rare"],
-  [/^hr$/i, "Hyper Rare"],
-  [/^dr$/i, "Double Rare"],
-  [/^ar$/i, "Art Rare"],
-  [/^rh$/i, "Reverse Holo"],
-  [/^holo$/i, "Holo Rare"],
-  [/^promo$/i, "Promo"],
-  [/^ace$/i, "ACE SPEC Rare"],
-];
-
-const matchRarity = (token: string): string | null => {
-  for (const [pattern, full] of RARITY_ABBREVIATIONS) {
-    if (pattern.test(token)) return full;
-  }
-  return null;
-};
-
-export interface ParsedQuery {
-  name: string;
-  setHint: string | null;
-  rarityHint: string | null;
-}
-
-export const parseSmartQuery = (input: string): ParsedQuery => {
-  const tokens = input.trim().split(/\s+/).filter(Boolean);
-  if (tokens.length === 0) return { name: "", setHint: null, rarityHint: null };
-
-  // First token is always part of the name. Walk forward consuming further
-  // tokens into the name until we hit a "filter-looking" token (rarity
-  // abbreviation or numeric-only set hint). After that, leftover tokens
-  // populate the set hint.
-  let nameParts: string[] = [tokens[0]];
-  let rarityHint: string | null = null;
-  const setParts: string[] = [];
-
-  let nameClosed = false;
-  for (let i = 1; i < tokens.length; i++) {
-    const token = tokens[i];
-    const rarity = matchRarity(token);
-    if (rarity) {
-      rarityHint = rarity;
-      nameClosed = true;
-      continue;
-    }
-    // Pure numeric token → likely a set hint ("151", "164" etc).
-    if (/^\d+$/.test(token)) {
-      setParts.push(token);
-      nameClosed = true;
-      continue;
-    }
-    if (!nameClosed) {
-      // Could still be a multi-word card name ("charizard ex", "rayquaza vmax")
-      // — only treat as set if we've already seen a filter token.
-      nameParts.push(token);
-    } else {
-      setParts.push(token);
-    }
-  }
-
-  return {
-    name: nameParts.join(" "),
-    setHint: setParts.length ? setParts.join(" ") : null,
-    rarityHint,
-  };
-};
-
-/**
- * Pull a known set name out of a query, if one is trailing.
- *
- * parseSmartQuery only recognises rarity abbreviations and numeric set hints
- * ("151"), so "pikachu surging sparks" stayed one long name — and the search
- * RPC matches `q` against the card NAME only (c.name ILIKE '%q%'), so it could
- * never match anything. This closes that gap by checking the tail of the query
- * against the sets that actually exist.
- *
- * Longest match wins: "Prismatic Evolutions" must beat "Evolutions" or a card
- * from the wrong set comes back. Matching is anchored to the END of the query
- * because English puts the set after the card — "pikachu surging sparks", not
- * "surging sparks pikachu".
- *
- * Pure and exported so it can be tested without a database.
- */
-export const splitKnownSet = (
-  input: string,
-  setNames: string[],
-): { name: string; setHint: string | null } => {
-  const raw = input.trim();
-  if (!raw || !setNames.length) return { name: raw, setHint: null };
-
-  const lower = raw.toLowerCase();
-  let best: string | null = null;
-
-  for (const set of setNames) {
-    const s = set.trim().toLowerCase();
-    if (!s) continue;
-    // Trailing, on a word boundary — so "ex" inside "Charizard ex" is never
-    // mistaken for a set whose name happens to end the same way.
-    if (lower === s || lower.endsWith(" " + s)) {
-      if (!best || s.length > best.length) best = s;
-    }
-  }
-  if (!best) return { name: raw, setHint: null };
-
-  const name = lower === best ? "" : raw.slice(0, raw.length - best.length).trim();
-  // Recover the set's real casing for display and for the RPC's substring match.
-  const canonical = setNames.find((n) => n.trim().toLowerCase() === best) ?? best;
-  return { name, setHint: canonical };
-};
 
 // USD → MYR conversion. TCGPlayer publishes prices in USD; we multiply by a
 // live rate fetched from /api/fx/usd-myr (cached server-side for 12h). Until
@@ -396,6 +279,8 @@ export const useCardCatalog = () => {
       limit?: number;
       page?: number;
       language?: "EN" | "JP" | "ALL";
+      /** A card number like "012", "gg44" or "065/202". Bypasses the RPC. */
+      numberMatch?: string | null;
       setMatch?: string | null;
       rarityMatch?: string | null;
       sort?: CatalogSort;
@@ -405,13 +290,61 @@ export const useCardCatalog = () => {
     const trimmed = query.trim();
     const setMatch = opts.setMatch?.trim() || null;
     const rarityMatch = opts.rarityMatch?.trim() || null;
-    // RPC requires either a usable name OR at least one filter.
-    if (trimmed.length < 2 && !setMatch && !rarityMatch) {
+    // Either a usable name, or something to filter on. A number counts —
+    // "gg44" alone is a perfectly good search.
+    if (trimmed.length < 2 && !setMatch && !rarityMatch && !opts.numberMatch) {
       return { results: [], total: 0 };
     }
 
     // Fetch the FX rate concurrently with the query.
     const fxReady = ensureRate();
+
+    // ── A number search cannot go through the RPC ─────────────────────
+    //
+    // search_catalog matches `q` against the card NAME only. Numbers live in
+    // their own column and take several shapes — 065/202, GG61/GG70, SWSH020
+    // — so "pikachu 012", "gg44" and "tg05" all came back empty: they were
+    // being asked for as names.
+    //
+    // PostgREST can filter the column directly, which needs no migration.
+    // Ranking is simpler than the RPC's, but a number search is already
+    // precise enough not to need ranking.
+    if (opts.numberMatch) {
+      const forms = numberCandidates(opts.numberMatch);
+      let q = supabase
+        .from("cards_catalog")
+        .select(SELECT_COLUMNS, { count: "exact" })
+        // The whole number, or the printed part before the slash — 012 finds
+        // 012/202 without the searcher knowing the set size, gg44 finds
+        // GG44/GG70, swsh020 matches outright.
+        //
+        // NOT a bare prefix match. numberCandidates also yields the unpadded
+        // form, and `12%` pulls in 122/106 and every other number that merely
+        // starts with those digits.
+        .or(
+          forms
+            .flatMap((f) => [`number.ilike.${f}`, `number.ilike.${f}/*`])
+            .join(","),
+        );
+
+      if (trimmed.length >= 2) q = q.ilike("name", `%${trimmed}%`);
+      if (setMatch) q = q.ilike("group_name", `%${setMatch}%`);
+      if (rarityMatch) q = q.ilike("rarity", `%${rarityMatch}%`);
+      if (opts.language && opts.language !== "ALL") q = q.eq("language", opts.language);
+
+      const size = opts.limit ?? 28;
+      const from = (opts.page ?? 0) * size;
+      const { data, error, count } = await q
+        .order("number", { ascending: true })
+        .range(from, from + size - 1);
+
+      if (error) {
+        console.error("[useCardCatalog] number search error:", error.message);
+        return { results: [], total: 0 };
+      }
+      await fxReady;
+      return { results: (data ?? []).map(rowToMatch), total: count ?? 0 };
+    }
 
     const { data, error } = await supabase.rpc("search_catalog", {
       q: trimmed,

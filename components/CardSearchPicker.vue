@@ -138,6 +138,7 @@
 
 <script setup lang="ts">
 import type { CatalogMatch, PriceTrend } from "~/composables/useCardCatalog";
+import { parseSearchQuery } from "~/shared/search-query";
 
 const props = defineProps<{
   /** Free-text built from the form fields, used for the manual-entry suggestions. */
@@ -191,6 +192,7 @@ const lastQuery = ref("");
 // parseSmartQuery is what that page uses, and this now uses it too.
 const lastSetHint = ref<string | null>(null);
 const lastRarityHint = ref<string | null>(null);
+const lastNumber = ref<string | null>(null);
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)));
 
@@ -204,6 +206,7 @@ const fetchPage = async (n: number) => {
       language: lang.value,
       setMatch: lastSetHint.value,
       rarityMatch: lastRarityHint.value,
+      numberMatch: lastNumber.value,
     });
     results.value = r;
     // Trust the latest count so "x / y" can't drift mid-browse.
@@ -220,18 +223,23 @@ const runSearch = async () => {
   if (raw.length < 2) return;
 
   await loadSets();
-  // Set name first — it can be several words, so taking it off the end leaves
-  // parseSmartQuery a cleaner string to read rarity and numeric hints from.
-  const { name: withoutSet, setHint } = splitKnownSet(raw, setNames.value);
-  const parsed = parseSmartQuery(withoutSet || raw);
+  const parsed = parseSearchQuery(raw, setNames.value);
+  const setHint = parsed.setHint;
   // A query that is ONLY a filter is still searchable — "surging sparks"
   // with no card name should list the set. searchCatalog allows a short name
   // when a filter is present.
-  if (parsed.name.trim().length < 2 && !setHint && !parsed.setHint && !parsed.rarityHint) return;
+  if (
+    parsed.name.trim().length < 2 &&
+    !setHint &&
+    !parsed.rarityHint &&
+    !parsed.numberMatch
+  )
+    return;
 
   searched.value = true;
   lastQuery.value = parsed.name.trim();
-  lastSetHint.value = setHint ?? parsed.setHint;
+  lastSetHint.value = setHint;
+  lastNumber.value = parsed.numberMatch;
   lastRarityHint.value = parsed.rarityHint;
   total.value = 0;
   await fetchPage(0);
@@ -284,12 +292,12 @@ watch(
     }
     timer = setTimeout(async () => {
       await loadSets();
-      const { name: noSet, setHint: sh } = splitKnownSet(query, setNames.value);
-      const parsed = parseSmartQuery(noSet || query);
+      const parsed = parseSearchQuery(query, setNames.value);
       const { results: r } = await searchCatalog(parsed.name.trim(), {
         limit: 4,
         language: lang.value,
-        setMatch: sh ?? parsed.setHint,
+        setMatch: parsed.setHint,
+        numberMatch: parsed.numberMatch,
         rarityMatch: parsed.rarityHint,
       });
       // The field may have changed again while the request was in flight.

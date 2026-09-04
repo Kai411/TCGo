@@ -351,22 +351,26 @@
             @toggle="handleToggle(card.productId)"
           />
         </div>
-        <div v-if="hasMoreResults" class="mt-4 flex justify-center">
-          <button
-            @click="loadMore"
-            :disabled="searchLoading"
-            class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors disabled:opacity-60"
-          >
-            <span v-if="searchLoading">Loading…</span>
-            <span v-else
-              >Load
-              {{
-                Math.min(SEARCH_PAGE_SIZE, searchTotal - searchResults.length)
-              }}
-              more</span
-            >
-          </button>
+        <!-- Scrolling to the bottom IS the request for more. The sentinel sits
+             below the grid and fetches when it comes near the viewport; the
+             button it replaced made every extra page a decision. -->
+        <div
+          v-if="hasMoreResults"
+          ref="loadMoreSentinel"
+          class="mt-4 flex justify-center py-4"
+        >
+          <span
+            class="h-5 w-5 animate-spin rounded-full border-2 border-black/[0.12] border-t-pokemon-red dark:border-white/[0.16] dark:border-t-pokemon-red"
+            aria-hidden="true"
+          />
+          <span class="sr-only">Loading more results</span>
         </div>
+        <p
+          v-else-if="searchResults.length >= SEARCH_PAGE_SIZE"
+          class="mt-4 text-center text-[12px] text-gray-400 dark:text-zinc-500"
+        >
+          {{ searchTotal }} result{{ searchTotal === 1 ? "" : "s" }} — that's all
+        </p>
       </template>
     </div>
   </div>
@@ -379,15 +383,17 @@
 definePageMeta({ flushTop: true });
 
 import {
-  parseSmartQuery,
   type CatalogMatch,
   type CatalogSort,
   type CollectionPriceTrend,
 } from "~/composables/useCardCatalog";
+import { parseSearchQuery } from "~/shared/search-query";
 
 useHead({ title: "Add Cards | TCGo Marketplace" });
 
-const SEARCH_PAGE_SIZE = 28;
+// Divisible by 2, 3 and 5 — the three grid widths — so the last row is never
+// left with empty slots at any breakpoint.
+const SEARCH_PAGE_SIZE = 30;
 
 const { user } = useAuth();
 const { requireSignIn } = useSignInGate();
@@ -422,10 +428,18 @@ watch(user, (u) => {
 // ── Filter dropdown data ──────────────────────────────────────────────
 const sets = ref<Array<{ name: string; count: number }>>([]);
 const rarities = ref<Array<{ name: string; count: number }>>([]);
-const loadDropdowns = async () => {
-  const [s, r] = await Promise.all([listSets("EN"), listRarities("EN")]);
-  sets.value = s;
-  rarities.value = r;
+// Memoised, because runSearch awaits it too: set abbreviations ("ssp", "rc")
+// can only resolve once the set list is here, and a fast typist reaches the
+// search button before the mount-time fetch has returned.
+let dropdownsPromise: Promise<void> | null = null;
+const loadDropdowns = (): Promise<void> => {
+  if (dropdownsPromise) return dropdownsPromise;
+  dropdownsPromise = (async () => {
+    const [s, r] = await Promise.all([listSets("EN"), listRarities("EN")]);
+    sets.value = s;
+    rarities.value = r;
+  })();
+  return dropdownsPromise;
 };
 
 // ── Search + filter state ─────────────────────────────────────────────
@@ -447,7 +461,13 @@ const hasActiveFilters = computed(
   () => !!setFilter.value || !!rarityFilter.value || sortBy.value !== "best",
 );
 
-const parsed = computed(() => parseSmartQuery(appliedQuery.value));
+// One parser for every search surface — see useCardCatalog. This page used
+// to call parseSmartQuery directly, which knows about rarities and numeric
+// set hints but nothing about set names or card numbers, so "reshiram rc" and
+// "pikachu 012" found nothing here while working in the seller's picker.
+const parsed = computed(() =>
+  parseSearchQuery(appliedQuery.value, sets.value.map((s) => s.name)),
+);
 const effectiveSetMatch = computed(
   () => parsed.value.setHint || setFilter.value || null,
 );
@@ -484,10 +504,13 @@ const runSearch = async () => {
   // Results are about to replace the screen; the keyboard would cover them.
   dismissKeyboard();
   appliedQuery.value = searchInput.value;
+  // The set list is what turns "ssp" into Surging Sparks.
+  await loadDropdowns();
   const trimmed = parsed.value.name.trim();
   // Need a name (≥2) OR a filter to search.
   if (
     trimmed.length < 2 &&
+    !parsed.value.numberMatch &&
     !effectiveSetMatch.value &&
     !effectiveRarityMatch.value
   ) {
@@ -500,6 +523,7 @@ const runSearch = async () => {
     limit: SEARCH_PAGE_SIZE,
     page: 0,
     language: "EN",
+    numberMatch: parsed.value.numberMatch,
     setMatch: effectiveSetMatch.value,
     rarityMatch: effectiveRarityMatch.value,
     sort: sortBy.value,
@@ -517,6 +541,9 @@ const loadMore = async () => {
     limit: SEARCH_PAGE_SIZE,
     page: nextPage,
     language: "EN",
+    // Page 2 has to be the same search as page 1. Without this a number
+    // search fell back to matching the name alone as soon as you scrolled.
+    numberMatch: parsed.value.numberMatch,
     setMatch: effectiveSetMatch.value,
     rarityMatch: effectiveRarityMatch.value,
     sort: sortBy.value,
@@ -525,6 +552,29 @@ const loadMore = async () => {
   searchPage.value = nextPage;
   searchLoading.value = false;
 };
+
+// Auto-load when the sentinel nears the viewport.
+//
+// rootMargin fetches a screenful early, so the next page is usually already
+// there by the time the reader arrives and the scroll never visibly stalls.
+// The sentinel lives inside a v-if, so it is watched rather than grabbed once
+// on mount — it does not exist until there is a second page to load.
+const loadMoreSentinel = ref<HTMLElement | null>(null);
+let observer: IntersectionObserver | null = null;
+
+watch(loadMoreSentinel, (el) => {
+  observer?.disconnect();
+  if (!el || typeof IntersectionObserver === "undefined") return;
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting)) loadMore();
+    },
+    { rootMargin: "600px 0px" },
+  );
+  observer.observe(el);
+});
+
+onBeforeUnmount(() => observer?.disconnect());
 
 const applyFilters = () => {
   filtersOpen.value = false;
