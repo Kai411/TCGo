@@ -54,6 +54,15 @@ export interface PayableOrder {
   // Present when the platform booked the label on its own courier credit.
   // Absent means the seller shipped it themselves and paid the courier.
   shipmentOrderNo?: string;
+  /**
+   * The seller paid the courier themselves, out of pocket.
+   *
+   * Never set by the normal flow — TCGo buys every label. It exists so a
+   * booking failure that a seller worked around by hand can be made good
+   * deliberately, rather than by the payout maths guessing from a missing
+   * field. See shippingReimbursement().
+   */
+  selfShipped?: boolean;
   /** Seller's subscription plan, once orders record it. Beta ignores this. */
   sellerPlan?: PlanId;
 }
@@ -66,22 +75,28 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 export const platformFeeFor = (order: PayableOrder): number =>
   round2((order.subtotal || 0) * effectiveRate(order.sellerPlan));
 
-// Shipping is only reimbursed to the seller when *they* paid the courier.
-// When the platform books the label it's charged to the platform's own courier
-// credit, so the shipping the buyer paid stays with the platform — paying it
-// out again would mean covering postage twice.
+// Postage is not the seller's money, and neither is the join fee.
 //
-// TCGo books every label now — the Billplz webhook books through Delyva the
-// moment payment settles, so in the normal flow shipmentOrderNo is always set
-// and postage is never reimbursed. Sellers are not meant to ship with their
-// own labels at all.
+// The buyer pays both to TCGo; TCGo buys the label from its own Delyva
+// credit. Paying either out to the seller would mean covering postage twice.
 //
-// The reimbursement branch is the safety net, not an alternative flow: when a
-// booking fails the order carries shipmentError and the seller may dispatch it
-// themselves out of pocket. Hard-coding this to zero would quietly keep the
-// postage they paid for. Reimburse if and only if we did not pay the courier.
+// THIS USED TO KEY OFF shipmentOrderNo, AND THAT BROKE.
+// The rule was "reimburse if we did not pay the courier", which was safe
+// while the payment webhook booked the label the instant money landed —
+// shipmentOrderNo was always set by the time anyone looked. Booking then
+// moved to the seller's request, so that a second order can still join the
+// parcel, and the window between payment and booking became the NORMAL state
+// rather than an error. In that window every order looked self-shipped, and
+// the seller's statement credited them the full postage: a RM 70 card showed
+// a RM 74.45 payout that would silently drop to RM 67.20 once the label was
+// bought.
+//
+// So it now keys off an explicit fact instead of the absence of one.
+// `selfShipped` is set only when a seller genuinely dispatched at their own
+// cost — which is not a flow the product offers, so in practice this is zero
+// and the number on the statement is the number that arrives.
 export const shippingReimbursement = (order: PayableOrder): number =>
-  order.shipmentOrderNo ? 0 : round2(order.shipping || 0);
+  order.selfShipped === true ? round2(order.shipping || 0) : 0;
 
 /**
  * Service tax on this order's fee. Zero until TCGo is SST-registered.

@@ -91,7 +91,11 @@ for (const doc of snap.docs) {
     : o.platformFee != null
       ? round2(o.platformFee)
       : 0;
-  const reimbursement = o.shipmentOrderNo ? 0 : round2(o.shipping || 0);
+  // Matches shippingReimbursement() in shared/payouts.ts: postage is TCGo's
+  // unless the seller demonstrably shipped at their own cost. This used to
+  // read `o.shipmentOrderNo ? 0 : shipping`, which credited the seller the
+  // full postage for every order between payment and dispatch.
+  const reimbursement = o.selfShipped === true ? round2(o.shipping || 0) : 0;
   const correct = round2((o.subtotal || 0) - fee + reimbursement);
   const stored = round2(o.sellerPayout);
   const feeChanged = reprice && fee !== round2(o.platformFee ?? 0);

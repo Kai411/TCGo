@@ -14,9 +14,9 @@
 
 import { recordedFee, recordedPayout, recordedSst } from "~/shared/payouts";
 import { BETA_RATE, PLANS, splitFee, SST_RATE } from "~/shared/pricing";
-import { JOIN_FEE_MYR } from "~/shared/order-joining";
 
 export interface SettlementOrder {
+  selfShipped?: boolean;
   subtotal?: number;
   shipping?: number;
   /** Ids folded into this parcel. Present only on a combined order. */
@@ -107,24 +107,29 @@ export const settlementLines = (order: SettlementOrder): SettlementLine[] => {
   const shipping = round2(order.shipping || 0);
   const fee = feeCharged(order);
   const rate = rateCharged(order);
-  const platformBooked = !!order.shipmentOrderNo;
+  const selfShipped = order.selfShipped === true;
 
   const lines: SettlementLine[] = [
     { label: "Card sold", amount: subtotal, kind: "gross" },
   ];
 
-  // Money owed back to the seller, not money passing through.
-  if (!platformBooked && shipping > 0) {
+  // Only when the seller genuinely paid a courier out of pocket.
+  //
+  // This used to appear whenever no label had been bought yet — which, since
+  // booking moved to the seller's request, is every order between payment and
+  // dispatch. The statement credited postage that was never the seller's and
+  // then quietly took it back when the label was bought.
+  if (selfShipped && shipping > 0) {
     lines.push({
       label: "Shipping reimbursed",
       amount: shipping,
       kind: "credit",
-      note: "You booked the label, so the buyer's postage comes back to you.",
+      note: "You paid the courier yourself, so the buyer's postage comes back to you.",
     });
   }
 
   lines.push({
-    label: rate != null ? `TCGo fee (${rate}%)` : "TCGo fee",
+    label: rate != null ? `Charges (${rate}%)` : "Charges",
     amount: -fee,
     kind: "deduction",
     note: "Charged once, when the buyer paid. Nothing further is deducted at payout.",
@@ -151,19 +156,6 @@ export const settlementLines = (order: SettlementOrder): SettlementLine[] => {
   // Only when there is tax to show. A zero line on every statement invites
   // "why is this here", and before registration the honest answer is that it
   // isn't charged at all.
-  // A combined parcel's shipping line is the original postage PLUS a join fee
-  // per absorbed order. Left unexplained, a seller sees a postage figure that
-  // matches no quote they were ever shown.
-  const joinedCount = order.joinedOrderIds?.length ?? 0;
-  if (joinedCount > 0) {
-    lines.push({
-      label: `Combined ${joinedCount} order${joinedCount === 1 ? "" : "s"}`,
-      amount: round2(joinedCount * JOIN_FEE_MYR),
-      kind: "sub",
-      note: `RM ${JOIN_FEE_MYR.toFixed(2)} each, paid by the buyer to ship together. It goes toward the heavier label, not to you.`,
-    });
-  }
-
   const sst = sstCharged(order);
   if (sst > 0) {
     lines.push({
@@ -189,15 +181,23 @@ export const settlementLines = (order: SettlementOrder): SettlementLine[] => {
  * The seller's question is only ever "where did the shipping go", so it
  * answers that and stops. Longer versions explained things nobody asked.
  */
+/**
+ * Where the buyer's postage went, for an order the seller did not ship.
+ *
+ * Deliberately not keyed on shipmentOrderNo any more: the postage is TCGo's
+ * from the moment it is paid, whether or not the label has been bought yet.
+ * Waiting for the label meant the note appeared only after dispatch, leaving
+ * the gap where the statement looked like it owed the seller postage.
+ *
+ * Says nothing about the join fee. That is TCGo's side of the ledger and
+ * putting it on a seller's statement only invites "why am I being shown a
+ * charge that isn't mine?".
+ */
 export const shippingNote = (order: SettlementOrder): string => {
   const shipping = round2(order.shipping || 0);
-  if (!order.shipmentOrderNo || shipping <= 0) return "";
+  if (order.selfShipped === true || shipping <= 0) return "";
   const joined = order.joinedOrderIds?.length ?? 0;
-  if (joined > 0) {
-    return (
-      `Shipping (RM ${shipping.toFixed(2)}) covers one parcel for ` +
-      `${joined + 1} orders and went straight to the courier.`
-    );
-  }
-  return `Shipping (RM ${shipping.toFixed(2)}) went straight to the courier.`;
+  return joined > 0
+    ? `Shipping covers one parcel for ${joined + 1} orders and goes to the courier.`
+    : `Shipping goes to the courier, not to your payout.`;
 };

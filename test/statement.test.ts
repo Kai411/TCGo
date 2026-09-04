@@ -81,16 +81,33 @@ describe("settlement statement", () => {
       !lines.some((l) => l.label.toLowerCase().includes("shipping")),
       "postage the platform paid is not a seller deduction",
     );
-    assert.match(shippingNote(platformBooked), /RM 6\.00/);
+    assert.match(shippingNote(platformBooked), /courier/i);
   });
 
-  it("reimburses postage as a credit when the seller bought the label", () => {
-    const { shipmentOrderNo, ...sellerShipped } = platformBooked;
-    const l = settlementLines({ ...sellerShipped, sellerPayout: 102 });
+  it("shows no credit before dispatch — the postage is not the seller's", () => {
+    // The bug this pins: with booking moved to the seller's request, an order
+    // sitting between payment and dispatch has no shipmentOrderNo. That used
+    // to read as "the seller paid", crediting them the full postage and then
+    // taking it back once the label was bought.
+    const { shipmentOrderNo, ...notYetBooked } = platformBooked;
+    const l = settlementLines(notYetBooked);
+    assert.equal(l.find((x) => x.kind === "credit"), undefined);
+  });
+
+  it("credits postage only on an explicit self-ship", () => {
+    const { shipmentOrderNo, ...selfShipped } = platformBooked;
+    const l = settlementLines({ ...selfShipped, selfShipped: true, sellerPayout: 102 });
     const credit = l.find((x) => x.kind === "credit");
-    assert.ok(credit, "seller-paid postage must come back to them");
+    assert.ok(credit, "a seller who paid a courier must be repaid");
     assert.equal(credit!.amount, 6);
-    assert.equal(shippingNote(sellerShipped), "");
+    assert.equal(shippingNote({ ...selfShipped, selfShipped: true }), "");
+  });
+
+  it("never mentions the join fee — it is not the seller's money", () => {
+    const combined = { ...platformBooked, shipping: 7.25, joinedOrderIds: ["x"] };
+    const l = settlementLines(combined);
+    assert.ok(!l.some((x) => /combin|join/i.test(x.label)), "no join fee line");
+    assert.ok(!/1\.25/.test(shippingNote(combined)), "no join fee in the note");
   });
 });
 

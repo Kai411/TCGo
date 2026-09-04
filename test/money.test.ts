@@ -89,18 +89,32 @@ describe("SST", () => {
 });
 
 describe("shipping reimbursement", () => {
-  it("pays postage back only when the seller bought the label", () => {
-    assert.equal(shippingReimbursement({ shipping: 6 }), 6);
-    assert.equal(
-      shippingReimbursement({ shipping: 6, shipmentOrderNo: "DLV1" }),
-      0,
-      "reimbursing postage the platform already paid pays it twice",
-    );
+  it("pays postage back ONLY when the seller shipped at their own cost", () => {
+    assert.equal(shippingReimbursement({ shipping: 6, selfShipped: true }), 6);
   });
 
-  it("does not double-pay postage on a platform-booked order", () => {
-    const order = { subtotal: 100, shipping: 6, shipmentOrderNo: "DLV1" };
-    assert.equal(computeSellerPayout(order), 100 - 100 * STANDARD_RATE);
+  it("keeps postage with the platform the rest of the time", () => {
+    // The rule used to be "no label yet, so the seller must have paid" — and
+    // once booking moved to the seller's request, the gap between payment and
+    // dispatch became the normal state. Every order in it credited the seller
+    // postage that was never theirs.
+    assert.equal(shippingReimbursement({ shipping: 6 }), 0);
+    assert.equal(shippingReimbursement({ shipping: 6, shipmentOrderNo: "DLV1" }), 0);
+    assert.equal(shippingReimbursement({ shipping: 7.25 }), 0, "join fee included");
+  });
+
+  it("never pays postage twice, booked or not", () => {
+    const fee = 100 * STANDARD_RATE;
+    assert.equal(computeSellerPayout({ subtotal: 100, shipping: 6, shipmentOrderNo: "DLV1" }), 100 - fee);
+    // The case that was wrong: paid, not yet dispatched.
+    assert.equal(computeSellerPayout({ subtotal: 100, shipping: 6 }), 100 - fee);
+  });
+
+  it("never pays the join fee to the seller either", () => {
+    // A combined parcel's shipping is postage plus RM 1.25 per absorbed
+    // order. All of it is TCGo's.
+    const fee = 70 * STANDARD_RATE;
+    assert.equal(computeSellerPayout({ subtotal: 70, shipping: 7.25 }), 70 - fee);
   });
 });
 
