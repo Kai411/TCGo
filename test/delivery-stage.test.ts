@@ -8,6 +8,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  BUYER_TIMELINE,
+  timelineIndex,
   deliveryStage,
   deliveryStageLabel,
   isOnItsWay,
@@ -93,5 +95,41 @@ describe("what counts as on its way", () => {
     assert.equal(isOnItsWay({ status: "paid" }), false);
     assert.equal(isOnItsWay({ status: "delivered" }), false);
     assert.equal(isOnItsWay({ status: "cancelled" }), false);
+  });
+});
+
+describe("the buyer's timeline", () => {
+  it("advances with the parcel", () => {
+    const at = (o: any) => BUYER_TIMELINE[timelineIndex(o)]?.label;
+    assert.equal(at({ status: "paid" }), "Arranging delivery");
+    assert.equal(at({ status: "paid", shipmentOrderNo: "DLV1" }), "Arranging delivery");
+    assert.equal(at({ status: "shipped" }), "Collected");
+    assert.equal(at({ status: "shipped", shipmentStatusCode: 600 }), "In transit");
+    assert.equal(at({ status: "delivered" }), "Delivered");
+  });
+
+  it("collapses ready and preparing into one step", () => {
+    // Whether a label has been bought is a seller's concern. To a buyer both
+    // mean the parcel has not moved.
+    assert.equal(
+      timelineIndex({ status: "paid" }),
+      timelineIndex({ status: "paid", shipmentOrderNo: "DLV1" }),
+    );
+  });
+
+  it("puts nothing on the timeline before payment or after cancelling", () => {
+    assert.equal(timelineIndex({ status: "pending" }), -1);
+    assert.equal(timelineIndex({ status: "cancelled" }), -1);
+  });
+
+  it("only ever moves forward through the listed steps", () => {
+    const seen = [
+      { status: "paid" },
+      { status: "shipped" },
+      { status: "shipped", shipmentStatusCode: 600 },
+      { status: "delivered" },
+    ].map(timelineIndex);
+    assert.deepEqual(seen, [...seen].sort((a, b) => a - b), "timeline went backwards");
+    assert.ok(Math.max(...seen) < BUYER_TIMELINE.length, "index off the end");
   });
 });

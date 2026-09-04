@@ -62,7 +62,7 @@ export const deliveryStage = (o: DeliveryView | null | undefined): DeliveryStage
 
 export const DELIVERY_STAGE_LABEL: Record<DeliveryStage, string> = {
   awaiting_payment: "Awaiting payment",
-  preparing: "Preparing",
+  preparing: "Arranging delivery",
   ready: "Ready to ship",
   collected: "Collected",
   in_transit: "In transit",
@@ -109,3 +109,58 @@ export const isOnItsWay = (o: DeliveryView): boolean => {
  */
 export const withoutMergedChildren = <T extends DeliveryView>(orders: T[]): T[] =>
   orders.filter((o) => !o.mergedInto);
+
+// ── The buyer's view of progress ──────────────────────────────────────
+//
+// A buyer does not need a waybill; they need to know where their card is.
+// The order page used to show a "Waybill" card that said "the seller hasn't
+// dispatched this yet" — a logistics artefact standing in for a status, and
+// a slightly accusatory one.
+//
+// `ready` and `preparing` collapse into one step on purpose. Whether a label
+// has been bought is a seller's concern; to a buyer both mean the same thing,
+// which is that the parcel has not moved yet.
+
+export interface TimelineStep {
+  id: string;
+  label: string;
+  /** What it means, when this is the step they are on. */
+  blurb: string;
+}
+
+export const BUYER_TIMELINE: TimelineStep[] = [
+  { id: "placed", label: "Order placed", blurb: "Payment received." },
+  {
+    id: "arranging",
+    label: "Arranging delivery",
+    blurb: "The seller is packing it and booking a courier.",
+  },
+  { id: "collected", label: "Collected", blurb: "The courier has your parcel." },
+  { id: "in_transit", label: "In transit", blurb: "On its way to you." },
+  { id: "delivered", label: "Delivered", blurb: "Arrived." },
+];
+
+/**
+ * How far along the timeline this order is: an index into BUYER_TIMELINE,
+ * or -1 before payment when nothing has started.
+ */
+export const timelineIndex = (o: DeliveryView | null | undefined): number => {
+  switch (deliveryStage(o)) {
+    case "awaiting_payment":
+      return -1;
+    case "preparing":
+    case "ready":
+      return 1;
+    case "collected":
+      return 2;
+    case "in_transit":
+      return 3;
+    case "delivered":
+      return 4;
+    // A cancelled order has no position on a timeline that only goes forward.
+    case "cancelled":
+      return -1;
+    default:
+      return 0;
+  }
+};

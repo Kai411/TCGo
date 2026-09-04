@@ -322,103 +322,111 @@
             </p>
           </div>
 
-          <!-- Waybill / tracking -->
-          <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
-              Waybill
-            </h2>
+          <!-- A buyer gets progress; a seller gets the waybill.
+               The buyer used to see a card headed "Waybill" that read "the
+               seller hasn't dispatched this yet" — a logistics artefact standing
+               in for a status, and a faintly accusatory one. They do not need a
+               consignment note; they need to know where their card is. -->
+          <DeliveryProgress v-if="role !== 'seller'" :order="order" />
+          <template v-else>
+            <!-- Waybill / tracking -->
+            <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+              <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
+                Waybill
+              </h2>
 
-            <template v-if="order.trackingNumber || order.shipmentOrderNo">
-              <!-- Waybill number — the thing buyers copy into a courier site -->
-              <div v-if="order.trackingNumber" class="flex items-start gap-2">
-                <div class="min-w-0">
-                  <p class="font-mono font-semibold text-sm text-ink dark:text-white break-all">
-                    {{ order.trackingNumber }}
-                  </p>
-                  <p v-if="order.shippingCarrier" class="text-xs text-gray-500 dark:text-zinc-400">
-                    via {{ order.shippingCarrier }}
-                  </p>
-                </div>
-                <button
-                  @click="copyTracking"
-                  class="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 hover:border-pokemon-red hover:text-pokemon-red transition-colors"
-                >
-                  {{ copied ? "Copied" : "Copy" }}
-                </button>
-              </div>
-              <p v-else class="text-sm text-gray-500 dark:text-zinc-400">
-                Booked — waiting for the courier to assign a waybill number.
-              </p>
-
-              <!-- Delivery progress — buyers only. Sellers dispatch the parcel
-                   and care about the consignment note, not the courier's
-                   scan-by-scan progress. -->
-              <div v-if="role === 'buyer'" class="mt-4 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
-                <div class="flex items-center justify-between gap-2 mb-3">
-                  <h3 class="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
-                    Delivery progress
-                  </h3>
+              <template v-if="order.trackingNumber || order.shipmentOrderNo">
+                <!-- Waybill number — the thing buyers copy into a courier site -->
+                <div v-if="order.trackingNumber" class="flex items-start gap-2">
+                  <div class="min-w-0">
+                    <p class="font-mono font-semibold text-sm text-ink dark:text-white break-all">
+                      {{ order.trackingNumber }}
+                    </p>
+                    <p v-if="order.shippingCarrier" class="text-xs text-gray-500 dark:text-zinc-400">
+                      via {{ order.shippingCarrier }}
+                    </p>
+                  </div>
                   <button
-                    @click="loadTracking"
-                    :disabled="trackingBusy"
-                    class="text-[11px] font-semibold text-pokemon-red hover:underline disabled:opacity-50"
+                    @click="copyTracking"
+                    class="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 hover:border-pokemon-red hover:text-pokemon-red transition-colors"
                   >
-                    {{ trackingBusy ? "Refreshing…" : "Refresh" }}
+                    {{ copied ? "Copied" : "Copy" }}
                   </button>
                 </div>
-                <ShipmentTimeline
-                  :tracking="tracking"
-                  :empty-message="trackingMessage"
-                />
-              </div>
+                <p v-else class="text-sm text-gray-500 dark:text-zinc-400">
+                  Booked — waiting for the courier to assign a waybill number.
+                </p>
 
-              <!-- Seller-only: the printable consignment note -->
-              <template v-if="role === 'seller'">
-                <div v-if="labelUrl" class="mt-4">
-                  <button
-                    @click="openLabel"
-                    class="block w-full rounded-lg border border-gray-200 dark:border-white/[0.10] overflow-hidden bg-gray-50 dark:bg-white/[0.04] hover:border-pokemon-red transition-colors group"
-                    title="Open full size"
-                  >
-                    <iframe
-                      :src="`${labelUrl}#toolbar=0&navpanes=0&view=FitH`"
-                      class="w-full h-44 pointer-events-none"
-                      title="Waybill preview"
-                    />
-                    <span class="block text-[11px] font-semibold text-gray-600 dark:text-zinc-300 py-1.5 group-hover:text-pokemon-red">
-                      Open full size ↗
-                    </span>
-                  </button>
+                <!-- Delivery progress — buyers only. Sellers dispatch the parcel
+                     and care about the consignment note, not the courier's
+                     scan-by-scan progress. -->
+                <div v-if="role === 'buyer'" class="mt-4 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
+                  <div class="flex items-center justify-between gap-2 mb-3">
+                    <h3 class="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                      Delivery progress
+                    </h3>
+                    <button
+                      @click="loadTracking"
+                      :disabled="trackingBusy"
+                      class="text-[11px] font-semibold text-pokemon-red hover:underline disabled:opacity-50"
+                    >
+                      {{ trackingBusy ? "Refreshing…" : "Refresh" }}
+                    </button>
+                  </div>
+                  <ShipmentTimeline
+                    :tracking="tracking"
+                    :empty-message="trackingMessage"
+                  />
                 </div>
-                <button
-                  v-if="order.shipmentOrderNo"
-                  @click="fetchLabel"
-                  :disabled="labelBusy"
-                  class="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-pokemon-red hover:underline disabled:opacity-60"
-                >
-                  <span v-if="labelBusy" class="animate-spin rounded-full h-3 w-3 border-b-2 border-pokemon-red"/>
-                  {{ labelBusy ? "Fetching…" : labelUrl ? "Refresh label" : "Get consignment note" }}
-                </button>
-                <p v-if="labelError" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                  {{ labelError }}
+
+                <!-- Seller-only: the printable consignment note -->
+                <template v-if="role === 'seller'">
+                  <div v-if="labelUrl" class="mt-4">
+                    <button
+                      @click="openLabel"
+                      class="block w-full rounded-lg border border-gray-200 dark:border-white/[0.10] overflow-hidden bg-gray-50 dark:bg-white/[0.04] hover:border-pokemon-red transition-colors group"
+                      title="Open full size"
+                    >
+                      <iframe
+                        :src="`${labelUrl}#toolbar=0&navpanes=0&view=FitH`"
+                        class="w-full h-44 pointer-events-none"
+                        title="Waybill preview"
+                      />
+                      <span class="block text-[11px] font-semibold text-gray-600 dark:text-zinc-300 py-1.5 group-hover:text-pokemon-red">
+                        Open full size ↗
+                      </span>
+                    </button>
+                  </div>
+                  <button
+                    v-if="order.shipmentOrderNo"
+                    @click="fetchLabel"
+                    :disabled="labelBusy"
+                    class="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-pokemon-red hover:underline disabled:opacity-60"
+                  >
+                    <span v-if="labelBusy" class="animate-spin rounded-full h-3 w-3 border-b-2 border-pokemon-red"/>
+                    {{ labelBusy ? "Fetching…" : labelUrl ? "Refresh label" : "Get consignment note" }}
+                  </button>
+                  <p v-if="labelError" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                    {{ labelError }}
+                  </p>
+                </template>
+              </template>
+
+              <template v-else>
+                <p class="text-sm text-gray-500 dark:text-zinc-400">
+                  <template v-if="order.status === 'pending' || order.status === 'confirmed'">
+                    Generated automatically once payment clears.
+                  </template>
+                  <template v-else-if="role === 'seller'">
+                    Not booked yet — use "Book courier".
+                  </template>
+                  <template v-else>
+                    The seller hasn't dispatched this yet.
+                  </template>
                 </p>
               </template>
-            </template>
-
-            <template v-else>
-              <p class="text-sm text-gray-500 dark:text-zinc-400">
-                <template v-if="order.status === 'pending' || order.status === 'confirmed'">
-                  Generated automatically once payment clears.
-                </template>
-                <template v-else-if="role === 'seller'">
-                  Not booked yet — use "Book courier".
-                </template>
-                <template v-else>
-                  The seller hasn't dispatched this yet.
-                </template>
-              </p>
-            </template>
-          </div>
+            </div>
+          </template>
         </div>
 
         <!-- Refund state. A cancelled order has to say where the money is,

@@ -44,7 +44,9 @@
             <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red"/>
           </div>
 
-          <template v-else-if="!buyerCompiledOrders.length">
+          <!-- Filtered, so a buyer whose only order was absorbed into another
+               parcel sees the empty state rather than a blank list. -->
+          <template v-else-if="!sortedOrders.length">
             <div class="text-center py-16">
               <p class="text-gray-500 dark:text-zinc-400">You haven't bought anything yet.</p>
               <NuxtLink to="/" class="text-pokemon-red font-semibold hover:underline mt-1 inline-block text-sm">
@@ -224,11 +226,14 @@ const visibleOrders = computed(() =>
   sortedOrders.value.filter((o) => inGroup(o.status, orderFilter.value)),
 );
 
+// Counted off the same filtered list the rows come from. Reading
+// buyerCompiledOrders directly meant a merged child was counted but never
+// shown, so a tab could say 3 above two rows.
 const countFor = (f: OrderFilter) =>
-  buyerCompiledOrders.value.filter((o) => inGroup(o.status, f)).length;
+  sortedOrders.value.filter((o) => inGroup(o.status, f)).length;
 
 const orderFilters = computed(() => [
-  { id: "all" as const, label: "All", count: buyerCompiledOrders.value.length },
+  { id: "all" as const, label: "All", count: sortedOrders.value.length },
   { id: "topay" as const, label: "To pay", count: countFor("topay") },
   { id: "intransit" as const, label: "In-transit", count: countFor("intransit") },
   { id: "completed" as const, label: "Completed", count: countFor("completed") },
