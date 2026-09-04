@@ -164,6 +164,7 @@
 </template>
 
 <script setup lang="ts">
+import { withoutMergedChildren } from "~/shared/delivery-stage";
 import type { Auction } from "~/composables/useAuctions";
 
 interface TabItem {
@@ -189,13 +190,16 @@ const {
 // ── Order list: filters + ordering ───────────────────────────────────
 // Buyers think in "have I paid / is it coming / is it done", not in the
 // internal status enum, so the filters collapse statuses into those groups.
-type OrderFilter = "all" | "topay" | "toreceive" | "completed" | "cancelled";
+type OrderFilter = "all" | "topay" | "intransit" | "completed" | "cancelled";
 const orderFilter = ref<OrderFilter>("all");
 
 const inGroup = (status: string, f: OrderFilter) => {
   if (f === "all") return true;
   if (f === "topay") return status === "pending" || status === "confirmed";
-  if (f === "toreceive") return status === "paid" || status === "shipped";
+  // Everything between paid and the doorstep. Renamed from "To receive" —
+  // "In-transit" is what the row beneath it now says, and two names for one
+  // idea reads as two different things.
+  if (f === "intransit") return status === "paid" || status === "shipped";
   if (f === "completed") return status === "delivered";
   return status === "cancelled";
 };
@@ -205,7 +209,9 @@ const actionRank = (status: string) =>
   status === "pending" ? 0 : status === "shipped" ? 1 : 2;
 
 const sortedOrders = computed(() =>
-  [...buyerCompiledOrders.value].sort(
+  // A merged child is a stub pointing at the parcel that absorbed it. Showing
+  // it beside its parent presents one delivery as two.
+  withoutMergedChildren([...buyerCompiledOrders.value]).sort(
     (a, b) => actionRank(a.status) - actionRank(b.status) || b.createdAt - a.createdAt,
   ),
 );
@@ -224,7 +230,7 @@ const countFor = (f: OrderFilter) =>
 const orderFilters = computed(() => [
   { id: "all" as const, label: "All", count: buyerCompiledOrders.value.length },
   { id: "topay" as const, label: "To pay", count: countFor("topay") },
-  { id: "toreceive" as const, label: "To receive", count: countFor("toreceive") },
+  { id: "intransit" as const, label: "In-transit", count: countFor("intransit") },
   { id: "completed" as const, label: "Completed", count: countFor("completed") },
   { id: "cancelled" as const, label: "Cancelled", count: countFor("cancelled") },
 ]);
@@ -250,11 +256,32 @@ watch(activeTab, (id) => {
   router.replace({ query: { ...route.query, tab: id } });
 });
 
+// The list asks the courier where things are, rather than waiting for the
+// buyer to open each order. Without this a row sat at "Shipped" until tapped,
+// then jumped to Delivered — the parcel had arrived days before; the list had
+// simply never looked.
+const { syncTracking } = useBuyerTracking();
+
 onMounted(() => {
-  if (user.value) listenBuyerCompiledOrders();
+  if (user.value) {
+    listenBuyerCompiledOrders();
+    void syncTracking();
+  }
 });
 watch(user, (u) => {
-  if (u) listenBuyerCompiledOrders();
+  if (u) {
+    listenBuyerCompiledOrders();
+    void syncTracking();
+  }
+});
+
+// Orders arrive from the listener after mount, so the first sync usually runs
+// against an empty list. Re-run once they land, then leave it to the TTL.
+let syncedOnce = false;
+watch(sortedOrders, (list) => {
+  if (syncedOnce || !list.length) return;
+  syncedOnce = true;
+  void syncTracking();
 });
 
 // ── Bidding ─────────────────────────────────────────────────────────

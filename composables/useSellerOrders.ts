@@ -51,8 +51,17 @@ let syncingTracking = false;
 export const useSellerOrders = () => {
   const { sellerCompiledOrders, mergeOrders } = useCompiledOrders();
 
+  /**
+   * Every queue reads through here, so a merged child is filtered once.
+   *
+   * A child that was folded into another parcel is a cancelled stub. Left in,
+   * it appeared as an order of its own WITH a "book courier" button — which is
+   * how a combined parcel gets a second label that the platform pays for.
+   */
+  const live = computed(() => withoutMergedChildren(sellerCompiledOrders.value));
+
   const byStatus = (...s: CompiledOrder["status"][]) =>
-    computed(() => sellerCompiledOrders.value.filter((o) => s.includes(o.status)));
+    computed(() => live.value.filter((o) => s.includes(o.status)));
 
   const awaitingPayment = byStatus("pending");
   const shipped = byStatus("shipped");
@@ -60,7 +69,7 @@ export const useSellerOrders = () => {
   const cancelled = byStatus("cancelled");
 
   const toShip = computed(() =>
-    sellerCompiledOrders.value.filter(isAwaitingShipment),
+    live.value.filter(isAwaitingShipment),
   );
 
   /** Subset of `toShip` whose label is already paid for — the fastest wins. */
@@ -82,7 +91,7 @@ export const useSellerOrders = () => {
       case "cancelled":
         return cancelled.value;
       default:
-        return sellerCompiledOrders.value;
+        return live.value;
     }
   };
 

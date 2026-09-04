@@ -521,6 +521,13 @@ const handlePlaceOrders = async () => {
           serviceId: q.serviceId,
           serviceCode: q.serviceCode,
           quotedRate: q.quotedRate,
+          // THE reason this order was charged RM 1.25 instead of postage.
+          // It was held in `quotes` to render "Ships with your existing
+          // order" and then dropped here, so the order document never
+          // carried it, the payment webhook had nothing to join, and a full
+          // label was bought for a parcel the buyer had already paid to
+          // combine. Every joined order cost roughly RM 4.76 of postage.
+          joinsOrderId: q.joinsOrderId ?? null,
         };
       }
     }

@@ -110,6 +110,7 @@
 </template>
 
 <script setup lang="ts">
+import { deliveryStageColor, deliveryStageLabel } from "~/shared/delivery-stage";
 import {
   type CompiledOrder,
   compiledOrderStatusLabel,
@@ -129,9 +130,9 @@ defineEmits<{
 // An absorbed order isn't a dead sale — its items live on in the surviving
 // order, so say "Merged" rather than the alarming "Cancelled".
 const statusLabel = computed(() =>
-  props.order.mergedInto ? "Merged" : compiledOrderStatusLabel(props.order.status),
+  deliveryStageLabel(props.order),
 );
-const statusColor = computed(() => compiledOrderStatusColor(props.order.status));
+const statusColor = computed(() => deliveryStageColor(props.order));
 
 const counterpartyName = computed(() =>
   props.role === "buyer" ? props.order.sellerName : props.order.buyerName,

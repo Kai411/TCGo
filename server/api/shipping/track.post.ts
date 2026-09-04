@@ -50,6 +50,10 @@ export default defineEventHandler(async (event) => {
       const patch: Record<string, unknown> = {
         status: stage,
         shipmentStatus: tracking.statusText ?? null,
+        // The code as well as the text. `status` only distinguishes shipped
+        // from delivered, so "collected" and "in transit" are indistinguishable
+        // without it — see shared/delivery-stage.ts.
+        shipmentStatusCode: tracking.statusCode ?? null,
       };
       if (stage === "shipped") patch.shippedAt = order.shippedAt ?? now;
       if (stage === "delivered") {
@@ -59,7 +63,10 @@ export default defineEventHandler(async (event) => {
       await snap.ref.update(patch);
     } else if (tracking.statusText && tracking.statusText !== order.shipmentStatus) {
       // Keep the human-readable courier status fresh even mid-stage.
-      await snap.ref.update({ shipmentStatus: tracking.statusText });
+      await snap.ref.update({
+        shipmentStatus: tracking.statusText,
+        shipmentStatusCode: tracking.statusCode ?? null,
+      });
     }
 
     return { available: true, tracking, stage };

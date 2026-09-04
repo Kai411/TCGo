@@ -368,6 +368,13 @@ export const useCompiledOrders = () => {
                 shippingQuotedRate: quoted.quotedRate,
               }
             : {}),
+          // Carried here as well as on the create path below. Adding to an
+          // unpaid order re-quotes it, and if that quote is a join fee the
+          // link has to travel with it — otherwise this order pays RM 1.25
+          // and still gets a label of its own.
+          ...(quoted?.joinsOrderId !== undefined
+            ? { joinsOrderId: quoted.joinsOrderId ?? null }
+            : {}),
         };
         await updateDoc(doc(firestore, "compiledOrders", openOrder.id), patch);
         results.push({ ...openOrder, ...patch });

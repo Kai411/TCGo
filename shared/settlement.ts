@@ -14,10 +14,13 @@
 
 import { recordedFee, recordedPayout, recordedSst } from "~/shared/payouts";
 import { BETA_RATE, PLANS, splitFee, SST_RATE } from "~/shared/pricing";
+import { JOIN_FEE_MYR } from "~/shared/order-joining";
 
 export interface SettlementOrder {
   subtotal?: number;
   shipping?: number;
+  /** Ids folded into this parcel. Present only on a combined order. */
+  joinedOrderIds?: string[] | null;
   total?: number;
   platformFee?: number;
   /** Rate the fee was struck at, as a fraction. Recorded at settlement. */
@@ -148,6 +151,19 @@ export const settlementLines = (order: SettlementOrder): SettlementLine[] => {
   // Only when there is tax to show. A zero line on every statement invites
   // "why is this here", and before registration the honest answer is that it
   // isn't charged at all.
+  // A combined parcel's shipping line is the original postage PLUS a join fee
+  // per absorbed order. Left unexplained, a seller sees a postage figure that
+  // matches no quote they were ever shown.
+  const joinedCount = order.joinedOrderIds?.length ?? 0;
+  if (joinedCount > 0) {
+    lines.push({
+      label: `Combined ${joinedCount} order${joinedCount === 1 ? "" : "s"}`,
+      amount: round2(joinedCount * JOIN_FEE_MYR),
+      kind: "sub",
+      note: `RM ${JOIN_FEE_MYR.toFixed(2)} each, paid by the buyer to ship together. It goes toward the heavier label, not to you.`,
+    });
+  }
+
   const sst = sstCharged(order);
   if (sst > 0) {
     lines.push({
@@ -176,5 +192,12 @@ export const settlementLines = (order: SettlementOrder): SettlementLine[] => {
 export const shippingNote = (order: SettlementOrder): string => {
   const shipping = round2(order.shipping || 0);
   if (!order.shipmentOrderNo || shipping <= 0) return "";
+  const joined = order.joinedOrderIds?.length ?? 0;
+  if (joined > 0) {
+    return (
+      `Shipping (RM ${shipping.toFixed(2)}) covers one parcel for ` +
+      `${joined + 1} orders and went straight to the courier.`
+    );
+  }
   return `Shipping (RM ${shipping.toFixed(2)}) went straight to the courier.`;
 };
