@@ -140,12 +140,23 @@
                 <span>Subtotal</span>
                 <span class="tabular-nums">RM {{ order.subtotal.toFixed(2) }}</span>
               </div>
+              <!-- A join fee is not postage, and calling it "Shipping · Ninja
+                   Van" tells the buyer they paid RM 1.25 for a courier — a
+                   figure that matches no quote and looks like a pricing bug.
+                   They paid it to travel in a parcel already going out. -->
               <div class="flex justify-between text-gray-600 dark:text-zinc-300">
                 <span>
-                  Shipping<template v-if="order.shippingCourier"> · {{ order.shippingCourier }}</template>
+                  <template v-if="isJoinFee">Combined with your other order</template>
+                  <template v-else>
+                    Shipping<template v-if="order.shippingCourier"> · {{ order.shippingCourier }}</template>
+                  </template>
                 </span>
                 <span class="tabular-nums">RM {{ order.shipping.toFixed(2) }}</span>
               </div>
+              <p v-if="isJoinFee" class="-mt-1 text-[11px] leading-relaxed text-gray-400 dark:text-zinc-500">
+                Ships in the same parcel as your earlier order, so there's no
+                second delivery to pay for.
+              </p>
               <div class="flex justify-between font-bold text-base pt-2 border-t border-gray-100 dark:border-white/[0.06]">
                 <span class="text-ink dark:text-white">Total</span>
                 <span class="text-pokemon-red tabular-nums">RM {{ order.total.toFixed(2) }}</span>
@@ -567,6 +578,7 @@
 </template>
 
 <script setup lang="ts">
+import { JOIN_FEE_MYR } from "~/shared/order-joining";
 import {
   type CompiledOrder,
   compiledOrderStatusLabel,
@@ -937,6 +949,17 @@ const invoiceAvailable = computed(
 // reach the buyer, so that's said plainly rather than reported as "sent".
 const emailingInvoice = ref(false);
 const invoiceSendResult = ref<{ sent: boolean; sandbox?: boolean; error?: string } | null>(null);
+
+/**
+ * Charged to travel with an existing parcel rather than to send its own.
+ *
+ * Reads the amount rather than joinsOrderId, because that field comes from the
+ * browser and was being dropped between the cart and the order — while the
+ * amount is written by the quote route and has always been right.
+ */
+const isJoinFee = computed(
+  () => Math.round((order.value?.shipping ?? 0) * 100) / 100 === JOIN_FEE_MYR,
+);
 
 const emailInvoice = async () => {
   if (!order.value || emailingInvoice.value) return;

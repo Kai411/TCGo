@@ -10,7 +10,8 @@
 // order simply arrives with more cards in it.
 
 import type { Firestore } from "firebase-admin/firestore";
-import { isOpenParcel } from "~/shared/order-joining";
+import { isOpenParcel, JOIN_FEE_MYR } from "~/shared/order-joining";
+import { findOpenParcelFor } from "~/server/utils/open-parcel";
 import { noteError } from "~/server/utils/oplog";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -35,10 +36,48 @@ export const joinPaidOrderToParcel = async (
     if (!childSnap.exists) return { joined: false, reason: "Order not found" };
     const child = childSnap.data() as any;
 
-    if (!child.joinsOrderId) return { joined: false, reason: "Not a joining order" };
     if (child.mergedInto) return { joined: false, reason: "Already joined" };
 
-    const parentRef = db.collection("compiledOrders").doc(child.joinsOrderId);
+    // The link, or the fact that we charged as if there were one.
+    //
+    // joinsOrderId comes from the browser, and the browser dropped it: the
+    // cart held it to render "ships with your existing order" and never
+    // forwarded it to the order document. Every joined order was billed
+    // RM 1.25 and then given a full label of its own.
+    //
+    // So the shipping figure is treated as the authority instead. It is
+    // written by /api/shipping/quote, which is the same server code that
+    // decided a parcel was open — if it charged a join fee, a join was
+    // promised, and the client cannot lose that promise on the way here.
+    const parentId: string | null =
+      child.joinsOrderId ??
+      (round2(child.shipping ?? 0) === JOIN_FEE_MYR
+        ? (await findOpenParcelFor(db, {
+            buyerUid: child.buyerUid,
+            sellerUid: child.sellerUid,
+            destination: child.deliveryAddress ?? {},
+          }))?.id ?? null
+        : null);
+
+    if (!parentId) {
+      // Charged a join fee with nothing to join is money we undercharged, so
+      // it is reported rather than shrugged off.
+      if (round2(child.shipping ?? 0) === JOIN_FEE_MYR) {
+        noteError({
+          area: "shipping",
+          severity: "error",
+          code: "parcel.join_target_missing",
+          message:
+            `Order ${orderId.slice(0, 8)} was charged the RM ${JOIN_FEE_MYR.toFixed(2)} ` +
+            `join fee but no open parcel could be found to combine it with.`,
+          orderId,
+          hint: "It will ship on its own label at mostly platform cost. Combine by hand if the other parcel is still unlabelled.",
+        });
+      }
+      return { joined: false, reason: "Not a joining order" };
+    }
+
+    const parentRef = db.collection("compiledOrders").doc(parentId);
     const parentSnap = await tx.get(parentRef);
     if (!parentSnap.exists) {
       return { joined: false, reason: "The order it was joining no longer exists" };
@@ -57,9 +96,9 @@ export const joinPaidOrderToParcel = async (
         code: "parcel.closed_before_join",
         message:
           `Order ${orderId.slice(0, 8)} was quoted a join fee for ` +
-          `${child.joinsOrderId.slice(0, 8)}, but that parcel was labelled first.`,
+          `${parentId.slice(0, 8)}, but that parcel was labelled first.`,
         orderId,
-        context: { parentId: child.joinsOrderId, parentStatus: parent.status },
+        context: { parentId, parentStatus: parent.status },
         hint: "The buyer paid a join fee rather than postage, so the platform covers most of this label. Book it as normal.",
       });
       // Clear the link so nothing tries again, and flag it for the seller.
@@ -106,10 +145,10 @@ export const joinPaidOrderToParcel = async (
     tx.update(childRef, {
       status: "cancelled",
       cancelledAt: now,
-      cancelReason: `Combined into order ${child.joinsOrderId.slice(0, 8)}`,
-      mergedInto: child.joinsOrderId,
+      cancelReason: `Combined into order ${parentId.slice(0, 8)}`,
+      mergedInto: parentId,
     });
 
-    return { joined: true, into: child.joinsOrderId };
+    return { joined: true, into: parentId };
   });
 };
