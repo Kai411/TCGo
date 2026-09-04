@@ -373,6 +373,11 @@
 </template>
 
 <script setup lang="ts">
+// The search bar is sticky and is the first thing on this page, so the
+// layout's usual top padding leaves it floating below the nav with a gap that
+// only appears once you scroll. See layouts/default.vue.
+definePageMeta({ flushTop: true });
+
 import {
   parseSmartQuery,
   type CatalogMatch,

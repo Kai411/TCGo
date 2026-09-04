@@ -3,7 +3,17 @@
     class="min-h-screen bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 transition-colors"
   >
     <AppNavbar />
-    <main class="container mx-auto px-4 py-8 pb-28 lg:pb-12">
+    <!-- pt-8 rather than py-8: pb-28 already overrode the bottom half, so
+         this is the same spacing said once.
+
+         A page whose first element is sticky wants to start flush against the
+         nav — the gap makes the bar look detached and moves when you scroll.
+         Those pages set `flushTop` in definePageMeta rather than each one
+         cancelling the padding with a negative margin of its own. -->
+    <main
+      class="container mx-auto px-4 pb-28 lg:pb-12"
+      :class="route.meta.flushTop ? 'pt-0' : 'pt-8'"
+    >
       <!-- Keyed on path so each page replays the enter animation. -->
       <div :key="route.path" class="page-in">
         <slot />
