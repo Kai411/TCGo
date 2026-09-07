@@ -361,6 +361,20 @@ describe("collector phrases the catalogue spells differently", () => {
     assert.deepEqual(r.rarityMatches, ["Gold Star"]);
   });
 
+  it("lists the whole subset when that is all you type", () => {
+    // "gold star" on its own means every Gold Star, not a card by that name.
+    const r = parse("gold star");
+    assert.equal(r.name, "");
+    assert.deepEqual(r.rarityMatches, ["Gold Star"]);
+  });
+
+  it("still treats a single word as a name", () => {
+    // The rule only lifts for a multi-word phrase collapsed into one token —
+    // something you cannot type by accident. "promo" stays a name.
+    assert.equal(parse("promo").rarityHint, null);
+    assert.equal(parse("gold").name, "gold");
+  });
+
   it("leaves Prism Star alone — different subset, different symbol", () => {
     const r = parse("tapu koko prism star");
     assert.equal(r.name.toLowerCase(), "tapu koko prism star");

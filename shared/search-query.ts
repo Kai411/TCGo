@@ -318,6 +318,33 @@ export const parseSearchQuery = (
   // Known collector phrases first, before any of it is read as a rarity.
   const phrased = applyPhrases(raw);
 
+  // A phrase that collapsed to a single word IS the whole query, and it names
+  // a category rather than a card: "gold star" on its own means every Gold
+  // Star, not a card called "goldstar".
+  //
+  // Narrow on purpose. stripRarity never reads the first token as a rarity —
+  // a one-word query is a name, and a card can be called "Promo" — and that
+  // rule stands. This only lifts it where a MULTI-word phrase was rewritten
+  // into one token, which is something the searcher cannot type by accident.
+  const rawWords = raw.trim().split(/\s+/).filter(Boolean);
+  const phrasedWords = phrased.split(/\s+/).filter(Boolean);
+  if (rawWords.length > 1 && phrasedWords.length === 1) {
+    const only = COLLOQUIAL_RARITIES[phrasedWords[0]!.toLowerCase()];
+    const known =
+      only && (!rarityNames.length ||
+        rarityNames.some((n) => n.trim().toLowerCase() === only.toLowerCase()));
+    if (only && known) {
+      return {
+        name: "",
+        setHint: null,
+        rarityMatches: [only],
+        rarityHint: only,
+        numberMatch: null,
+        setOrNumber: false,
+      };
+    }
+  }
+
   // Rarity next: it can sit at the end, and while it does, nothing else is
   // last. Then the set, then the number.
   const { rest, rarityMatches } = stripRarity(phrased, rarityNames);
