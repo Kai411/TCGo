@@ -43,6 +43,8 @@ const RARITIES = [
   "Amazing Rare", "Radiant Rare", "Rainbow Rare", "Shiny Rare",
   "Shiny Ultra Rare", "Mega Ultra Rare", "Mega Hyper Rare", "Mega Attack Rare",
   "ACE SPEC Rare", "Promo",
+  // Japanese rarities — the codes collectors actually type.
+  "Art Rare", "Special Art Rare", "Super Rare", "Character Rare", "ACE Rare",
 ];
 
 describe("the queries that came back empty", () => {
@@ -179,6 +181,7 @@ describe("set, number and rarity together", () => {
     assert.deepEqual(r, {
       name: "",
       setHint: null,
+      rarityMatches: [],
       rarityHint: null,
       numberMatch: null,
       setOrNumber: false,
@@ -247,19 +250,27 @@ describe("rarities people actually type", () => {
     assert.equal(parse("charizard hr").rarityHint, "Hyper Rare");
   });
 
-  it("leaves a genuinely ambiguous abbreviation in the name", () => {
-    // "rr" is Radiant Rare and Rainbow Rare. Guessing filters the results to
-    // one of them and shows nothing for the other.
+  it("asks for every meaning of an ambiguous code", () => {
+    // "rr" is Radiant Rare and Rainbow Rare; "sr" is Secret, Shiny and Super
+    // Rare across the two languages. Picking the biggest hands an English
+    // collector a pile of Japanese cards, and dropping it shows them nothing,
+    // so the search asks for all of them.
     const r = parse("pikachu rr");
-    assert.equal(r.rarityHint, null);
-    assert.equal(r.name, "pikachu rr");
+    assert.equal(r.name, "pikachu");
+    assert.deepEqual([...r.rarityMatches].sort(), ["Radiant Rare", "Rainbow Rare"]);
+    assert.equal(r.rarityHint, "Radiant Rare", "first match labels the chip");
+  });
+
+  it("keeps a single meaning single", () => {
+    const r = parse("charizard mur");
+    assert.deepEqual(r.rarityMatches, ["Mega Ultra Rare"]);
   });
 
   it("does not filter by a rarity no card has", () => {
-    // The table mapped "ar" to Art Rare and "rh" to Reverse Holo, neither of
-    // which exists here — both searched for nothing and found nothing.
-    assert.equal(parse("charizard ar").rarityHint, "Amazing Rare");
+    // The table mapped "rh" to Reverse Holo, a finish nothing here is filed
+    // under; it searched for nothing and found nothing.
     assert.equal(parse("charizard rh").rarityHint, null);
+    assert.deepEqual(parse("charizard rh").rarityMatches, []);
   });
 
   it("still works with no rarity list, for callers that have not loaded one", () => {
@@ -279,5 +290,54 @@ describe("rarity abbreviations", () => {
     assert.ok(rarityAliases("Mega Ultra Rare").includes("mega ultra rare"));
     // "Rare" alone would give "r" — one letter, and it would match everything.
     assert.deepEqual(rarityAliases("Rare"), ["rare"]);
+  });
+});
+
+describe("Japanese sets and rarities", () => {
+  const JP_SETS = [
+    ...SETS,
+    "SM11b: Dream League",
+    "XY3: Rising Fist",
+    "S10D: Time Gazer",
+    "SV2a: Pokemon Card 151",
+    "M2: Inferno X",
+  ];
+  const parse = (q: string) => parseSearchQuery(q, JP_SETS, RARITIES);
+
+  it("takes the set code printed before the colon", () => {
+    // "SM11b: Dream League" — the code is how a Japanese set is referred to.
+    assert.equal(parse("pikachu sm11b").setHint, "SM11b: Dream League");
+    assert.equal(parse("pikachu xy3").setHint, "XY3: Rising Fist");
+    assert.equal(parse("charizard m2").setHint, "M2: Inferno X");
+  });
+
+  it("lets a bare set code stand as the whole query", () => {
+    assert.equal(parse("sm11b").setHint, "SM11b: Dream League");
+    assert.equal(parse("sm11b").name, "");
+  });
+
+  it("never lets a bare word swallow the card name", () => {
+    // Sets are named after Pokémon. "charizard" is a card, not the Charizard
+    // set with no card in it.
+    const withSetNamedAfterACard = [...JP_SETS, "Pokemon TCG Classic: Charizard"];
+    const r = parseSearchQuery("charizard", withSetNamedAfterACard, RARITIES);
+    assert.equal(r.setHint, null);
+    assert.equal(r.name, "charizard");
+  });
+
+  it("resolves ar to Art Rare, the reading with the cards behind it", () => {
+    // ACE Rare 33, Amazing Rare 18, Art Rare 549.
+    assert.ok(parse("charizard ar").rarityMatches.includes("Art Rare"));
+  });
+
+  it("understands the other Japanese codes", () => {
+    assert.deepEqual(parse("charizard sar").rarityMatches, ["Special Art Rare"]);
+    assert.deepEqual(parse("charizard ur").rarityMatches, ["Ultra Rare"]);
+    assert.deepEqual(parse("charizard chr").rarityMatches, ["Character Rare"]);
+  });
+
+  it("prefers the set reading with the most sets behind it", () => {
+    // "tg" is Trainer Gallery on several sets and Time Gazer on one.
+    assert.equal(parse("charizard tg").setHint, "Trainer Gallery");
   });
 });

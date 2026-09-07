@@ -289,6 +289,12 @@ export const useCardCatalog = () => {
        */
       setOrNumber?: boolean;
       rarityMatch?: string | null;
+      /**
+       * Every rarity an ambiguous code could mean, ORed together. "sr" is
+       * Secret, Shiny and Super Rare across the two languages; one of them is
+       * the wrong answer for most searchers.
+       */
+      rarityMatches?: string[] | null;
       sort?: CatalogSort;
     } = {},
   ): Promise<{ results: CatalogMatch[]; total: number }> => {
@@ -298,7 +304,13 @@ export const useCardCatalog = () => {
     const rarityMatch = opts.rarityMatch?.trim() || null;
     // Either a usable name, or something to filter on. A number counts —
     // "gg44" alone is a perfectly good search.
-    if (trimmed.length < 2 && !setMatch && !rarityMatch && !opts.numberMatch) {
+    if (
+      trimmed.length < 2 &&
+      !setMatch &&
+      !rarityMatch &&
+      !(opts.rarityMatches ?? []).length &&
+      !opts.numberMatch
+    ) {
       return { results: [], total: 0 };
     }
 
@@ -315,8 +327,13 @@ export const useCardCatalog = () => {
     // PostgREST can filter the column directly, which needs no migration.
     // Ranking is simpler than the RPC's, but a number search is already
     // precise enough not to need ranking.
-    if (opts.numberMatch) {
-      const forms = numberCandidates(opts.numberMatch);
+    // Several rarities cannot go through the ranked RPC, which takes one.
+    // PostgREST can OR them without a migration — the same escape hatch the
+    // number search uses, and a rarity search is precise enough not to need
+    // the ranking.
+    const rarities = (opts.rarityMatches ?? []).filter(Boolean);
+    if (opts.numberMatch || rarities.length > 1) {
+      const forms = opts.numberMatch ? numberCandidates(opts.numberMatch) : [];
       let q = supabase
         .from("cards_catalog")
         .select(SELECT_COLUMNS, { count: "exact" })
@@ -327,19 +344,27 @@ export const useCardCatalog = () => {
         // NOT a bare prefix match. numberCandidates also yields the unpadded
         // form, and `12%` pulls in 122/106 and every other number that merely
         // starts with those digits.
-        .or(
-          [
-            ...forms.flatMap((f) => [`number.ilike.${f}`, `number.ilike.${f}/*`]),
-            // The same token read as a set name, when it is both. This joins
-            // the OR group rather than narrowing it, so "pikachu 151" returns
-            // the 151-set Pikachus alongside any numbered 151.
-            ...(opts.setOrNumber && setMatch ? [`group_name.ilike.*${setMatch}*`] : []),
-          ].join(","),
-        );
+        .select(SELECT_COLUMNS, { count: "exact" });
+
+      const numberOr = [
+        ...forms.flatMap((f) => [`number.ilike.${f}`, `number.ilike.${f}/*`]),
+        // The same token read as a set name, when it is both. This joins the
+        // OR group rather than narrowing it, so "pikachu 151" returns the
+        // 151-set Pikachus alongside any numbered 151.
+        ...(opts.setOrNumber && setMatch ? [`group_name.ilike.*${setMatch}*`] : []),
+      ];
+      if (numberOr.length) q = q.or(numberOr.join(","));
+
+      // A second .or() is ANDed against the first, which is what we want:
+      // (this number or set) AND (any of these rarities).
+      if (rarities.length > 1) {
+        q = q.or(rarities.map((r) => `rarity.ilike.${r}`).join(","));
+      } else if (rarityMatch) {
+        q = q.ilike("rarity", `%${rarityMatch}%`);
+      }
 
       if (trimmed.length >= 2) q = q.ilike("name", `%${trimmed}%`);
       if (setMatch && !opts.setOrNumber) q = q.ilike("group_name", `%${setMatch}%`);
-      if (rarityMatch) q = q.ilike("rarity", `%${rarityMatch}%`);
       if (opts.language && opts.language !== "ALL") q = q.eq("language", opts.language);
 
       const size = opts.limit ?? 28;

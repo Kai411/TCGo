@@ -55,6 +55,9 @@ const matchRarity = (token: string): string | null => {
 export const COLLOQUIAL_RARITIES: Record<string, string> = {
   gold: "Hyper Rare",
   rainbow: "Rainbow Rare",
+  // Printed codes that are not the initials of the name. Character Rare
+  // abbreviates to "cr" on paper and nobody types that — the card says CHR.
+  chr: "Character Rare",
 };
 
 /**
@@ -94,23 +97,34 @@ export const rarityAliases = (rarity: string): string[] => {
  * returned nothing. A name that fails validation falls through to the next
  * source, and finally stays part of the card's name.
  */
-const rarityFromToken = (token: string, rarityNames: string[]): string | null => {
+const rarityFromToken = (token: string, rarityNames: string[]): string[] => {
   const t = token.trim().toLowerCase();
-  if (!t) return null;
+  if (!t) return [];
   const known = (r: string) =>
     !rarityNames.length || rarityNames.some((n) => n.trim().toLowerCase() === r.toLowerCase());
 
   const explicit = matchRarity(t);
-  if (explicit && known(explicit)) return explicit;
+  if (explicit && known(explicit)) return [explicit];
 
   const colloquial = COLLOQUIAL_RARITIES[t];
-  if (colloquial && known(colloquial)) return colloquial;
+  if (colloquial && known(colloquial)) return [colloquial];
 
-  // Derived. Several rarities sharing an alias means we cannot tell which was
-  // meant — "rr" is both Radiant Rare and Rainbow Rare — so it is left alone.
+  // Everything the abbreviation could mean.
+  //
+  // Across both languages the codes genuinely collide: "sr" is Super Rare in
+  // Japan and Secret Rare in English, and Shiny Rare as well — 1179, 601 and
+  // 418 cards. Picking the biggest would handto an English collector a pile of
+  // Japanese cards, and dropping it entirely (what this used to do) shows them
+  // nothing. So the search asks for all of them and lets the reader see which
+  // is which.
   const hits = rarityNames.filter((r) => rarityAliases(r).includes(t));
-  const distinct = new Set(hits.map((r) => r.trim().toLowerCase()));
-  return distinct.size === 1 ? hits[0]! : null;
+  const seen = new Set<string>();
+  return hits.filter((r) => {
+    const k = r.trim().toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
 };
 
 /**
@@ -123,20 +137,20 @@ const rarityFromToken = (token: string, rarityNames: string[]): string | null =>
 export const stripRarity = (
   input: string,
   rarityNames: string[] = [],
-): { rest: string; rarityHint: string | null } => {
+): { rest: string; rarityMatches: string[] } => {
   const tokens = input.trim().split(/\s+/).filter(Boolean);
-  let rarityHint: string | null = null;
+  let rarityMatches: string[] = [];
   const kept = tokens.filter((t, i) => {
     // Never the first token — a card can be named "Promo", and a query of one
     // word is a name.
     if (i === 0) return true;
-    if (rarityHint) return true; // Only the first rarity found.
+    if (rarityMatches.length) return true; // Only the first rarity found.
     const r = rarityFromToken(t, rarityNames);
-    if (!r) return true;
-    rarityHint = r;
+    if (!r.length) return true;
+    rarityMatches = r;
     return false;
   });
-  return { rest: kept.join(" "), rarityHint };
+  return { rest: kept.join(" "), rarityMatches };
 };
 
 export interface ParsedQuery {
@@ -236,6 +250,9 @@ export const parseSmartQuery = (input: string): ParsedQuery => {
 export interface ParsedSearch {
   name: string;
   setHint: string | null;
+  /** Every rarity the typed code could mean; ORed by the caller. */
+  rarityMatches: string[];
+  /** The first match, for chips and labels. */
   rarityHint: string | null;
   numberMatch: string | null;
   /**
@@ -267,7 +284,7 @@ export const parseSearchQuery = (
 ): ParsedSearch => {
   // Rarity first: it can sit at the end, and while it does, nothing else is
   // last. Then the set, then the number.
-  const { rest, rarityHint } = stripRarity(raw, rarityNames);
+  const { rest, rarityMatches } = stripRarity(raw, rarityNames);
 
   // The set is tried at full length before any number is taken off, because a
   // set name can itself end in digits — "SV: Scarlet & Violet 151". Stripping
@@ -280,14 +297,25 @@ export const parseSearchQuery = (
     number = split.number;
     hit = splitKnownSet(split.name, setNames);
 
-    // "pikachu 151": a Pikachu in the 151 set, and a Pikachu numbered 151.
-    // Both are real cards and neither reading is obviously wrong, so keep
-    // both and let the caller ask for either. The number stands alone as the
-    // set hint because it is a substring match — it finds the English and the
-    // Japanese 151 set alike.
-    if (number && !hit.setHint && numberNamesASet(number, setNames)) {
-      hit = { name: split.name, setHint: number };
-      setOrNumber = true;
+    // A token that reads as a number AND as a set. Both readings are real, so
+    // keep both and let the caller ask for either.
+    //
+    // Two ways this happens. A set code that starts with a number prefix —
+    // "xy3" is the XY3 set and XY17 is a real promo number, so the prefix list
+    // claims it first and the set was never reached; likewise "dp1", "sm5",
+    // "bw9". And a set named after a number — "pikachu 151" is a Pikachu in
+    // the 151 set and a Pikachu numbered 151.
+    if (number && !hit.setHint) {
+      const asSet = splitKnownSet(number, setNames);
+      if (asSet.setHint && !asSet.name.trim()) {
+        hit = { name: split.name, setHint: asSet.setHint };
+        setOrNumber = true;
+      } else if (numberNamesASet(number, setNames)) {
+        // The bare number as a substring, so it finds the English and the
+        // Japanese 151 set alike.
+        hit = { name: split.name, setHint: number };
+        setOrNumber = true;
+      }
     }
   }
 
@@ -296,7 +324,7 @@ export const parseSearchQuery = (
   // or number has already been lifted, the searcher clearly typed a name plus
   // a filter, and a set match that leaves nothing behind has eaten the name.
   // "charizard sir" is a Charizard, not the Charizard set with no card.
-  if ((rarityHint || number) && hit.setHint && !hit.name.trim()) {
+  if ((rarityMatches.length || number) && hit.setHint && !hit.name.trim()) {
     hit = { name: rest.trim(), setHint: null };
     setOrNumber = false;
   }
@@ -304,6 +332,13 @@ export const parseSearchQuery = (
   // Whatever is left: parseSmartQuery still picks up numeric set hints like
   // "151" that are not in the caller's set list.
   const parsed = parseSmartQuery(hit.name);
+  const rarities = rarityMatches.length
+    ? rarityMatches
+    : rarityNames.length
+      ? []
+      : parsed.rarityHint
+        ? [parsed.rarityHint]
+        : [];
   return {
     name: parsed.name.trim(),
     setHint: hit.setHint ?? parsed.setHint,
@@ -312,7 +347,13 @@ export const parseSearchQuery = (
     // authority — otherwise a name it deliberately rejected ("rh" is Reverse
     // Holo, a finish no card here is filed under) comes back in through the
     // side door and filters the results to nothing.
-    rarityHint: rarityNames.length ? rarityHint : (rarityHint ?? parsed.rarityHint),
+    // parseSmartQuery runs its own rarity pass off the unvalidated table. Once
+    // we have the catalogue's real rarity list, stripRarity above is the
+    // authority — otherwise a name it deliberately rejected ("rh" is Reverse
+    // Holo, a finish no card here is filed under) comes back in through the
+    // side door and filters the results to nothing.
+    rarityMatches: rarities,
+    rarityHint: rarities[0] ?? null,
     numberMatch: number,
     setOrNumber,
   };
@@ -474,6 +515,15 @@ export const splitKnownSet = (
 
   const name = lower === best ? "" : raw.slice(0, raw.length - best.length).trim();
 
+  // A whole query swallowed by one bare word is almost always a card name.
+  // Sets are named after Pokémon — "Arceus", "Jungle", "Pokemon TCG Classic:
+  // Charizard" — so only a set CODE ("tg", "sm11b", "xy3") or a multi-word
+  // name may consume the entire query. "charizard" on its own is a Charizard.
+  const codeLike = /^[a-z]{1,4}\d{0,3}[a-z]?$/.test(best);
+  if (!name && !codeLike && !best.includes(" ")) {
+    return { name: raw, setHint: null };
+  }
+
   // An alias shared by several sets resolves to the phrase behind it, not to
   // whichever set happened to be listed first. setHint is used as a substring
   // match, so "Radiant Collection" finds both sets that end that way and
@@ -486,10 +536,24 @@ export const splitKnownSet = (
     if (phrases.size === 1) {
       return { name, setHint: setAliasMap(matching[0]!).get(best!)! };
     }
-    // Sets that disagree about what the alias means. "bs" is Base Set, Battle
-    // Stadium and Burning Shadows; picking one silently filters the results to
-    // a set the searcher did not ask for and shows them nothing. Leave the
-    // token in the name instead.
+
+    // Sets that disagree about what the alias means. Across both languages
+    // this is common — "tg" is Trainer Gallery on four sets and Time Gazer on
+    // one, "rc" is Radiant Collection on two and Red Collection and Rebellion
+    // Crash on one each. The reading with the most sets behind it is the one
+    // people mean; a genuine tie is left in the name rather than guessed.
+    const byPhrase = new Map<string, { phrase: string; count: number }>();
+    for (const n of matching) {
+      const phrase = setAliasMap(n).get(best!)!;
+      const k = phrase.toLowerCase();
+      const e = byPhrase.get(k) ?? { phrase, count: 0 };
+      e.count += 1;
+      byPhrase.set(k, e);
+    }
+    const ranked = [...byPhrase.values()].sort((a, b) => b.count - a.count);
+    if (ranked.length > 1 && ranked[0]!.count > ranked[1]!.count) {
+      return { name, setHint: ranked[0]!.phrase };
+    }
     if (!setNames.some((n) => n.trim().toLowerCase() === best)) {
       return { name: raw, setHint: null };
     }
