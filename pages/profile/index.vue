@@ -317,6 +317,28 @@
         </div>
       </div>
 
+      <!-- Release notes. Someone who wants to know what changed should not
+           have to wait for the next release to see the sheet again. -->
+      <button
+        v-if="!loading"
+        type="button"
+        @click="openAll"
+        class="w-full text-left flex items-center gap-4 bg-white dark:bg-white/[0.04] rounded-xl p-5 border border-gray-200 dark:border-white/[0.08] mt-4 hover:border-gray-300 dark:hover:border-white/[0.16] transition-colors"
+      >
+        <div class="w-10 h-10 shrink-0 rounded-xl bg-pokemon-red/[0.08] flex items-center justify-center">
+          <svg class="w-5 h-5 text-pokemon-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4M12 18v4M4.9 4.9l2.9 2.9M16.2 16.2l2.9 2.9M2 12h4M18 12h4M4.9 19.1l2.9-2.9M16.2 7.8l2.9-2.9" />
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-bold text-ink dark:text-white">What's new</p>
+          <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+            Recent improvements to TCGo. You're on version {{ APP_VERSION }}.
+          </p>
+        </div>
+        <svg class="w-4 h-4 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+      </button>
+
       <div
         v-if="!loading"
         class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
@@ -348,8 +370,10 @@
 <script setup lang="ts">
 import type { UserProfile } from "~/composables/useProfile";
 import { MY_STATES } from "~/shared/my-states";
+import { APP_VERSION } from "~/shared/releases";
 
 const {user} = useAuth();
+const { openAll } = useWhatsNew();
 const { goToLogin } = useSignInGate();
 const { profile, loading, updateProfile, updateCustomName } = useMyProfile();
 const { uploadImage } = useStorage();

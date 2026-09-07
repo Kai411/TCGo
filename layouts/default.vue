@@ -31,9 +31,16 @@
       </div>
     </footer>
     <InstallPrompt />
+    <WhatsNewSheet />
   </div>
 </template>
 
 <script setup lang="ts">
 const route = useRoute();
+
+// Show what changed, once per release. No-op when they are up to date, and
+// deferred a beat so it never races the install prompt for the screen on a
+// first visit.
+const { showIfUnseen } = useWhatsNew();
+onMounted(() => setTimeout(showIfUnseen, 1200));
 </script>
