@@ -57,6 +57,45 @@
           />
         </div>
 
+        <!-- Price sort: one button, three states. -->
+        <button
+          type="button"
+          @click="cyclePrice"
+          class="shrink-0 inline-flex items-center gap-1 h-10 px-2.5 rounded-lg border text-xs font-semibold transition-colors"
+          :class="
+            priceSort
+              ? 'border-pokemon-red text-pokemon-red bg-pokemon-red/5'
+              : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300'
+          "
+          :aria-label="priceLabel"
+          :title="priceLabel"
+        >
+          <span>$</span>
+          <!-- Both chevrons when off, so the control reads as a sort before
+               it has been touched; the active one alone once it is on. -->
+          <svg
+            class="w-3.5 h-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <template v-if="priceSort === 'desc'">
+              <path d="M12 5v14M6 13l6 6 6-6" />
+            </template>
+            <template v-else-if="priceSort === 'asc'">
+              <path d="M12 19V5M6 11l6-6 6 6" />
+            </template>
+            <template v-else>
+              <path d="M7 20V4M3 8l4-4 4 4" />
+              <path d="M17 4v16M13 16l4 4 4-4" />
+            </template>
+          </svg>
+        </button>
+
         <!-- Filter toggle -->
         <button
           type="button"
@@ -146,10 +185,10 @@
                   v-for="opt in sortOptions"
                   :key="opt.value"
                   type="button"
-                  @click="sortBy = opt.value"
+                  @click="baseSort = opt.value"
                   class="px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors"
                   :class="
-                    sortBy === opt.value
+                    baseSort === opt.value
                       ? 'bg-pokemon-red text-white border-pokemon-red'
                       : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300'
                   "
@@ -313,9 +352,18 @@
 
       <p
         v-else-if="searchResults.length === 0"
-        class="text-center text-ink-soft dark:text-zinc-500 py-16"
+        class="text-center text-ink-soft dark:text-zinc-500 py-16 px-6"
       >
-        No matches. Try a different name, set, or rarity.
+        <!-- A DPBP number will never match, so say why rather than leaving
+             them to retype it. -->
+        <template v-if="looksLikeDpbp">
+          Japanese DP-era cards are in the catalogue, but their DPBP number
+          isn't — it isn't published with the card data we use.
+          <span class="block mt-2 text-ink dark:text-white font-semibold">
+            Search the name and set instead, like “omanyte dp4”.
+          </span>
+        </template>
+        <template v-else>No matches. Try a different name, set, or rarity.</template>
       </p>
 
       <template v-else>
@@ -471,12 +519,25 @@ const loadDropdowns = (): Promise<void> => {
 };
 
 // ── Search + filter state ─────────────────────────────────────────────
-const sortOptions: Array<{ value: CatalogSort; label: string }> = [
+// Price is its own axis, not one of these. Sorting by price is the thing
+// people flip back and forth while scanning results, and burying it in a
+// panel meant opening the panel, choosing, and applying every time.
+type BaseSort = Extract<CatalogSort, "best" | "name">;
+
+const sortOptions: Array<{ value: BaseSort; label: string }> = [
   { value: "best", label: "Best match" },
   { value: "name", label: "Name A–Z" },
-  { value: "price_desc", label: "Price ↓" },
-  { value: "price_asc", label: "Price ↑" },
 ];
+
+/** Off, then dearest first, then cheapest first, then off again. */
+const PRICE_CYCLE = [null, "desc", "asc"] as const;
+type PriceSort = (typeof PRICE_CYCLE)[number];
+
+const PRICE_LABEL: Record<string, string> = {
+  null: "Sort by price",
+  desc: "Price: high to low",
+  asc: "Price: low to high",
+};
 
 // The search outlives this page on purpose.
 //
@@ -489,11 +550,50 @@ const searchInput = useState("collection:query-input", () => "");
 const appliedQuery = useState("collection:query", () => "");
 const setFilter = useState("collection:set", () => "");
 const rarityFilter = useState("collection:rarity", () => "");
-const sortBy = useState<CatalogSort>("collection:sort", () => "best");
+const baseSort = useState<BaseSort>("collection:sort", () => "best");
+const priceSort = useState<PriceSort>("collection:price-sort", () => null);
 const filtersOpen = ref(false);
 
+// What actually goes to the catalogue. Price wins while it is on, and the
+// panel's choice is remembered underneath it — turning price off returns to
+// the sort they had, rather than resetting them to Best match.
+const sortBy = computed<CatalogSort>(() =>
+  priceSort.value === null
+    ? baseSort.value
+    : priceSort.value === "asc"
+      ? "price_asc"
+      : "price_desc",
+);
+
+const priceLabel = computed(() => PRICE_LABEL[String(priceSort.value)]!);
+
+/**
+ * The number printed on Japanese Diamond & Pearl cards — "DPBP#168".
+ *
+ * It is a continuous count across the whole era rather than a per-set number,
+ * and TCGPlayer does not record it, so no amount of parsing will find the
+ * card. Every Japanese DP-era card in the catalogue has no number at all. The
+ * cards themselves ARE here — that Omanyte is in DP4: Moonlit Pursuit — so
+ * the useful thing is to point at the search that does work.
+ */
+const looksLikeDpbp = computed(() =>
+  /\bdpbp\s*#?\s*\d+/i.test(appliedQuery.value),
+);
+
+const cyclePrice = () => {
+  const i = PRICE_CYCLE.indexOf(priceSort.value);
+  priceSort.value = PRICE_CYCLE[(i + 1) % PRICE_CYCLE.length]!;
+};
+
+// A toggle that needs a second button pressed is not a toggle. The panel
+// keeps its Apply because changing a set or rarity is a considered edit;
+// flipping price is not.
+watch(priceSort, () => {
+  if (hasRunSearch.value) runSearch();
+});
+
 const hasActiveFilters = computed(
-  () => !!setFilter.value || !!rarityFilter.value || sortBy.value !== "best",
+  () => !!setFilter.value || !!rarityFilter.value || baseSort.value !== "best",
 );
 
 // One parser for every search surface — see useCardCatalog. This page used
@@ -667,7 +767,8 @@ const applyFilters = () => {
 const resetFilters = () => {
   setFilter.value = "";
   rarityFilter.value = "";
-  sortBy.value = "best";
+  baseSort.value = "best";
+  priceSort.value = null;
   if (hasRunSearch.value) runSearch();
 };
 
