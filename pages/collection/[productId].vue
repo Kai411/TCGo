@@ -117,7 +117,27 @@
               </div>
             </div>
 
-            <p class="mt-5 eyebrow">{{ card.setName }}</p>
+            <!-- The set name is the obvious thing to click after reading it,
+                 and it was inert. -->
+            <NuxtLink
+              :to="`/collection?set=${encodeURIComponent(card.setName)}`"
+              class="mt-5 eyebrow inline-flex items-center gap-1 transition-colors hover:text-pokemon-red"
+              :aria-label="`See other cards from ${card.setName}`"
+            >
+              {{ card.setName }}
+              <svg
+                class="w-3 h-3 shrink-0"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </NuxtLink>
             <h1
               class="mt-1 font-display text-4xl font-extrabold tracking-tightest text-ink dark:text-white sm:text-5xl"
             >
@@ -341,6 +361,173 @@
         >
           TCGplayer raw-card market data, converted from USD to MYR. The chart
           only draws when at least two recorded snapshots are available.
+        </p>
+      </section>
+
+      <!-- Raw copies. The page only ever showed graded supply, which is the
+           smaller half of the market and never the cheapest way to own the
+           card — a reader could see three slabs and conclude nobody was
+           selling it. -->
+      <section class="surface rounded-2xl mt-6 p-5 sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <span class="eyebrow">Ungraded prices</span>
+            <h2
+              class="mt-1 text-xl font-bold tracking-tight text-ink dark:text-white"
+            >
+              Active listings
+            </h2>
+            <p class="mt-1 max-w-xl text-sm text-ink-muted dark:text-zinc-400">
+              Asking prices for raw, ungraded copies of this printing on TCGo.
+            </p>
+          </div>
+          <span class="chip chip-accent">TCGo marketplace</span>
+        </div>
+
+        <div v-if="listingsLoading" class="flex justify-center py-12">
+          <div
+            class="animate-spin rounded-full h-5 w-5 border-2 border-ink/10 border-t-pokemon-red"
+          />
+        </div>
+
+        <div
+          v-else-if="rawRows.length === 0"
+          class="mt-6 rounded-xl border border-dashed border-black/[0.10] dark:border-white/[0.12] py-9 px-5 text-center"
+        >
+          <div
+            class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-sky-500/10 text-sky-700 dark:text-sky-300"
+          >
+            <svg
+              class="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="4" y="3" width="16" height="18" rx="2" />
+              <path d="M8 8h8M8 12h5" />
+            </svg>
+          </div>
+          <p class="mt-3 text-sm font-semibold text-ink dark:text-white">
+            No ungraded listings yet
+          </p>
+          <p class="mt-1 text-xs text-ink-muted dark:text-zinc-400">
+            Prices will appear when a seller lists a raw copy of this card.
+          </p>
+        </div>
+
+        <div
+          v-else
+          class="mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
+        >
+          <div class="hidden sm:block overflow-x-auto">
+            <table class="w-full min-w-[600px] text-sm">
+              <thead class="bg-canvas-sunken dark:bg-white/[0.03]">
+                <tr
+                  class="text-left text-[10px] uppercase tracking-[0.14em] text-ink-soft dark:text-zinc-500"
+                >
+                  <th class="px-4 py-3 font-semibold">Condition</th>
+                  <th class="px-4 py-3 font-semibold">Lowest ask</th>
+                  <th class="px-4 py-3 font-semibold">Price range</th>
+                  <th class="px-4 py-3 font-semibold">Available</th>
+                  <th class="px-4 py-3 font-semibold">
+                    <span class="sr-only">View</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody
+                class="divide-y divide-black/[0.06] dark:divide-white/[0.06]"
+              >
+                <tr v-for="row in rawRows" :key="row.key">
+                  <td class="px-4 py-4">
+                    <span
+                      class="inline-flex items-center rounded-md bg-sky-100 px-2 py-1 text-xs font-extrabold text-sky-900 dark:bg-sky-500/20 dark:text-sky-200"
+                    >
+                      {{ row.condition }}
+                    </span>
+                  </td>
+                  <td
+                    class="px-4 py-4 font-bold text-ink dark:text-white tabular-price"
+                  >
+                    {{ formatMyr(row.low) }} MYR
+                  </td>
+                  <td
+                    class="px-4 py-4 text-ink-muted dark:text-zinc-300 tabular-price"
+                  >
+                    {{ formatPriceRange(row.low, row.high) }}
+                  </td>
+                  <td class="px-4 py-4 text-ink-muted dark:text-zinc-300">
+                    {{ row.count }}
+                    {{ row.count === 1 ? "listing" : "listings" }}
+                  </td>
+                  <td class="px-4 py-4 text-right">
+                    <NuxtLink
+                      :to="`/cards/${row.lowestListingId}`"
+                      class="inline-flex items-center gap-1 text-xs font-bold text-pokemon-red hover:underline"
+                    >
+                      View
+                      <svg
+                        class="w-3.5 h-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        aria-hidden="true"
+                      >
+                        <path d="m9 18 6-6-6-6" />
+                      </svg>
+                    </NuxtLink>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div
+            class="sm:hidden divide-y divide-black/[0.06] dark:divide-white/[0.06]"
+          >
+            <NuxtLink
+              v-for="row in rawRows"
+              :key="row.key"
+              :to="`/cards/${row.lowestListingId}`"
+              class="flex items-center justify-between gap-4 p-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
+            >
+              <div>
+                <span
+                  class="inline-flex items-center rounded-md bg-sky-100 px-2 py-1 text-xs font-extrabold text-sky-900 dark:bg-sky-500/20 dark:text-sky-200"
+                >
+                  {{ row.condition }}
+                </span>
+                <p class="mt-2 text-[11px] text-ink-soft dark:text-zinc-500">
+                  {{ row.count }} {{ row.count === 1 ? "listing" : "listings" }}
+                </p>
+              </div>
+              <div class="text-right">
+                <p
+                  class="text-sm font-bold text-ink dark:text-white tabular-price"
+                >
+                  {{ formatMyr(row.low) }} MYR
+                </p>
+                <p
+                  v-if="row.high !== row.low"
+                  class="mt-0.5 text-[10px] text-ink-soft dark:text-zinc-500"
+                >
+                  up to {{ formatMyr(row.high) }} MYR
+                </p>
+              </div>
+            </NuxtLink>
+          </div>
+        </div>
+
+        <p
+          v-if="rawRows.length"
+          class="mt-4 text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500"
+        >
+          These are seller asking prices, not appraisal values. Condition is the
+          seller's own assessment. Tap a row to view the lowest-priced listing.
         </p>
       </section>
 
@@ -621,6 +808,15 @@ import {
 
 type HistoryDays = 30 | 90 | 365;
 
+interface RawPriceRow {
+  key: string;
+  condition: string;
+  low: number;
+  high: number;
+  count: number;
+  lowestListingId: string;
+}
+
 interface GradedPriceRow {
   key: string;
   provider: string;
@@ -870,6 +1066,52 @@ const activeGradedListings = computed(() => {
       listing.price > 0 &&
       listingMatchesCard(listing, card.value!),
   );
+});
+
+const activeRawListings = computed(() => {
+  if (!card.value) return [];
+  return marketplaceCards.value.filter(
+    (listing) =>
+      listing.productType === "Ungraded" &&
+      !listing.sold &&
+      (!listing.status || listing.status === "active") &&
+      Number.isFinite(listing.price) &&
+      listing.price > 0 &&
+      listingMatchesCard(listing, card.value!),
+  );
+});
+
+// Best condition first, matching how the grading table reads top-down. Taken
+// from the list sellers pick from, so a condition added there orders itself.
+const conditionOrder = new Map(UNGRADED_CONDITIONS.map((c, i) => [c, i]));
+
+const rawRows = computed<RawPriceRow[]>(() => {
+  const groups = new Map<string, Card[]>();
+  for (const listing of activeRawListings.value) {
+    const condition = listing.condition?.trim() || "Unspecified";
+    const key = condition.toLocaleLowerCase();
+    const group = groups.get(key) ?? [];
+    group.push(listing);
+    groups.set(key, group);
+  }
+
+  return [...groups.entries()]
+    .map(([key, listings]) => {
+      const sorted = [...listings].sort((a, b) => a.price - b.price);
+      return {
+        key,
+        condition: sorted[0]!.condition?.trim() || "Unspecified",
+        low: sorted[0]!.price,
+        high: sorted[sorted.length - 1]!.price,
+        count: sorted.length,
+        lowestListingId: sorted[0]!.id,
+      };
+    })
+    .sort(
+      (a, b) =>
+        (conditionOrder.get(a.condition as never) ?? 99) -
+        (conditionOrder.get(b.condition as never) ?? 99),
+    );
 });
 
 const providerOrder = new Map([

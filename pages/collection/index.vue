@@ -500,6 +500,19 @@ onMounted(async () => {
   if (user.value) listenMyCollection();
   loadDropdowns();
 
+  // Arriving from a card's set name. The link already existed on the card
+  // page and landed here doing nothing, because nothing read the query.
+  const wantedSet = route.query.set;
+  if (typeof wantedSet === "string" && wantedSet.trim()) {
+    setFilter.value = wantedSet;
+    searchInput.value = "";
+    appliedQuery.value = "";
+    // Skip the saved scroll: this is a new search, not a return trip.
+    resumeOnReturn.value = false;
+    await runSearch();
+    return;
+  }
+
   if (!resumeOnReturn.value || !searchResults.value.length) return;
   resumeOnReturn.value = false;
   // Two frames: one for the grid to render from the results already in hand,
@@ -703,6 +716,7 @@ const hasMoreResults = computed(
   () => searchResults.value.length < searchTotal.value,
 );
 
+const route = useRoute();
 const { dismissKeyboard } = useDismissKeyboard();
 
 const runSearch = async () => {
