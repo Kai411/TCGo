@@ -1,7 +1,7 @@
 <template>
   <img
-    v-if="src && !failed"
-    :src="src"
+    v-if="resolved && !failed"
+    :src="resolved"
     :alt="alt || 'Card'"
     class="w-full h-full object-cover"
     loading="lazy"
@@ -30,20 +30,34 @@
 </template>
 
 <script setup lang="ts">
+import { cardImageUrl } from "~/shared/card-image";
 // Reusable card thumbnail that degrades gracefully when the source URL is
 // empty OR returns an error (e.g. TCGPlayer CDN products with no image yet,
 // which 403/404). Fills its container — the parent owns the aspect box.
-const props = defineProps<{
-  src?: string | null;
-  alt?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    src?: string | null;
+    alt?: string;
+    /**
+     * Rendered width in CSS pixels, so the image can be fetched at the size
+     * it is drawn instead of whatever the catalogue happens to store. The
+     * default suits the card grids, which are the dense case.
+     */
+    width?: number;
+  }>(),
+  { width: 220 },
+);
+
+// Served from our own domain rather than the origin's CDN. See
+// shared/card-image.ts — a non-catalogue URL comes back untouched.
+const resolved = computed(() => cardImageUrl(props.src, { width: props.width }));
 
 const failed = ref(false);
 
 // Reset the error flag when the src changes so a previously-broken slot can
 // recover if it's reused for a different (valid) card.
 watch(
-  () => props.src,
+  resolved,
   () => {
     failed.value = false;
   },

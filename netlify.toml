@@ -24,3 +24,13 @@
   # Belt and braces: Netlify passes this to its own install step, so the build
   # stays green even if .npmrc is ever lost or overridden.
   NPM_FLAGS = "--legacy-peer-deps"
+
+# Netlify Image CDN.
+#
+# Card art is stored in the catalogue as TCGPlayer CDN URLs, which put their
+# hostname in the source of every page. Routing them through /.netlify/images
+# serves them from our own domain, caches them at our edge, and resizes per
+# surface. Remote hosts must be listed here or the endpoint returns 404 — the
+# allowlist and shared/card-image.ts have to agree.
+[images]
+  remote_images = ['https://tcgplayer-cdn\.tcgplayer\.com/.*']
