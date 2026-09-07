@@ -417,9 +417,25 @@ const {
   listenMyCollection,
 } = useUserCollection();
 
-onMounted(() => {
+onBeforeRouteLeave((to) => {
+  // Only a card page. Anywhere else and the search is done with.
+  resumeOnReturn.value = /^\/collection\/[^/]+$/.test(to.path);
+  savedScroll.value = window.scrollY;
+});
+
+onMounted(async () => {
   if (user.value) listenMyCollection();
   loadDropdowns();
+
+  if (!resumeOnReturn.value || !searchResults.value.length) return;
+  resumeOnReturn.value = false;
+  // Two frames: one for the grid to render from the results already in hand,
+  // one for the card images to claim their space. Without the second the page
+  // is still short and the scroll lands well above where they left.
+  await nextTick();
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => window.scrollTo(0, savedScroll.value)),
+  );
 });
 watch(user, (u) => {
   if (u) listenMyCollection();
@@ -459,11 +475,18 @@ const sortOptions: Array<{ value: CatalogSort; label: string }> = [
   { value: "price_asc", label: "Price ↑" },
 ];
 
-const searchInput = ref("");
-const appliedQuery = ref("");
-const setFilter = ref("");
-const rarityFilter = ref("");
-const sortBy = ref<CatalogSort>("best");
+// The search outlives this page on purpose.
+//
+// Opening a card and pressing back used to land on an empty search box: the
+// component unmounts, its refs go with it, and the reader loses both their
+// results and their place in them — after scrolling through several auto-
+// loaded pages to get there. useState survives navigation, so coming back is
+// coming back.
+const searchInput = useState("collection:query-input", () => "");
+const appliedQuery = useState("collection:query", () => "");
+const setFilter = useState("collection:set", () => "");
+const rarityFilter = useState("collection:rarity", () => "");
+const sortBy = useState<CatalogSort>("collection:sort", () => "best");
 const filtersOpen = ref(false);
 
 const hasActiveFilters = computed(
@@ -511,17 +534,24 @@ const effectiveRarityMatch = computed(
   () => parsed.value.rarityHint || rarityFilter.value || null,
 );
 
-const searchResults = ref<CatalogMatch[]>([]);
-const searchTotal = ref(0);
-const searchPage = ref(0);
+const searchResults = useState<CatalogMatch[]>("collection:results", () => []);
+const searchTotal = useState("collection:total", () => 0);
+const searchPage = useState("collection:page", () => 0);
+// Where they were, and whether returning here should put them back there.
+// Only a trip into a card counts — arriving from the nav bar is a fresh visit
+// and should start at the top.
+const savedScroll = useState("collection:scroll", () => 0);
+const resumeOnReturn = useState("collection:resume", () => false);
 const searchLoading = ref(false);
-const hasRunSearch = ref(false);
+const hasRunSearch = useState("collection:has-run", () => false);
 
 // Search replaces the collection view rather than stacking below it — the
 // page is either "what I own" or "what I might add", never both at once.
 const showingSearch = computed(() => hasRunSearch.value);
 
 const clearSearch = () => {
+  savedScroll.value = 0;
+  resumeOnReturn.value = false;
   searchInput.value = "";
   appliedQuery.value = "";
   searchResults.value = [];
