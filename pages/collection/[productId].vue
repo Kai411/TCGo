@@ -61,17 +61,23 @@
               aria-hidden="true"
             />
             <div
-              class="relative aspect-[2.5/3.5] rotate-[-1deg] overflow-hidden rounded-[1.35rem] bg-canvas-sunken ring-1 ring-black/[0.08] shadow-card-hover transition-transform duration-300 ease-premium hover:rotate-0 dark:bg-white/[0.04] dark:ring-white/[0.10]"
+              class="relative aspect-[2.5/3.5] overflow-hidden rounded-[1.35rem] bg-canvas-sunken ring-1 ring-black/[0.08] shadow-card-hover transition-transform duration-300 ease-premium sm:-rotate-1 sm:hover:rotate-0 dark:bg-white/[0.04] dark:ring-white/[0.10]"
             >
               <CardImage :src="card.imageUrl" :alt="card.name" />
             </div>
           </div>
 
-          <div class="min-w-0">
+          <div class="min-w-0 flex flex-col">
             <!-- Chips left, collection control top-right. It used to sit
                  beside the price at the foot of the column, which buried the
                  one action on the page below the fold on narrow screens. -->
-            <div class="flex flex-wrap items-start justify-between gap-3">
+            <!-- `contents` on a phone dissolves this wrapper so the chips and
+                 the button become siblings of everything below, which is what
+                 lets order-last move the button past them. From sm up it is an
+                 ordinary row again and the desktop layout is untouched. -->
+            <div
+              class="contents sm:flex sm:flex-wrap sm:items-start sm:justify-between sm:gap-3"
+            >
               <div class="flex flex-wrap items-center gap-1.5">
                 <span v-if="card.rarity" class="chip chip-gold">{{
                   card.rarity
@@ -82,7 +88,11 @@
                 }}</span>
               </div>
 
-              <div class="flex shrink-0 items-center gap-2">
+              <!-- Last on a phone: the name, number and price are what the
+                   reader came for, and the button pushed all of it down. -->
+              <div
+                class="order-last mt-6 flex shrink-0 items-center gap-2 sm:order-none sm:mt-0"
+              >
                 <!-- Owned: a status mark, not a button. The only action left
                      (changing how many copies) sits with the price below. -->
                 <CollectedBadge v-if="inCollection" :quantity="ownedQuantity" label />
@@ -154,12 +164,21 @@
                  stepper reads as a property of the card rather than a second
                  call to action stacked under the header. -->
             <div class="mt-7 flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p
-                  class="text-xs font-semibold text-ink-muted dark:text-zinc-400"
-                >
-                  Raw market price
-                </p>
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <p
+                    class="text-xs font-semibold text-ink-muted dark:text-zinc-400"
+                  >
+                    Raw market price
+                  </p>
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                    :class="CONFIDENCE_CLASS[confidence.level]"
+                    :title="confidence.reasons.join(' ')"
+                  >
+                    {{ CONFIDENCE_LABEL[confidence.level] }}
+                  </span>
+                </div>
                 <p
                   v-if="card.price"
                   class="mt-1 text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
@@ -805,6 +824,11 @@ import {
   type CatalogMatch,
   type PriceTrend,
 } from "~/composables/useCardCatalog";
+import {
+  CONFIDENCE_CLASS,
+  CONFIDENCE_LABEL,
+  priceConfidence,
+} from "~/shared/price-confidence";
 
 type HistoryDays = 30 | 90 | 365;
 
@@ -1112,6 +1136,31 @@ const rawRows = computed<RawPriceRow[]>(() => {
         (conditionOrder.get(a.condition as never) ?? 99) -
         (conditionOrder.get(b.condition as never) ?? 99),
     );
+});
+
+// How much to trust the figure above. See shared/price-confidence.ts — the
+// short version is that one upstream source, refreshed on a schedule, is not
+// equally reliable for a card that trades daily and one that trades yearly,
+// and showing both as a bare number says otherwise.
+const confidence = computed(() => {
+  const t = trend.value;
+  const latest = t?.latestAvailableDate ? new Date(t.latestAvailableDate) : null;
+  const ageDays =
+    latest && !Number.isNaN(latest.getTime())
+      ? Math.max(0, (Date.now() - latest.getTime()) / 86_400_000)
+      : null;
+  return priceConfidence({
+    market: card.value?.price?.market ?? null,
+    ageDays,
+    snapshotCount: t?.snapshotCount ?? 0,
+    min: t?.min ?? null,
+    max: t?.max ?? null,
+    // Asking prices from raw copies only. A slab is a different product and
+    // would drag the comparison somewhere the raw market price never claimed
+    // to be.
+    listingPrices: activeRawListings.value.map((l) => l.price),
+    sourceCount: 1,
+  });
 });
 
 const providerOrder = new Map([
