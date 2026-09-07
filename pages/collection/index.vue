@@ -635,6 +635,11 @@ const effectiveLanguage = computed<"EN" | "ALL">(() => {
   // printing, and filtering them away leaves a blank page.
   const outsideEn = (name: string, list: Array<{ name: string }>) =>
     list.length > 0 && !inEn(name, list);
+  // A printed number identifies one specific card, and the number is the same
+  // whatever language it was printed in. "067/082" is a Japanese Rayquaza ★
+  // and no English card carries it, so filtering to English answers a precise
+  // question with an empty page.
+  if (parsed.value.numberMatch) return "ALL";
   if (parsed.value.rarityMatches.some((m) => outsideEn(m, rarities.value))) return "ALL";
   if (r && outsideEn(r, rarities.value)) return "ALL";
   if (s && outsideEn(s, sets.value)) return "ALL";

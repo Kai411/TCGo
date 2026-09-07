@@ -21,6 +21,7 @@
 // Prices are NOT touched here; that's the snapshot cron's job.
 
 import { createClient } from "@supabase/supabase-js";
+import { applyGoldStar } from "./lib/gold-star.mjs";
 import "dotenv/config";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -155,7 +156,12 @@ async function seedCategory(category) {
         continue;
       }
       const language = category.language ?? detectLanguage(group);
-      const rows = products.map((p) => buildRow(p, group, category.id, language));
+      // Gold Star cards are renamed and given their real rarity on the way
+      // in. Doing it here rather than with an UPDATE is what makes it last —
+      // this job rewrites name and rarity from upstream every night.
+      const rows = products
+        .map((p) => buildRow(p, group, category.id, language))
+        .map(applyGoldStar);
       await upsertBatched(rows);
       totalProducts += rows.length;
       console.log(`${tag} — ${rows.length} ${language} ✓`);

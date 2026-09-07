@@ -45,6 +45,8 @@ const RARITIES = [
   "ACE SPEC Rare", "Promo",
   // Japanese rarities — the codes collectors actually type.
   "Art Rare", "Special Art Rare", "Super Rare", "Character Rare", "ACE Rare",
+  // Ours, not TCGPlayer's: the seed files the ★ subset under its real name.
+  "Gold Star", "Prism Rare",
 ];
 
 describe("the queries that came back empty", () => {
@@ -345,12 +347,24 @@ describe("Japanese sets and rarities", () => {
 describe("collector phrases the catalogue spells differently", () => {
   const parse = (q: string) => parseSearchQuery(q, SETS, RARITIES);
 
-  it("finds a Gold Star card, which is filed as just Star", () => {
-    // "Rayquaza Star", EX Deoxys. There is no "gold" in the name and no Gold
-    // Star rarity — Ultra Rare in English, Shiny Rare in Japanese.
+  it("finds a Gold Star card by its rarity", () => {
+    // Stored as "Rayquaza ★" with the rarity "Gold Star", so the search that
+    // works is the name plus that rarity — ★ cannot be typed.
     const r = parse("rayquaza gold star");
-    assert.equal(r.name, "rayquaza star");
-    assert.deepEqual(r.rarityMatches, [], "Gold Star is not a rarity");
+    assert.equal(r.name, "rayquaza");
+    assert.deepEqual(r.rarityMatches, ["Gold Star"]);
+  });
+
+  it("accepts the shorter habit too", () => {
+    const r = parse("rayquaza star");
+    assert.equal(r.name, "rayquaza");
+    assert.deepEqual(r.rarityMatches, ["Gold Star"]);
+  });
+
+  it("leaves Prism Star alone — different subset, different symbol", () => {
+    const r = parse("tapu koko prism star");
+    assert.equal(r.name.toLowerCase(), "tapu koko prism star");
+    assert.deepEqual(r.rarityMatches, []);
   });
 
   it("still reads gold on its own as a Hyper Rare", () => {
@@ -358,8 +372,6 @@ describe("collector phrases the catalogue spells differently", () => {
   });
 
   it("is case and spacing insensitive", () => {
-    // Casing is left as typed — the catalogue is matched case-insensitively —
-    // but the phrase is still recognised and the spacing normalised.
-    assert.equal(parse("Rayquaza  GOLD   STAR").name.toLowerCase(), "rayquaza star");
+    assert.equal(parse("Rayquaza  GOLD   STAR").name.toLowerCase(), "rayquaza");
   });
 });

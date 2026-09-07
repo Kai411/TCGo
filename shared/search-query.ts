@@ -58,6 +58,10 @@ export const COLLOQUIAL_RARITIES: Record<string, string> = {
   // Printed codes that are not the initials of the name. Character Rare
   // abbreviates to "cr" on paper and nobody types that — the card says CHR.
   chr: "Character Rare",
+  // What applyPhrases rewrites "gold star" and a trailing "star" into. Not
+  // "gs": that is also the initials of the set "Golden Sky, Silvery Ocean",
+  // and the rewrite would filter to a set instead of a rarity.
+  goldstar: "Gold Star",
 };
 
 /**
@@ -278,22 +282,33 @@ const numberNamesASet = (number: string, setNames: string[]): boolean => {
 };
 
 /**
- * Collector phrases the catalogue files under a different name.
+ * Collector phrases rewritten to what the catalogue is filed under.
  *
- * "Gold Star" is the EX-era subset, and the cards are stored as "<Pokémon>
- * Star" — no "gold" anywhere in the name, and no Gold Star rarity either: the
- * English printing is Ultra Rare and the Japanese one Shiny Rare. Left alone
- * the phrase breaks twice over, because "gold" is also what collectors call a
- * Hyper Rare, so it gets lifted as a rarity and filters to one this card has
- * never had.
+ * Gold Star cards are stored as "Rayquaza ★" with the rarity "Gold Star", so
+ * the search that works is a name plus a rarity. Rewriting the phrase into a
+ * single token that names that rarity lets the ordinary rarity machinery do
+ * the rest, with no special case downstream.
  *
- * Rewritten before anything else reads the query, so both halves land: the
- * name matches and no rarity is invented.
+ * "star" on its own is rewritten too, because ★ cannot be typed and people
+ * have always searched these as "rayquaza star". The one exception is Prism
+ * Star, a different subset with a different symbol whose cards genuinely end
+ * in the word — "tapu koko prism star" must stay a name.
+ *
+ * Token work rather than a regex: the rule is about the last word and the one
+ * before it, which reads plainly here and does not in a lookbehind.
  */
-const QUERY_PHRASES: Array<[RegExp, string]> = [[/\bgold\s+star\b/gi, "star"]];
+export const applyPhrases = (input: string): string => {
+  const t = input.trim().split(/\s+/).filter(Boolean);
+  if (t.length < 2) return t.join(" ");
 
-export const applyPhrases = (input: string): string =>
-  QUERY_PHRASES.reduce((acc, [re, to]) => acc.replace(re, to), input);
+  const last = t[t.length - 1]!.toLowerCase();
+  const prev = t[t.length - 2]!.toLowerCase();
+  if (last !== "star") return t.join(" ");
+
+  if (prev === "gold") return [...t.slice(0, -2), "goldstar"].join(" ");
+  if (prev === "prism") return t.join(" ");
+  return [...t.slice(0, -1), "goldstar"].join(" ");
+};
 
 export const parseSearchQuery = (
   raw: string,
