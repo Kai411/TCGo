@@ -50,6 +50,36 @@ const ensureRate = (): Promise<void> => {
 // Convert a USD figure to MYR, keeping 2 decimal places (cents).
 const toMyr = (usd: number) => Math.round(usd * usdMyrRate * 100) / 100;
 
+// Cardmarket quotes in euros. Converting those at the dollar rate would be
+// wrong by roughly a tenth, on exactly the scarce cards with no other price to
+// check it against.
+const EUR_MYR_FALLBACK = 5.1;
+let eurMyrRate = EUR_MYR_FALLBACK;
+let eurRatePromise: Promise<void> | null = null;
+const ensureEurRate = (): Promise<void> => {
+  if (eurRatePromise) return eurRatePromise;
+  eurRatePromise = (async () => {
+    try {
+      const res = await $fetch<{ rate: number }>("/api/fx/eur-myr");
+      if (res?.rate && res.rate > 0) eurMyrRate = res.rate;
+    } catch {
+      // Keep the fallback rate.
+    }
+  })();
+  return eurRatePromise;
+};
+const eurToMyr = (eur: number) => Math.round(eur * eurMyrRate * 100) / 100;
+
+/** A price from somewhere other than TCGPlayer, converted to MYR. */
+export interface SecondaryPrice {
+  source: string;
+  currency: string;
+  market: number;
+  low: number | null;
+  high: number | null;
+  fetchedAt: string | null;
+}
+
 // TCGPlayer publishes per-subtype prices. We prefer Holofoil → Normal →
 // Reverse Holofoil; for a sealed product the only key is usually "Normal".
 const SUBTYPE_PREFERENCE = [
@@ -414,6 +444,52 @@ export const useCardCatalog = () => {
 
   // Dropdown helpers — cached at composable level so we only hit Supabase
   // once per session per language.
+  /**
+   * A second opinion on a card's price.
+   *
+   * Exists for the cards TCGPlayer does not price at all — a market price is
+   * derived from recent sales, and a card that barely trades has none. Kept in
+   * its own table because it is a different market in a different currency;
+   * see the schema comment on card_price_sources.
+   *
+   * Returns null, never throws, when the table has not been created yet: the
+   * schema is applied by hand, so a deploy can legitimately run ahead of it,
+   * and a missing second opinion is not a broken page.
+   */
+  const getSecondaryPrice = async (
+    productId: number,
+  ): Promise<SecondaryPrice | null> => {
+    if (!supabase || !Number.isFinite(productId)) return null;
+    const { data, error } = await supabase
+      .from("card_price_sources")
+      .select("source, currency, market, low, high, fetched_at")
+      .eq("product_id", productId)
+      .order("market", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      if (!/does not exist|schema cache/i.test(error.message)) {
+        console.error("[useCardCatalog] getSecondaryPrice:", error.message);
+      }
+      return null;
+    }
+    const row = data?.[0];
+    if (!row || row.market == null) return null;
+
+    const convert = row.currency === "EUR" ? eurToMyr : toMyr;
+    // ensureRate/ensureEurRate memoise, so this is one fetch per session.
+    await (row.currency === "EUR" ? ensureEurRate() : ensureRate());
+
+    return {
+      source: row.source,
+      currency: row.currency,
+      market: convert(Number(row.market)),
+      low: row.low == null ? null : convert(Number(row.low)),
+      high: row.high == null ? null : convert(Number(row.high)),
+      fetchedAt: row.fetched_at ?? null,
+    };
+  };
+
   const listSets = async (
     language: "EN" | "JP" | "ALL" = "EN",
   ): Promise<Array<{ name: string; count: number }>> => {
@@ -782,6 +858,7 @@ export const useCardCatalog = () => {
     lookupByNameAndNumber,
     getCardWithPrice,
     getCardsByIds,
+    getSecondaryPrice,
     listSets,
     listRarities,
     matchRow,

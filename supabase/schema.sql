@@ -284,3 +284,49 @@ RETURNS TABLE (rarity TEXT, card_count BIGINT) AS $$
   GROUP BY c.rarity
   ORDER BY c.rarity ASC;
 $$ LANGUAGE SQL STABLE;
+
+------------------------------------------------------------------
+-- card_price_sources : prices from somewhere other than TCGPlayer
+------------------------------------------------------------------
+-- A second opinion, kept apart from card_prices on purpose.
+--
+-- card_prices.prices is a map of TCGPlayer SUB-TYPES, and the reader falls
+-- back to "any key with a market value". Putting a Cardmarket figure in there
+-- would see it picked up as a sub-type and converted as though it were USD —
+-- a European price quoted as an American one, silently. They are different
+-- markets, not two readings of one number, so they get different rows.
+--
+-- Scarce cards are the reason this exists: TCGPlayer publishes a market price
+-- from recent sales, and a card that barely trades has none. 34 of 61 Gold
+-- Stars have no TCGPlayer price; Cardmarket prices the EX Deoxys Rayquaza at
+-- around EUR 2420.
+CREATE TABLE IF NOT EXISTS card_price_sources (
+  product_id  BIGINT NOT NULL REFERENCES cards_catalog(product_id) ON DELETE CASCADE,
+  source      TEXT   NOT NULL,             -- 'cardmarket'
+  currency    TEXT   NOT NULL,             -- ISO 4217, e.g. 'EUR'
+  market      NUMERIC,                     -- headline figure, source currency
+  low         NUMERIC,
+  high        NUMERIC,
+  -- Everything the source returned, so a figure can be re-derived later
+  -- without re-fetching.
+  raw         JSONB NOT NULL DEFAULT '{}'::jsonb,
+  fetched_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (product_id, source)
+);
+
+CREATE INDEX IF NOT EXISTS card_price_sources_product_idx
+  ON card_price_sources (product_id);
+
+DROP TRIGGER IF EXISTS card_price_sources_touch ON card_price_sources;
+CREATE TRIGGER card_price_sources_touch
+  BEFORE UPDATE ON card_price_sources
+  FOR EACH ROW
+  EXECUTE FUNCTION touch_updated_at();
+
+ALTER TABLE card_price_sources ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "price sources public read" ON card_price_sources;
+CREATE POLICY "price sources public read"
+  ON card_price_sources FOR SELECT
+  USING (true);

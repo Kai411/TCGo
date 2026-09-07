@@ -189,6 +189,25 @@
                     >MYR</span
                   >
                 </p>
+                <!-- No primary price. Show the second opinion rather than a
+                     dead end, and say plainly that it is one — it is a
+                     European market converted to ringgit, not the same number
+                     from a different angle. -->
+                <template v-else-if="secondary">
+                  <p
+                    class="mt-1 text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
+                  >
+                    {{ formatMyr(secondary.market) }}
+                    <span
+                      class="mr-1 text-xl font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
+                      >MYR</span
+                    >
+                  </p>
+                  <p class="mt-1 text-xs text-ink-soft dark:text-zinc-500">
+                    Second source · {{ secondary.currency }} converted. No
+                    recent sales where we usually price this card.
+                  </p>
+                </template>
                 <p
                   v-else
                   class="mt-2 text-xl font-bold text-ink-muted dark:text-zinc-300"
@@ -855,7 +874,12 @@ const route = useRoute();
 const router = useRouter();
 const productId = computed(() => Number(route.params.productId));
 
-const { getCardWithPrice, getPriceHistory, getRelatedCards } = useCardCatalog();
+const {
+  getCardWithPrice,
+  getPriceHistory,
+  getRelatedCards,
+  getSecondaryPrice,
+} = useCardCatalog();
 const { cards: marketplaceCards, loading: listingsLoading } = useCards();
 const { user } = useAuth();
 const { requireSignIn } = useSignInGate();
@@ -871,6 +895,21 @@ const {
 } = useUserCollection();
 
 const card = ref<CatalogMatch | null>(null);
+
+// A second opinion, fetched for every card and shown when there is no primary
+// price at all — which is the case this exists for. TCGPlayer derives a market
+// price from recent sales, so a card that barely trades has none: 34 of 61
+// Gold Stars, the EX Deoxys Rayquaza ★ among them.
+const secondary = ref<Awaited<ReturnType<typeof getSecondaryPrice>>>(null);
+watch(
+  card,
+  async (c) => {
+    secondary.value = null;
+    if (!c) return;
+    secondary.value = await getSecondaryPrice(c.productId);
+  },
+  { immediate: true },
+);
 const fullTrend = ref<PriceTrend | null>(null);
 const relatedCards = ref<CatalogMatch[]>([]);
 const loading = ref(true);
@@ -1150,7 +1189,7 @@ const confidence = computed(() => {
       ? Math.max(0, (Date.now() - latest.getTime()) / 86_400_000)
       : null;
   return priceConfidence({
-    market: card.value?.price?.market ?? null,
+    market: card.value?.price?.market ?? secondary.value?.market ?? null,
     ageDays,
     snapshotCount: t?.snapshotCount ?? 0,
     min: t?.min ?? null,
@@ -1159,7 +1198,7 @@ const confidence = computed(() => {
     // would drag the comparison somewhere the raw market price never claimed
     // to be.
     listingPrices: activeRawListings.value.map((l) => l.price),
-    sourceCount: 1,
+    sourceCount: secondary.value ? 2 : 1,
   });
 });
 
