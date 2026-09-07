@@ -277,14 +277,35 @@ const numberNamesASet = (number: string, setNames: string[]): boolean => {
   return setNames.some((n) => pattern.test(n.trim()));
 };
 
+/**
+ * Collector phrases the catalogue files under a different name.
+ *
+ * "Gold Star" is the EX-era subset, and the cards are stored as "<Pokémon>
+ * Star" — no "gold" anywhere in the name, and no Gold Star rarity either: the
+ * English printing is Ultra Rare and the Japanese one Shiny Rare. Left alone
+ * the phrase breaks twice over, because "gold" is also what collectors call a
+ * Hyper Rare, so it gets lifted as a rarity and filters to one this card has
+ * never had.
+ *
+ * Rewritten before anything else reads the query, so both halves land: the
+ * name matches and no rarity is invented.
+ */
+const QUERY_PHRASES: Array<[RegExp, string]> = [[/\bgold\s+star\b/gi, "star"]];
+
+export const applyPhrases = (input: string): string =>
+  QUERY_PHRASES.reduce((acc, [re, to]) => acc.replace(re, to), input);
+
 export const parseSearchQuery = (
   raw: string,
   setNames: string[] = [],
   rarityNames: string[] = [],
 ): ParsedSearch => {
-  // Rarity first: it can sit at the end, and while it does, nothing else is
+  // Known collector phrases first, before any of it is read as a rarity.
+  const phrased = applyPhrases(raw);
+
+  // Rarity next: it can sit at the end, and while it does, nothing else is
   // last. Then the set, then the number.
-  const { rest, rarityMatches } = stripRarity(raw, rarityNames);
+  const { rest, rarityMatches } = stripRarity(phrased, rarityNames);
 
   // The set is tried at full length before any number is taken off, because a
   // set name can itself end in digits — "SV: Scarlet & Violet 151". Stripping

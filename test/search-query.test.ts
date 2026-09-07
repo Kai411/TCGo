@@ -341,3 +341,25 @@ describe("Japanese sets and rarities", () => {
     assert.equal(parse("charizard tg").setHint, "Trainer Gallery");
   });
 });
+
+describe("collector phrases the catalogue spells differently", () => {
+  const parse = (q: string) => parseSearchQuery(q, SETS, RARITIES);
+
+  it("finds a Gold Star card, which is filed as just Star", () => {
+    // "Rayquaza Star", EX Deoxys. There is no "gold" in the name and no Gold
+    // Star rarity — Ultra Rare in English, Shiny Rare in Japanese.
+    const r = parse("rayquaza gold star");
+    assert.equal(r.name, "rayquaza star");
+    assert.deepEqual(r.rarityMatches, [], "Gold Star is not a rarity");
+  });
+
+  it("still reads gold on its own as a Hyper Rare", () => {
+    assert.deepEqual(parse("charizard gold").rarityMatches, ["Hyper Rare"]);
+  });
+
+  it("is case and spacing insensitive", () => {
+    // Casing is left as typed — the catalogue is matched case-insensitively —
+    // but the phrase is still recognised and the spacing normalised.
+    assert.equal(parse("Rayquaza  GOLD   STAR").name.toLowerCase(), "rayquaza star");
+  });
+});
