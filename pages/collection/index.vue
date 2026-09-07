@@ -663,6 +663,16 @@ const parsed = computed(() =>
 // English-only default that is now gone.
 const effectiveLanguage = computed(() => languageFilter.value);
 
+// What the query said, else what the dropdown says. Typing beats the dropdown
+// so a smart query is not silently narrowed by a filter left over from an
+// earlier search.
+const effectiveSetMatch = computed(
+  () => parsed.value.setHint || setFilter.value || null,
+);
+const effectiveRarityMatch = computed(
+  () => parsed.value.rarityHint || rarityFilter.value || null,
+);
+
 const searchResults = useState<CatalogMatch[]>("collection:results", () => []);
 const searchTotal = useState("collection:total", () => 0);
 const searchPage = useState("collection:page", () => 0);
