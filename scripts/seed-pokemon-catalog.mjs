@@ -6,6 +6,15 @@
 //   2. Set SUPABASE_URL and SUPABASE_SERVICE_KEY in .env.
 //   3. node scripts/seed-pokemon-catalog.mjs
 //
+// Runs nightly in CI (.github/workflows/seed-pokemon-catalog.yml) and always
+// does a full sync. TCGCSV's guidelines suggest checking last-updated.txt and
+// skipping when nothing has changed; we do not, deliberately. The only honest
+// marker of "our last pull" would be cards_catalog.updated_at, which a touch
+// trigger bumps on ANY write — so the day someone edits a row by hand, the
+// sync silently skips. This job exists because the catalogue drifted three
+// months without anyone noticing; it must not have a quiet no-op path. A full
+// paced sync is ~680 requests against a published ceiling of 10,000.
+//
 // The script is idempotent — it upserts on product_id (TCGPlayer ids are
 // globally unique across categories), so re-running picks up new sets and
 // edits without duplicating rows. Run again whenever new sets release.
@@ -34,9 +43,23 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: { persistSession: false },
 });
 
+// TCGCSV asks for ~100ms between requests and throttles an IP for 10 minutes
+// past their threshold. A full seed is ~680 requests, and on a daily cron it
+// shares the day with the price snapshot's ~680, so the pacing is what keeps
+// both jobs off the naughty list. Their published ceiling is 10,000 requests
+// per full sync — we are nowhere near it; rate is the constraint, not volume.
+const REQUEST_SPACING_MS = 100;
+let lastRequestAt = 0;
+async function pace() {
+  const wait = lastRequestAt + REQUEST_SPACING_MS - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastRequestAt = Date.now();
+}
+
 // Fetch JSON with retry — TCGCSV is usually fine but transient flakes happen.
 async function fetchJson(url, attempt = 1) {
   try {
+    await pace();
     const res = await fetch(url, {
       headers: { Accept: "application/json", "User-Agent": "tcgo-seed/1.0" },
     });

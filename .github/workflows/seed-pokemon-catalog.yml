@@ -1,0 +1,51 @@
+name: Seed Pokémon catalog
+
+# The catalogue was the manual half of the pipeline and drifted three months
+# behind while prices kept updating daily — new sets were partially seeded, so
+# they appeared in the set dropdown and returned some cards, which looks like
+# working software. This closes that gap.
+
+on:
+  schedule:
+    # 05:00 Asia/Kuala_Lumpur = 21:00 UTC (UTC+8, MY has no DST).
+    #
+    # Deliberately AFTER TCGCSV's own daily rebuild (~20:05 UTC), so a set that
+    # lands upstream tonight is searchable tonight rather than a day later. The
+    # price snapshot then picks it up at its next 18:00 UTC run.
+    - cron: "0 21 * * *"
+  # Allow ad-hoc runs from the Actions tab — this is the button to press when
+  # a set has just released and you don't want to wait for the schedule.
+  workflow_dispatch:
+
+# One seed at a time. A run that overlaps its predecessor would upsert the
+# same 62k rows twice for nothing.
+concurrency:
+  group: seed-pokemon-catalog
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    # A full sync is ~680 upstream requests at 100ms spacing plus ~125 upsert
+    # batches; it lands well inside this, and the ceiling is here so a hung
+    # run fails rather than burning an hour.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # package-lock.json is gitignored in this repo, so we can't use
+      # `npm ci` / `cache: npm`. The script only needs two deps so a fresh
+      # install per run is fast (~15s) and reproducible enough.
+      - run: npm install --no-audit --no-fund
+
+      - name: Seed catalog
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        # Always a full sync. See the script header for why there is no
+        # "skip if unchanged" path.
+        run: node scripts/seed-pokemon-catalog.mjs

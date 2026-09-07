@@ -38,8 +38,20 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: { persistSession: false },
 });
 
+// TCGCSV asks for ~100ms between requests and throttles past their threshold.
+// This job has always run daily; the catalogue seed now shares the day with
+// it, so both pace themselves.
+const REQUEST_SPACING_MS = 100;
+let lastRequestAt = 0;
+async function pace() {
+  const wait = lastRequestAt + REQUEST_SPACING_MS - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastRequestAt = Date.now();
+}
+
 async function fetchJson(url, attempt = 1) {
   try {
+    await pace();
     const res = await fetch(url, {
       headers: { Accept: "application/json", "User-Agent": "tcgo-snapshot/1.0" },
     });
