@@ -10,8 +10,12 @@ on:
     # 05:00 Asia/Kuala_Lumpur = 21:00 UTC (UTC+8, MY has no DST).
     #
     # Deliberately AFTER TCGCSV's own daily rebuild (~20:05 UTC), so a set that
-    # lands upstream tonight is searchable tonight rather than a day later. The
-    # price snapshot then picks it up at its next 18:00 UTC run.
+    # lands upstream tonight is searchable tonight rather than a day later.
+    #
+    # The price snapshot runs an hour behind this, at 22:00 UTC. It only prices
+    # product_ids already in cards_catalog, so this job has to land first or a
+    # new set waits a day for its prices. Keep the hour of clearance: a full
+    # sync takes minutes, but the gap is what absorbs a slow night.
     - cron: "0 21 * * *"
   # Allow ad-hoc runs from the Actions tab — this is the button to press when
   # a set has just released and you don't want to wait for the schedule.

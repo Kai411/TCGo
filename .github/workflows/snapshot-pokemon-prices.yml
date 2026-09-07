@@ -2,8 +2,14 @@ name: Snapshot Pokémon prices
 
 on:
   schedule:
-    # 02:00 Asia/Kuala_Lumpur = 18:00 UTC (UTC+8, MY has no DST)
-    - cron: "0 18 * * *"
+    # 06:00 Asia/Kuala_Lumpur = 22:00 UTC (UTC+8, MY has no DST)
+    #
+    # One hour after the catalogue seed (21:00 UTC), which is itself after
+    # TCGCSV's own daily rebuild (~20:05 UTC). Order matters: this job only
+    # prices product_ids that are already in cards_catalog, so a set seeded
+    # tonight is priced tonight. It used to run at 18:00 UTC — ahead of the
+    # rebuild — and so always worked from the previous day's prices.
+    - cron: "0 22 * * *"
   # Allow ad-hoc runs from the Actions tab.
   workflow_dispatch:
 
