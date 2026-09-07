@@ -29,7 +29,16 @@
           {{ card.name }}
         </p>
         <p class="text-[11px] text-gray-500 dark:text-zinc-400 truncate">
-          {{ card.setName }}<span v-if="card.number"> · {{ card.number }}</span>
+          <!-- Both languages are searched now, and the same card exists in
+               each — two "Rayquaza ★" rows are otherwise indistinguishable.
+               Only the Japanese one is marked: English is the common case and
+               a badge on every card is noise. -->
+          <span
+            v-if="card.language === 'JP'"
+            class="mr-1 inline-block rounded px-1 py-px align-[1px] text-[9px] font-bold leading-none bg-black/[0.06] text-gray-600 dark:bg-white/[0.10] dark:text-zinc-300"
+            title="Japanese printing"
+            >JP</span
+          >{{ card.setName }}<span v-if="card.number"> · {{ card.number }}</span>
         </p>
         <div class="flex items-center justify-between mt-2">
           <p

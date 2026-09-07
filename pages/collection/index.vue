@@ -198,6 +198,31 @@
               </div>
             </div>
 
+            <!-- Language -->
+            <div>
+              <p
+                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5"
+              >
+                Language
+              </p>
+              <div class="flex gap-1.5">
+                <button
+                  v-for="opt in languageOptions"
+                  :key="opt.value"
+                  type="button"
+                  @click="languageFilter = opt.value"
+                  class="px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors"
+                  :class="
+                    languageFilter === opt.value
+                      ? 'bg-pokemon-red text-white border-pokemon-red'
+                      : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300'
+                  "
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
+            </div>
+
             <!-- Filter -->
             <div>
               <p
@@ -524,6 +549,12 @@ const loadDropdowns = (): Promise<void> => {
 // panel meant opening the panel, choosing, and applying every time.
 type BaseSort = Extract<CatalogSort, "best" | "name">;
 
+const languageOptions = [
+  { value: "ALL", label: "Both" },
+  { value: "EN", label: "English" },
+  { value: "JP", label: "Japanese" },
+] as const;
+
 const sortOptions: Array<{ value: BaseSort; label: string }> = [
   { value: "best", label: "Best match" },
   { value: "name", label: "Name A–Z" },
@@ -550,6 +581,12 @@ const searchInput = useState("collection:query-input", () => "");
 const appliedQuery = useState("collection:query", () => "");
 const setFilter = useState("collection:set", () => "");
 const rarityFilter = useState("collection:rarity", () => "");
+// Both languages by default. Half the catalogue is Japanese — 30,470 cards —
+// and an English-only default hid all of it with no way to ask for it. It was
+// also the real cause behind three separate "nothing found" reports: "mur" is
+// a Japanese-only rarity, "067/082" a Japanese-only number, and a Gold Star's
+// Japanese printing sits beside its English one.
+const languageFilter = useState<"ALL" | "EN" | "JP">("collection:language", () => "ALL");
 const baseSort = useState<BaseSort>("collection:sort", () => "best");
 const priceSort = useState<PriceSort>("collection:price-sort", () => null);
 const filtersOpen = ref(false);
@@ -593,7 +630,11 @@ watch(priceSort, () => {
 });
 
 const hasActiveFilters = computed(
-  () => !!setFilter.value || !!rarityFilter.value || baseSort.value !== "best",
+  () =>
+    !!setFilter.value ||
+    !!rarityFilter.value ||
+    languageFilter.value !== "ALL" ||
+    baseSort.value !== "best",
 );
 
 // One parser for every search surface — see useCardCatalog. This page used
@@ -616,41 +657,11 @@ const parsed = computed(() =>
   ),
 );
 
-/**
- * Which languages to search.
- *
- * Normally English. But a query can resolve to a rarity or a set that only
- * exists on Japanese cards — "charizard mur" is Mega Ultra Rare, which has no
- * English printing — and filtering those out leaves the searcher staring at an
- * empty page having typed something perfectly valid. So when what they asked
- * for is not in the English list, widen rather than return nothing.
- */
-const effectiveLanguage = computed<"EN" | "ALL">(() => {
-  const r = parsed.value.rarityHint;
-  const s = parsed.value.setHint;
-  const inEn = (needle: string, list: Array<{ name: string }>) =>
-    list.some((x) => x.name.toLowerCase().includes(needle.toLowerCase()));
-  // Any matched rarity or the set living outside English widens the search —
-  // "mur" is Mega Ultra Rare and "ar" is Art Rare, neither with an English
-  // printing, and filtering them away leaves a blank page.
-  const outsideEn = (name: string, list: Array<{ name: string }>) =>
-    list.length > 0 && !inEn(name, list);
-  // A printed number identifies one specific card, and the number is the same
-  // whatever language it was printed in. "067/082" is a Japanese Rayquaza ★
-  // and no English card carries it, so filtering to English answers a precise
-  // question with an empty page.
-  if (parsed.value.numberMatch) return "ALL";
-  if (parsed.value.rarityMatches.some((m) => outsideEn(m, rarities.value))) return "ALL";
-  if (r && outsideEn(r, rarities.value)) return "ALL";
-  if (s && outsideEn(s, sets.value)) return "ALL";
-  return "EN";
-});
-const effectiveSetMatch = computed(
-  () => parsed.value.setHint || setFilter.value || null,
-);
-const effectiveRarityMatch = computed(
-  () => parsed.value.rarityHint || rarityFilter.value || null,
-);
+// What the reader asked for, and nothing clever on top. This used to widen
+// to every language on its own whenever a query named something with no
+// English printing — a patch applied three times for three symptoms of the
+// English-only default that is now gone.
+const effectiveLanguage = computed(() => languageFilter.value);
 
 const searchResults = useState<CatalogMatch[]>("collection:results", () => []);
 const searchTotal = useState("collection:total", () => 0);
@@ -772,6 +783,7 @@ const applyFilters = () => {
 const resetFilters = () => {
   setFilter.value = "";
   rarityFilter.value = "";
+  languageFilter.value = "ALL";
   baseSort.value = "best";
   priceSort.value = null;
   if (hasRunSearch.value) runSearch();
