@@ -44,7 +44,77 @@ const matchRarity = (token: string): string | null => {
 };
 
 /**
- * Lift the rarity abbreviation out, wherever it sits.
+ * Colloquial names for a rarity, which are not abbreviations of anything.
+ *
+ * "Gold charizard" is what collectors say; the catalogue calls it Hyper Rare
+ * and carries no colour or finish field of its own, so this is the mapping
+ * between the two. Validated against the real rarity list before use, so a
+ * name that stops existing stops being matched rather than filtering to
+ * nothing.
+ */
+export const COLLOQUIAL_RARITIES: Record<string, string> = {
+  gold: "Hyper Rare",
+  rainbow: "Rainbow Rare",
+};
+
+/**
+ * Short forms of a rarity, derived from its own name.
+ *
+ * "Mega Ultra Rare" gives "mur", "Special Illustration Rare" gives "sir" —
+ * so a rarity that appears in a new set is typeable the day it lands, with
+ * nothing to maintain here.
+ */
+export const rarityAliases = (rarity: string): string[] => {
+  const full = rarity.trim().toLowerCase();
+  if (!full) return [];
+  const out = new Set<string>([full]);
+  const ini = full
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("");
+  if (/^[a-z]{2,}$/.test(ini)) out.add(ini);
+  return [...out];
+};
+
+/**
+ * What rarity a single token means, if any.
+ *
+ * Three sources, in order of authority:
+ *
+ *  1. The explicit table. It carries forms initials cannot produce, and it
+ *     settles collisions — "hr" is Hyper Rare, though Holo Rare abbreviates
+ *     the same way.
+ *  2. Colloquial names, for the words people actually say.
+ *  3. Initials derived from the catalogue's own rarity names.
+ *
+ * Every source is checked against the real rarity list when one is supplied.
+ * The table used to map "ar" to Art Rare and "rh" to Reverse Holo, neither of
+ * which exists here — those searched for a rarity no card has and quietly
+ * returned nothing. A name that fails validation falls through to the next
+ * source, and finally stays part of the card's name.
+ */
+const rarityFromToken = (token: string, rarityNames: string[]): string | null => {
+  const t = token.trim().toLowerCase();
+  if (!t) return null;
+  const known = (r: string) =>
+    !rarityNames.length || rarityNames.some((n) => n.trim().toLowerCase() === r.toLowerCase());
+
+  const explicit = matchRarity(t);
+  if (explicit && known(explicit)) return explicit;
+
+  const colloquial = COLLOQUIAL_RARITIES[t];
+  if (colloquial && known(colloquial)) return colloquial;
+
+  // Derived. Several rarities sharing an alias means we cannot tell which was
+  // meant — "rr" is both Radiant Rare and Rainbow Rare — so it is left alone.
+  const hits = rarityNames.filter((r) => rarityAliases(r).includes(t));
+  const distinct = new Set(hits.map((r) => r.trim().toLowerCase()));
+  return distinct.size === 1 ? hits[0]! : null;
+};
+
+/**
+ * Lift the rarity out of a query, wherever it sits.
  *
  * It has to come off before anything else reads the string: "charizard
  * obsidian flames sir" ends in the rarity, so the set is not last until the
@@ -52,6 +122,7 @@ const matchRarity = (token: string): string | null => {
  */
 export const stripRarity = (
   input: string,
+  rarityNames: string[] = [],
 ): { rest: string; rarityHint: string | null } => {
   const tokens = input.trim().split(/\s+/).filter(Boolean);
   let rarityHint: string | null = null;
@@ -59,7 +130,8 @@ export const stripRarity = (
     // Never the first token — a card can be named "Promo", and a query of one
     // word is a name.
     if (i === 0) return true;
-    const r = matchRarity(t);
+    if (rarityHint) return true; // Only the first rarity found.
+    const r = rarityFromToken(t, rarityNames);
     if (!r) return true;
     rarityHint = r;
     return false;
@@ -166,25 +238,67 @@ export interface ParsedSearch {
   setHint: string | null;
   rarityHint: string | null;
   numberMatch: string | null;
+  /**
+   * setHint and numberMatch are ALTERNATIVES, not filters to combine.
+   *
+   * Set when the trailing token reads both ways — "pikachu 151" is a Pikachu
+   * in the 151 set and also a Pikachu numbered 151, and both exist. Combining
+   * them finds neither, so the caller must OR them.
+   */
+  setOrNumber: boolean;
 }
+
+/**
+ * Is this number also the name of a set?
+ *
+ * Only as a trailing word, and only two digits or more: "POP Series 5" would
+ * otherwise make every single-digit number a set search.
+ */
+const numberNamesASet = (number: string, setNames: string[]): boolean => {
+  if (!/^\d{2,}$/.test(number)) return false;
+  const pattern = new RegExp(`(^|\\s)${number}$`);
+  return setNames.some((n) => pattern.test(n.trim()));
+};
 
 export const parseSearchQuery = (
   raw: string,
   setNames: string[] = [],
+  rarityNames: string[] = [],
 ): ParsedSearch => {
   // Rarity first: it can sit at the end, and while it does, nothing else is
   // last. Then the set, then the number.
-  const { rest, rarityHint } = stripRarity(raw);
+  const { rest, rarityHint } = stripRarity(raw, rarityNames);
 
   // The set is tried at full length before any number is taken off, because a
   // set name can itself end in digits — "SV: Scarlet & Violet 151". Stripping
   // those as a card number would leave a set nobody can match.
   let hit = splitKnownSet(rest, setNames);
   let number: string | null = null;
+  let setOrNumber = false;
   if (!hit.setHint) {
     const split = splitCardNumber(rest);
     number = split.number;
     hit = splitKnownSet(split.name, setNames);
+
+    // "pikachu 151": a Pikachu in the 151 set, and a Pikachu numbered 151.
+    // Both are real cards and neither reading is obviously wrong, so keep
+    // both and let the caller ask for either. The number stands alone as the
+    // set hint because it is a substring match — it finds the English and the
+    // Japanese 151 set alike.
+    if (number && !hit.setHint && numberNamesASet(number, setNames)) {
+      hit = { name: split.name, setHint: number };
+      setOrNumber = true;
+    }
+  }
+
+  // Sets are named after Pokémon — "Arceus", "Jungle", "Pokemon TCG Classic:
+  // Charizard" — so a set alias can swallow the card name whole. When a rarity
+  // or number has already been lifted, the searcher clearly typed a name plus
+  // a filter, and a set match that leaves nothing behind has eaten the name.
+  // "charizard sir" is a Charizard, not the Charizard set with no card.
+  if ((rarityHint || number) && hit.setHint && !hit.name.trim()) {
+    hit = { name: rest.trim(), setHint: null };
+    setOrNumber = false;
   }
 
   // Whatever is left: parseSmartQuery still picks up numeric set hints like
@@ -193,8 +307,14 @@ export const parseSearchQuery = (
   return {
     name: parsed.name.trim(),
     setHint: hit.setHint ?? parsed.setHint,
-    rarityHint: rarityHint ?? parsed.rarityHint,
+    // parseSmartQuery runs its own rarity pass off the unvalidated table. Once
+    // we have the catalogue's real rarity list, stripRarity above is the
+    // authority — otherwise a name it deliberately rejected ("rh" is Reverse
+    // Holo, a finish no card here is filed under) comes back in through the
+    // side door and filters the results to nothing.
+    rarityHint: rarityNames.length ? rarityHint : (rarityHint ?? parsed.rarityHint),
     numberMatch: number,
+    setOrNumber,
   };
 };
 

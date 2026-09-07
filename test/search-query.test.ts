@@ -13,7 +13,12 @@ import {
   numberCandidates,
   splitCardNumber,
 } from "~/shared/card-number";
-import { parseSearchQuery, setAliases, splitKnownSet } from "~/shared/search-query";
+import {
+  parseSearchQuery,
+  rarityAliases,
+  setAliases,
+  splitKnownSet,
+} from "~/shared/search-query";
 
 const SETS = [
   "SV08: Surging Sparks",
@@ -24,6 +29,20 @@ const SETS = [
   "SWSH11: Lost Origin Trainer Gallery",
   "SV3: Obsidian Flames",
   "Nintendo Promos",
+  "SV: Scarlet & Violet 151",
+  "SV2a: Pokemon Card 151",
+  "POP Series 5",
+];
+
+// The catalogue's real rarity names, across both languages — Mega Ultra Rare
+// has no English printing, which is exactly why the parser is given the full
+// list rather than the English one.
+const RARITIES = [
+  "Common", "Uncommon", "Rare", "Holo Rare", "Double Rare", "Ultra Rare",
+  "Hyper Rare", "Secret Rare", "Illustration Rare", "Special Illustration Rare",
+  "Amazing Rare", "Radiant Rare", "Rainbow Rare", "Shiny Rare",
+  "Shiny Ultra Rare", "Mega Ultra Rare", "Mega Hyper Rare", "Mega Attack Rare",
+  "ACE SPEC Rare", "Promo",
 ];
 
 describe("the queries that came back empty", () => {
@@ -157,7 +176,13 @@ describe("set, number and rarity together", () => {
 
   it("survives an empty box", () => {
     const r = parseSearchQuery("", SETS);
-    assert.deepEqual(r, { name: "", setHint: null, rarityHint: null, numberMatch: null });
+    assert.deepEqual(r, {
+      name: "",
+      setHint: null,
+      rarityHint: null,
+      numberMatch: null,
+      setOrNumber: false,
+    });
   });
 
   it("works with no set list at all", () => {
@@ -165,5 +190,94 @@ describe("set, number and rarity together", () => {
     const r = parseSearchQuery("pikachu 012", []);
     assert.equal(r.numberMatch, "012");
     assert.equal(r.name, "pikachu");
+  });
+});
+
+describe("a number that is also a set name", () => {
+  const parse = (q: string) => parseSearchQuery(q, SETS, RARITIES);
+
+  it("reads pikachu 151 both ways at once", () => {
+    // A Pikachu in the 151 set AND one numbered 151 both exist. Combining the
+    // two as filters finds neither, so they have to be alternatives.
+    const r = parse("pikachu 151");
+    assert.equal(r.name, "pikachu");
+    assert.equal(r.numberMatch, "151");
+    assert.equal(r.setHint, "151");
+    assert.equal(r.setOrNumber, true, "must be an OR, not two filters");
+  });
+
+  it("uses the bare number so it finds every 151 set", () => {
+    // Two sets end in 151, one English and one Japanese. A substring hint
+    // matches both; naming one of them would hide the other.
+    assert.equal(parse("pikachu 151").setHint, "151");
+  });
+
+  it("does not turn every digit into a set search", () => {
+    // "POP Series 5" ends in 5, and single digits are card numbers far more
+    // often than they are sets.
+    const r = parse("pikachu 5");
+    assert.equal(r.setOrNumber, false);
+    assert.equal(r.numberMatch, "5");
+  });
+
+  it("leaves an ordinary number alone", () => {
+    const r = parse("pikachu 012");
+    assert.equal(r.setOrNumber, false);
+    assert.equal(r.setHint, null);
+  });
+});
+
+describe("rarities people actually type", () => {
+  const parse = (q: string) => parseSearchQuery(q, SETS, RARITIES);
+
+  it("derives an abbreviation from the rarity's own name", () => {
+    // The reported miss: nothing mapped "mur", and it is Japanese-only.
+    assert.equal(parse("charizard mur").rarityHint, "Mega Ultra Rare");
+    assert.equal(parse("charizard mhr").rarityHint, "Mega Hyper Rare");
+    assert.equal(parse("charizard sir").rarityHint, "Special Illustration Rare");
+  });
+
+  it("understands what collectors call a gold card", () => {
+    // There is no colour or finish in the catalogue; gold IS Hyper Rare.
+    assert.equal(parse("charizard gold").rarityHint, "Hyper Rare");
+    assert.equal(parse("charizard rainbow").rarityHint, "Rainbow Rare");
+  });
+
+  it("settles hr as Hyper Rare, though Holo Rare abbreviates the same", () => {
+    assert.equal(parse("charizard hr").rarityHint, "Hyper Rare");
+  });
+
+  it("leaves a genuinely ambiguous abbreviation in the name", () => {
+    // "rr" is Radiant Rare and Rainbow Rare. Guessing filters the results to
+    // one of them and shows nothing for the other.
+    const r = parse("pikachu rr");
+    assert.equal(r.rarityHint, null);
+    assert.equal(r.name, "pikachu rr");
+  });
+
+  it("does not filter by a rarity no card has", () => {
+    // The table mapped "ar" to Art Rare and "rh" to Reverse Holo, neither of
+    // which exists here — both searched for nothing and found nothing.
+    assert.equal(parse("charizard ar").rarityHint, "Amazing Rare");
+    assert.equal(parse("charizard rh").rarityHint, null);
+  });
+
+  it("still works with no rarity list, for callers that have not loaded one", () => {
+    assert.equal(parseSearchQuery("charizard sir", SETS).rarityHint, "Special Illustration Rare");
+  });
+
+  it("never treats the first word as a rarity", () => {
+    // A card can be called "Promo"; a one-word query is a name.
+    assert.equal(parse("promo").rarityHint, null);
+    assert.equal(parse("promo").name, "promo");
+  });
+});
+
+describe("rarity abbreviations", () => {
+  it("takes the initials, letters only and two minimum", () => {
+    assert.ok(rarityAliases("Mega Ultra Rare").includes("mur"));
+    assert.ok(rarityAliases("Mega Ultra Rare").includes("mega ultra rare"));
+    // "Rare" alone would give "r" — one letter, and it would match everything.
+    assert.deepEqual(rarityAliases("Rare"), ["rare"]);
   });
 });

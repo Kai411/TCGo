@@ -282,6 +282,12 @@ export const useCardCatalog = () => {
       /** A card number like "012", "gg44" or "065/202". Bypasses the RPC. */
       numberMatch?: string | null;
       setMatch?: string | null;
+      /**
+       * Treat setMatch and numberMatch as alternatives rather than filters to
+       * combine. See ParsedSearch.setOrNumber — "pikachu 151" means a Pikachu
+       * in the 151 set OR one numbered 151, and combining them finds neither.
+       */
+      setOrNumber?: boolean;
       rarityMatch?: string | null;
       sort?: CatalogSort;
     } = {},
@@ -322,13 +328,17 @@ export const useCardCatalog = () => {
         // form, and `12%` pulls in 122/106 and every other number that merely
         // starts with those digits.
         .or(
-          forms
-            .flatMap((f) => [`number.ilike.${f}`, `number.ilike.${f}/*`])
-            .join(","),
+          [
+            ...forms.flatMap((f) => [`number.ilike.${f}`, `number.ilike.${f}/*`]),
+            // The same token read as a set name, when it is both. This joins
+            // the OR group rather than narrowing it, so "pikachu 151" returns
+            // the 151-set Pikachus alongside any numbered 151.
+            ...(opts.setOrNumber && setMatch ? [`group_name.ilike.*${setMatch}*`] : []),
+          ].join(","),
         );
 
       if (trimmed.length >= 2) q = q.ilike("name", `%${trimmed}%`);
-      if (setMatch) q = q.ilike("group_name", `%${setMatch}%`);
+      if (setMatch && !opts.setOrNumber) q = q.ilike("group_name", `%${setMatch}%`);
       if (rarityMatch) q = q.ilike("rarity", `%${rarityMatch}%`);
       if (opts.language && opts.language !== "ALL") q = q.eq("language", opts.language);
 

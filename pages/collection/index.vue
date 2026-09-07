@@ -428,6 +428,10 @@ watch(user, (u) => {
 // ── Filter dropdown data ──────────────────────────────────────────────
 const sets = ref<Array<{ name: string; count: number }>>([]);
 const rarities = ref<Array<{ name: string; count: number }>>([]);
+// Rarities from every language, for parsing only — the dropdown above stays
+// English. "mur" is Mega Ultra Rare, which has no English printing, so an
+// English-only list cannot resolve the word at all.
+const allRarities = ref<Array<{ name: string; count: number }>>([]);
 // Memoised, because runSearch awaits it too: set abbreviations ("ssp", "rc")
 // can only resolve once the set list is here, and a fast typist reaches the
 // search button before the mount-time fetch has returned.
@@ -435,9 +439,14 @@ let dropdownsPromise: Promise<void> | null = null;
 const loadDropdowns = (): Promise<void> => {
   if (dropdownsPromise) return dropdownsPromise;
   dropdownsPromise = (async () => {
-    const [s, r] = await Promise.all([listSets("EN"), listRarities("EN")]);
+    const [s, r, rAll] = await Promise.all([
+      listSets("EN"),
+      listRarities("EN"),
+      listRarities("ALL"),
+    ]);
     sets.value = s;
     rarities.value = r;
+    allRarities.value = rAll;
   })();
   return dropdownsPromise;
 };
@@ -466,8 +475,35 @@ const hasActiveFilters = computed(
 // set hints but nothing about set names or card numbers, so "reshiram rc" and
 // "pikachu 012" found nothing here while working in the seller's picker.
 const parsed = computed(() =>
-  parseSearchQuery(appliedQuery.value, sets.value.map((s) => s.name)),
+  parseSearchQuery(
+    appliedQuery.value,
+    // English sets only. The full 669 include names like "Pokemon TCG
+    // Classic: Charizard", which claims "charizard" as a set alias and eats
+    // the card name; and enough sets share an abbreviation that "tg" and "rc"
+    // become ambiguous and resolve to nothing.
+    sets.value.map((s) => s.name),
+    // Rarities, though, are worth taking from every language: "mur" is Mega
+    // Ultra Rare, which has no English printing at all.
+    allRarities.value.map((r) => r.name),
+  ),
 );
+
+/**
+ * Which languages to search.
+ *
+ * Normally English. But a query can resolve to a rarity or a set that only
+ * exists on Japanese cards — "charizard mur" is Mega Ultra Rare, which has no
+ * English printing — and filtering those out leaves the searcher staring at an
+ * empty page having typed something perfectly valid. So when what they asked
+ * for is not in the English list, widen rather than return nothing.
+ */
+const effectiveLanguage = computed<"EN" | "ALL">(() => {
+  const r = parsed.value.rarityHint;
+  const inEn = (needle: string, list: Array<{ name: string }>) =>
+    list.some((x) => x.name.toLowerCase().includes(needle.toLowerCase()));
+  if (r && rarities.value.length && !inEn(r, rarities.value)) return "ALL";
+  return "EN";
+});
 const effectiveSetMatch = computed(
   () => parsed.value.setHint || setFilter.value || null,
 );
@@ -522,8 +558,9 @@ const runSearch = async () => {
   const { results, total } = await searchCatalog(trimmed, {
     limit: SEARCH_PAGE_SIZE,
     page: 0,
-    language: "EN",
+    language: effectiveLanguage.value,
     numberMatch: parsed.value.numberMatch,
+    setOrNumber: parsed.value.setOrNumber,
     setMatch: effectiveSetMatch.value,
     rarityMatch: effectiveRarityMatch.value,
     sort: sortBy.value,
@@ -540,10 +577,11 @@ const loadMore = async () => {
   const { results } = await searchCatalog(parsed.value.name.trim(), {
     limit: SEARCH_PAGE_SIZE,
     page: nextPage,
-    language: "EN",
+    language: effectiveLanguage.value,
     // Page 2 has to be the same search as page 1. Without this a number
     // search fell back to matching the name alone as soon as you scrolled.
     numberMatch: parsed.value.numberMatch,
+    setOrNumber: parsed.value.setOrNumber,
     setMatch: effectiveSetMatch.value,
     rarityMatch: effectiveRarityMatch.value,
     sort: sortBy.value,
