@@ -174,10 +174,53 @@
                   <span
                     class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
                     :class="CONFIDENCE_CLASS[confidence.level]"
-                    :title="confidence.reasons.join(' ')"
                   >
                     {{ CONFIDENCE_LABEL[confidence.level] }}
                   </span>
+                  <!-- The reasons used to live in a title attribute, which a
+                       phone never shows. -->
+                  <button
+                    type="button"
+                    @click="confidenceOpen = !confidenceOpen"
+                    class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-black/[0.15] text-[9px] font-bold text-ink-muted transition-colors hover:border-pokemon-red hover:text-pokemon-red dark:border-white/[0.20] dark:text-zinc-400"
+                    :aria-expanded="confidenceOpen"
+                    aria-controls="price-confidence-why"
+                    :aria-label="`Why this is ${CONFIDENCE_LABEL[confidence.level].toLowerCase()}`"
+                  >
+                    ?
+                  </button>
+                </div>
+
+                <div
+                  v-if="confidenceOpen"
+                  id="price-confidence-why"
+                  class="mt-2 max-w-sm rounded-xl border border-black/[0.08] bg-canvas-sunken p-3 dark:border-white/[0.10] dark:bg-white/[0.04]"
+                >
+                  <p
+                    class="text-[10px] font-bold uppercase tracking-wide text-ink-soft dark:text-zinc-500"
+                  >
+                    Why {{ CONFIDENCE_LABEL[confidence.level].toLowerCase() }}
+                  </p>
+                  <ul class="mt-1.5 space-y-1">
+                    <li
+                      v-for="reason in confidence.reasons"
+                      :key="reason"
+                      class="flex gap-1.5 text-[12px] leading-relaxed text-ink-muted dark:text-zinc-300"
+                    >
+                      <span
+                        class="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-current opacity-50"
+                        aria-hidden="true"
+                      />
+                      <span>{{ reason }}</span>
+                    </li>
+                  </ul>
+                  <p
+                    class="mt-2 border-t border-black/[0.06] pt-2 text-[11px] leading-relaxed text-ink-soft dark:border-white/[0.08] dark:text-zinc-500"
+                  >
+                    A guide, not an appraisal. We weigh how recently the price
+                    was checked, how steady it has been, and whether live
+                    listings agree.
+                  </p>
                 </div>
                 <p
                   v-if="card.price"
@@ -1201,6 +1244,11 @@ const confidence = computed(() => {
     sourceCount: secondary.value ? 2 : 1,
   });
 });
+
+const confidenceOpen = ref(false);
+// A different card is a different verdict; leaving it open would attach one
+// card's reasons to another's price.
+watch(card, () => (confidenceOpen.value = false));
 
 const providerOrder = new Map([
   ["PSA", 0],

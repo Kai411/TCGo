@@ -77,13 +77,32 @@ const SUPA = env.NUXT_PUBLIC_SUPABASE_URL;
 const KEY = env.NUXT_PUBLIC_SUPABASE_ANON_KEY;
 const H = { apikey: KEY, Authorization: `Bearer ${KEY}` };
 
-const countRes = await fetch(
-  `${SUPA}/rest/v1/cards_catalog?select=product_id&limit=1`,
-  { headers: { ...H, Prefer: "count=exact" } },
-);
-const total = Number((countRes.headers.get("content-range") || "").split("/")[1] || 0);
+// Retried: this one request gates the whole run, and it fails intermittently
+// — a transient 5xx here aborted the script with a message that read like
+// misconfiguration.
+const readTotal = async () => {
+  let lastStatus = "no response";
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      const res = await fetch(
+        `${SUPA}/rest/v1/cards_catalog?select=product_id&limit=1`,
+        { headers: { ...H, Prefer: "count=exact" } },
+      );
+      lastStatus = `HTTP ${res.status}`;
+      const n = Number((res.headers.get("content-range") || "").split("/")[1] || 0);
+      if (n) return { total: n, status: lastStatus };
+    } catch (err) {
+      lastStatus = err.message;
+    }
+    await new Promise((r) => setTimeout(r, 600 * attempt));
+  }
+  return { total: 0, status: lastStatus };
+};
+
+const { total, status: countStatus } = await readTotal();
 if (!total) {
-  console.error("Could not read catalogue size from Supabase.");
+  console.error(`Could not read catalogue size from Supabase (${countStatus}).`);
+  console.error("Checked NUXT_PUBLIC_SUPABASE_URL and NUXT_PUBLIC_SUPABASE_ANON_KEY.");
   process.exit(1);
 }
 
@@ -92,9 +111,15 @@ if (!total) {
 // blocks — a marketplace where every card is from the same two sets, which
 // tests the set filter poorly and looks obviously fake.
 const picked = new Map();
-const CHUNK = 8;
+// A balance the two failure modes pull against: the catalogue is ordered by
+// set, so a big window returns one contiguous block — 40 gave 100 cards from
+// only 4 sets, which tests the set filter poorly and looks fake. Small windows
+// give variety but cost a round trip each, and once code cards and sealed
+// products are excluded a window of 8 yields so few usable rows that a run
+// took minutes. 16 lands between: roughly a dozen sets, in seconds.
+const CHUNK = 16;
 let guard = 0;
-while (picked.size < WANT && guard < 400) {
+while (picked.size < WANT && guard < 120) {
   guard++;
   const offset = Math.floor(Math.random() * Math.max(1, total - CHUNK));
   const res = await fetch(

@@ -366,16 +366,15 @@ export const useCardCatalog = () => {
       const forms = opts.numberMatch ? numberCandidates(opts.numberMatch) : [];
       let q = supabase
         .from("cards_catalog")
-        .select(SELECT_COLUMNS, { count: "exact" })
-        // The whole number, or the printed part before the slash — 012 finds
-        // 012/202 without the searcher knowing the set size, gg44 finds
-        // GG44/GG70, swsh020 matches outright.
-        //
-        // NOT a bare prefix match. numberCandidates also yields the unpadded
-        // form, and `12%` pulls in 122/106 and every other number that merely
-        // starts with those digits.
         .select(SELECT_COLUMNS, { count: "exact" });
 
+      // The whole number, or the printed part before the slash — 012 finds
+      // 012/202 without the searcher knowing the set size, gg44 finds
+      // GG44/GG70, swsh020 matches outright.
+      //
+      // NOT a bare prefix match. numberCandidates also yields the unpadded
+      // form, and `12%` pulls in 122/106 and every other number that merely
+      // starts with those digits.
       const numberOr = [
         ...forms.flatMap((f) => [`number.ilike.${f}`, `number.ilike.${f}/*`]),
         // The same token read as a set name, when it is both. This joins the
