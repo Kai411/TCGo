@@ -10,10 +10,10 @@
 // Nothing else in the app reads that field, so real listings can never be
 // caught by the cleanup.
 //
-//   node scripts/seed-mock-listings.mjs            # dry run
-//   node scripts/seed-mock-listings.mjs --yes      # write 100
-//   node scripts/seed-mock-listings.mjs --yes -n 250
-//   node scripts/seed-mock-listings.mjs --clean    # delete every mock listing
+//   node scripts/seed-mock-listings.mjs               # dry run
+//   node scripts/seed-mock-listings.mjs --yes         # 100 listings + 20 auctions
+//   node scripts/seed-mock-listings.mjs --yes -n 250 -a 40
+//   node scripts/seed-mock-listings.mjs --clean       # delete every mock doc
 
 import { readFileSync } from "node:fs";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
@@ -43,20 +43,23 @@ const confirmed = args.includes("--yes");
 const clean = args.includes("--clean");
 const nIdx = args.indexOf("-n");
 const WANT = nIdx >= 0 ? Math.max(1, Number(args[nIdx + 1])) : 100;
+const aIdx = args.indexOf("-a");
+const WANT_AUCTIONS = aIdx >= 0 ? Math.max(0, Number(args[aIdx + 1])) : 20;
 
 // ── Cleanup ───────────────────────────────────────────────────────────
 if (clean) {
-  const snap = await db.collection("cards").where("mock", "==", true).get();
-  if (!snap.size) {
-    console.log("No mock listings to remove.");
-    process.exit(0);
+  let removed = 0;
+  for (const name of ["cards", "auctions"]) {
+    const snap = await db.collection(name).where("mock", "==", true).get();
+    for (let i = 0; i < snap.docs.length; i += 400) {
+      const batch = db.batch();
+      for (const d of snap.docs.slice(i, i + 400)) batch.delete(d.ref);
+      await batch.commit();
+    }
+    if (snap.size) console.log(`Deleted ${snap.size} mock doc(s) from ${name}.`);
+    removed += snap.size;
   }
-  for (let i = 0; i < snap.docs.length; i += 400) {
-    const batch = db.batch();
-    for (const d of snap.docs.slice(i, i + 400)) batch.delete(d.ref);
-    await batch.commit();
-  }
-  console.log(`Deleted ${snap.size} mock listing(s). Real listings untouched.`);
+  console.log(removed ? "Real listings and auctions untouched." : "Nothing to remove.");
   process.exit(0);
 }
 
@@ -96,7 +99,15 @@ while (picked.size < WANT && guard < 400) {
   const offset = Math.floor(Math.random() * Math.max(1, total - CHUNK));
   const res = await fetch(
     `${SUPA}/rest/v1/cards_catalog?select=product_id,name,group_name,number,rarity,image_url,language,card_prices(prices)` +
-      `&language=eq.EN&image_url=not.is.null&limit=${CHUNK}&offset=${offset}`,
+      `&language=eq.EN&image_url=not.is.null` +
+      // Code Cards are the redemption slips in a booster pack — 1263 of them,
+      // no image worth showing and nobody sells them. Sealed products are not
+      // single cards either. Left in, they dominated a random sample and the
+      // mock marketplace read as a pile of junk.
+      `&rarity=not.in.(Code Card)&name=not.ilike.*Code Card*` +
+      `&name=not.ilike.*Booster Box*&name=not.ilike.*Booster Pack*` +
+      `&name=not.ilike.*Elite Trainer*&name=not.ilike.*Collection Box*` +
+      `&limit=${CHUNK}&offset=${offset}`,
     { headers: H },
   );
   if (!res.ok) continue;
@@ -185,6 +196,75 @@ const listings = rows.map((row, i) => {
   };
 });
 
+// ── Auctions ──────────────────────────────────────────────────────────
+//
+// Built from the same catalogue rows as the listings, so the auction grid is
+// exercised against real card names, images and prices too.
+//
+// Deliberately spread across states rather than all "ends in 3 days": a live
+// auction ending in minutes, one ending in a week, and a handful already ended
+// are what actually shake out countdown formatting, the ending-soon sort and
+// the settled-auction views. Bids are recorded as currentPrice above starting
+// price so the UI has a spread to render; the RTDB bid ledger is not
+// fabricated, so bid *history* stays empty.
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+
+const auctions = Array.from({ length: WANT_AUCTIONS }, (_, i) => {
+  const row = pick(rows);
+  const seller = pick(users);
+  const graded = Math.random() < 0.35;
+  const market = marketMyr(row) ?? round2(8 + Math.random() * 120);
+  const startingPrice = Math.max(1, Math.round(market * (0.4 + Math.random() * 0.3)));
+  // Roughly two thirds live, the rest already finished.
+  const live = i % 3 !== 0;
+  const endsAt = live
+    ? now + pick([25 * MINUTE, 6 * HOUR, 2 * DAY, 5 * DAY, 7 * DAY])
+    : now - pick([2 * HOUR, 1 * DAY, 4 * DAY]);
+  const bidCount = Math.floor(Math.random() * 12);
+  const currentPrice =
+    bidCount === 0
+      ? startingPrice
+      : Math.round(startingPrice * (1 + bidCount * (0.04 + Math.random() * 0.06)));
+
+  return {
+    title: `${row.name}${graded ? " (Graded)" : ""}`,
+    description: "",
+    cardName: row.name,
+    cardSet: row.group_name ?? "",
+    cardNumber: row.number ?? "",
+    productType: graded ? "Graded" : "Ungraded",
+    condition: graded ? "" : pick(CONDITIONS),
+    gradingProvider: graded ? pick(GRADERS) : "",
+    grade: graded ? String(pick([8, 9, 9, 10])) : "",
+    customGradingProvider: "",
+    imageUrl: upgradeImage(row.image_url),
+    imageUrls: [upgradeImage(row.image_url)],
+    shippingWM: 8,
+    shippingEM: 12,
+    startingPrice,
+    currentPrice,
+    minIncrement: Math.max(1, Math.round(startingPrice * 0.05)),
+    seller: seller.customName || seller.displayName,
+    sellerUid: seller.uid,
+    endsAt,
+    createdAt: now - Math.floor(Math.random() * 20 * DAY),
+    isPrivate: false,
+    language: row.language ?? "EN",
+    tcgType: "Pokemon",
+    rarity: row.rarity ?? "",
+    productId: row.product_id,
+    quantity: 1,
+    // Ended auctions are left unsettled on purpose: settlement is what
+    // /api/auctions/settle does, and faking its output would hide whether that
+    // route actually works.
+    status: live ? "active" : "ended",
+    viewCount: Math.floor(Math.random() * 200),
+    bidCount,
+    mock: true,
+  };
+});
+
 const prices = listings.map((l) => l.price).sort((a, b) => a - b);
 console.log(`Prepared ${listings.length} mock listing(s)`);
 console.log(`  sellers      : ${new Set(listings.map((l) => l.sellerUid)).size} of ${users.length} users`);
@@ -193,6 +273,11 @@ console.log(`  distinct cards: ${new Set(listings.map((l) => l.productId)).size}
 console.log(`  graded       : ${listings.filter((l) => l.productType === "Graded").length}`);
 console.log(`  price range  : RM ${prices[0]?.toFixed(2)} – RM ${prices[prices.length - 1]?.toFixed(2)}`);
 console.log(`  sample       : ${listings.slice(0, 3).map((l) => `${l.cardName} (RM ${l.price})`).join(", ")}`);
+console.log(`Prepared ${auctions.length} mock auction(s)`);
+console.log(`  live         : ${auctions.filter((a) => a.status === "active").length}`);
+console.log(`  ended        : ${auctions.filter((a) => a.status === "ended").length}`);
+console.log(`  with bids    : ${auctions.filter((a) => a.bidCount > 0).length}`);
+console.log(`  ending <1h   : ${auctions.filter((a) => a.status === "active" && a.endsAt - now < 60 * 60 * 1000).length}`);
 
 if (!confirmed) {
   console.log("\nDry run. Re-run with --yes to write them.");
@@ -206,4 +291,14 @@ for (let i = 0; i < listings.length; i += 400) {
   }
   await batch.commit();
 }
-console.log(`\nWrote ${listings.length} mock listing(s). Remove them with --clean.`);
+for (let i = 0; i < auctions.length; i += 400) {
+  const batch = db.batch();
+  for (const a of auctions.slice(i, i + 400)) {
+    batch.set(db.collection("auctions").doc(), a);
+  }
+  await batch.commit();
+}
+console.log(
+  `\nWrote ${listings.length} mock listing(s) and ${auctions.length} mock auction(s).` +
+    ` Remove them with --clean.`,
+);

@@ -39,6 +39,25 @@ CREATE INDEX IF NOT EXISTS cards_catalog_group_idx
 CREATE INDEX IF NOT EXISTS cards_catalog_rarity_idx
   ON cards_catalog (rarity);
 
+-- search_catalog filters with ILIKE '%…%' on rarity and group_name, and a
+-- plain btree index cannot answer a leading-wildcard match — it was only ever
+-- helping exact-equality lookups. These are the trigram equivalents, which
+-- can. Without them a rarity or set search reads all 63k rows.
+CREATE INDEX IF NOT EXISTS cards_catalog_rarity_trgm
+  ON cards_catalog USING gin (rarity gin_trgm_ops);
+
+CREATE INDEX IF NOT EXISTS cards_catalog_group_name_trgm
+  ON cards_catalog USING gin (group_name gin_trgm_ops);
+
+-- Every search filters on language now that both are searched by default.
+CREATE INDEX IF NOT EXISTS cards_catalog_language_idx
+  ON cards_catalog (language);
+
+-- Number searches match the whole value or up to the slash ("012", "012/202",
+-- "GG44/GG70"), which is a leading-anchored pattern trigrams handle well.
+CREATE INDEX IF NOT EXISTS cards_catalog_number_trgm
+  ON cards_catalog USING gin (number gin_trgm_ops);
+
 ------------------------------------------------------------------
 -- card_prices : daily upsert by cron, history kept inline as JSONB
 ------------------------------------------------------------------

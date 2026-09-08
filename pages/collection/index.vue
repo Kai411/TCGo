@@ -388,6 +388,20 @@
             Search the name and set instead, like “omanyte dp4”.
           </span>
         </template>
+        <!-- A search narrowed to one language finding nothing is the single
+             most confusing empty state here: "charizard mur" is a Japanese-
+             only rarity, "067/082" a Japanese-only number, and the page just
+             looks broken. Say which way it is narrowed, and offer the fix. -->
+        <template v-else-if="languageFilter !== 'ALL'">
+          No {{ languageFilter === "EN" ? "English" : "Japanese" }} cards match.
+          <button
+            type="button"
+            @click="searchBothLanguages"
+            class="mt-3 block mx-auto rounded-lg bg-pokemon-red px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            Search both languages
+          </button>
+        </template>
         <template v-else>No matches. Try a different name, set, or rarity.</template>
       </p>
 
@@ -629,6 +643,11 @@ const priceLabel = computed(() => PRICE_LABEL[String(priceSort.value)]!);
 const looksLikeDpbp = computed(() =>
   /\bdpbp\s*#?\s*\d+/i.test(appliedQuery.value),
 );
+
+const searchBothLanguages = () => {
+  languageFilter.value = "ALL";
+  runSearch();
+};
 
 const cyclePrice = () => {
   const i = PRICE_CYCLE.indexOf(priceSort.value);
