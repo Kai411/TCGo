@@ -1,0 +1,58 @@
+{
+  "cards": [],
+  "inventory": [],
+  "compiledOrders": [],
+  "posSales": [],
+  "payouts": [],
+  "auctions": [],
+  "userCollection": [],
+  "favourites": [],
+  "notifications": [],
+  "authCodes": [],
+  "reports": [],
+  "actionLogs": [],
+  "errorLogs": [],
+  "users": [
+    {
+      "id": "tLzERqTMk6OTYJkLIKI5nwgnxsx2",
+      "phone": "",
+      "whatsappVerified": false,
+      "createdAt": 1788456452760,
+      "scansUsed": 0,
+      "scansResetAt": 1790784000000,
+      "tier": "free",
+      "trustScore": 100,
+      "uid": "tLzERqTMk6OTYJkLIKI5nwgnxsx2",
+      "whatsappNumber": "",
+      "favouritesPublic": true,
+      "usePhoneAsWhatsapp": true,
+      "emailVerified": true,
+      "emailVerifiedAt": 1788456912939,
+      "deliveryPhone": "0129224545",
+      "deliveryCity": "Kuala Lumpur",
+      "deliveryPostcode": "56000",
+      "deliveryState": "kul",
+      "deliveryAddress2": "D-46-13A",
+      "deliveryAddress1": "M Vertica Residence, No.555, Jln Cheras, Taman Pertama",
+      "deliveryName": "Kai",
+      "kycStartedAt": 1788457112060,
+      "kycSessionId": "cf9372cd-30b8-44bf-b5a7-d516948b63fc",
+      "kycVerifiedName": "Seow Kai Sheng",
+      "kycVerifiedAt": 1788457186930,
+      "kycIssuingState": "MYS",
+      "kycStatusAt": 1788457186930,
+      "kycStatus": "verified",
+      "kycDocumentType": "Identity Card",
+      "photoURL": "https://res.cloudinary.com/dwu9mxf32/image/upload/v1788457388/poketcg-auctions/qyveqapoftha8xoadqum.jpg",
+      "displayName": "Kai",
+      "customName": "Kai"
+    }
+  ],
+  "staffSessions": [],
+  "__authUsers": [
+    {
+      "uid": "tLzERqTMk6OTYJkLIKI5nwgnxsx2",
+      "email": "kai4112000@gmail.com"
+    }
+  ]
+}

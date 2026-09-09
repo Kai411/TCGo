@@ -1,0 +1,65 @@
+{
+  "cards": [],
+  "inventory": [],
+  "compiledOrders": [],
+  "posSales": [],
+  "payouts": [],
+  "auctions": [],
+  "userCollection": [],
+  "favourites": [],
+  "notifications": [],
+  "authCodes": [],
+  "webhookEvents": [
+    {
+      "id": "didit_0ad1d75f-4d99-4369-9214-5f43a059f9f9",
+      "provider": "didit",
+      "sessionId": "94a27bd3-a2e0-4306-b7b3-36d9c2994ac2",
+      "status": "Not Started",
+      "receivedAt": 1788457083792
+    },
+    {
+      "id": "didit_3c7c916f-e42f-4fe9-97e4-87ae25bddfba",
+      "provider": "didit",
+      "sessionId": "cf9372cd-30b8-44bf-b5a7-d516948b63fc",
+      "status": "Not Started",
+      "receivedAt": 1788457112529
+    },
+    {
+      "id": "didit_6d9a0b98-ccc0-46a7-8a31-ed0aade6560d",
+      "provider": "didit",
+      "sessionId": "cf9372cd-30b8-44bf-b5a7-d516948b63fc",
+      "status": "Approved",
+      "receivedAt": 1788457186624
+    },
+    {
+      "id": "didit_a73b3b29-8997-448d-b49b-7b609d0d977d",
+      "provider": "didit",
+      "sessionId": "cf9372cd-30b8-44bf-b5a7-d516948b63fc",
+      "status": "In Progress",
+      "receivedAt": 1788457157446
+    }
+  ],
+  "reports": [],
+  "actionLogs": [],
+  "errorLogs": [],
+  "users": [
+    {
+      "id": "tLzERqTMk6OTYJkLIKI5nwgnxsx2",
+      "displayName": "Kai",
+      "usePhoneAsWhatsapp": true,
+      "customName": "Kai",
+      "favouritesPublic": true,
+      "whatsappNumber": "",
+      "createdAt": 1788476711500,
+      "photoURL": "",
+      "scansResetAt": 1790784000000,
+      "uid": "tLzERqTMk6OTYJkLIKI5nwgnxsx2",
+      "scansUsed": 0,
+      "trustScore": 100,
+      "tier": "free",
+      "phone": ""
+    }
+  ],
+  "staffSessions": [],
+  "__authUsers": []
+}
