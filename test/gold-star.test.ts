@@ -8,6 +8,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
+import { readFileSync } from "node:fs";
+
 import {
   GOLD_STAR_RARITY,
   applyGoldStar,
@@ -101,5 +103,42 @@ describe("the row the seed writes", () => {
     const row = { name: "Rayquaza Star", rarity: "Ultra Rare" };
     applyGoldStar(row);
     assert.equal(row.name, "Rayquaza Star", "input was mutated");
+  });
+});
+
+describe("the seeder actually applies the rule", () => {
+  // The invariant that failed twice, on 2026-09-07 and 2026-09-08. Both times
+  // the rule existed and was correct; the nightly job simply did not call it,
+  // rewrote all 63k rows from upstream, and the cards reverted overnight. A
+  // rule nothing invokes is indistinguishable from no rule at all, and the
+  // symptom shows up as a search bug hours later.
+  const seeder = readFileSync(
+    new URL("../scripts/seed-pokemon-catalog.mjs", import.meta.url),
+    "utf8",
+  );
+
+  it("imports the rule", () => {
+    assert.match(
+      seeder,
+      /import\s*\{[^}]*applyGoldStar[^}]*\}\s*from\s*["'][^"']*gold-star\.mjs["']/,
+      "seed-pokemon-catalog.mjs no longer imports applyGoldStar",
+    );
+  });
+
+  it("calls it on the rows it writes", () => {
+    assert.match(
+      seeder,
+      /\.map\(applyGoldStar\)/,
+      "seed-pokemon-catalog.mjs no longer applies applyGoldStar to its rows",
+    );
+  });
+
+  it("applies it to what buildRow produces, not to raw upstream products", () => {
+    // Order matters: buildRow maps TCGCSV's shape onto our columns, so the
+    // rule has to run after it or there is no `name` field to rewrite.
+    const buildRowAt = seeder.indexOf("buildRow(p, group");
+    const applyAt = seeder.indexOf(".map(applyGoldStar)");
+    assert.ok(buildRowAt !== -1 && applyAt !== -1, "expected call sites missing");
+    assert.ok(applyAt > buildRowAt, "applyGoldStar must run after buildRow");
   });
 });
