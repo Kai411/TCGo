@@ -23,6 +23,8 @@ import {
   POS_ALL_IN_RATE,
   WITHDRAWAL_FEE,
   feeSplitRates,
+  breakdownFee,
+  feeComponentRates,
 } from "~/shared/pricing";
 
 import {
@@ -116,6 +118,31 @@ describe("shipping reimbursement", () => {
     // order. All of it is TCGo's.
     const fee = 70 * STANDARD_RATE;
     assert.equal(computeSellerPayout({ subtotal: 70, shipping: 7.25 }), 70 - fee);
+  });
+});
+
+describe("the five-line fee breakdown", () => {
+  it("always totals the fee exactly, to the sen", () => {
+    for (const fee of [0.01, 0.05, 1, 4, 6.13, 119.96, 123.45, 9999.99]) {
+      const parts = breakdownFee(fee);
+      const sum = Math.round(parts.reduce((t, p) => t + p.amount * 100, 0));
+      assert.equal(sum, Math.round(fee * 100), `lines for ${fee} must add up`);
+    }
+  });
+
+  it("keeps the 2.4% / 1.6% split underneath", () => {
+    const rates = feeComponentRates().map((c) => c.rate);
+    assert.deepEqual(rates, [1.2, 1.2, 0.6, 0.5, 0.5]);
+    const processing = rates[0]! + rates[1]!;
+    const platform = rates[2]! + rates[3]! + rates[4]!;
+    assert.equal(Math.round(processing * 100) / 100, 2.4);
+    assert.equal(Math.round(platform * 100) / 100, 1.6);
+  });
+
+  it("makes no single line larger than 30% of the fee", () => {
+    // The point of the breakdown: RM 119.96 no longer shows a RM 71.98 line.
+    const largest = Math.max(...breakdownFee(119.96).map((p) => p.amount));
+    assert.ok(largest <= 36, `largest line ${largest}`);
   });
 });
 

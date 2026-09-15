@@ -13,7 +13,7 @@
 // fallback for orders written before those fields existed, nothing more.
 
 import { recordedFee, recordedPayout, recordedSst } from "~/shared/payouts";
-import { BETA_RATE, PLANS, splitFee, SST_RATE } from "~/shared/pricing";
+import { BETA_RATE, PLANS, breakdownFee, SST_RATE } from "~/shared/pricing";
 
 export interface SettlementOrder {
   selfShipped?: boolean;
@@ -138,19 +138,9 @@ export const settlementLines = (order: SettlementOrder): SettlementLine[] => {
   // What that fee is for. Indented under it and summing to it exactly, so the
   // statement still reads as one deduction rather than two.
   if (fee > 0) {
-    const split = splitFee(fee);
-    lines.push({
-      label: "Payment processing",
-      amount: -split.processing,
-      kind: "sub",
-      note: "Moving the money — FPX collection and the bank transfer out.",
-    });
-    lines.push({
-      label: "Platform commission",
-      amount: -split.platform,
-      kind: "sub",
-      note: "Listings, market data, courier booking and support.",
-    });
+    for (const part of breakdownFee(fee)) {
+      lines.push({ label: part.label, amount: -part.amount, kind: "sub" });
+    }
   }
 
   // Only when there is tax to show. A zero line on every statement invites

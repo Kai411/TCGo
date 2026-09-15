@@ -556,7 +556,7 @@ import {
   WITHDRAWAL_FEE,
   BETA_PRICING,
   BETA_RATE,
-  feeSplitRates,
+  feeComponentRates,
 } from "~/shared/pricing";
 
 definePageMeta({ layout: "landing" });
@@ -567,7 +567,7 @@ useHead({
     {
       name: "description",
       content:
-        "TCGo charges Malaysian card sellers a flat 4% per sale on every plan — 2.4% payment processing and 1.6% platform commission. No listing fees, no minimum order, and buyers pay no platform fee. The in-store POS is free.",
+        "TCGo charges Malaysian card sellers a flat 4% per sale on every plan — covering payment collection, secure holding until delivery, buyer and seller protection, listings and courier booking. No listing fees, no minimum order, and buyers pay no platform fee. The in-store POS is free.",
     },
   ],
 });
@@ -578,19 +578,11 @@ useHead({
 // Derived from shared/pricing rather than typed here: this page and the
 // settlement statement a seller sees after every sale have to describe the
 // same fee the same way, and hardcoding it is how they drift apart.
-const split = feeSplitRates();
-const feeLines = [
-  {
-    label: "Payment processing",
-    note: "Moving the money — FPX collection and the bank transfer out",
-    rate: `${split.processing}%`,
-  },
-  {
-    label: "Platform commission",
-    note: "Listings, market data, courier booking and support",
-    rate: `${split.platform}%`,
-  },
-];
+const feeLines = feeComponentRates().map((c) => ({
+  label: c.label,
+  note: c.note,
+  rate: `${c.rate}%`,
+}));
 
 // Two subscriptions sit on top of the per-sale 4%.
 //

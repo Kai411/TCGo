@@ -162,6 +162,55 @@ export const splitFee = (fee: number) => {
   return { processing, platform: round2(fee - processing) };
 };
 
+// ── The full breakdown shown to sellers ───────────────────────────────
+//
+// Five lines rather than two. "Payment processing −RM 71.98" read as one big
+// bite; the same money split across what it actually pays for reads as a
+// service list. Shares are of the fee, so the lines always total the rate
+// charged (2.4% processing = first two, 1.6% platform = last three).
+//
+// Deliberately no "bank transfer out" line: withdrawing is charged separately
+// (WITHDRAWAL_FEE), and listing it here too would describe that cost twice.
+export const FEE_COMPONENTS = [
+  { id: "collection", label: "Payment collection", note: "FPX payment from the buyer", share: 0.3 },
+  { id: "holding", label: "Secure payment holding", note: "Held safely until the buyer receives the card", share: 0.3 },
+  { id: "protection", label: "Buyer & seller protection", note: "Disputes, cancellations and refunds", share: 0.15 },
+  { id: "listing", label: "Listings & market data", note: "Listing, search and price data", share: 0.125 },
+  { id: "support", label: "Courier booking & support", note: "Shipping labels and help when you need it", share: 0.125 },
+] as const;
+
+/**
+ * Split a fee across FEE_COMPONENTS, to the sen, summing to the fee exactly.
+ *
+ * Largest remainder: every line is floored to the sen, then the leftover sen
+ * go to the lines that lost most in rounding. Rounding each line on its own
+ * lets five lines drift a sen or two away from the total a seller can see.
+ */
+export const breakdownFee = (fee: number) => {
+  const cents = Math.round(Math.max(0, fee) * 100);
+  const raw = FEE_COMPONENTS.map((c) => cents * c.share);
+  const floored = raw.map(Math.floor);
+  let left = cents - floored.reduce((a, b) => a + b, 0);
+  const order = raw
+    .map((r, i) => ({ i, frac: r - Math.floor(r) }))
+    .sort((a, b) => b.frac - a.frac || a.i - b.i);
+  for (const { i } of order) {
+    if (left <= 0) break;
+    floored[i]! += 1;
+    left -= 1;
+  }
+  return FEE_COMPONENTS.map((c, i) => ({ ...c, amount: floored[i]! / 100 }));
+};
+
+/** Each component as a percentage of the sale, for the pricing page. */
+export const feeComponentRates = (planId: PlanId = "free") => {
+  const rate = effectiveRate(planId) * 100;
+  return FEE_COMPONENTS.map((c) => ({
+    ...c,
+    rate: Math.round(rate * c.share * 100) / 100,
+  }));
+};
+
 /** The two parts as percentages, for the pricing page. */
 export const feeSplitRates = (planId: PlanId = "free") => {
   const rate = effectiveRate(planId) * 100;
