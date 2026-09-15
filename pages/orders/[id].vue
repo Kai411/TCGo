@@ -236,7 +236,7 @@
                   :disabled="cancellingOrder"
                   class="px-4 py-2 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-500/10 transition-colors disabled:opacity-60"
                 >
-                  {{ cancellingOrder ? "Cancelling…" : "Cancel & refund" }}
+                  {{ cancellingOrder ? "Cancelling…" : `Cancel & refund (${cancelMinutesLeft} min left)` }}
                 </button>
               </template>
 
@@ -245,11 +245,12 @@
                 <button
                   v-if="order.status === 'paid' && order.deliveryAddress && !order.shipmentOrderNo"
                   @click="bookShipment"
-                  :disabled="booking"
+                  :disabled="booking || !courierReady"
+                  :title="courierReady ? '' : 'The buyer can cancel for 30 minutes after paying'"
                   class="px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center gap-2"
                 >
                   <span v-if="booking" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
-                  {{ booking ? "Booking courier…" : "Book courier" }}
+                  {{ booking ? "Booking courier…" : courierReady ? "Book courier" : `Book courier in ${courierMinutesLeft} min` }}
                 </button>
                 <button
                   v-if="order.shipmentOrderNo"
@@ -554,7 +555,7 @@
             <span>You'll receive</span><span>RM {{ refundSummary.amount.toFixed(2) }}</span>
           </div>
           <p class="text-[11px] text-gray-500 dark:text-zinc-400 pt-1">
-            The fee covers the payment and transfer charges. Refunds are sent to your bank after review.
+            A 4% refund processing fee (minimum RM 1) covers the payment and transfer charges. Refunds are sent to your bank after review.
           </p>
         </div>
 
@@ -657,6 +658,12 @@ import {
 } from "~/shared/payouts";
 import { isOrderCompleted } from "~/shared/delivery-stage";
 import { banksFor as refundBanksFor } from "~/shared/banks";
+import {
+  canBookCourier,
+  canBuyerCancel,
+  graceEndsAt,
+  minutesUntil,
+} from "~/shared/order-windows";
 import {
   CANCEL_REASONS,
   OTHER_REASON_MAX,
@@ -837,11 +844,29 @@ const { profile: myProfile } = useMyProfile();
 // won't release it — a cancelled order whose parcel still ships is the one
 // outcome with no clean recovery.
 const cancellingOrder = ref(false);
-const canCancelPaid = computed(() => {
-  const o = order.value as any;
-  if (!o || role.value !== "buyer") return false;
-  return o.status === "paid" || o.status === "confirmed";
+
+// The 30-minute window (shared/order-windows.ts): the buyer can cancel inside
+// it, the seller can book the courier after it. Re-evaluated every 15s so the
+// buttons change without a reload.
+const clockNow = ref(Date.now());
+let clockTimer: ReturnType<typeof setInterval> | null = null;
+onMounted(() => {
+  clockTimer = setInterval(() => (clockNow.value = Date.now()), 15_000);
 });
+onBeforeUnmount(() => {
+  if (clockTimer) clearInterval(clockTimer);
+});
+
+const canCancelPaid = computed(
+  () => role.value === "buyer" && canBuyerCancel(order.value as any, clockNow.value),
+);
+const cancelMinutesLeft = computed(() =>
+  minutesUntil(graceEndsAt(order.value as any), clockNow.value),
+);
+const courierReady = computed(() => canBookCourier(order.value as any, clockNow.value));
+const courierMinutesLeft = computed(() =>
+  minutesUntil(graceEndsAt(order.value as any), clockNow.value),
+);
 
 // The refund goes back to the buyer's bank by Billplz Payment Order, so
 // cancelling collects the reason and the account to pay. Rules in
@@ -1003,7 +1028,7 @@ const saveAddressAndPay = async () => {
 // rate picker here.
 const booking = ref(false);
 const bookShipment = async () => {
-  if (!order.value || booking.value) return;
+  if (!order.value || booking.value || !courierReady.value) return;
   if (!confirm("Book the courier for this order? This charges the platform's shipping account.")) return;
   booking.value = true;
   try {

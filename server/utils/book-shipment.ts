@@ -9,6 +9,7 @@
 // transactional claim on `shipmentClaimedAt` means concurrent callers (webhook
 // and seller clicking at the same moment) can't buy two labels.
 
+import { CANCEL_GRACE_MINUTES, canBookCourier, graceEndsAt, minutesUntil } from "~/shared/order-windows";
 import type { Firestore } from "firebase-admin/firestore";
 import {
   recordedFee,
@@ -54,6 +55,15 @@ export const bookShipmentForOrder = async (
 
   if (order.status !== "paid") {
     return { booked: false, reason: `Order is ${order.status}, not paid` };
+  }
+  // Locked for the buyer's 30-minute cancellation window, so a label is never
+  // bought for an order the buyer can still cancel. Enforced here so every
+  // path that books (the seller's button, merging) respects it.
+  if (!canBookCourier(order)) {
+    return {
+      booked: false,
+      reason: `Courier booking opens ${minutesUntil(graceEndsAt(order))} min from now, once the buyer's ${CANCEL_GRACE_MINUTES}-minute cancellation window closes.`,
+    };
   }
   const addr = order.deliveryAddress;
   if (!addr?.postcode) return { booked: false, reason: "Order has no delivery address" };

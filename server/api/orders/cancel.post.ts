@@ -30,6 +30,7 @@ import { requireUser } from "~/server/utils/auth";
 import { cancelShipmentForOrder } from "~/server/utils/book-shipment";
 import { noteError } from "~/server/utils/oplog";
 import { bankByCode } from "~/shared/banks";
+import { CANCEL_GRACE_MINUTES, canBuyerCancel } from "~/shared/order-windows";
 import {
   refundBreakdown,
   toRefundRecipient,
@@ -79,6 +80,16 @@ export default defineEventHandler(async (event) => {
         order.status === "shipped" || order.status === "delivered"
           ? "This parcel is already with the courier and can't be cancelled here."
           : "This order isn't in a state that can be cancelled.",
+    });
+  }
+
+  // Self-service cancellation is open for 30 minutes after payment. After
+  // that the seller may book the courier, and cancelling becomes a support
+  // matter — see shared/order-windows.ts.
+  if (!canBuyerCancel(order)) {
+    throw createError({
+      statusCode: 409,
+      message: `Orders can be cancelled within ${CANCEL_GRACE_MINUTES} minutes of payment. Contact support to cancel this one.`,
     });
   }
 
