@@ -148,6 +148,10 @@
           </svg>
         </button>
 
+        <!-- The same bell as the seller dashboard: buyer and seller events
+             in one feed, so neither role has to go looking for the other. -->
+        <NotificationBell v-if="user" />
+
         <!-- Cart — opens the slide-in drawer so shoppers keep their place
              instead of jumping to /cart. -->
         <button
@@ -543,6 +547,6 @@ watch(
 // ── Seller notification dot ───────────────────────────────────────────
 // The bell itself lives in the seller layout; out here only the dot matters,
 // so this listens for the count and nothing else.
-const { hasUnread: sellerHasUnread, listen: listenNotifications } = useNotifications();
+const { hasUnreadSeller: sellerHasUnread, listen: listenNotifications } = useNotifications();
 watch(() => user.value?.uid, () => listenNotifications(), { immediate: true });
 </script>

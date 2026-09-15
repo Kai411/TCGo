@@ -318,6 +318,19 @@ service cloud.firestore {
     match /autoPayoutRuns/{runId} {
       allow read, write: if false;
     }
+    // ── notifications ────────────────────────────────────────────────
+    // Created only by the server (Admin SDK bypasses rules). A user may read
+    // their own, mark them read, and delete ones they have already read.
+    match /notifications/{notificationId} {
+      allow read: if isOwner(resource.data.userUid);
+      allow update: if isOwner(resource.data.userUid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['readAt', 'expireAt']);
+      allow delete: if isOwner(resource.data.userUid)
+        && resource.data.readAt != null;
+      allow create: if false;
+    }
+
     match /settings/{docId} {
       allow read, write: if false;
     }

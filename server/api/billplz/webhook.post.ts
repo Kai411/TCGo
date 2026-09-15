@@ -20,6 +20,9 @@ import { effectiveRate } from "~/shared/pricing";
 import { sendInvoiceForOrder } from "~/server/utils/send-invoice";
 import { joinPaidOrderToParcel } from "~/server/utils/join-parcel";
 import { noteError } from "~/server/utils/oplog";
+import { notify } from "~/server/utils/notify";
+import { sendSellerOrderEmail } from "~/server/utils/order-emails";
+import { orderCreated, orderPlaced } from "~/shared/notifications";
 
 export default defineEventHandler(async (event) => {
   const body = (await readBody(event)) as Record<string, string>;
@@ -225,5 +228,54 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  return { ok: true, invoiceEmailed };
+  // Tell both sides. notify() swallows its own failures, so a lost bell can
+  // never make Billplz retry a settled payment.
+  const itemCount = (order.items ?? []).length || 1;
+  await Promise.all([
+    notify(
+      db,
+      order.sellerUid,
+      orderCreated({
+        orderId: orderRef.id,
+        buyerName: order.buyerName,
+        total: order.subtotal,
+        itemCount,
+      }),
+    ),
+    notify(
+      db,
+      order.buyerUid,
+      orderPlaced({
+        orderId: orderRef.id,
+        sellerName: order.sellerName,
+        total: order.total,
+        itemCount,
+      }),
+    ),
+  ]);
+
+  // The seller's email. The buyer's is the invoice above.
+  let sellerEmailed = false;
+  try {
+    const mail = await sendSellerOrderEmail(
+      db,
+      { ...order, id: orderRef.id },
+      { payout: sellerPayout },
+    );
+    sellerEmailed = mail.sent;
+    if (!mail.sent) console.warn("[billplz webhook] seller order email not sent:", mail.reason);
+  } catch (e: any) {
+    console.error("[billplz webhook] seller order email failed:", e?.message || e);
+    noteError({
+      area: "email",
+      severity: "warning",
+      code: "email.seller_order_failed",
+      message: `New-order email to the seller failed: ${e?.message || e}`,
+      orderId: orderRef.id,
+      error: e,
+      hint: "The payment went through and the seller still has the notification.",
+    });
+  }
+
+  return { ok: true, invoiceEmailed, sellerEmailed };
 });

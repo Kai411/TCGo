@@ -32,6 +32,7 @@ export const notify = async (
     await db.collection(COLLECTION).add({
       userUid,
       kind: draft.kind,
+      audience: draft.audience ?? null,
       title: draft.title,
       body: draft.body,
       href: draft.href ?? null,

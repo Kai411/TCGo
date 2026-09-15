@@ -46,7 +46,7 @@
         <div class="max-h-[22rem] overflow-y-auto">
           <p v-if="loading" class="px-4 py-8 text-center text-[13px] text-ink-soft">Loading…</p>
           <p v-else-if="!notifications.length" class="px-4 py-8 text-center text-[13px] text-ink-soft dark:text-zinc-500">
-            Nothing yet. Orders and follows will show up here.
+            Nothing yet. Orders you buy and sell will show up here.
           </p>
           <component
             v-for="n in notifications"
@@ -70,8 +70,15 @@
                 <p class="text-[12px] text-ink-muted dark:text-zinc-400 leading-relaxed mt-0.5">
                   {{ n.body }}
                 </p>
-                <p class="text-[11px] text-ink-soft dark:text-zinc-500 mt-1">
-                  {{ ago(n.createdAt) }}
+                <p class="flex items-center gap-1.5 text-[11px] text-ink-soft dark:text-zinc-500 mt-1">
+                  <span
+                    v-if="n.audience"
+                    class="rounded px-1.5 py-px text-[10px] font-semibold"
+                    :class="n.audience === 'seller'
+                      ? 'bg-pokemon-red/10 text-pokemon-red'
+                      : 'bg-black/[0.06] text-ink-muted dark:bg-white/[0.08] dark:text-zinc-300'"
+                  >{{ AUDIENCE_LABEL[n.audience] }}</span>
+                  <span>{{ ago(n.createdAt) }}</span>
                 </p>
               </div>
             </div>
@@ -84,6 +91,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { AUDIENCE_LABEL } from "~/shared/notifications";
 
 const { notifications, loading, unread, hasUnread, listen, markRead, markAllRead } =
   useNotifications();

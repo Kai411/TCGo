@@ -33,7 +33,44 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "comment": "Notification feed: a user's notifications, newest first.",
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "comment": "Notification cleanup: a user's notifications read before a cutoff.",
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "readAt",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "notifications",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": []
+    }
+  ]
 }
