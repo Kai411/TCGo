@@ -154,7 +154,7 @@ export interface CompiledOrder {
   // "pending" means owed and not yet sent. Billplz has no refund API, so
   // the money is moved by hand from their dashboard and only then does this
   // become "refunded" — see server/api/orders/cancel.post.ts.
-  refundStatus?: "pending" | "refunded" | "failed";
+  refundStatus?: "pending" | "processing" | "refunded" | "failed";
   refundAmount?: number;
   refundBillplzBillId?: string | null;
   refundedAt?: number;

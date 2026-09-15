@@ -318,6 +318,12 @@ service cloud.firestore {
     match /autoPayoutRuns/{runId} {
       allow read, write: if false;
     }
+    // ── refunds ──────────────────────────────────────────────────────
+    // Buyer refund requests: IC and bank account. Server (Admin SDK) only.
+    match /refunds/{refundId} {
+      allow read, write: if false;
+    }
+
     // ── notifications ────────────────────────────────────────────────
     // Created only by the server (Admin SDK bypasses rules). A user may read
     // their own, mark them read, and delete ones they have already read.

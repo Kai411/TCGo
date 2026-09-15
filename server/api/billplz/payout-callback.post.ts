@@ -33,7 +33,38 @@ export default defineEventHandler(async (event) => {
     .limit(1)
     .get();
 
-  if (snap.empty) return { ok: true, ignored: "unknown payment order" };
+  if (snap.empty) {
+    // A refund to a buyer uses the same rail. Same rule: read the real status
+    // back from Billplz rather than trusting what was posted.
+    const refundSnap = await db
+      .collection("refunds")
+      .where("billplzInstructionId", "==", instructionId)
+      .limit(1)
+      .get();
+    if (refundSnap.empty) return { ok: true, ignored: "unknown payment order" };
+    const refundDoc = refundSnap.docs[0]!;
+    const refund = refundDoc.data() as any;
+    if (refund.status === "paid" || refund.status === "failed") {
+      return { ok: true, status: refund.status, unchanged: true };
+    }
+    const instruction = await getMassPaymentInstruction(instructionId);
+    const mapped = mapInstructionStatus(instruction.status);
+    const now = Date.now();
+    if (mapped === "processing") {
+      await refundDoc.ref.update({ billplzStatus: instruction.status ?? null });
+      return { ok: true, status: "processing", raw: instruction.status };
+    }
+    await refundDoc.ref.update({
+      status: mapped,
+      billplzStatus: instruction.status ?? null,
+      ...(mapped === "paid" ? { paidAt: now } : { failureReason: `Billplz reported "${instruction.status}"` }),
+    });
+    await db.collection("compiledOrders").doc(refund.orderId).update({
+      refundStatus: mapped === "paid" ? "refunded" : "failed",
+      ...(mapped === "paid" ? { refundedAt: now } : {}),
+    });
+    return { ok: true, status: mapped, raw: instruction.status, refund: true };
+  }
 
   const doc = snap.docs[0]!;
   const batch = { ...(doc.data() as PayoutBatch), id: doc.id };

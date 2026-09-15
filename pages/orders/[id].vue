@@ -454,6 +454,131 @@
       </div>
     </template>
 
+    <!-- Cancel & refund (buyer) -->
+    <div
+      v-if="refundOpen"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40"
+      @click.self="refundOpen = false"
+    >
+      <form
+        class="surface w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl p-5 border border-black/[0.06] dark:border-white/[0.08]"
+        @submit.prevent="submitRefundRequest"
+        novalidate
+      >
+        <h3 class="text-base font-bold text-ink dark:text-white">Cancel &amp; request refund</h3>
+        <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+          We'll send your refund to the bank account below. The cards go back on sale.
+        </p>
+
+        <div class="mt-4 space-y-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-zinc-300 mb-1">Why are you cancelling?</label>
+            <select
+              v-model="refundForm.reasonCode"
+              class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
+            >
+              <option value="" disabled>Choose a reason</option>
+              <option v-for="r in CANCEL_REASONS" :key="r.code" :value="r.code">{{ r.label }}</option>
+            </select>
+            <p v-if="refundErrors.reasonCode" class="mt-1 text-xs text-red-600">{{ refundErrors.reasonCode }}</p>
+          </div>
+
+          <div v-if="refundForm.reasonCode === 'other'">
+            <label class="block text-xs font-medium text-gray-600 dark:text-zinc-300 mb-1">Tell us more</label>
+            <textarea
+              v-model="refundForm.reasonNote"
+              rows="2"
+              :maxlength="OTHER_REASON_MAX"
+              class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
+            />
+            <p v-if="refundErrors.reasonNote" class="mt-1 text-xs text-red-600">{{ refundErrors.reasonNote }}</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-zinc-300 mb-1">Account holder name</label>
+            <input
+              v-model="refundForm.holderName"
+              type="text"
+              autocomplete="name"
+              placeholder="As shown on the bank account"
+              class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
+            />
+            <p v-if="refundErrors.holderName" class="mt-1 text-xs text-red-600">{{ refundErrors.holderName }}</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-zinc-300 mb-1">IC number of account holder</label>
+            <input
+              v-model="refundForm.identityNumber"
+              type="text"
+              inputmode="numeric"
+              placeholder="e.g. 900101-14-5678"
+              class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
+            />
+            <p v-if="refundErrors.identityNumber" class="mt-1 text-xs text-red-600">{{ refundErrors.identityNumber }}</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-zinc-300 mb-1">Bank</label>
+            <select
+              v-model="refundForm.bankCode"
+              class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
+            >
+              <option value="" disabled>Choose your bank</option>
+              <option v-for="b in refundBankOptions" :key="b.code" :value="b.code">{{ b.name }}</option>
+            </select>
+            <p v-if="refundErrors.bankCode" class="mt-1 text-xs text-red-600">{{ refundErrors.bankCode }}</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-600 dark:text-zinc-300 mb-1">Bank account number</label>
+            <input
+              v-model="refundForm.bankAccountNumber"
+              type="text"
+              inputmode="numeric"
+              placeholder="Digits only"
+              class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
+            />
+            <p v-if="refundErrors.bankAccountNumber" class="mt-1 text-xs text-red-600">{{ refundErrors.bankAccountNumber }}</p>
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] p-3 text-sm space-y-1 tabular-nums">
+          <div class="flex justify-between text-gray-600 dark:text-zinc-300">
+            <span>Order total</span><span>RM {{ refundSummary.total.toFixed(2) }}</span>
+          </div>
+          <div class="flex justify-between text-gray-600 dark:text-zinc-300">
+            <span>Refund processing fee</span><span>−RM {{ refundSummary.fee.toFixed(2) }}</span>
+          </div>
+          <div class="flex justify-between font-bold text-ink dark:text-white pt-1 border-t border-black/[0.06] dark:border-white/[0.08]">
+            <span>You'll receive</span><span>RM {{ refundSummary.amount.toFixed(2) }}</span>
+          </div>
+          <p class="text-[11px] text-gray-500 dark:text-zinc-400 pt-1">
+            The fee covers the payment and transfer charges. Refunds are sent to your bank after review.
+          </p>
+        </div>
+
+        <p v-if="refundSubmitError" class="mt-3 text-xs text-red-600">{{ refundSubmitError }}</p>
+
+        <div class="flex gap-2 mt-4">
+          <button
+            type="button"
+            @click="refundOpen = false"
+            class="flex-1 py-2.5 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200"
+          >
+            Keep order
+          </button>
+          <button
+            type="submit"
+            :disabled="cancellingOrder"
+            class="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-60"
+          >
+            {{ cancellingOrder ? "Cancelling…" : "Cancel & request refund" }}
+          </button>
+        </div>
+      </form>
+    </div>
+
     <!-- Delivery address dialog (buyer, before online payment) -->
     <div
       v-if="addressOpen"
@@ -531,6 +656,14 @@ import {
   PAYOUT_HOLD_DAYS,
 } from "~/shared/payouts";
 import { isOrderCompleted } from "~/shared/delivery-stage";
+import { banksFor as refundBanksFor } from "~/shared/banks";
+import {
+  CANCEL_REASONS,
+  OTHER_REASON_MAX,
+  emptyRefundForm,
+  refundBreakdown,
+  validateRefundForm,
+} from "~/shared/refunds";
 
 useHead({ title: "Order | TCGo Marketplace" });
 
@@ -710,28 +843,43 @@ const canCancelPaid = computed(() => {
   return o.status === "paid" || o.status === "confirmed";
 });
 
-const cancelPaidOrder = async () => {
+// The refund goes back to the buyer's bank by Billplz Payment Order, so
+// cancelling collects the reason and the account to pay. Rules in
+// shared/refunds.ts, enforced again on the server.
+const refundOpen = ref(false);
+const refundForm = reactive(emptyRefundForm());
+const refundErrors = ref<Record<string, string>>({});
+const refundSubmitError = ref("");
+const refundBankOptions = computed(() =>
+  refundBanksFor(!!useRuntimeConfig().public.billplzSandbox),
+);
+const refundSummary = computed(() => refundBreakdown((order.value as any)?.total ?? 0));
+
+const cancelPaidOrder = () => {
+  if (!order.value || cancellingOrder.value) return;
+  Object.assign(refundForm, emptyRefundForm());
+  refundErrors.value = {};
+  refundSubmitError.value = "";
+  refundOpen.value = true;
+};
+
+const submitRefundRequest = async () => {
   const o = order.value as any;
   if (!o || cancellingOrder.value) return;
-  const total = (o.total ?? 0).toFixed(2);
-  const warning = o.shipmentOrderNo
-    ? "\n\nThe booked waybill will be cancelled too."
-    : "";
-  if (
-    !confirm(
-      `Cancel this order and refund RM ${total} to the buyer?${warning}\n\nThe cards go back on sale.`,
-    )
-  ) {
-    return;
-  }
+  refundErrors.value = validateRefundForm(refundForm) as Record<string, string>;
+  if (Object.keys(refundErrors.value).length) return;
   cancellingOrder.value = true;
+  refundSubmitError.value = "";
   try {
     await authedFetch("/api/orders/cancel", {
       method: "POST",
-      body: { orderId: o.id },
+      body: { orderId: o.id, refund: { ...refundForm } },
     });
+    refundOpen.value = false;
   } catch (e: any) {
-    alert(e?.data?.message || e?.message || "Couldn't cancel this order.");
+    const fields = e?.data?.data?.fields;
+    if (fields) refundErrors.value = fields;
+    refundSubmitError.value = e?.data?.message || e?.message || "Couldn't cancel this order.";
   } finally {
     cancellingOrder.value = false;
   }

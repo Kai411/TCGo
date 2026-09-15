@@ -29,15 +29,22 @@ import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
 import { cancelShipmentForOrder } from "~/server/utils/book-shipment";
 import { noteError } from "~/server/utils/oplog";
+import { bankByCode } from "~/shared/banks";
+import {
+  refundBreakdown,
+  toRefundRecipient,
+  validateRefundForm,
+  type RefundForm,
+} from "~/shared/refunds";
 
 /** Cancellable while the money is in and the parcel hasn't left. */
 const CANCELLABLE = ["paid", "confirmed"];
 
 export default defineEventHandler(async (event) => {
   const caller = await requireUser(event);
-  const { orderId, reason } = (await readBody(event)) as {
+  const { orderId, refund } = (await readBody(event)) as {
     orderId?: string;
-    reason?: string;
+    refund?: RefundForm;
   };
   if (!orderId) throw createError({ statusCode: 400, message: "orderId required" });
 
@@ -75,6 +82,17 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // The refund goes to the buyer's bank as a Billplz Payment Order, so the
+  // details are required and checked here — never trusted from the browser.
+  const refundErrors = validateRefundForm(refund);
+  if (Object.keys(refundErrors).length) {
+    throw createError({
+      statusCode: 400,
+      message: Object.values(refundErrors)[0] || "Refund details are incomplete",
+      data: { fields: refundErrors },
+    });
+  }
+
   // ── 1. Stop the courier ─────────────────────────────────────────────
   // Deliberately before anything else. If this fails the order stays exactly
   // as it was: a half-cancelled order whose parcel still ships is the one
@@ -92,7 +110,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const now = Date.now();
-  const refundAmount = Math.round((order.total || 0) * 100) / 100;
+  const breakdown = refundBreakdown(order.total || 0);
+  const refundAmount = breakdown.amount;
+  const recipient = toRefundRecipient(refund!);
 
   // ── 2. Stock back, 3. refund recorded — one batch ───────────────────
   const batch = db.batch();
@@ -100,12 +120,18 @@ export default defineEventHandler(async (event) => {
   batch.update(orderRef, {
     status: "cancelled",
     cancelledAt: now,
-    cancelledBy: isBuyer ? "buyer" : "seller",
-    cancelReason: (reason || "").slice(0, 300),
+    cancelledBy: "buyer",
+    cancelReasonCode: refund!.reasonCode,
+    cancelReason:
+      refund!.reasonCode === "other" ? refund!.reasonNote.trim().slice(0, 300) : refund!.reasonCode,
     // What is owed, and the fact that nobody has sent it yet. Deliberately
     // not "refunded" — see the note at the top of this file.
     refundStatus: "pending",
     refundAmount,
+    refundFee: breakdown.fee,
+    // For display only; the full details live in the staff-only refunds doc.
+    refundBankName: bankByCode(recipient.bankCode)?.name ?? null,
+    refundAccountLast4: recipient.bankAccountNumber.slice(-4),
     // The bill to refund against, so whoever processes it in the Billplz
     // dashboard doesn't have to go looking.
     refundBillplzBillId: order.billplzBillId ?? null,
@@ -129,6 +155,26 @@ export default defineEventHandler(async (event) => {
       status: "active",
     });
   }
+
+  // The refund request staff send. One per order (the id is the order id), in
+  // a collection clients can't read — it holds the buyer's IC and account.
+  batch.set(db.collection("refunds").doc(orderId), {
+    orderId,
+    buyerUid: order.buyerUid,
+    buyerName: order.buyerName ?? null,
+    buyerEmail: order.buyerEmail ?? null,
+    sellerUid: order.sellerUid,
+    status: "requested",
+    orderTotal: breakdown.total,
+    fee: breakdown.fee,
+    amount: breakdown.amount,
+    reasonCode: refund!.reasonCode,
+    reasonNote: refund!.reasonCode === "other" ? refund!.reasonNote.trim().slice(0, 300) : "",
+    recipient,
+    autoPayoutSupported: bankByCode(recipient.bankCode)?.payoutSupported ?? false,
+    billplzBillId: order.billplzBillId ?? null,
+    createdAt: now,
+  });
 
   await batch.commit();
 
@@ -167,9 +213,10 @@ export default defineEventHandler(async (event) => {
     context: {
       refundAmount,
       billplzBillId: order.billplzBillId ?? null,
-      cancelledBy: isBuyer ? "buyer" : "seller",
+      cancelledBy: "buyer",
+      fee: breakdown.fee,
     },
-    hint: "Billplz has no refund API. Refund this bill from the Billplz dashboard, then mark the order refunded.",
+    hint: "The buyer submitted their bank details. Send it from Mintcondition → Refunds.",
   });
 
   return { cancelled: true, refundAmount, refundStatus: "pending" };
