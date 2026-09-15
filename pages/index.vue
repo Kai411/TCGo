@@ -5,39 +5,16 @@
       v-if="!loading"
       class="hidden lg:block w-56 xl:w-60 shrink-0 sticky top-[8.75rem] self-start max-h-[calc(100vh-10.25rem)] overflow-y-auto no-scrollbar"
     >
-      <ListingFilters :filters="filters" :sidebar="true" />
+      <ListingFilters :filters="filters" :sidebar="true" :tcg-counts="tcgCounts" />
     </aside>
 
     <!-- ── Main content ───────────────────────────────────────────────── -->
     <div class="flex-1 min-w-0">
       <PremiumBanner />
 
-      <!-- TCG filter pills -->
-      <div
-        v-if="!loading && tcgCounts.length > 1"
-        class="-mx-4 px-4 mb-3 sm:mb-4 overflow-x-auto"
-      >
-        <div class="flex items-center gap-2 whitespace-nowrap">
-          <button
-            v-for="{ type, count } in tcgCounts"
-            :key="type"
-            @click="activeTcg = type"
-            class="px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors ease-premium shrink-0"
-            :class="
-              activeTcg === type
-                ? 'bg-ink text-white dark:bg-white dark:text-ink'
-                : 'bg-black/[0.04] text-ink-muted dark:bg-white/[0.06] dark:text-zinc-400 hover:text-ink dark:hover:text-white'
-            "
-          >
-            {{ type }}
-            <span class="ml-1 text-xs opacity-70 tabular-nums">{{ count }}</span>
-          </button>
-        </div>
-      </div>
-
       <!-- Mobile filter trigger (hidden on desktop where sidebar is shown) -->
       <div v-if="!loading" class="lg:hidden mb-2">
-        <ListingFilters :filters="filters" />
+        <ListingFilters :filters="filters" :tcg-counts="tcgCounts" />
       </div>
 
       <!-- Loading -->
@@ -157,7 +134,7 @@ const { user } = useAuth();
 const { cards, loading } = useCards();
 const filters = useListingFilters();
 
-const activeTcg = ref<string>("All");
+// The game selector lives in the filter panel now; its state is filters.tcg.
 const tcgOf = (c: Card) => c.tcgType || "Pokemon";
 
 const tcgCounts = computed(() => {
@@ -179,11 +156,7 @@ const tcgCounts = computed(() => {
 const { discoveryOrder } = useShopOrdering();
 
 const availableCards = computed(() => {
-  const base = cards.value
-    .filter(isAvailable)
-    .filter(
-      (c: Card) => activeTcg.value === "All" || tcgOf(c) === activeTcg.value,
-    );
+  const base = cards.value.filter(isAvailable);
   const sorted = filters.apply(base);
   // Only the default feed gets the discovery mix; an explicit sort is exact.
   return filters.sort.value === "newest" ? discoveryOrder(sorted) : sorted;
@@ -237,7 +210,7 @@ const goToPage = (p: number) => {
 
 // Changing filters / TCG / sort jumps back to page one.
 watch(
-  [activeTcg, () => filters.sort.value, () => filters.activeCount.value],
+  [() => filters.sort.value, () => filters.activeCount.value],
   () => {
     if (route.query.page) router.replace({ query: { ...route.query, page: undefined } });
   },
@@ -259,7 +232,7 @@ const saveState = () => {
   try {
     sessionStorage.setItem(
       STATE_KEY,
-      JSON.stringify({ page: page.value, y: window.scrollY, tcg: activeTcg.value }),
+      JSON.stringify({ page: page.value, y: window.scrollY, tcg: filters.tcg.value }),
     );
   } catch {}
 };
@@ -280,7 +253,7 @@ onMounted(() => {
     saved = JSON.parse(sessionStorage.getItem(STATE_KEY) || "null");
   } catch {}
   if (!saved || route.query.page) return;
-  if (saved.tcg) activeTcg.value = saved.tcg;
+  if (saved.tcg) filters.tcg.value = saved.tcg;
   if ((saved.page ?? 1) > 1) {
     // Same path → router scrollBehavior returns false, so this swap doesn't
     // disturb the restored scroll offset.

@@ -35,6 +35,24 @@
         </div>
       </section>
 
+      <!-- Game — moved in from the pills above the grid. Always open, like
+           Sort: it is a single short choice. -->
+      <section
+        v-if="tcgCounts && tcgCounts.length > 1"
+        class="py-3 border-t border-black/[0.06] dark:border-white/[0.08]"
+      >
+        <p class="sb-label">Game</p>
+        <div class="flex flex-wrap gap-1.5 mt-2">
+          <ListingFilterPill
+            v-for="{ type, count } in tcgCounts"
+            :key="type"
+            size="sm"
+            :active="filters.tcg.value === type"
+            @click="filters.tcg.value = type"
+          >{{ type }} <span class="ml-0.5 opacity-60 tabular-nums">{{ count }}</span></ListingFilterPill>
+        </div>
+      </section>
+
       <!-- Everything else collapses. Showing six expanded groups at once made
            the rail a wall of chips; a collapsed group still advertises its
            active count so nothing hides silently. -->
@@ -207,6 +225,14 @@
                 </div>
               </section>
 
+              <!-- Game -->
+              <section v-if="tcgCounts && tcgCounts.length > 1">
+                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">Game</p>
+                <div class="flex flex-wrap gap-1.5">
+                  <ListingFilterPill v-for="{ type, count } in tcgCounts" :key="type" :active="filters.tcg.value === type" @click="filters.tcg.value = type">{{ type }} <span class="ml-0.5 opacity-60 tabular-nums">{{ count }}</span></ListingFilterPill>
+                </div>
+              </section>
+
               <!-- Status (auction only) -->
               <section v-if="showAuctionSort">
                 <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">Status</p>
@@ -292,6 +318,8 @@ const props = defineProps<{
   filters: ListingFilters;
   showAuctionSort?: boolean;
   sidebar?: boolean;
+  /** Games present in the feed, with "All" first. Hidden when only one. */
+  tcgCounts?: { type: string; count: number }[];
 }>();
 
 const open = ref(false);
@@ -377,6 +405,9 @@ const shortCondition = (c: string) => {
 const chips = computed(() => {
   const { filters } = props;
   const out: { id: string; label: string; remove: () => void }[] = [];
+  if (filters.tcg.value !== "All") {
+    out.push({ id: "tcg", label: filters.tcg.value, remove: () => (filters.tcg.value = "All") });
+  }
   const push = (
     id: string,
     label: string,

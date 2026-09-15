@@ -387,7 +387,15 @@ export const parseSearchQuery = (
   // or number has already been lifted, the searcher clearly typed a name plus
   // a filter, and a set match that leaves nothing behind has eaten the name.
   // "charizard sir" is a Charizard, not the Charizard set with no card.
-  if ((rarityMatches.length || number) && hit.setHint && !hit.name.trim()) {
+  // Not when the set came from the number itself: a bare "151" is a number
+  // and a set at once, and resetting it here turned it into a name search
+  // for cards called "151".
+  if (
+    (rarityMatches.length || number) &&
+    hit.setHint &&
+    !hit.name.trim() &&
+    !setOrNumber
+  ) {
     hit = { name: rest.trim(), setHint: null };
     setOrNumber = false;
   }

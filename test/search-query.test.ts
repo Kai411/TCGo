@@ -217,6 +217,14 @@ describe("a number that is also a set name", () => {
     assert.equal(parse("pikachu 151").setHint, "151");
   });
 
+  it("reads a bare 151 as both, not as a card name", () => {
+    const r = parse("151");
+    assert.equal(r.name, "");
+    assert.equal(r.numberMatch, "151");
+    assert.equal(r.setHint, "151");
+    assert.equal(r.setOrNumber, true);
+  });
+
   it("does not turn every digit into a set search", () => {
     // "POP Series 5" ends in 5, and single digits are card numbers far more
     // often than they are sets.

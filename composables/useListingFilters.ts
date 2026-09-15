@@ -21,6 +21,7 @@ export type SortKey =
   | "most-viewed";
 
 export interface FilterableItem {
+  tcgType?: string;
   rarity?: string;
   variant?: string;
   language?: string;
@@ -61,9 +62,12 @@ export const useListingFilters = (options?: {
   const timeBuckets = ref<TimeLeftBucket[]>([]);
   // Sort.
   const sort = ref<SortKey>(options?.defaultSort ?? "newest");
+  // Which game. "All" means no filter; a listing with no tcgType is Pokemon.
+  const tcg = ref<string>("All");
 
   const activeCount = computed(() => {
     let n = 0;
+    if (tcg.value !== "All") n++;
     if (rarities.value.length) n++;
     if (variants.value.length) n++;
     if (languages.value.length) n++;
@@ -77,6 +81,7 @@ export const useListingFilters = (options?: {
   });
 
   const reset = () => {
+    tcg.value = "All";
     rarities.value = [];
     variants.value = [];
     languages.value = [];
@@ -93,6 +98,8 @@ export const useListingFilters = (options?: {
     item.price ?? item.currentPrice ?? item.startingPrice ?? 0;
 
   const matches = (item: FilterableItem): boolean => {
+    if (tcg.value !== "All" && (item.tcgType || "Pokemon") !== tcg.value)
+      return false;
     if (rarities.value.length && !rarities.value.includes(item.rarity ?? ""))
       return false;
     if (variants.value.length && !variants.value.includes(item.variant ?? ""))
@@ -170,6 +177,7 @@ export const useListingFilters = (options?: {
     statuses,
     timeBuckets,
     sort,
+    tcg,
     activeCount,
     reset,
     matches,
