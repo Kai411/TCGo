@@ -178,21 +178,23 @@
           class="shrink-0 px-5 py-4 border-t border-black/[0.06] dark:border-white/[0.08] space-y-3"
         >
           <div class="flex items-center justify-between text-sm">
-            <span class="text-ink-muted dark:text-zinc-400">Subtotal</span>
+            <span class="text-ink-muted dark:text-zinc-400">
+              Subtotal<template v-if="someSelected"> ({{ selectedCount }} selected)</template>
+            </span>
             <span class="tabular-nums font-bold text-ink dark:text-white">
-              RM {{ cartTotal.toFixed(2) }}
+              RM {{ checkoutSubtotal.toFixed(2) }}
             </span>
           </div>
           <p class="text-xs text-ink-soft dark:text-zinc-500">
-            Shipping is calculated at checkout.
+            {{ someSelected ? "Only the selected items go to checkout." : "Tick items to check out only some. Shipping is calculated at checkout." }}
           </p>
-          <NuxtLink
-            to="/cart"
-            @click="close"
+          <button
+            type="button"
+            @click="goToCheckout"
             class="block w-full text-center px-4 py-3 rounded-full text-sm font-semibold bg-pokemon-red text-white shadow-glow hover:brightness-110 transition"
           >
-            Checkout
-          </NuxtLink>
+            {{ someSelected ? `Checkout (${selectedCount})` : "Checkout all" }}
+          </button>
           <button
             @click="close"
             class="block w-full text-center px-4 py-3 rounded-full text-sm font-semibold text-ink dark:text-white bg-black/[0.05] dark:bg-white/[0.08] hover:bg-black/[0.09] dark:hover:bg-white/[0.12] transition-colors"
@@ -209,7 +211,8 @@
 const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{ (e: "update:modelValue", v: boolean): void }>();
 
-const { items, cartTotal, removeFromCart } = useCart();
+const { items, removeFromCart } = useCart();
+const { startFromCart } = useCheckout();
 
 const close = () => emit("update:modelValue", false);
 
@@ -240,6 +243,24 @@ const removeSelected = () => {
   for (const id of [...selected.value]) removeFromCart(id);
   selected.value = new Set();
 };
+// Selection decides what goes to checkout. Nothing ticked means everything.
+const checkoutIds = computed(() =>
+  someSelected.value
+    ? items.value.filter((i) => selected.value.has(i.id)).map((i) => i.id)
+    : items.value.map((i) => i.id),
+);
+const checkoutSubtotal = computed(() =>
+  items.value
+    .filter((i) => checkoutIds.value.includes(i.id))
+    .reduce((sum, i) => sum + i.price, 0),
+);
+const goToCheckout = () => {
+  if (!checkoutIds.value.length) return;
+  startFromCart(checkoutIds.value);
+  close();
+  navigateTo("/checkout");
+};
+
 // Drop selection when the drawer closes so it doesn't linger next time.
 watch(
   () => props.modelValue,

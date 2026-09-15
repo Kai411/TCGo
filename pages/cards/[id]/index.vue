@@ -292,8 +292,8 @@
 
             <!-- Contact Seller + Buy Now + Add to cart -->
             <div v-if="available && !isOwnListing" class="mt-6 space-y-3">
-              <!-- Buy Now · adds to cart and jumps to checkout, so shipping is
-                   quoted live in one place instead of two. -->
+              <!-- Buy Now · straight to checkout with this card only; it is
+                   not added to the cart. -->
               <button
                 v-if="!user"
                 @click="goToLogin"
@@ -386,13 +386,30 @@ const markIntent = () => {
   markInterested(card.value.id).catch(() => {});
 };
 
-// Buy Now is a shortcut, not a second checkout: add to cart, then go there.
-// The cart is the only place that holds the delivery address, the live courier
-// quote and the guard that blocks checkout when shipping can't be priced.
+// The listing as a line item, for the cart and for Buy Now alike.
+const asLineItem = () => ({
+  id: card.value!.id,
+  cardName: card.value!.cardName,
+  cardSet: card.value!.cardSet || "",
+  condition: card.value!.condition || "",
+  price: card.value!.price,
+  imageUrl: card.value!.imageUrls?.[0] || card.value!.imageUrl || "",
+  seller: card.value!.seller,
+  sellerUid: card.value!.sellerUid,
+  shippingWM: card.value!.shippingWM ?? 0,
+  shippingEM: card.value!.shippingEM ?? 0,
+});
+
+// Buy Now goes straight to checkout with just this card. It does NOT add it to
+// the cart: a buyer who taps Buy Now and backs out shouldn't find it there.
+// Checkout still owns the address, the live courier quote and the guard that
+// blocks ordering when shipping can't be priced.
+const { startBuyNow } = useCheckout();
 const handleBuyNow = () => {
   if (!card.value) return;
-  if (!isInCart(card.value.id)) handleAddToCart();
-  router.push("/cart");
+  markIntent();
+  startBuyNow(asLineItem());
+  router.push("/checkout");
 };
 
 const { flyToCart } = useFlyToCart();
@@ -405,18 +422,7 @@ const handleAddToCart = (e?: MouseEvent) => {
     (e?.currentTarget as HTMLElement | null) ?? null,
     card.value.imageUrls?.[0] || card.value.imageUrl || "",
   );
-  addToCart({
-    id: card.value.id,
-    cardName: card.value.cardName,
-    cardSet: card.value.cardSet || '',
-    condition: card.value.condition || '',
-    price: card.value.price,
-    imageUrl: card.value.imageUrls?.[0] || card.value.imageUrl || '',
-    seller: card.value.seller,
-    sellerUid: card.value.sellerUid,
-    shippingWM: card.value.shippingWM ?? 0,
-    shippingEM: card.value.shippingEM ?? 0,
-  });
+  addToCart(asLineItem());
 };
 
 
