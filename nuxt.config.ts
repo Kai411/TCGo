@@ -198,6 +198,10 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     // Server-only secrets (no NUXT_PUBLIC_ prefix)
+    // Supabase with the service role, for server routes that read the catalogue
+    // (NUXT_SUPABASE_URL / NUXT_SUPABASE_SERVICE_KEY).
+    supabaseUrl: "",
+    supabaseServiceKey: "",
     stripeSecretKey: "",
     stripeWebhookSecret: "",
     stripePricePremium: "",

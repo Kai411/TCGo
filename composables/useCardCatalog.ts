@@ -489,9 +489,32 @@ export const useCardCatalog = () => {
     };
   };
 
+  // Set and rarity lists come from our server, which calls Supabase with the
+  // service role and caches the result — see server/api/catalog/facets.get.ts.
+  // Called directly with the anon key these time out, and search parsing then
+  // silently stops recognising sets like "151". The direct RPC stays only as a
+  // fallback if the server route itself is unreachable.
+  const facetsFromServer = async (
+    kind: "sets" | "rarities",
+    language: "EN" | "JP" | "ALL",
+  ): Promise<Array<{ name: string; count: number }> | null> => {
+    try {
+      const data = await $fetch<Array<{ name: string; count: number }>>(
+        "/api/catalog/facets",
+        { query: { kind, lang: language } },
+      );
+      return Array.isArray(data) && data.length ? data : null;
+    } catch (e: any) {
+      console.warn(`[useCardCatalog] facets ${kind} via server failed:`, e?.message || e);
+      return null;
+    }
+  };
+
   const listSets = async (
     language: "EN" | "JP" | "ALL" = "EN",
   ): Promise<Array<{ name: string; count: number }>> => {
+    const viaServer = await facetsFromServer("sets", language);
+    if (viaServer) return viaServer;
     if (!supabase) return [];
     const { data, error } = await supabase.rpc("list_sets", { lang: language });
     if (error) {
@@ -507,6 +530,8 @@ export const useCardCatalog = () => {
   const listRarities = async (
     language: "EN" | "JP" | "ALL" = "EN",
   ): Promise<Array<{ name: string; count: number }>> => {
+    const viaServer = await facetsFromServer("rarities", language);
+    if (viaServer) return viaServer;
     if (!supabase) return [];
     const { data, error } = await supabase.rpc("list_rarities", { lang: language });
     if (error) {

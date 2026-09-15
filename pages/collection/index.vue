@@ -566,6 +566,9 @@ const loadDropdowns = (): Promise<void> => {
     rarities.value = r;
     allSets.value = sAll;
     allRarities.value = rAll;
+    // A failed load must not be remembered for the session: with no set list
+    // "151" and "ssp" stop being recognised as sets. Let the next search retry.
+    if (!sAll.length || !rAll.length) dropdownsPromise = null;
   })();
   return dropdownsPromise;
 };
