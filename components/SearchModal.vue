@@ -20,23 +20,6 @@
         <div
           class="flex items-center gap-3 px-3 sm:px-6 h-16 border-b border-black/[0.06] dark:border-white/[0.08] shrink-0"
         >
-          <button
-            @click="close"
-            class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white"
-            aria-label="Close search"
-          >
-            <svg
-              class="w-5 h-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </button>
           <div
             class="flex-1 flex items-center gap-2 px-4 h-11 rounded-full bg-black/[0.04] dark:bg-white/[0.06]"
           >
@@ -72,6 +55,23 @@
               </svg>
             </button>
           </div>
+          <button
+            @click="close"
+            class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white"
+            aria-label="Close search"
+          >
+            <svg
+              class="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         <!-- Body -->

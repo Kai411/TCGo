@@ -128,25 +128,6 @@
           </div>
         </div>
 
-        <!-- Search button — mobile only; desktop has the inline field. -->
-        <button
-          @click="searchOpen = true"
-          aria-label="Search"
-          class="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
-        >
-          <svg
-            class="w-5 h-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-        </button>
 
         <!-- The same bell as the seller dashboard: buyer and seller events
              in one feed, so neither role has to go looking for the other. -->
@@ -285,6 +266,33 @@
           Sign In
         </button>
       </div>
+    </div>
+
+    <!-- Mobile search row. A field rather than an icon: it reads as "search
+         here" at a glance. Tapping it opens the same search popup, which owns
+         results and history. Inside the nav so --app-nav-h grows with it. -->
+    <div class="lg:hidden container mx-auto px-4 pb-3">
+      <button
+        type="button"
+        @click="openSearch"
+        aria-label="Search cards, auctions, sets, sellers"
+        class="w-full h-10 flex items-center gap-2 px-4 rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-left text-sm text-ink-soft dark:text-zinc-500 transition-colors active:bg-black/[0.08] dark:active:bg-white/[0.12]"
+      >
+        <svg
+          class="w-4 h-4 shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <span class="truncate">Search cards, auctions, sets, sellers...</span>
+      </button>
     </div>
 
     <!-- Second row (desktop): section nav — Shop / Auctions / Collection /
