@@ -146,12 +146,13 @@ export const sstOn = (fee: number): number =>
 // percentage, so the real cost is a bigger share of a small order and a tiny
 // share of a large one. The surplus on large orders is the platform's, and
 // what it funds is a TCGo decision.
-export const FEE_SPLIT_PROCESSING = 0.5;
+// 2.4% processing and 1.6% platform on the standard 4%.
+export const FEE_SPLIT_PROCESSING = 0.6;
 
 /**
- * Split a fee into its two published halves.
+ * Split a fee into its two published parts.
  *
- * The halves are made to sum to the fee exactly rather than rounded
+ * The parts are made to sum to the fee exactly rather than rounded
  * independently — otherwise a RM 0.05 fee shows as two lines of RM 0.03 and
  * a seller can watch the statement fail to add up.
  */
@@ -161,7 +162,7 @@ export const splitFee = (fee: number) => {
   return { processing, platform: round2(fee - processing) };
 };
 
-/** The two halves as percentages, for the pricing page. */
+/** The two parts as percentages, for the pricing page. */
 export const feeSplitRates = (planId: PlanId = "free") => {
   const rate = effectiveRate(planId) * 100;
   const processing = Math.round(rate * FEE_SPLIT_PROCESSING * 100) / 100;

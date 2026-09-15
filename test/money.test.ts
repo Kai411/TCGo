@@ -22,6 +22,7 @@ import {
   POS_PROVIDER_RATE,
   POS_ALL_IN_RATE,
   WITHDRAWAL_FEE,
+  feeSplitRates,
 } from "~/shared/pricing";
 
 import {
@@ -119,6 +120,12 @@ describe("shipping reimbursement", () => {
 });
 
 describe("the fee split shown on a statement", () => {
+  it("reads 2.4% processing and 1.6% platform on the standard rate", () => {
+    assert.deepEqual(feeSplitRates(), { processing: 2.4, platform: 1.6 });
+    // RM 100 sale, RM 4 fee.
+    assert.deepEqual(splitFee(4), { processing: 2.4, platform: 1.6 });
+  });
+
   it("always sums to the fee exactly", () => {
     for (const fee of [0.05, 0.03, 4, 6.13, 0.01, 123.45]) {
       const { processing, platform } = splitFee(fee);

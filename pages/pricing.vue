@@ -567,7 +567,7 @@ useHead({
     {
       name: "description",
       content:
-        "TCGo charges Malaysian card sellers a flat 4% per sale on every plan — half payment processing, half platform commission. No listing fees, no minimum order, and buyers pay no platform fee. The in-store POS is free.",
+        "TCGo charges Malaysian card sellers a flat 4% per sale on every plan — 2.4% payment processing and 1.6% platform commission. No listing fees, no minimum order, and buyers pay no platform fee. The in-store POS is free.",
     },
   ],
 });
