@@ -52,6 +52,15 @@ export default defineEventHandler(async (event) => {
   if (!isBuyer && !isSeller) {
     throw createError({ statusCode: 403, message: "Not your order" });
   }
+  // Cancelling a paid order is the buyer's to do: the refund needs their own
+  // bank details, which the seller doesn't have. A seller who can't fulfil
+  // should contact support.
+  if (!isBuyer) {
+    throw createError({
+      statusCode: 403,
+      message: "Only the buyer can cancel this order. Contact support if you can't fulfil it.",
+    });
+  }
 
   if (order.status === "cancelled") {
     return { cancelled: true, alreadyCancelled: true };

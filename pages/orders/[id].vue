@@ -259,29 +259,6 @@
                 >
                   {{ cancelling ? "Cancelling…" : "Cancel shipment" }}
                 </button>
-                <button
-                  v-if="canCancelPaid"
-                  @click="cancelPaidOrder"
-                  :disabled="cancellingOrder"
-                  class="px-4 py-2 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-500/10 transition-colors disabled:opacity-60"
-                >
-                  {{ cancellingOrder ? "Cancelling…" : "Cancel & refund buyer" }}
-                </button>
-                <!-- Manual fallback only. Order status normally follows the
-                     courier's own scans (/api/shipping/track), so this appears
-                     solely when there is no consignment to track — a booking
-                     that never succeeded. Without it such an order could never
-                     leave "To ship". -->
-                <button
-                  v-if="
-                    (order.status === 'confirmed' || order.status === 'paid') &&
-                    !order.trackingNumber
-                  "
-                  @click="shipDialogOpen = true"
-                  class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-                >
-                  Mark shipped manually
-                </button>
               </template>
             </div>
 
@@ -477,51 +454,6 @@
       </div>
     </template>
 
-    <!-- Ship dialog -->
-    <div
-      v-if="shipDialogOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
-      @click.self="shipDialogOpen = false"
-    >
-      <div class="surface rounded-2xl w-full max-w-sm p-5 border border-black/[0.06] dark:border-white/[0.08]">
-        <h3 class="text-base font-bold text-ink dark:text-white mb-3">Mark as shipped</h3>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Tracking number (optional)</label>
-            <input
-              v-model="shipTrackingNumber"
-              type="text"
-              placeholder="e.g. EM123456789MY"
-              class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Carrier (optional)</label>
-            <input
-              v-model="shipCarrier"
-              type="text"
-              placeholder="e.g. Pos Laju, J&T"
-              class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
-            />
-          </div>
-        </div>
-        <div class="flex gap-2 mt-4">
-          <button
-            @click="shipDialogOpen = false"
-            class="flex-1 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200"
-          >
-            Cancel
-          </button>
-          <button
-            @click="handleShip"
-            class="flex-1 py-2 rounded-lg text-sm font-semibold bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
-          >
-            Mark shipped
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Delivery address dialog (buyer, before online payment) -->
     <div
       v-if="addressOpen"
@@ -608,7 +540,6 @@ const { firestore } = useFirebase();
 const { authedFetch } = useAuthedFetch();
 const {
   getCompiledOrder,
-  markShipped,
   markDelivered,
   cancelOrder,
 } = useCompiledOrders();
@@ -687,9 +618,7 @@ const sellerActions = computed(() => {
   if (!o || role.value !== "seller") return false;
   return (
     (o.status === "paid" && !!o.deliveryAddress && !o.shipmentOrderNo) ||
-    !!o.shipmentOrderNo ||
-    o.status === "confirmed" ||
-    o.status === "paid"
+    !!o.shipmentOrderNo
   );
 });
 
@@ -722,21 +651,6 @@ const formatDate = (ts: number) =>
     hour: "numeric",
     minute: "2-digit",
   });
-
-// Ship dialog state
-const shipDialogOpen = ref(false);
-const shipTrackingNumber = ref("");
-const shipCarrier = ref("");
-
-const handleShip = async () => {
-  if (!order.value) return;
-  await markShipped(
-    order.value.id,
-    shipTrackingNumber.value.trim() || undefined,
-    shipCarrier.value.trim() || undefined,
-  );
-  shipDialogOpen.value = false;
-};
 
 const handleMarkDelivered = async () => {
   if (!order.value) return;
@@ -776,14 +690,16 @@ const addr = ref({
 const { profile: myProfile } = useMyProfile();
 
 // ── Cancel a paid order ──
-// Either side can, while the money is in and the parcel hasn't gone. The
+// Buyer only. The refund goes to the buyer's bank, and only the buyer can
+// supply those details — the seller has no way to. Allowed while the money is
+// in and the parcel hasn't gone. The
 // server stops the courier first and refuses the whole thing if the courier
 // won't release it — a cancelled order whose parcel still ships is the one
 // outcome with no clean recovery.
 const cancellingOrder = ref(false);
 const canCancelPaid = computed(() => {
   const o = order.value as any;
-  if (!o || !role.value) return false;
+  if (!o || role.value !== "buyer") return false;
   return o.status === "paid" || o.status === "confirmed";
 });
 

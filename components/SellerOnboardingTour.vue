@@ -121,7 +121,7 @@ const allSteps: Step[] = [
     id: "orders",
     target: "nav-orders",
     title: "Orders",
-    body: "Every online order lands here. Confirm, pack, print the waybill, and mark shipped. Orders to the same buyer are merged so they share one parcel.",
+    body: "Every online order lands here. Pack it, book the courier and print the waybill — status updates on its own as the courier scans it. Orders to the same buyer are merged so they share one parcel.",
   },
   {
     id: "items",
