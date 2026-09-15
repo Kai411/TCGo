@@ -137,54 +137,44 @@ export const sstOn = (fee: number): number =>
 
 // ── How the fee reads on a statement ──────────────────────────────────
 //
-// One number is opaque. Split in two, a seller can see what they are paying
-// for: the cost of moving the money, and the platform itself.
+// One number is opaque; three lines show what a seller is paying for.
+// Shares are of the fee, so on the standard 4% they read 1.8% / 1.2% / 1%.
 //
 // PRESENTATION ONLY. The total charged is exactly the rate above; this
 // decides how it is *described*. It is deliberately not what TCGo pays its
 // payment provider — Billplz charges RM 1.25 flat per collection, not a
 // percentage, so the real cost is a bigger share of a small order and a tiny
-// share of a large one. The surplus on large orders is the platform's, and
-// what it funds is a TCGo decision.
-// 2.4% processing and 1.6% platform on the standard 4%.
-export const FEE_SPLIT_PROCESSING = 0.6;
-
-/**
- * Split a fee into its two published parts.
- *
- * The parts are made to sum to the fee exactly rather than rounded
- * independently — otherwise a RM 0.05 fee shows as two lines of RM 0.03 and
- * a seller can watch the statement fail to add up.
- */
-export const splitFee = (fee: number) => {
-  const round2 = (n: number) => Math.round(n * 100) / 100;
-  const processing = round2(fee * FEE_SPLIT_PROCESSING);
-  return { processing, platform: round2(fee - processing) };
-};
-
-// ── The full breakdown shown to sellers ───────────────────────────────
+// share of a large one.
 //
-// Five lines rather than two. "Payment processing −RM 71.98" read as one big
-// bite; the same money split across what it actually pays for reads as a
-// service list. Shares are of the fee, so the lines always total the rate
-// charged (2.4% processing = first two, 1.6% platform = last three).
-//
-// Deliberately no "bank transfer out" line: withdrawing is charged separately
+// No "bank transfer out" line: withdrawing is charged separately
 // (WITHDRAWAL_FEE), and listing it here too would describe that cost twice.
 export const FEE_COMPONENTS = [
-  { id: "collection", label: "Payment collection", note: "FPX payment from the buyer", share: 0.3 },
-  { id: "holding", label: "Secure payment holding", note: "Held safely until the buyer receives the card", share: 0.3 },
-  { id: "protection", label: "Buyer & seller protection", note: "Disputes, cancellations and refunds", share: 0.15 },
-  { id: "listing", label: "Listings & market data", note: "Listing, search and price data", share: 0.125 },
-  { id: "support", label: "Courier booking & support", note: "Shipping labels and help when you need it", share: 0.125 },
+  {
+    id: "processing",
+    label: "Payment processing",
+    note: "Collecting the buyer's payment securely",
+    share: 0.45,
+  },
+  {
+    id: "commission",
+    label: "Platform commission",
+    note: "Listings, market data, courier booking and support",
+    share: 0.3,
+  },
+  {
+    id: "protection",
+    label: "Order protection",
+    note: "Payment held until the buyer receives the card, plus dispute and refund handling",
+    share: 0.25,
+  },
 ] as const;
 
 /**
  * Split a fee across FEE_COMPONENTS, to the sen, summing to the fee exactly.
  *
  * Largest remainder: every line is floored to the sen, then the leftover sen
- * go to the lines that lost most in rounding. Rounding each line on its own
- * lets five lines drift a sen or two away from the total a seller can see.
+ * go to the lines that lost most in rounding, so the lines always add up to
+ * the total a seller can see.
  */
 export const breakdownFee = (fee: number) => {
   const cents = Math.round(Math.max(0, fee) * 100);
@@ -209,16 +199,6 @@ export const feeComponentRates = (planId: PlanId = "free") => {
     ...c,
     rate: Math.round(rate * c.share * 100) / 100,
   }));
-};
-
-/** The two parts as percentages, for the pricing page. */
-export const feeSplitRates = (planId: PlanId = "free") => {
-  const rate = effectiveRate(planId) * 100;
-  const processing = Math.round(rate * FEE_SPLIT_PROCESSING * 100) / 100;
-  return {
-    processing,
-    platform: Math.round((rate - processing) * 100) / 100,
-  };
 };
 
 /**

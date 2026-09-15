@@ -16,13 +16,11 @@ import {
   effectiveRate,
   planById,
   sstOn,
-  splitFee,
   posPlatformFee,
   POS_PLATFORM_RATE,
   POS_PROVIDER_RATE,
   POS_ALL_IN_RATE,
   WITHDRAWAL_FEE,
-  feeSplitRates,
   breakdownFee,
   feeComponentRates,
 } from "~/shared/pricing";
@@ -121,46 +119,26 @@ describe("shipping reimbursement", () => {
   });
 });
 
-describe("the five-line fee breakdown", () => {
+describe("the fee breakdown on a statement", () => {
+  it("reads 1.8% processing, 1.2% commission and 1% protection", () => {
+    assert.deepEqual(
+      feeComponentRates().map((c) => [c.label, c.rate]),
+      [
+        ["Payment processing", 1.8],
+        ["Platform commission", 1.2],
+        ["Order protection", 1],
+      ],
+    );
+  });
+
+  it("splits a RM 4 fee into 1.80 / 1.20 / 1.00", () => {
+    assert.deepEqual(breakdownFee(4).map((p) => p.amount), [1.8, 1.2, 1]);
+  });
+
   it("always totals the fee exactly, to the sen", () => {
-    for (const fee of [0.01, 0.05, 1, 4, 6.13, 119.96, 123.45, 9999.99]) {
-      const parts = breakdownFee(fee);
-      const sum = Math.round(parts.reduce((t, p) => t + p.amount * 100, 0));
+    for (const fee of [0.01, 0.03, 0.05, 1, 4, 6.13, 119.96, 123.45, 9999.99]) {
+      const sum = Math.round(breakdownFee(fee).reduce((t, p) => t + p.amount * 100, 0));
       assert.equal(sum, Math.round(fee * 100), `lines for ${fee} must add up`);
-    }
-  });
-
-  it("keeps the 2.4% / 1.6% split underneath", () => {
-    const rates = feeComponentRates().map((c) => c.rate);
-    assert.deepEqual(rates, [1.2, 1.2, 0.6, 0.5, 0.5]);
-    const processing = rates[0]! + rates[1]!;
-    const platform = rates[2]! + rates[3]! + rates[4]!;
-    assert.equal(Math.round(processing * 100) / 100, 2.4);
-    assert.equal(Math.round(platform * 100) / 100, 1.6);
-  });
-
-  it("makes no single line larger than 30% of the fee", () => {
-    // The point of the breakdown: RM 119.96 no longer shows a RM 71.98 line.
-    const largest = Math.max(...breakdownFee(119.96).map((p) => p.amount));
-    assert.ok(largest <= 36, `largest line ${largest}`);
-  });
-});
-
-describe("the fee split shown on a statement", () => {
-  it("reads 2.4% processing and 1.6% platform on the standard rate", () => {
-    assert.deepEqual(feeSplitRates(), { processing: 2.4, platform: 1.6 });
-    // RM 100 sale, RM 4 fee.
-    assert.deepEqual(splitFee(4), { processing: 2.4, platform: 1.6 });
-  });
-
-  it("always sums to the fee exactly", () => {
-    for (const fee of [0.05, 0.03, 4, 6.13, 0.01, 123.45]) {
-      const { processing, platform } = splitFee(fee);
-      assert.equal(
-        Math.round((processing + platform) * 100) / 100,
-        fee,
-        `halves of ${fee} must add back up`,
-      );
     }
   });
 });

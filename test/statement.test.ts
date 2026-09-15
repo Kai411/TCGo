@@ -71,7 +71,7 @@ describe("settlement statement", () => {
 
   it("shows the fee's breakdown lines summing to the fee", () => {
     const subs = lines.filter((l) => l.kind === "sub");
-    assert.equal(subs.length, 5);
+    assert.equal(subs.length, 3);
     const sum = Math.round(subs.reduce((t, l) => t + l.amount, 0) * 100) / 100;
     assert.equal(sum, -feeCharged(platformBooked));
   });
