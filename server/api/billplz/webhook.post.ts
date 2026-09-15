@@ -17,11 +17,10 @@ import {
   sstForOrder,
 } from "~/shared/payouts";
 import { effectiveRate } from "~/shared/pricing";
-import { sendInvoiceForOrder } from "~/server/utils/send-invoice";
 import { joinPaidOrderToParcel } from "~/server/utils/join-parcel";
 import { noteError } from "~/server/utils/oplog";
 import { notify } from "~/server/utils/notify";
-import { sendSellerOrderEmail } from "~/server/utils/order-emails";
+import { sendBuyerOrderEmail, sendSellerOrderEmail } from "~/server/utils/order-emails";
 import { orderCreated, orderPlaced } from "~/shared/notifications";
 
 export default defineEventHandler(async (event) => {
@@ -207,24 +206,24 @@ export default defineEventHandler(async (event) => {
   // refreshed again by book-shipment when the seller buys the label, which is
   // the point the postage stops being theirs.
 
-  // Email the invoice. Non-fatal for the same reason as booking: Billplz
-  // retries non-2xx callbacks, and a mail provider hiccup must not re-run
-  // settlement. The buyer can resend it from the order page.
-  let invoiceEmailed = false;
+  // The buyer's order confirmation. Not the invoice: that is issued only once
+  // the order is completed, since until delivery it can still be cancelled
+  // and refunded. Non-fatal — Billplz retries non-2xx callbacks.
+  let buyerEmailed = false;
   try {
-    const mail = await sendInvoiceForOrder(db, orderRef.id);
-    invoiceEmailed = mail.sent;
-    if (!mail.sent) console.warn("[billplz webhook] invoice not emailed:", mail.reason);
+    const mail = await sendBuyerOrderEmail(db, { ...order, id: orderRef.id });
+    buyerEmailed = mail.sent;
+    if (!mail.sent) console.warn("[billplz webhook] buyer confirmation not emailed:", mail.reason);
   } catch (e: any) {
-    console.error("[billplz webhook] invoice email failed:", e?.message || e);
+    console.error("[billplz webhook] buyer confirmation email failed:", e?.message || e);
     noteError({
       area: "email",
       severity: "warning",
-      code: "email.invoice_failed",
-      message: `Invoice email failed to send: ${e?.message || e}`,
+      code: "email.buyer_order_failed",
+      message: `Order confirmation email to the buyer failed: ${e?.message || e}`,
       orderId: orderRef.id,
       error: e,
-      hint: "The payment itself went through. Resend the invoice from the order once mail is working.",
+      hint: "The payment went through and the buyer still has the notification.",
     });
   }
 
@@ -277,5 +276,5 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  return { ok: true, invoiceEmailed, sellerEmailed };
+  return { ok: true, buyerEmailed, sellerEmailed };
 });

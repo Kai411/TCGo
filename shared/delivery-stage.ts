@@ -164,3 +164,13 @@ export const timelineIndex = (o: DeliveryView | null | undefined): number => {
       return 0;
   }
 };
+
+/**
+ * A completed order: delivered to the buyer.
+ *
+ * The invoice is issued only at this point. Before it the sale can still be
+ * cancelled and refunded, and an invoice for a sale that didn't happen is a
+ * document that has to be withdrawn.
+ */
+export const isOrderCompleted = (o: { status?: string | null } | null | undefined): boolean =>
+  o?.status === "delivered";

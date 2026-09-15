@@ -7,6 +7,7 @@
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
 import { delyvaTrack, delyvaStage } from "~/server/utils/delyva";
+import { sendInvoiceForOrder } from "~/server/utils/send-invoice";
 
 export default defineEventHandler(async (event) => {
   const caller = await requireUser(event);
@@ -61,6 +62,15 @@ export default defineEventHandler(async (event) => {
         patch.deliveredAt = order.deliveredAt ?? now;
       }
       await snap.ref.update(patch);
+      // Completed: this is the moment the invoice is issued. Non-fatal — the
+      // buyer can still email it from the order page.
+      if (stage === "delivered") {
+        try {
+          await sendInvoiceForOrder(db, orderId, { onlyIfNotSent: true });
+        } catch (e: any) {
+          console.warn("[shipping/track] invoice on delivery failed:", e?.message || e);
+        }
+      }
     } else if (tracking.statusText && tracking.statusText !== order.shipmentStatus) {
       // Keep the human-readable courier status fresh even mid-stage.
       await snap.ref.update({

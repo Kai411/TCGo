@@ -7,10 +7,12 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { renderInvoiceEmail } from "~/server/utils/invoice-email";
 import { sendMail, mailConfigured } from "~/server/utils/mail";
+import { isOrderCompleted } from "~/shared/delivery-stage";
 
 export const sendInvoiceForOrder = async (
   db: Firestore,
   orderId: string,
+  opts: { onlyIfNotSent?: boolean } = {},
 ): Promise<{ sent: boolean; sandbox?: boolean; reason?: string }> => {
   if (!mailConfigured()) return { sent: false, reason: "Mail not configured" };
 
@@ -19,9 +21,14 @@ export const sendInvoiceForOrder = async (
   if (!snap.exists) return { sent: false, reason: "Order not found" };
   const order = { ...(snap.data() as any), id: snap.id };
 
-  // Only invoice something that's actually been paid for.
-  if (!["paid", "shipped", "delivered"].includes(order.status)) {
-    return { sent: false, reason: `Order is ${order.status}, not paid` };
+  // Only a completed (delivered) order is invoiced. Until then it can still be
+  // cancelled and refunded.
+  if (!isOrderCompleted(order)) {
+    return { sent: false, reason: "The invoice is issued once the order is completed." };
+  }
+  // Automatic sends (on delivery) happen once; a manual resend can repeat.
+  if (opts.onlyIfNotSent && order.invoiceEmailedAt) {
+    return { sent: false, reason: "Invoice already sent" };
   }
 
   // The order's own buyerEmail is the address the buyer signed up with; fall

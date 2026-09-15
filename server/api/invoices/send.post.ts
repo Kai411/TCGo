@@ -9,7 +9,7 @@ import { sendInvoiceForOrder } from "~/server/utils/send-invoice";
 
 export default defineEventHandler(async (event) => {
   const caller = await requireUser(event);
-  const { orderId } = (await readBody(event)) as { orderId?: string };
+  const { orderId, auto } = (await readBody(event)) as { orderId?: string; auto?: boolean };
   if (!orderId) throw createError({ statusCode: 400, message: "orderId required" });
 
   const db = getAdminFirestore();
@@ -20,7 +20,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: "Not your order" });
   }
 
-  const result = await sendInvoiceForOrder(db, orderId);
-  if (!result.sent) throw createError({ statusCode: 400, message: result.reason });
+  // `auto` is the order page telling us the buyer just marked it received:
+  // send once, and don't treat "already sent" or "not completed" as an error.
+  const result = await sendInvoiceForOrder(db, orderId, { onlyIfNotSent: !!auto });
+  if (!result.sent && !auto) throw createError({ statusCode: 400, message: result.reason });
   return result;
 });

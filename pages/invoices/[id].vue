@@ -2,6 +2,13 @@
   <div class="invoice-page">
     <div v-if="loading" class="py-20 text-center text-sm text-gray-500">Loading…</div>
     <div v-else-if="!order" class="py-20 text-center text-sm text-gray-500">Order not found.</div>
+    <!-- Only a completed order is invoiced; until then it can still be cancelled. -->
+    <div v-else-if="!isOrderCompleted(order)" class="py-20 text-center text-sm text-gray-500">
+      The invoice is issued once this order is completed.
+      <NuxtLink :to="`/orders/${order.id}`" class="block mt-3 font-semibold text-ink hover:underline">
+        ← Back to order
+      </NuxtLink>
+    </div>
 
     <template v-else>
       <!-- Print controls — hidden on paper -->
@@ -105,6 +112,7 @@
 </template>
 
 <script setup lang="ts">
+import { isOrderCompleted } from "~/shared/delivery-stage";
 import { type CompiledOrder } from "~/composables/useCompiledOrders";
 import { stateName } from "~/shared/my-states";
 
@@ -141,7 +149,10 @@ const fmt = (ms?: number) =>
 
 const placedOn = computed(() => fmt(order.value?.createdAt));
 const paidOn = computed(() => fmt(order.value?.paidAt));
-const issuedOn = computed(() => fmt(order.value?.paidAt ?? order.value?.createdAt));
+// Issued on completion, so dated by delivery.
+const issuedOn = computed(() =>
+  fmt((order.value as any)?.deliveredAt ?? order.value?.paidAt ?? order.value?.createdAt),
+);
 
 const print = () => window.print();
 </script>

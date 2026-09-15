@@ -14,6 +14,7 @@ import {
   deliveryStageLabel,
   isOnItsWay,
   withoutMergedChildren,
+  isOrderCompleted,
 } from "~/shared/delivery-stage";
 
 describe("merged children are not parcels", () => {
@@ -131,5 +132,15 @@ describe("the buyer's timeline", () => {
     ].map(timelineIndex);
     assert.deepEqual(seen, [...seen].sort((a, b) => a - b), "timeline went backwards");
     assert.ok(Math.max(...seen) < BUYER_TIMELINE.length, "index off the end");
+  });
+});
+
+describe("when an order is complete, for invoicing", () => {
+  it("is complete only once delivered", () => {
+    assert.equal(isOrderCompleted({ status: "delivered" }), true);
+    for (const status of ["pending", "confirmed", "paid", "shipped", "cancelled"]) {
+      assert.equal(isOrderCompleted({ status }), false, status);
+    }
+    assert.equal(isOrderCompleted(null), false);
   });
 });

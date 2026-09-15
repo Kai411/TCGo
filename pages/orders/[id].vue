@@ -174,7 +174,7 @@
                     Tax invoice for order #{{ order.id.slice(0, 8) }}.
                   </template>
                   <template v-else>
-                    Available once payment has cleared.
+                    Issued once the order is completed.
                   </template>
                 </p>
                 <p v-if="invoiceStatus" class="text-xs mt-1" :class="invoiceStatusTone">
@@ -530,6 +530,7 @@ import {
   payoutEligibleAt,
   PAYOUT_HOLD_DAYS,
 } from "~/shared/payouts";
+import { isOrderCompleted } from "~/shared/delivery-stage";
 
 useHead({ title: "Order | TCGo Marketplace" });
 
@@ -656,6 +657,12 @@ const handleMarkDelivered = async () => {
   if (!order.value) return;
   if (!confirm("Confirm you received this order?")) return;
   await markDelivered(order.value.id);
+  // Completed now — issue the invoice. Best-effort; it can be emailed from the
+  // card below if this doesn't go through.
+  authedFetch("/api/invoices/send", {
+    method: "POST",
+    body: { orderId: order.value.id, auto: true },
+  }).catch(() => {});
 };
 
 const handleCancel = async () => {
@@ -865,10 +872,9 @@ const bookShipment = async () => {
   }
 };
 
-// Invoice is only meaningful once money has actually changed hands.
-const invoiceAvailable = computed(
-  () => !!order.value && ["paid", "shipped", "delivered"].includes(order.value.status),
-);
+// Issued only for a completed (delivered) order: before that it can still be
+// cancelled and refunded.
+const invoiceAvailable = computed(() => isOrderCompleted(order.value));
 // Emailing the invoice. Sandbox sends are captured by Mailtrap and never
 // reach the buyer, so that's said plainly rather than reported as "sent".
 const emailingInvoice = ref(false);

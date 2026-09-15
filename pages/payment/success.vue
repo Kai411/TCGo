@@ -80,12 +80,10 @@
             FPX · ref {{ order.billplzBillId }}
           </p>
           <a
-            :href="`/invoices/${order.id}`"
-            target="_blank"
-            rel="noopener"
+            :href="`/orders/${order.id}`"
             class="mt-3 inline-flex text-xs font-bold text-pokemon-red hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokemon-red/40 rounded"
           >
-            View invoice ↗
+            View order →
           </a>
         </section>
       </div>
@@ -308,11 +306,13 @@ const steps = computed<Step[]>(() => {
 const receiptLine = computed(() => {
   const o = order.value;
   if (!o) return "";
-  if (o.invoiceEmailedAt) {
-    return o.invoiceEmailSandbox
-      ? "Invoice captured in the email sandbox — not delivered to a real inbox."
-      : `Invoice emailed to ${o.invoiceEmailedTo || o.buyerEmail || "you"}.`;
+  const a = o as any;
+  const invoiceLater = "Your invoice will be issued once the order is delivered.";
+  if (a.buyerOrderEmailedAt) {
+    return a.buyerOrderEmailSandbox
+      ? `Confirmation captured in the email sandbox — not delivered. ${invoiceLater}`
+      : `Confirmation emailed to ${a.buyerOrderEmailedTo || o.buyerEmail || "you"}. ${invoiceLater}`;
   }
-  return "Your invoice is ready to view or print.";
+  return invoiceLater;
 });
 </script>

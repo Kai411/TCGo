@@ -1,9 +1,9 @@
-// "You made a sale" — the seller's email when an order is paid.
+// Order emails sent when payment clears.
 //
-// The buyer already gets one at the same moment: the invoice, sent from the
-// payment webhook. The seller got nothing, so a sale made while they were away
-// from the app waited until they next opened the dashboard — and the 3-hour
-// cancellation window and packing time both start at payment, not at login.
+// Seller: "You made a sale". Buyer: "Order confirmed" (below). Neither is the
+// invoice — that is issued once the order is completed, from send-invoice.ts.
+// Without the seller's email a sale made while they were away waited until
+// they next opened the dashboard, though packing time starts at payment.
 //
 // Transactional, one seller, one sale: no unsubscribe, no tracking.
 
@@ -144,6 +144,110 @@ export const sendSellerOrderEmail = async (
     await db.collection("compiledOrders").doc(order.id).update({
       sellerOrderEmailedAt: Date.now(),
       sellerOrderEmailSandbox: !!result.sandbox,
+    });
+  }
+  return { sent: result.sent, sandbox: result.sandbox, reason: result.reason };
+};
+
+// ── The buyer's order confirmation ────────────────────────────────────
+//
+// Sent when payment clears. Deliberately not the invoice: that is issued once
+// the order is completed (see send-invoice.ts), because until delivery the
+// order can still be cancelled and refunded.
+
+const buyerEmailFor = async (db: Firestore, order: any): Promise<string> => {
+  if (order.buyerEmail) return order.buyerEmail;
+  if (!order.buyerUid) return "";
+  const profile = await db.collection("users").doc(order.buyerUid).get();
+  const fromProfile = (profile.data() as any)?.email;
+  if (fromProfile) return fromProfile;
+  try {
+    return (await getAuth().getUser(order.buyerUid)).email || "";
+  } catch {
+    return "";
+  }
+};
+
+export const renderBuyerOrderEmail = (order: any, opts: { siteUrl: string }) => {
+  const ref = String(order.id ?? "").slice(0, 8).toUpperCase();
+  const items: any[] = order.items ?? [];
+  const orderUrl = `${opts.siteUrl}/orders/${order.id}`;
+  const rows = items
+    .map(
+      (i) => `
+        <tr>
+          <td style="padding:10px 0;border-bottom:1px solid #eee;font:14px/1.4 Helvetica,Arial,sans-serif;color:#111"><strong>${esc(i.cardName)}</strong></td>
+          <td align="right" style="padding:10px 0;border-bottom:1px solid #eee;font:14px/1.4 Helvetica,Arial,sans-serif;color:#111;white-space:nowrap">${money(i.price)}</td>
+        </tr>`,
+    )
+    .join("");
+
+  const html = `<!doctype html><html><body style="margin:0;background:#f5f5f5">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:24px 12px"><tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:12px;padding:28px">
+  <tr><td style="font:700 20px Helvetica,Arial,sans-serif;color:#111;padding-bottom:4px">Order confirmed</td></tr>
+  <tr><td style="font:14px/1.5 Helvetica,Arial,sans-serif;color:#555;padding-bottom:18px">
+    Hi ${esc(order.buyerName || "there")}, payment received for order #${esc(ref)}${order.sellerName ? ` from ${esc(order.sellerName)}` : ""}.
+    We'll let you know when it ships.
+  </td></tr>
+  <tr><td>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      ${rows}
+      <tr><td style="padding:12px 0 6px;font:14px Helvetica,Arial,sans-serif;color:#666">Shipping</td>
+          <td align="right" style="padding:12px 0 6px;font:14px Helvetica,Arial,sans-serif;color:#666">${money(order.shipping)}</td></tr>
+      <tr><td style="padding:12px 0;border-top:2px solid #111;font:700 16px Helvetica,Arial,sans-serif;color:#111">Total paid</td>
+          <td align="right" style="padding:12px 0;border-top:2px solid #111;font:700 16px Helvetica,Arial,sans-serif;color:#111">${money(order.total)}</td></tr>
+    </table>
+  </td></tr>
+  <tr><td align="center" style="padding:22px 0 6px">
+    <a href="${esc(orderUrl)}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;font:700 14px Helvetica,Arial,sans-serif;padding:12px 22px;border-radius:8px">View your order</a>
+  </td></tr>
+  <tr><td style="padding-top:16px;border-top:1px solid #e5e7eb;font:11px/1.6 Helvetica,Arial,sans-serif;color:#999">
+    Your invoice will be issued once the order is delivered. Amounts in Malaysian Ringgit (MYR).
+  </td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+
+  const text = [
+    `Order confirmed — #${ref}`,
+    ``,
+    `Hi ${order.buyerName || "there"}, payment received. We'll let you know when it ships.`,
+    ``,
+    ...items.map((i) => `- ${i.cardName} — ${money(i.price)}`),
+    `Shipping: ${money(order.shipping)}`,
+    `Total paid: ${money(order.total)}`,
+    ``,
+    `View your order: ${orderUrl}`,
+    `Your invoice will be issued once the order is delivered.`,
+  ].join("\n");
+
+  return { subject: `Order confirmed #${ref} · ${money(order.total)}`, html, text };
+};
+
+export const sendBuyerOrderEmail = async (
+  db: Firestore,
+  order: any,
+): Promise<{ sent: boolean; sandbox?: boolean; reason?: string }> => {
+  if (!mailConfigured()) return { sent: false, reason: "Mail not configured" };
+  const email = await buyerEmailFor(db, order);
+  if (!email) return { sent: false, reason: "Buyer has no email address" };
+
+  const config = useRuntimeConfig();
+  const siteUrl = (config.public.siteUrl as string) || "https://tcgo.shop";
+  const { subject, html, text } = renderBuyerOrderEmail(order, { siteUrl });
+  const result = await sendMail({
+    to: [{ email, name: order.buyerName || undefined }],
+    subject,
+    html,
+    text,
+    category: "order-confirmation",
+  });
+  if (result.sent && order.id) {
+    await db.collection("compiledOrders").doc(order.id).update({
+      buyerOrderEmailedAt: Date.now(),
+      buyerOrderEmailedTo: email,
+      buyerOrderEmailSandbox: !!result.sandbox,
     });
   }
   return { sent: result.sent, sandbox: result.sandbox, reason: result.reason };
