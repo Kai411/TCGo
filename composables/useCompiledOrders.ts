@@ -463,6 +463,11 @@ export const useCompiledOrders = () => {
     const snap = await getDoc(orderRef);
     if (!snap.exists()) return;
     const order = snap.data() as CompiledOrder;
+    // Auction wins can't be cancelled — the rules refuse the write anyway,
+    // but say why rather than surface a permission error.
+    if ((order as any).auctionId) {
+      throw new Error("Auction wins can't be cancelled. Contact support if there's a problem with this order.");
+    }
 
     const batch = writeBatch(firestore);
     batch.update(orderRef, {

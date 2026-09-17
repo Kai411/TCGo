@@ -40,6 +40,7 @@
         </p>
         <p v-if="order.paymentDueAt" class="text-xs text-amber-800 dark:text-amber-300 mt-0.5">
           Payment is due by {{ formatDate(order.paymentDueAt) }}. After that the result is voided and the item is released.
+          <template v-if="role === 'buyer'"> A winning bid is a commitment — this order can't be cancelled.</template>
         </p>
         <NuxtLink
           :to="`/auctions/${order.auctionId}`"
@@ -237,8 +238,10 @@
                 >
                   Return &amp; refund · coming soon
                 </button>
+                <!-- Not for auction wins: a bid is a commitment. The rules
+                     and /api/orders/cancel refuse it too. -->
                 <button
-                  v-if="order.status === 'pending'"
+                  v-if="order.status === 'pending' && !order.auctionId"
                   @click="handleCancel"
                   class="px-4 py-2 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-500/10 transition-colors"
                 >
@@ -823,7 +826,11 @@ const handleMarkDelivered = async () => {
 const handleCancel = async () => {
   if (!order.value) return;
   if (!confirm("Cancel this order?")) return;
-  await cancelOrder(order.value.id);
+  try {
+    await cancelOrder(order.value.id);
+  } catch (e: any) {
+    alert(e?.message || "Couldn't cancel this order.");
+  }
 };
 
 // ── Online payment (Billplz FPX) ──────────────────────────────────────
@@ -872,8 +879,12 @@ onBeforeUnmount(() => {
   if (clockTimer) clearInterval(clockTimer);
 });
 
+// Auction wins are excluded: see the note on the Cancel button.
 const canCancelPaid = computed(
-  () => role.value === "buyer" && canBuyerCancel(order.value as any, clockNow.value),
+  () =>
+    role.value === "buyer" &&
+    !order.value?.auctionId &&
+    canBuyerCancel(order.value as any, clockNow.value),
 );
 const cancelMinutesLeft = computed(() =>
   minutesUntil(graceEndsAt(order.value as any), clockNow.value),
