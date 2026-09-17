@@ -173,17 +173,32 @@
               <p class="text-xs text-gray-400 dark:text-zinc-500">PNG, JPG, WEBP · up to 5 MB each · without a photo the catalogue image is used</p>
             </div>
 
-            <!-- Cost / list price -->
-            <div class="surface rounded-2xl p-5">
-              <FormField label="List price (RM)">
-                <div class="relative">
-                  <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500 dark:text-zinc-400 pointer-events-none">RM</span>
-                  <input v-model.number="manualPrice" type="number" min="0" step="0.01" placeholder="0.00" class="tcgo-input pl-10 tabular-price" />
-                </div>
-              </FormField>
-              <p class="text-xs text-gray-400 dark:text-zinc-500 mt-2">
-                Used as the asking price when you list this item later. You can change it any time from the table.
-              </p>
+            <!-- Prices: what you'll ask, and what you paid. Cost and remark
+                 are private — they feed the stock value card and the profit
+                 column, and never appear on a listing. -->
+            <div class="surface rounded-2xl p-5 space-y-4">
+              <div>
+                <FormField label="List price (RM)">
+                  <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500 dark:text-zinc-400 pointer-events-none">RM</span>
+                    <input v-model.number="manualPrice" type="number" min="0" step="0.01" placeholder="0.00" class="tcgo-input pl-10 tabular-price" />
+                  </div>
+                </FormField>
+                <p class="text-xs text-gray-400 dark:text-zinc-500 mt-2">
+                  Used as the asking price when you list this item later. You can change it any time from the table.
+                </p>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <FormField label="Cost price (RM)" optional hint="Per card. What you paid — your profit is measured against this.">
+                  <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500 dark:text-zinc-400 pointer-events-none">RM</span>
+                    <input v-model.number="manualCost" type="number" min="0" step="0.01" placeholder="0.00" class="tcgo-input pl-10 tabular-price" />
+                  </div>
+                </FormField>
+                <FormField label="Remark" optional hint="Private. Where you got it, who from, the deal.">
+                  <input v-model.trim="manualCostNote" type="text" maxlength="200" placeholder="e.g. Pulled from ETB · Sunway meetup" class="tcgo-input" />
+                </FormField>
+              </div>
             </div>
           </div>
 
@@ -258,7 +273,21 @@
       <template v-else>
         <!-- Status filter + count + select all -->
         <div id="inventory-list" class="flex items-center justify-between gap-3 mb-3 flex-wrap scroll-mt-4">
-          <TabStrip v-model="statusFilter" :tabs="filterTabs" />
+          <div class="flex items-center gap-2 flex-wrap">
+            <TabStrip v-model="statusFilter" :tabs="filterTabs" />
+            <button
+              v-if="missingCostCount > 0"
+              type="button"
+              @click="missingCostOnly = !missingCostOnly"
+              :title="missingCostOnly ? 'Show every item' : 'Show only items without a cost price'"
+              class="text-xs font-semibold px-2.5 py-1 rounded-full border transition-colors tabular-nums"
+              :class="missingCostOnly
+                ? 'border-amber-400 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300'
+                : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 hover:bg-black/[0.03] dark:hover:bg-white/[0.06]'"
+            >
+              {{ missingCostCount }} without cost
+            </button>
+          </div>
           <div class="flex items-center gap-3">
             <button
               @click="toggleSelectAllFiltered"
@@ -307,6 +336,7 @@
                 <th class="text-left font-semibold px-2 py-2">Card</th>
                 <th class="text-right font-semibold px-1.5 py-2 w-20">Price</th>
                 <th class="text-right font-semibold px-1.5 py-2 w-12">Qty</th>
+                <th class="text-right font-semibold px-1.5 py-2 w-[5.5rem] hidden sm:table-cell">Cost</th>
                 <th class="text-left font-semibold px-2 py-2 w-20 hidden sm:table-cell">Status</th>
                 <th class="px-2 py-2 w-[8.5rem]"></th>
               </tr>
@@ -378,6 +408,31 @@
                     :title="item.status === 'listed' ? 'Unlist to change quantity' : undefined"
                     @change="updateItem(item.id, { quantity: Math.max(1, Number(($event.target as HTMLInputElement).value)) })"
                     class="w-full text-sm text-right px-1.5 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </td>
+                <!-- Cost, or profit once sold. Private either way: this column
+                     never reaches the listing, so it stays editable while
+                     listed. A sold row without a cost keeps the input, so
+                     filling it in turns straight into a profit figure. -->
+                <td class="px-1.5 py-2.5 text-right align-middle hidden sm:table-cell">
+                  <template v-if="item.status === 'sold' && rowProfit(item) !== null">
+                    <p
+                      class="text-sm font-semibold tabular-nums"
+                      :class="(rowProfit(item) ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
+                      :title="item.costNote || 'Profit: sold price less cost, before fees'"
+                    >
+                      {{ signedMyr(rowProfit(item) ?? 0) }}
+                    </p>
+                    <p class="text-[10px] text-gray-400 dark:text-zinc-500 tabular-nums">cost {{ formatMyr(item.costPrice ?? 0) }}</p>
+                  </template>
+                  <input
+                    v-else
+                    type="number" min="0" step="0.01"
+                    :value="item.costPrice ?? ''"
+                    placeholder="—"
+                    :title="item.costNote || 'Cost price per card (private)'"
+                    @change="updateItem(item.id, { costPrice: costFromInput(($event.target as HTMLInputElement).value) })"
+                    class="w-full text-sm text-right px-1.5 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums placeholder:text-gray-300 dark:placeholder:text-zinc-600"
                   />
                 </td>
                 <!-- Status -->
@@ -552,6 +607,17 @@
               <input v-model.number="editForm.quantity" type="number" min="1" step="1" :disabled="editLocked" class="edit-input tabular-nums disabled:opacity-50" />
             </div>
           </div>
+          <!-- Private, so not locked with the listing. -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="edit-label">Cost price (RM)</label>
+              <input v-model.number="editForm.costPrice" type="number" min="0" step="0.01" placeholder="Not recorded" class="edit-input tabular-nums" />
+            </div>
+            <div>
+              <label class="edit-label">Remark <span class="font-normal opacity-70">(private)</span></label>
+              <input v-model.trim="editForm.costNote" type="text" maxlength="200" placeholder="Where it came from" class="edit-input" />
+            </div>
+          </div>
           <div>
             <label class="edit-label">Notes</label>
             <textarea v-model.trim="editForm.notes" rows="2" :disabled="editLocked" class="edit-input resize-none disabled:opacity-50" placeholder="Defects, provenance, anything a buyer should know…" />
@@ -587,7 +653,8 @@ import type { CatalogMatch } from "~/composables/useCardCatalog";
 import type { AddMethod } from "~/components/AddMethodPicker.vue";
 import type { CardFormData } from "~/components/CardFormFields.vue";
 import { FREE_SCAN_LIMIT } from "~/composables/useScanQuota";
-import type { InventoryItem } from "~/composables/useInventory";
+import { validCost, type InventoryItem } from "~/composables/useInventory";
+import { hasCost, rowProfit } from "~/shared/portfolio";
 import {
   HIGH_VALUE_THRESHOLD,
   photoRequirement,
@@ -668,6 +735,16 @@ const PAGE_SIZE = 20;
 const statusFilter = ref<string>("all");
 const page = ref(0);
 
+// "Only rows without a cost price" — the backfill path the stock value card
+// links to (/seller/items?missing=cost). Switches itself off once every row
+// has one, so the seller isn't left looking at an empty table.
+const route = useRoute();
+const missingCostOnly = ref(route.query.missing === "cost");
+const missingCostCount = computed(() => items.value.filter((i) => !hasCost(i)).length);
+watch([missingCostCount, loading], ([n, busy]) => {
+  if (!busy && n === 0) missingCostOnly.value = false;
+});
+
 const filterTabs = computed(() => [
   { id: "all", label: "All", count: items.value.length },
   { id: "in_stock", label: "In stock", count: items.value.filter((i) => i.status === "in_stock").length },
@@ -675,11 +752,13 @@ const filterTabs = computed(() => [
   { id: "sold", label: "Sold", count: items.value.filter((i) => i.status === "sold").length },
 ]);
 
-const filteredItems = computed(() =>
-  statusFilter.value === "all"
-    ? items.value
-    : items.value.filter((i) => i.status === statusFilter.value),
-);
+const filteredItems = computed(() => {
+  const byStatus =
+    statusFilter.value === "all"
+      ? items.value
+      : items.value.filter((i) => i.status === statusFilter.value);
+  return missingCostOnly.value ? byStatus.filter((i) => !hasCost(i)) : byStatus;
+});
 const totalPages = computed(() => Math.max(1, Math.ceil(filteredItems.value.length / PAGE_SIZE)));
 const pagedItems = computed(() =>
   filteredItems.value.slice(page.value * PAGE_SIZE, page.value * PAGE_SIZE + PAGE_SIZE),
@@ -687,7 +766,7 @@ const pagedItems = computed(() =>
 const rangeStart = computed(() => (filteredItems.value.length === 0 ? 0 : page.value * PAGE_SIZE + 1));
 const rangeEnd = computed(() => Math.min(filteredItems.value.length, (page.value + 1) * PAGE_SIZE));
 
-watch(statusFilter, () => {
+watch([statusFilter, missingCostOnly], () => {
   page.value = 0;
   clearSelection();
 });
@@ -884,6 +963,10 @@ const blankCardForm = (): CardFormData => ({
 });
 const cardForm = ref<CardFormData>(blankCardForm());
 const manualPrice = ref<number | null>(null);
+// Optional cost basis. "" is what an emptied number input reports, and it
+// means "not recorded", not free — see validCost.
+const manualCost = ref<number | "" | null>(null);
+const manualCostNote = ref("");
 const manualBusy = ref(false);
 const manualError = ref("");
 
@@ -934,6 +1017,10 @@ const resetManual = () => {
   selectedFiles.value = [];
   cardForm.value = blankCardForm();
   manualPrice.value = null;
+  // The remark survives "Add another card": a stack bought together shares
+  // its provenance. The cost does not — carrying it over silently would put
+  // the wrong figure on the next card.
+  manualCost.value = null;
   importedImageUrl.value = "";
   pickedProductId.value = null;
 };
@@ -972,6 +1059,8 @@ const addManual = async () => {
       stockImageUrl: importedImageUrl.value,
       photos,
       notes: f.description || "",
+      costPrice: typeof manualCost.value === "number" ? manualCost.value : null,
+      costNote: manualCostNote.value,
       source: "manual",
     });
     if (newId) noteAdded(newId, label, qty);
@@ -1173,6 +1262,9 @@ const editForm = ref({
   listPrice: 0,
   quantity: 1,
   notes: "",
+  // "" is what an emptied number input reports; it means "not recorded".
+  costPrice: "" as number | "",
+  costNote: "",
 });
 
 const openEditDialog = (item: InventoryItem) => {
@@ -1186,11 +1278,14 @@ const openEditDialog = (item: InventoryItem) => {
     listPrice: item.listPrice || 0,
     quantity: item.quantity || 1,
     notes: item.notes || "",
+    costPrice: validCost(item.costPrice) ? item.costPrice : "",
+    costNote: item.costNote || "",
   };
 };
 
 // Listed items follow the listing-edit rule: price only. Anything else must
-// go through unlist → edit → relist so the live listing never drifts.
+// go through unlist → edit → relist so the live listing never drifts. The
+// cost fields are the exception — they never reach the listing.
 const editLocked = computed(() => editing.value?.status === "listed");
 
 const confirmEdit = async () => {
@@ -1200,10 +1295,14 @@ const confirmEdit = async () => {
   editBusy.value = true;
   try {
     const price = Math.max(0, Number(f.listPrice) || 0);
+    const cost = {
+      costPrice: typeof f.costPrice === "number" ? Math.max(0, f.costPrice) : null,
+      costNote: f.costNote,
+    };
     await updateItem(
       editing.value.id,
       editLocked.value
-        ? { listPrice: price }
+        ? { listPrice: price, ...cost }
         : {
             cardName: f.cardName,
             setName: f.setName,
@@ -1213,6 +1312,7 @@ const confirmEdit = async () => {
             listPrice: price,
             quantity: Math.max(1, Math.floor(Number(f.quantity) || 1)),
             notes: f.notes,
+            ...cost,
           },
     );
     editing.value = null;
@@ -1225,4 +1325,13 @@ const confirmEdit = async () => {
 
 const formatMyr = (n: number) =>
   n.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const signedMyr = (n: number) => `${n < 0 ? "−" : "+"}${formatMyr(Math.abs(n))}`;
+
+// An emptied cost input clears the field (null → deleted in Firestore); see
+// useInventory.updateItem. Anything unparseable is treated the same way
+// rather than saved as a zero-cost card.
+const costFromInput = (raw: string): number | null => {
+  const n = Number(raw);
+  return raw.trim() === "" || !Number.isFinite(n) ? null : Math.max(0, n);
+};
 </script>

@@ -502,6 +502,32 @@
                 class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg pl-10 pr-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-blue focus:outline-none focus:ring-1 focus:ring-pokemon-blue"
               />
             </div>
+
+            <!-- Private: feeds the stock value card and the profit column.
+                 Lives on the inventory mirror, never on the listing. -->
+            <label
+              class="block text-sm font-semibold text-gray-900 dark:text-zinc-100 mt-4 mb-2"
+            >
+              Your cost
+              <span class="text-xs font-normal text-gray-500 dark:text-zinc-400">(optional · private)</span>
+            </label>
+            <div class="relative">
+              <span
+                class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500 dark:text-zinc-400 pointer-events-none"
+                >RM</span
+              >
+              <input
+                v-model.number="costPrice"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg pl-10 pr-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-blue focus:outline-none focus:ring-1 focus:ring-pokemon-blue"
+              />
+            </div>
+            <p class="mt-1.5 text-xs text-gray-500 dark:text-zinc-400">
+              What you paid for this card, so your dashboard can show the margin. Buyers never see it.
+            </p>
           </div>
 
           <!-- Shipping is quoted live from your pickup address at checkout,
@@ -927,6 +953,8 @@ const cardForm = ref<CardFormData>({
 });
 
 const price = ref<number | null>(null);
+// Private cost basis for the inventory mirror. Never written to the listing.
+const costPrice = ref<number | null>(null);
 const submitting = ref(false);
 const error = ref("");
 
@@ -1072,6 +1100,7 @@ const handleSubmit = async () => {
         price: price.value,
         imageUrl: imageUrls[0] || "",
         quantity: cardForm.value.quantity || 1,
+        costPrice: typeof costPrice.value === "number" ? costPrice.value : null,
       });
     } catch {}
 
