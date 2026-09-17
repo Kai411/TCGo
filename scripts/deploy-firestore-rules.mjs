@@ -103,14 +103,28 @@ if (!yes) {
   process.exit(0);
 }
 
+// Two steps rather than releaseFirestoreRulesetFromSource, so a failure here
+// is reported as what it is: nothing has been published yet.
 let ruleset;
 try {
-  ruleset = await rules.createRulesetFromSource({ name: "firestore.rules", content: local });
+  const file = rules.createRulesFileFromSource("firestore.rules", local);
+  ruleset = await rules.createRuleset(file);
 } catch (e) {
-  console.error("\nfirestore.rules did not compile — nothing was published.\n");
-  console.error(e?.message || e);
+  console.error("\nCouldn't create the ruleset — nothing was published.");
+  console.error("Firebase said:", e?.message || e);
+  console.error(
+    /permission/i.test(String(e?.message))
+      ? "The service account needs the Firebase Rules Admin role (or Editor) in the Google Cloud console → IAM."
+      : "If the message names a line, that's a syntax error in firestore.rules.",
+  );
   process.exit(1);
 }
-await rules.releaseFirestoreRuleset(ruleset);
+try {
+  await rules.releaseFirestoreRuleset(ruleset);
+} catch (e) {
+  console.error(`\nRuleset ${ruleset.name} was created but NOT released — live rules are unchanged.`);
+  console.error("Firebase said:", e?.message || e);
+  process.exit(1);
+}
 console.log(`\nPublished ${ruleset.name} to ${project}.`);
 console.log(`Roll back with: node scripts/deploy-firestore-rules.mjs --rollback ${current.name}`);
