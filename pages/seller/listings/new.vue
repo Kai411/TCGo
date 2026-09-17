@@ -424,6 +424,7 @@
           <CardFormFields
             v-model="cardForm"
             @import-image="handleImportImage"
+            @catalog-select="handleCatalogSelect"
           />
 
           <!-- Card: Photos (full width) -->
@@ -591,6 +592,7 @@
 
 <script setup lang="ts">
 import type { CardFormData } from "~/components/CardFormFields.vue";
+import type { CatalogMatch } from "~/composables/useCardCatalog";
 
 definePageMeta({ layout: "seller" });
 
@@ -972,6 +974,12 @@ const triggerFileInput = () => fileInput.value?.click();
 
 // Handle imported image from Collectr/Shiny
 const importedImageUrl = ref("");
+// The catalogue pick's product id: the join key to market prices. Without it
+// the listing, and the inventory row mirrored from it, can't be valued.
+const pickedProductId = ref<number | null>(null);
+const handleCatalogSelect = (card: CatalogMatch) => {
+  pickedProductId.value = card.productId ?? null;
+};
 const handleImportImage = (url: string) => {
   importedImageUrl.value = url;
 };
@@ -1062,6 +1070,9 @@ const handleSubmit = async () => {
     uploading.value = false;
 
     const cardId = await createCard({
+      // Firestore rejects undefined — only attach productId when picked from
+      // the catalogue.
+      ...(pickedProductId.value ? { productId: pickedProductId.value } : {}),
       cardName: cardForm.value.cardName,
       cardSet: cardForm.value.cardSet,
       cardNumber: cardForm.value.cardNumber,
@@ -1092,6 +1103,7 @@ const handleSubmit = async () => {
     // Bridge: mirror the listing into inventory.
     try {
       await createListedFromCard(cardId, {
+        productId: pickedProductId.value,
         cardName: cardForm.value.cardName,
         setName: cardForm.value.cardSet,
         number: cardForm.value.cardNumber,
