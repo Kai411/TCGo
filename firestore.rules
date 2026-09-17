@@ -191,6 +191,11 @@ service cloud.firestore {
     // by server routes through the Admin SDK, so the narrow client updates
     // allowed here can't settle an order or move a payout along.
     match /compiledOrders/{orderId} {
+      // Won at auction — see the update rule below.
+      function isAuctionOrder() {
+        return resource.data.get('auctionId', null) != null;
+      }
+
       allow read: if isAdmin()
         || isOwner(resource.data.buyerUid)
         || isOwner(resource.data.sellerUid);
@@ -203,14 +208,22 @@ service cloud.firestore {
       // one matters: it's what starts the payout hold clock, so it has to stay
       // the buyer's to give and cannot be the seller declaring their own
       // parcel delivered. Everything involving money settles server-side.
+      //
+      // An auction win is a commitment, not a cart: neither party may cancel
+      // it from the client. The only ways out are the payment window lapsing
+      // (server-side, /api/auctions/settle) or an admin. The buyer also can't
+      // strip auctionId off the order to slip past this.
       allow update: if isAdmin()
         || (isOwner(resource.data.buyerUid)
-            && resource.data.status == 'pending')
+            && resource.data.status == 'pending'
+            && request.resource.data.get('auctionId', null) == resource.data.get('auctionId', null)
+            && !(isAuctionOrder() && request.resource.data.status == 'cancelled'))
         || (isOwner(resource.data.buyerUid)
             && resource.data.status == 'shipped'
             && request.resource.data.status == 'delivered')
         || (isOwner(resource.data.sellerUid)
-            && request.resource.data.status in ['shipped', 'delivered', 'cancelled']);
+            && request.resource.data.status in ['shipped', 'delivered', 'cancelled']
+            && !(isAuctionOrder() && request.resource.data.status == 'cancelled'));
 
       allow delete: if isAdmin();
     }
