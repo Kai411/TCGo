@@ -10,14 +10,16 @@
 import { bankByCode, checkBankAccount, normaliseAccountNumber } from "~/shared/banks";
 
 /**
- * Deducted from a buyer-initiated refund: 4% of the order total, at least
- * RM 1, and never more than the total so a refund can't go negative.
+ * Payment processing kept from a cancelled order's refund: 5% of the total,
+ * capped at RM 2, and never more than the total so a refund can't go negative.
  *
- * Recovers what cancelling costs TCGo — RM 1.25 Billplz collected when the
- * buyer paid, plus RM 1.25 for the Payment Order that sends the money back.
+ * It goes towards what cancelling costs TCGo — RM 1.25 Billplz charged to
+ * collect the payment, plus RM 1.25 for the Payment Order that sends it back.
+ * The cap means a large order isn't charged far more than the cancellation
+ * actually costs.
  */
-export const REFUND_FEE_RATE = 0.04;
-export const REFUND_FEE_MIN = 1;
+export const REFUND_FEE_RATE = 0.05;
+export const REFUND_FEE_CAP = 2;
 
 export const CANCEL_REASONS = [
   { code: "changed_mind", label: "I changed my mind" },
@@ -38,7 +40,7 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 /** What the buyer paid, the fee, and what they get back. */
 export const refundBreakdown = (orderTotal: number) => {
   const total = round2(Math.max(0, Number(orderTotal) || 0));
-  const fee = round2(Math.min(total, Math.max(REFUND_FEE_MIN, total * REFUND_FEE_RATE)));
+  const fee = round2(Math.min(total, REFUND_FEE_CAP, total * REFUND_FEE_RATE));
   return { total, fee, amount: round2(total - fee) };
 };
 

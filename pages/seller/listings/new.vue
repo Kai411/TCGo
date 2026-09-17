@@ -950,8 +950,6 @@ const cardForm = ref<CardFormData>({
   artist: "",
   certNumber: "",
   quantity: 1,
-  negotiable: false,
-  pickupAvailable: false,
 });
 
 const price = ref<number | null>(null);
@@ -1096,8 +1094,6 @@ const handleSubmit = async () => {
       artist: cardForm.value.artist || "",
       certNumber: cardForm.value.certNumber || "",
       quantity: cardForm.value.quantity || 1,
-      negotiable: cardForm.value.negotiable === true,
-      pickupAvailable: cardForm.value.pickupAvailable === true,
       status: "active",
     });
     // Bridge: mirror the listing into inventory.

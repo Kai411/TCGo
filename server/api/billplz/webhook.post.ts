@@ -70,6 +70,27 @@ export default defineEventHandler(async (event) => {
   // pre-payment states (the seller may have confirmed a manual order before
   // the buyer paid online); anything further along is already settled.
   if (order.status !== "pending" && order.status !== "confirmed") {
+    // Money against a cancelled order is the one case that must not be
+    // dropped on the floor: the buyer paid and has nothing to show for it.
+    // Settlement voids the bill before cancelling an auction order, so this
+    // should be rare — but "should be" is not a refund. Stamp the order and
+    // raise it so staff can refund by hand.
+    if (order.status === "cancelled" && !order.stalePayment) {
+      const paidSen = Number(get("amount") || 0);
+      await orderRef.update({
+        stalePayment: { billId, paidSen, paidAt: get("paid_at") || null, at: Date.now() },
+      });
+      noteError({
+        area: "payment",
+        severity: "critical",
+        code: "billplz.paid_after_cancel",
+        message: `Billplz collected ${paidSen} sen for order ${orderRef.id} after it was cancelled (${order.cancelReason || "no reason recorded"}).`,
+        orderId: orderRef.id,
+        userUid: order.buyerUid,
+        context: { billId, paidSen, auctionId: order.auctionId ?? null },
+        hint: "The buyer has paid for nothing. Refund the bill from the Billplz dashboard and tell them.",
+      });
+    }
     return { ok: true, ignored: `status ${order.status}` };
   }
 

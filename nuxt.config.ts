@@ -218,6 +218,9 @@ export default defineNuxtConfig({
     mailtrapInboxId: "",
     mailFrom: "",
     mailFromName: "",
+    // Where replies go. Mail is sent from a no-reply address, so this must be
+    // a mailbox somebody reads. Defaults to support@tcgo.shop in mail.ts.
+    mailReplyTo: "",
     // Didit (identity verification). Server-only: the API key must never
     // reach the browser, and the webhook secret verifies inbound signatures.
     // The workflow id is per-session config, not a secret — see shared/didit.ts.

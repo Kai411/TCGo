@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 
 import {
   CANCEL_REASONS,
-  REFUND_FEE_MIN,
+  REFUND_FEE_CAP,
   REFUND_FEE_RATE,
   checkIc,
   maskTail,
@@ -73,19 +73,20 @@ describe("IC numbers", () => {
 });
 
 describe("what the buyer gets back", () => {
-  it("deducts 4% of the order total", () => {
-    assert.equal(REFUND_FEE_RATE, 0.04);
-    assert.deepEqual(refundBreakdown(51.25), { total: 51.25, fee: 2.05, amount: 49.2 });
-    assert.deepEqual(refundBreakdown(2999), { total: 2999, fee: 119.96, amount: 2879.04 });
+  it("keeps 5% for payment processing", () => {
+    assert.equal(REFUND_FEE_RATE, 0.05);
+    assert.deepEqual(refundBreakdown(10), { total: 10, fee: 0.5, amount: 9.5 });
+    assert.deepEqual(refundBreakdown(30), { total: 30, fee: 1.5, amount: 28.5 });
   });
 
-  it("charges at least RM 1", () => {
-    assert.equal(REFUND_FEE_MIN, 1);
-    assert.deepEqual(refundBreakdown(10), { total: 10, fee: 1, amount: 9 });
+  it("caps the fee at RM 2, however large the order", () => {
+    assert.equal(REFUND_FEE_CAP, 2);
+    assert.deepEqual(refundBreakdown(51.25), { total: 51.25, fee: 2, amount: 49.25 });
+    assert.deepEqual(refundBreakdown(2999), { total: 2999, fee: 2, amount: 2997 });
   });
 
   it("never refunds a negative amount", () => {
-    assert.deepEqual(refundBreakdown(0.5), { total: 0.5, fee: 0.5, amount: 0 });
+    assert.deepEqual(refundBreakdown(0.5), { total: 0.5, fee: 0.03, amount: 0.47 });
     assert.deepEqual(refundBreakdown(0), { total: 0, fee: 0, amount: 0 });
   });
 

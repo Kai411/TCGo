@@ -73,6 +73,16 @@ export default defineEventHandler(async (event) => {
   if (order.status === "cancelled") {
     return { cancelled: true, alreadyCancelled: true };
   }
+  // A won auction is a commitment: the bid was the buyer's word, and the
+  // seller turned other bidders away on the strength of it. No self-service
+  // cancellation, paid or not — the Firestore rules refuse the client-side
+  // cancel of a pending auction order for the same reason.
+  if (order.auctionId) {
+    throw createError({
+      statusCode: 409,
+      message: "Auction wins can't be cancelled. Contact support if there's a problem with this order.",
+    });
+  }
   if (!CANCELLABLE.includes(order.status)) {
     throw createError({
       statusCode: 409,

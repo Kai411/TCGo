@@ -40,6 +40,7 @@
         </p>
         <p v-if="order.paymentDueAt" class="text-xs text-amber-800 dark:text-amber-300 mt-0.5">
           Payment is due by {{ formatDate(order.paymentDueAt) }}. After that the result is voided and the item is released.
+          <template v-if="role === 'buyer'"> A winning bid is a commitment — this order can't be cancelled.</template>
         </p>
         <NuxtLink
           :to="`/auctions/${order.auctionId}`"
@@ -223,8 +224,24 @@
                 >
                   Mark received
                 </button>
+                <!-- Returns after delivery aren't open yet: the policy that
+                     protects both the buyer and TCGo from a card going missing
+                     mid-return hasn't been settled. Shown rather than hidden so
+                     a buyer knows it is coming rather than assuming there is no
+                     recourse at all. -->
                 <button
-                  v-if="order.status === 'pending'"
+                  v-if="order.status === 'delivered'"
+                  type="button"
+                  disabled
+                  title="Returns and refunds for delivered orders are coming soon"
+                  class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-400 dark:text-zinc-500 cursor-not-allowed"
+                >
+                  Return &amp; refund · coming soon
+                </button>
+                <!-- Not for auction wins: a bid is a commitment. The rules
+                     and /api/orders/cancel refuse it too. -->
+                <button
+                  v-if="order.status === 'pending' && !order.auctionId"
                   @click="handleCancel"
                   class="px-4 py-2 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-500/10 transition-colors"
                 >
@@ -555,7 +572,7 @@
             <span>You'll receive</span><span>RM {{ refundSummary.amount.toFixed(2) }}</span>
           </div>
           <p class="text-[11px] text-gray-500 dark:text-zinc-400 pt-1">
-            A 4% refund processing fee (minimum RM 1) covers the payment and transfer charges. Refunds are sent to your bank after review.
+            A 5% payment processing fee (capped at RM 2) covers the payment and transfer charges. Refunds are sent to your bank after review.
           </p>
         </div>
 
@@ -749,6 +766,7 @@ const buyerActions = computed(() => {
   return (
     isPayable.value ||
     o.status === "shipped" ||
+    o.status === "delivered" ||
     o.status === "pending" ||
     o.status === "confirmed"
   );
@@ -808,7 +826,11 @@ const handleMarkDelivered = async () => {
 const handleCancel = async () => {
   if (!order.value) return;
   if (!confirm("Cancel this order?")) return;
-  await cancelOrder(order.value.id);
+  try {
+    await cancelOrder(order.value.id);
+  } catch (e: any) {
+    alert(e?.message || "Couldn't cancel this order.");
+  }
 };
 
 // ── Online payment (Billplz FPX) ──────────────────────────────────────
@@ -857,8 +879,12 @@ onBeforeUnmount(() => {
   if (clockTimer) clearInterval(clockTimer);
 });
 
+// Auction wins are excluded: see the note on the Cancel button.
 const canCancelPaid = computed(
-  () => role.value === "buyer" && canBuyerCancel(order.value as any, clockNow.value),
+  () =>
+    role.value === "buyer" &&
+    !order.value?.auctionId &&
+    canBuyerCancel(order.value as any, clockNow.value),
 );
 const cancelMinutesLeft = computed(() =>
   minutesUntil(graceEndsAt(order.value as any), clockNow.value),

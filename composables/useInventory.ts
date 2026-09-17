@@ -387,9 +387,13 @@ export const useInventory = () => {
   // Called from the listings side when a card is marked sold — find and sync
   // its linked inventory item (if any).
   const markSoldByListingId = async (cardId: string, soldPrice?: number) => {
-    if (!firestore) return;
+    if (!firestore || !user.value) return;
+    // Both clauses, not just listingId: the rules only let a seller read
+    // their own rows, and a query has to say so up front — Firestore refuses
+    // a query it can't prove is all-yours, even when every match is.
     const q = query(
       collection(firestore, "inventory"),
+      where("userUid", "==", user.value.uid),
       where("listingId", "==", cardId),
     );
     const snap = await getDocs(q);
