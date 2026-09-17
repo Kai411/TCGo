@@ -243,11 +243,26 @@ export const releaseItems = async (db: Firestore, saleId: string): Promise<numbe
  */
 export const settleItems = async (
   db: Firestore,
-  input: { saleId: string; lines: Array<{ itemId: string; soldPrice: number }> },
+  input: {
+    saleId: string;
+    lines: Array<{ itemId: string; soldPrice: number }>;
+    /** TCGo's fee on the whole sale, as recorded on the receipt. */
+    platformFee?: number;
+  },
 ): Promise<void> => {
   const now = Date.now();
   const { FieldValue } = await import("firebase-admin/firestore");
   const batch = db.batch();
+
+  // The receipt's fee, split across the lines in proportion to what each
+  // fetched: a one-card sale carries the whole fee, a basket shares it. This
+  // is what lets a row show what it earned after TCGo's cut.
+  const linesTotal = input.lines.reduce((s, l) => s + (Number(l.soldPrice) || 0), 0);
+  const saleFee = Math.max(0, Number(input.platformFee) || 0);
+  const feeFor = (soldPrice: number): number =>
+    linesTotal > 0
+      ? Math.round(saleFee * ((Number(soldPrice) || 0) / linesTotal) * 100) / 100
+      : 0;
 
   for (const line of input.lines) {
     const itemRef = db.collection("inventory").doc(line.itemId);
@@ -259,6 +274,7 @@ export const settleItems = async (
       status: "sold",
       soldAt: now,
       soldPrice: line.soldPrice,
+      soldFee: feeFor(line.soldPrice),
       // "direct" keeps counter sales out of the online revenue figures, which
       // are counted from orders — see InventoryItem.saleChannel.
       saleChannel: "direct",

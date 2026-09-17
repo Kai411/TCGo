@@ -28,7 +28,8 @@ The number should be worth opening the app for.
 
 ## Non-goals (v1)
 
-- Net profit after TCGo fees, shipping, SST. Profit is gross and labelled so.
+- Postage in the profit figure. The buyer pays it to TCGo and TCGo buys the
+  label, so it is never the seller's money and never a card's cost.
 - Purchase lots / FIFO cost accounting. One inventory row is one lot.
 - A server-side daily snapshot of each seller's stock value (true wallet
   history that includes cards since sold). See "Later".
@@ -44,6 +45,7 @@ absent means "unknown", never zero.
 |---|---|---|
 | `costPrice` | number, MYR | What the seller paid **per unit** (per card). |
 | `costNote` | string | Private remark: where, when, from whom. Never mirrored to `cards`. |
+| `soldFee` | number, MYR | TCGo's fee on the sale, per unit, as charged at settlement. 0 on a hand-marked sale. |
 
 `InventoryItem`, `InventoryItemInput`, `buildItem`, and
 `createListedFromCard` in `composables/useInventory.ts` gain the two fields.
@@ -51,10 +53,12 @@ absent means "unknown", never zero.
 without further change. Firestore rules for `inventory` already permit owner
 writes of any field; no rules or index changes.
 
-One server change: the Billplz webhook's inventory mirror (which marks online
-sales `status: "sold"`) also writes `soldPrice` from the order item's price,
-so online sales carry a realised price like counter sales already do.
-The order-cancel route, which un-sells the row, clears `soldPrice` too.
+Server changes: the Billplz webhook's inventory mirror (which marks online
+sales `status: "sold"`) also writes `soldPrice` from the order item's price
+and `soldFee` at the rate frozen on the order (plus SST on the fee once TCGo
+is registered). The till's settlement shares the receipt's recorded fee
+across the lines it sold, in proportion to price. The order-cancel route,
+which un-sells the row, clears both.
 
 ## Where cost and remark are captured
 
@@ -99,13 +103,17 @@ costPrice?, soldPrice?, status, soldAt?`) and a `Map<productId, marketMyr>`.
 
 **Realised** = rows with status `sold`.
 
-- Per row: `(soldPrice ?? listPrice − costPrice) × quantity`; null when no
-  cost.
-- Period totals (30 days by `soldAt`, all time): `profit`, `revenue`,
-  `costedRevenue`, `cost`, `rows`, `missingCostRows`, and
-  `marginPct = profit / costedRevenue`. Margin is measured against the revenue
-  it can explain, not all revenue, so a sale with no recorded cost cannot
-  dilute it.
+- Fee per unit: the recorded `soldFee` wins. Without a record, an online
+  sale is estimated at today's standard rate (it always carried one) and a
+  counter or hand-marked sale is read as fee-free, matching how a receipt
+  with no fee is read elsewhere.
+- Per row: `(soldPrice ?? listPrice − fee − costPrice) × quantity`; null when
+  no cost.
+- Period totals (30 days by `soldAt`, all time): `revenue` (gross), `fees`,
+  `net`, `costedRevenue`, `costedNet`, `cost`, `profit = costedNet − cost`,
+  `rows`, `missingCostRows`, and `marginPct = profit / costedRevenue`. Margin
+  is measured against the revenue it can explain, not all revenue, so a sale
+  with no recorded cost cannot dilute it.
 - Rows without cost count in `revenue` and `missingCostRows`, never as zero
   cost. Rows with no `soldAt` (hand-marked before it existed) fall back to
   `updatedAt` for the window. All figures rounded to 2 dp once, at the end.
@@ -128,7 +136,7 @@ Content, top to bottom:
 - Caption: "51 items · 63 units · 4 unpriced (RM 120 at asking)".
 - Three figures: `Cost basis`, `Unrealised` (gain, pct, "on 38 of 51 with a
   cost"), `Realised profit` (30 days, all time beneath). Realised is labelled
-  "before fees".
+  "after TCGo fees".
 - `PriceTrendChart` of the basket over 30 days (same call as `/collection`).
 - Nudge when `missingCost > 0`: "13 items have no cost price →" linking to
   `/seller/items?missing=cost`. Filling cost is what makes the card useful,
@@ -175,10 +183,6 @@ Empty and degraded states:
 
 - Daily per-seller stock value snapshot (server cron) for a true wallet
   history that survives sales, plus 7-day and 1-year ranges.
-- Net profit using the settlement lines already frozen on each order.
 - Cost per copy on the collector's collection page, reusing
   `shared/portfolio.ts`.
 - Cost entry in the scan review step.
-- The manual listing form does not capture the catalog product id, so a
-  listing created there is mirrored into inventory unpriced. Passing the
-  `catalog-select` id through would let the card value those rows too.

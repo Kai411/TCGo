@@ -7,7 +7,7 @@
 
 import type { Firestore } from "firebase-admin/firestore";
 import { settleItems, releaseItems } from "~/server/utils/pos-reservations";
-import type { PosSaleStatus } from "~/shared/pos-sale";
+import { recordedPosFee, type PosSaleStatus } from "~/shared/pos-sale";
 
 export type PosOutcome = "paid" | "failed" | "cancelled";
 
@@ -58,6 +58,9 @@ export const finalisePosSale = async (
         itemId: l.itemId,
         soldPrice: l.soldPrice,
       })),
+      // As recorded on the receipt when the charge was struck — zero for
+      // cash, and for sales taken before the counter fee existed.
+      platformFee: recordedPosFee(claim.sale),
     });
   } else {
     await releaseItems(db, saleId);

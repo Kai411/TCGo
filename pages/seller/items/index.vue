@@ -419,11 +419,13 @@
                     <p
                       class="text-sm font-semibold tabular-nums"
                       :class="(rowProfit(item) ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
-                      :title="item.costNote || 'Profit: sold price less cost, before fees'"
+                      :title="item.costNote || 'Profit: sold price less TCGo fee and cost'"
                     >
                       {{ signedMyr(rowProfit(item) ?? 0) }}
                     </p>
-                    <p class="text-[10px] text-gray-400 dark:text-zinc-500 tabular-nums">cost {{ formatMyr(item.costPrice ?? 0) }}</p>
+                    <p class="text-[10px] text-gray-400 dark:text-zinc-500 tabular-nums">
+                      cost {{ formatMyr(item.costPrice ?? 0) }}<template v-if="rowFee(item) > 0"> · fee {{ formatMyr(rowFee(item)) }}</template>
+                    </p>
                   </template>
                   <input
                     v-else
@@ -654,7 +656,7 @@ import type { AddMethod } from "~/components/AddMethodPicker.vue";
 import type { CardFormData } from "~/components/CardFormFields.vue";
 import { FREE_SCAN_LIMIT } from "~/composables/useScanQuota";
 import { validCost, type InventoryItem } from "~/composables/useInventory";
-import { hasCost, rowProfit } from "~/shared/portfolio";
+import { hasCost, rowFee, rowProfit } from "~/shared/portfolio";
 import {
   HIGH_VALUE_THRESHOLD,
   photoRequirement,

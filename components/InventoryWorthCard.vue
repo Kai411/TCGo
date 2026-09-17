@@ -80,9 +80,9 @@
             <template v-else>—</template>
             <span class="block text-[10px] font-normal text-ink-soft dark:text-zinc-500">
               <template v-if="realised.allTime.costedRows > 0">
-                {{ signed(realised.allTime.profit) }} all time · before fees
+                {{ signed(realised.allTime.profit) }} all time · after TCGo fees
               </template>
-              <template v-else>before fees</template>
+              <template v-else>after TCGo fees</template>
             </span>
           </dd>
         </div>

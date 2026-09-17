@@ -16,7 +16,7 @@ import {
   shippingReimbursement,
   sstForOrder,
 } from "~/shared/payouts";
-import { effectiveRate } from "~/shared/pricing";
+import { effectiveRate, sstOn } from "~/shared/pricing";
 import { joinPaidOrderToParcel } from "~/server/utils/join-parcel";
 import { noteError } from "~/server/utils/oplog";
 import { notify } from "~/server/utils/notify";
@@ -106,6 +106,7 @@ export default defineEventHandler(async (event) => {
   // without one.
   const platformFee = platformFeeFor(order);
   const sellerPayout = computeSellerPayout(order);
+  const feeRate = effectiveRate((order as any).sellerPlan);
 
   const batch = db.batch();
   batch.update(orderRef, {
@@ -114,7 +115,7 @@ export default defineEventHandler(async (event) => {
     platformFee,
     // Stored, not derived later: the sen-rounded fee can't be divided back
     // into the rate it came from on small orders.
-    platformFeeRate: effectiveRate((order as any).sellerPlan),
+    platformFeeRate: feeRate,
     // Zero until TCGo is SST-registered, but recorded either way so an order
     // settled before registration is never retro-taxed by the flag flipping.
     sstAmount: sstForOrder(order),
@@ -155,9 +156,15 @@ export default defineEventHandler(async (event) => {
     // The price the buyer actually paid, so an online sale carries a realised
     // price the way a counter sale does and the row's profit can be worked
     // out later. Left off when the order item has none, which falls back to
-    // the asking price downstream.
+    // the asking price downstream. The fee goes with it, at the rate frozen
+    // on the order above (plus SST on the fee once TCGo is registered), so
+    // the row's profit never re-derives history from today's constants.
     const paid = Number(item.price);
-    const soldPrice = Number.isFinite(paid) && paid >= 0 ? { soldPrice: paid } : {};
+    const hasPaid = Number.isFinite(paid) && paid >= 0;
+    const fee = hasPaid
+      ? Math.round((paid * feeRate + sstOn(paid * feeRate)) * 100) / 100
+      : 0;
+    const soldPrice = hasPaid ? { soldPrice: paid, soldFee: fee } : {};
     await Promise.all(
       inv.docs.map((d) =>
         d.ref.update({

@@ -8,13 +8,17 @@ import assert from "node:assert/strict";
 
 import {
   basketOf,
+  feeOf,
+  netUnitPrice,
   realisedByPeriod,
   realisedUnitPrice,
+  rowFee,
   rowProfit,
   summariseRealised,
   valueHoldings,
   type PortfolioRow,
 } from "~/shared/portfolio";
+import { STANDARD_RATE } from "~/shared/pricing";
 
 const row = (over: Partial<PortfolioRow> = {}): PortfolioRow => ({
   productId: 1,
@@ -136,6 +140,8 @@ describe("summariseRealised", () => {
     const r = summariseRealised(sold);
     assert.equal(r.rows, 3);
     assert.equal(r.revenue, 370);
+    assert.equal(r.fees, 0);
+    assert.equal(r.net, 370);
     assert.equal(r.costedRevenue, 170);
     assert.equal(r.cost, 150);
     assert.equal(r.profit, 20);
@@ -155,6 +161,46 @@ describe("summariseRealised", () => {
     const r = summariseRealised(sold, 2000);
     assert.equal(r.rows, 2);
     assert.equal(r.profit, -20);
+  });
+});
+
+describe("TCGo's fee", () => {
+  it("uses the fee recorded at settlement when there is one", () => {
+    const r = row({ status: "sold", soldPrice: 100, costPrice: 60, soldFee: 4, saleChannel: "online" });
+    assert.equal(feeOf(r), 4);
+    assert.equal(netUnitPrice(r), 96);
+    assert.equal(rowProfit(r), 36);
+  });
+
+  it("estimates an unrecorded online fee at today's rate, and reads a hand-marked or counter sale as fee-free", () => {
+    const standard = Number((100 * STANDARD_RATE).toFixed(2));
+    assert.equal(feeOf(row({ status: "sold", soldPrice: 100, saleChannel: "online" })), standard);
+    // A recorded zero is a record: the listing was marked sold by hand.
+    assert.equal(feeOf(row({ status: "sold", soldPrice: 100, saleChannel: "online", soldFee: 0 })), 0);
+    assert.equal(feeOf(row({ status: "sold", soldPrice: 100, saleChannel: "direct" })), 0);
+    assert.equal(feeOf(row({ status: "sold", soldPrice: 100 })), 0);
+  });
+
+  it("comes out of profit and net, never out of revenue", () => {
+    const r = summariseRealised([
+      row({ status: "sold", soldPrice: 100, costPrice: 50, soldFee: 4 }),
+      row({ status: "sold", soldPrice: 200, soldFee: 8 }),
+    ]);
+    assert.equal(r.revenue, 300);
+    assert.equal(r.fees, 12);
+    assert.equal(r.net, 288);
+    assert.equal(r.costedRevenue, 100);
+    assert.equal(r.costedNet, 96);
+    assert.equal(r.profit, 46);
+    assert.equal(r.marginPct, 46);
+  });
+
+  it("is per unit, like every other figure on the row", () => {
+    assert.equal(rowFee(row({ status: "sold", quantity: 3, soldPrice: 10, soldFee: 0.4 })), 1.2);
+    assert.equal(
+      rowProfit(row({ status: "sold", quantity: 3, soldPrice: 10, soldFee: 0.4, costPrice: 5 })),
+      13.8,
+    );
   });
 });
 

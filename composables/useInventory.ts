@@ -64,6 +64,10 @@ export interface InventoryItem {
   costNote?: string;
   // Set when sold via POS / online.
   soldPrice?: number;
+  // TCGo's fee on the sale, per unit, as charged at settlement. Zero on a
+  // hand-marked sale, where no payment went through TCGo. shared/portfolio.ts
+  // feeOf says how an absent value is read.
+  soldFee?: number;
   soldAt?: number;
   // How it was sold: "direct" = POS / manual mark-sold (counted in stats from
   // inventory); "online" = synced from a marketplace order (counted via the
@@ -366,6 +370,8 @@ export const useInventory = () => {
       soldAt: now,
       saleChannel: "direct",
       ...(soldPrice != null ? { soldPrice } : {}),
+      // Marked by hand: no payment went through TCGo, so no fee.
+      soldFee: 0,
       updatedAt: now,
     });
     if (item.listingId) {
@@ -396,8 +402,10 @@ export const useInventory = () => {
           saleChannel: "online",
           // The listing price is the best record of what a hand-marked online
           // sale fetched; without it the row's profit falls back to the same
-          // figure anyway.
+          // figure anyway. No payment went through TCGo, so no fee — recorded
+          // as zero so it is never estimated as an online sale's fee.
           ...(validCost(soldPrice) ? { soldPrice } : {}),
+          soldFee: 0,
           updatedAt: now,
         }),
       ),
