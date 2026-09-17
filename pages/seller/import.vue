@@ -46,7 +46,7 @@
                 <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
                   Download our template — columns:
                   <span class="font-medium text-ink dark:text-zinc-200">Name</span> (required),
-                  Set, Number, Condition, Quantity, Price.
+                  Set, Number, Condition, Quantity, Price, Cost price, Remark.
                 </p>
               </div>
               <button
@@ -70,7 +70,7 @@
             </p>
           </div>
           <div class="rounded-lg bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] px-3 py-2 text-xs font-mono text-ink dark:text-zinc-200 overflow-x-auto">
-            Name | Set Number | Set Name | Price | Qty
+            Name | Set Number | Set Name | Price | Qty | Cost | Remark
           </div>
           <p class="text-[11px] text-gray-400 dark:text-zinc-500">
             e.g. <span class="font-mono">Chansey IR | 209/198 | Scarlet &amp; Violet 151 | 240.67 | 2</span>
@@ -251,10 +251,14 @@
                 <span v-else class="text-amber-600 dark:text-amber-400">No catalog match — imported as “{{ row.rawName }}”</span>
               </p>
             </div>
-            <div class="shrink-0 flex items-center gap-1.5">
-              <div class="flex items-center gap-0.5">
+            <div class="shrink-0 flex items-center gap-1.5 flex-wrap justify-end">
+              <div class="flex items-center gap-0.5" title="Asking price">
                 <span class="text-[10px] text-gray-400">RM</span>
                 <input type="number" min="0" step="0.01" v-model.number="row.price" class="w-16 text-xs text-right px-1.5 py-1 rounded border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums"/>
+              </div>
+              <div class="flex items-center gap-0.5" title="Cost price per card (private)">
+                <span class="text-[10px] text-gray-400">cost</span>
+                <input type="number" min="0" step="0.01" v-model.number="row.cost" placeholder="—" class="w-16 text-xs text-right px-1.5 py-1 rounded border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums"/>
               </div>
               <input type="number" min="1" step="1" v-model.number="row.quantity" title="Quantity" class="w-11 text-xs text-right px-1.5 py-1 rounded border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums"/>
             </div>
@@ -374,9 +378,9 @@ const parseSpreadsheet = async (
 };
 
 // Pasted rows use a fixed column order (Name, Set Number, Set Name, Price,
-// Qty), delimited by pipe / tab / comma (auto-detected). Routed through the
-// same map → reconcile → review flow as file imports.
-const DEFAULT_PASTE_HEADERS = ["Name", "Set Number", "Set Name", "Price", "Qty"];
+// Qty, Cost, Remark), delimited by pipe / tab / comma (auto-detected). Routed
+// through the same map → reconcile → review flow as file imports.
+const DEFAULT_PASTE_HEADERS = ["Name", "Set Number", "Set Name", "Price", "Qty", "Cost", "Remark"];
 
 const detectDelim = (line: string): "pipe" | "tab" | "comma" | "space" => {
   if (line.includes("|")) return "pipe";
@@ -417,12 +421,14 @@ const handlePaste = () => {
   const max = h.length - 1;
   const clamp = (i: number) => (i <= max ? i : -1);
   mapping.value = {
+    ...EMPTY_MAPPING,
     name: clamp(0),
     number: clamp(1),
     set: clamp(2),
     price: clamp(3),
     quantity: clamp(4),
-    condition: -1,
+    cost: clamp(5),
+    remark: clamp(6),
   };
   step.value = "map";
 };
@@ -431,9 +437,9 @@ const handlePaste = () => {
 // sellers know exactly what to put. Two sample rows show the expected format.
 const downloadTemplate = () => {
   const rows = [
-    ["Name", "Set", "Number", "Condition", "Quantity", "Price"],
-    ["Charizard ex", "Obsidian Flames", "125/197", "Near Mint (NM)", "1", "180.00"],
-    ["Pikachu", "Scarlet & Violet 151", "025/165", "Lightly Played (LP)", "2", "12.50"],
+    ["Name", "Set", "Number", "Condition", "Quantity", "Price", "Cost price", "Remark"],
+    ["Charizard ex", "Obsidian Flames", "125/197", "Near Mint (NM)", "1", "180.00", "120.00", "Bought at Sunway meetup"],
+    ["Pikachu", "Scarlet & Violet 151", "025/165", "Lightly Played (LP)", "2", "12.50", "", "Pulled from booster box"],
   ];
   const esc = (c: string) => (/[",\n]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c);
   const csv = rows.map((r) => r.map(esc).join(",")).join("\r\n");
@@ -593,6 +599,8 @@ const identifyPhotos = async () => {
         condition: defaultCondition.value,
         quantity: 1,
         price: match?.price?.market || 0,
+        cost: null,
+        remark: "",
         match,
         include: !!name, // deselect identify-failures by default
         photoFile: entry.file,
@@ -608,7 +616,7 @@ const identifyPhotos = async () => {
 };
 
 // ── Column mapping ────────────────────────────────────────────────────
-type FieldKey = "name" | "set" | "number" | "condition" | "quantity" | "price";
+type FieldKey = "name" | "set" | "number" | "condition" | "quantity" | "price" | "cost" | "remark";
 const mapFields: { key: FieldKey; label: string; required?: boolean }[] = [
   { key: "name", label: "Name", required: true },
   { key: "set", label: "Set" },
@@ -616,10 +624,14 @@ const mapFields: { key: FieldKey; label: string; required?: boolean }[] = [
   { key: "condition", label: "Condition" },
   { key: "quantity", label: "Quantity" },
   { key: "price", label: "Price" },
+  // Private cost basis — never shown to buyers. See InventoryItem.costPrice.
+  { key: "cost", label: "Cost price" },
+  { key: "remark", label: "Remark" },
 ];
-const mapping = ref<Record<FieldKey, number>>({
-  name: -1, set: -1, number: -1, condition: -1, quantity: -1, price: -1,
-});
+const EMPTY_MAPPING: Record<FieldKey, number> = {
+  name: -1, set: -1, number: -1, condition: -1, quantity: -1, price: -1, cost: -1, remark: -1,
+};
+const mapping = ref<Record<FieldKey, number>>({ ...EMPTY_MAPPING });
 const defaultCondition = ref(CONDITIONS[0]);
 
 const HINTS: Record<FieldKey, string[]> = {
@@ -628,13 +640,20 @@ const HINTS: Record<FieldKey, string[]> = {
   number: ["number", "no.", "collector", "card no", "num"],
   condition: ["condition", "cond", "grade"],
   quantity: ["quantity", "qty", "count", "amount", "stock"],
-  price: ["price", "market", "value", "cost", "mkt", "rm", "myr"],
+  price: ["price", "market", "value", "mkt", "rm", "myr", "asking"],
+  cost: ["cost", "bought", "paid", "buy", "purchase"],
+  remark: ["remark", "note", "comment", "memo", "source"],
 };
+// "Cost price" contains "price". Price must never claim a cost column, or a
+// seller's purchase prices become their asking prices in one click.
+const looksLikeCost = (h: string) => HINTS.cost.some((k) => h.includes(k));
 const autoMap = () => {
   const lower = headers.value.map((h) => h.toLowerCase());
   for (const field of mapFields) {
     const hints = HINTS[field.key];
-    const idx = lower.findIndex((h) => hints.some((k) => h.includes(k)));
+    const idx = lower.findIndex(
+      (h) => hints.some((k) => h.includes(k)) && (field.key !== "price" || !looksLikeCost(h)),
+    );
     mapping.value[field.key] = idx;
   }
 };
@@ -647,6 +666,10 @@ interface ReviewRow {
   condition: string;
   quantity: number;
   price: number;
+  // Private cost basis from a Cost column, if the file had one. "" is what an
+  // emptied review input reports; it and null both mean "not recorded".
+  cost: number | "" | null;
+  remark: string;
   match: CatalogMatch | null;
   include: boolean;
   // Photos flow only — the seller's own shot, uploaded to Cloudinary at
@@ -676,13 +699,16 @@ const reconcile = async () => {
   const worker = async () => {
     while (idx < parsedRows.value.length) {
       const myIdx = idx++;
-      const row = parsedRows.value[myIdx];
+      const row = parsedRows.value[myIdx] ?? [];
       const name = cell(row, mapping.value.name);
       const number = cell(row, mapping.value.number);
       const setHint = cell(row, mapping.value.set);
       const condRaw = cell(row, mapping.value.condition);
       const qty = mapping.value.quantity >= 0 ? Math.max(1, Math.round(toNumber(cell(row, mapping.value.quantity)))) || 1 : 1;
       const csvPrice = mapping.value.price >= 0 ? toNumber(cell(row, mapping.value.price)) : 0;
+      const costCell = mapping.value.cost >= 0 ? cell(row, mapping.value.cost) : "";
+      const cost = costCell ? toNumber(costCell) : null;
+      const remark = mapping.value.remark >= 0 ? cell(row, mapping.value.remark) : "";
 
       let match: CatalogMatch | null = null;
       if (name) {
@@ -699,6 +725,8 @@ const reconcile = async () => {
         condition: condRaw || defaultCondition.value,
         quantity: qty,
         price: csvPrice || match?.price?.market || 0,
+        cost,
+        remark,
         match,
         include: true,
       };
@@ -755,6 +783,8 @@ const doImport = async () => {
         condition: r.condition,
         quantity: r.quantity,
         listPrice: r.price || 0,
+        costPrice: typeof r.cost === "number" ? r.cost : null,
+        costNote: r.remark || undefined,
         stockImageUrl: r.match?.imageUrl || "",
         photos: photoUrls.has(r) ? [photoUrls.get(r)!] : [],
         source: r.photoFile ? ("scan" as const) : ("csv" as const),

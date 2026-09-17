@@ -214,6 +214,7 @@ export default defineEventHandler(async (event) => {
             status: "listed",
             soldAt: null,
             soldPrice: null,
+            soldFee: null,
             saleChannel: null,
             updatedAt: now,
           }),

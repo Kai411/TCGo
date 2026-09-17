@@ -134,7 +134,10 @@ const handleMarkAsSold = async (cardId: string) => {
   try {
     await markAsSold(cardId);
     // Keep the linked inventory item (if any) in sync.
-    await markSoldByListingId(cardId);
+    await markSoldByListingId(
+      cardId,
+      cards.value.find((c: Card) => c.id === cardId)?.price,
+    );
   } finally {
     markingAsSold.value = null;
   }

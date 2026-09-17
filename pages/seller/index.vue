@@ -25,7 +25,14 @@
         :orders="sellerCompiledOrders"
         :pos-sales="posSales"
         @select="goToOrders"
-      />
+      >
+        <!-- What the shelf is worth today and what it has earned. After the
+             work queue on purpose: the dashboard leads with what to do, then
+             with the number worth opening the app for. -->
+        <template #after-attention>
+          <InventoryWorthCard :items="inventoryItems" />
+        </template>
+      </SellerSalesDashboard>
     </template>
   </div>
 </template>
