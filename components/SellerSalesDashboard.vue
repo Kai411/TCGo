@@ -36,6 +36,10 @@
       </div>
     </section>
 
+    <!-- Other seller-home cards slot in here: after the work queue, before
+         the money. See pages/seller/index.vue. -->
+    <slot name="after-attention" />
+
     <!-- ── Revenue + trend ─────────────────────────────────────────── -->
     <section data-tour="dashboard-sales" class="surface rounded-2xl p-4 sm:p-5">
       <div class="flex flex-wrap items-start justify-between gap-4">

@@ -1,6 +1,6 @@
 # Inventory cost price, per-card profit, and stock value — design
 
-Date: 2026-09-17 · Branch: `feat/inventory-cost-and-portfolio` · Status: awaiting approval
+Date: 2026-09-17 · Branch: `feat/inventory-cost-and-portfolio` · Status: approved 2026-09-17, implemented on this branch
 
 ## Goal
 
@@ -101,10 +101,14 @@ costPrice?, soldPrice?, status, soldAt?`) and a `Map<productId, marketMyr>`.
 
 - Per row: `(soldPrice ?? listPrice − costPrice) × quantity`; null when no
   cost.
-- Period totals (30 days by `soldAt`, all time): `profit`, `revenue`, `cost`,
-  `rows`, `missingCostRows`, `marginPct = profit / revenue`.
+- Period totals (30 days by `soldAt`, all time): `profit`, `revenue`,
+  `costedRevenue`, `cost`, `rows`, `missingCostRows`, and
+  `marginPct = profit / costedRevenue`. Margin is measured against the revenue
+  it can explain, not all revenue, so a sale with no recorded cost cannot
+  dilute it.
 - Rows without cost count in `revenue` and `missingCostRows`, never as zero
-  cost. All figures rounded to 2 dp once, at the end.
+  cost. Rows with no `soldAt` (hand-marked before it existed) fall back to
+  `updatedAt` for the window. All figures rounded to 2 dp once, at the end.
 
 Quantity: the POS sells a whole row (it ignores `quantity`), and
 `totalValue` on the items page already multiplies by quantity, so prices are
@@ -175,3 +179,6 @@ Empty and degraded states:
 - Cost per copy on the collector's collection page, reusing
   `shared/portfolio.ts`.
 - Cost entry in the scan review step.
+- The manual listing form does not capture the catalog product id, so a
+  listing created there is mirrored into inventory unpriced. Passing the
+  `catalog-select` id through would let the card value those rows too.
