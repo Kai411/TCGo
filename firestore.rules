@@ -13,7 +13,8 @@ rules_version = '2';
 // Billplz webhook, the Didit webhook, payouts, shipping) keeps working
 // untouched. Anything that must not be self-served is written server-side.
 //
-// DEPLOY:  firebase deploy --only firestore:rules
+// DEPLOY:  node scripts/deploy-firestore-rules.mjs --yes   (service account, no CLI needed)
+//     or:  firebase deploy --only firestore:rules
 // A collection with no match block below is DENIED — add one before shipping
 // a new collection.
 
@@ -86,9 +87,12 @@ service cloud.firestore {
     // Favouriting and view-interest bump counters on someone else's listing.
     // That's engagement, not editing, so it's allowed for any signed-in user —
     // but ONLY these keys, and hasOnly means nothing else may ride along.
+    // viewCount is here because the card page bumps it on every open
+    // (useCards.recordView); without it, view counts would have silently
+    // frozen the day these rules went live.
     function onlyEngagementCounters() {
       return signedIn() && request.resource.data.diff(resource.data)
-        .affectedKeys().hasOnly(['favouriteCount', 'interestedCount'].toSet());
+        .affectedKeys().hasOnly(['favouriteCount', 'interestedCount', 'viewCount'].toSet());
     }
 
     function touchesProtectedProfileFields() {
@@ -250,7 +254,12 @@ service cloud.firestore {
 
     // ── userCollection (personal collection tracking) ────────────────
     match /userCollection/{entryId} {
-      allow read: if isOwner(resource.data.userUid) || isAdmin();
+      // Readable by any signed-in user, like favourites: a collection is a
+      // public showcase on the profile page (useUserCollection reads other
+      // people's rows for exactly that). Owner-only would have emptied every
+      // showcase the day the rules went live. Tighten to a per-user toggle if
+      // collections ever need to be private.
+      allow read: if signedIn();
       allow create: if isOwner(request.resource.data.userUid);
       allow update: if isOwner(resource.data.userUid)
         && request.resource.data.userUid == resource.data.userUid;

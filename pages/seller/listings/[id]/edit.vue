@@ -235,7 +235,13 @@ const handleSubmit = async () => {
     // Keep the mirrored inventory row's list price in step.
     try {
       const snap = await getDocs(
-        query(collection(firestore!, "inventory"), where("listingId", "==", cardId)),
+        query(
+          collection(firestore!, "inventory"),
+          // Owner clause first: the rules refuse an inventory query that
+          // doesn't restrict itself to the caller's own rows.
+          where("userUid", "==", user.value?.uid ?? ""),
+          where("listingId", "==", cardId),
+        ),
       );
       await Promise.all(
         snap.docs.map((d) => updateDoc(d.ref, { listPrice: price.value, updatedAt: Date.now() })),
