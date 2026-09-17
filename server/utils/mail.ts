@@ -16,6 +16,8 @@ export interface MailAddress {
 
 export interface SendMailInput {
   to: MailAddress[];
+  /** Overrides the default reply address for one message. */
+  replyTo?: MailAddress;
   subject: string;
   html: string;
   text: string;
@@ -50,6 +52,12 @@ export const sendMail = async (
   const recipients = input.to.filter((r) => !!r.email);
   if (!recipients.length) return { sent: false, sandbox, reason: "No recipient address" };
 
+  const replyAddress =
+    input.replyTo?.email || (config.mailReplyTo as string) || "support@tcgo.shop";
+  const replyTo = replyAddress
+    ? { email: replyAddress, name: input.replyTo?.name || (config.mailFromName as string) || "TCGo" }
+    : null;
+
   const res = await fetch(url, {
     method: "POST",
     headers: { "Api-Token": token, "Content-Type": "application/json" },
@@ -59,6 +67,10 @@ export const sendMail = async (
         name: (config.mailFromName as string) || "TCGo",
       },
       to: recipients,
+      // Every message is sent from a no-reply address, so a reply needs
+      // somewhere real to land. Without this a customer who hits Reply gets
+      // silence or a bounce — see mailReplyTo in nuxt.config.
+      ...(replyTo ? { reply_to: replyTo } : {}),
       subject: input.subject,
       html: input.html,
       text: input.text,
