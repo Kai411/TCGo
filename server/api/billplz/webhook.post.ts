@@ -152,12 +152,19 @@ export default defineEventHandler(async (event) => {
       .collection("inventory")
       .where("listingId", "==", item.cardId)
       .get();
+    // The price the buyer actually paid, so an online sale carries a realised
+    // price the way a counter sale does and the row's profit can be worked
+    // out later. Left off when the order item has none, which falls back to
+    // the asking price downstream.
+    const paid = Number(item.price);
+    const soldPrice = Number.isFinite(paid) && paid >= 0 ? { soldPrice: paid } : {};
     await Promise.all(
       inv.docs.map((d) =>
         d.ref.update({
           status: "sold",
           soldAt: now,
           saleChannel: "online",
+          ...soldPrice,
           updatedAt: now,
         }),
       ),

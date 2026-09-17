@@ -54,6 +54,14 @@ export interface InventoryItem {
   status: InventoryStatus;
   source: InventorySource;
   notes: string;
+  // Cost basis, private to the seller. `costPrice` is what they paid per
+  // unit (MYR); `costNote` is where, when and from whom. Neither is ever
+  // mirrored onto the public listing — `notes` is, which is exactly why the
+  // purchase remark does not live there. Absent means unknown, never zero:
+  // shared/portfolio.ts skips rows without a cost rather than calling them
+  // free.
+  costPrice?: number;
+  costNote?: string;
   // Set when sold via POS / online.
   soldPrice?: number;
   soldAt?: number;
@@ -86,7 +94,16 @@ export interface InventoryItemInput {
   photos?: string[];
   source?: InventorySource;
   notes?: string;
+  costPrice?: number | null;
+  costNote?: string;
 }
+
+// What updateItem accepts. The cost fields also take null so a form can clear
+// them; see updateItem for how that lands in Firestore.
+export type InventoryPatch = Omit<Partial<InventoryItem>, "costPrice" | "costNote"> & {
+  costPrice?: number | null;
+  costNote?: string | null;
+};
 
 export interface ListOptions {
   sellerName: string;
@@ -111,6 +128,14 @@ let lastUid: string | null = null;
 // the Labels page). Empty = print everything.
 const labelQueue = ref<string[]>([]);
 
+// A usable cost: any finite, non-negative number. Zero is a real cost (a
+// pull, a freebie, a trade) and is kept; an empty input arrives as "" or null
+// and means "not recorded".
+export const validCost = (n: unknown): n is number =>
+  typeof n === "number" && Number.isFinite(n) && n >= 0;
+
+const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+
 const buildItem = (
   input: InventoryItemInput,
   userUid: string,
@@ -134,6 +159,10 @@ const buildItem = (
     status: "in_stock",
     source: input.source ?? "manual",
     notes: input.notes ?? "",
+    // Firestore rejects `undefined`, so the cost fields are written only when
+    // there is something to write.
+    ...(validCost(input.costPrice) ? { costPrice: round2(input.costPrice) } : {}),
+    ...(input.costNote?.trim() ? { costNote: input.costNote.trim() } : {}),
     createdAt: now,
     updatedAt: now,
   };
@@ -197,9 +226,19 @@ export const useInventory = () => {
     return written;
   };
 
-  const updateItem = async (id: string, patch: Partial<InventoryItem>) => {
+  const updateItem = async (id: string, patch: InventoryPatch) => {
     if (!firestore) return;
     const next: Record<string, unknown> = { ...patch, updatedAt: Date.now() };
+    // Clearing a cost field: Firestore rejects `undefined` outright, and a
+    // stored null would read as "free" rather than "unknown", so both become
+    // a delete and the row goes back to having no recorded cost.
+    if ("costPrice" in patch) {
+      next.costPrice = validCost(patch.costPrice) ? round2(patch.costPrice) : deleteField();
+    }
+    if ("costNote" in patch) {
+      const note = patch.costNote?.trim();
+      next.costNote = note ? note : deleteField();
+    }
     // Keep primaryImage coherent if photos/stock change.
     if (patch.photos || patch.stockImageUrl !== undefined) {
       const current = items.value.find((i) => i.id === id);
@@ -341,7 +380,7 @@ export const useInventory = () => {
 
   // Called from the listings side when a card is marked sold — find and sync
   // its linked inventory item (if any).
-  const markSoldByListingId = async (cardId: string) => {
+  const markSoldByListingId = async (cardId: string, soldPrice?: number) => {
     if (!firestore) return;
     const q = query(
       collection(firestore, "inventory"),
@@ -355,6 +394,10 @@ export const useInventory = () => {
           status: "sold",
           soldAt: now,
           saleChannel: "online",
+          // The listing price is the best record of what a hand-marked online
+          // sale fetched; without it the row's profit falls back to the same
+          // figure anyway.
+          ...(validCost(soldPrice) ? { soldPrice } : {}),
           updatedAt: now,
         }),
       ),
@@ -375,6 +418,8 @@ export const useInventory = () => {
       price?: number;
       imageUrl?: string;
       quantity?: number;
+      costPrice?: number | null;
+      costNote?: string;
     },
   ) => {
     if (!user.value || !firestore) return;
@@ -390,6 +435,8 @@ export const useInventory = () => {
         listPrice: data.price,
         stockImageUrl: data.imageUrl,
         source: "manual",
+        costPrice: data.costPrice,
+        costNote: data.costNote,
       },
       user.value.uid,
     );
