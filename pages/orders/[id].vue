@@ -223,6 +223,20 @@
                 >
                   Mark received
                 </button>
+                <!-- Returns after delivery aren't open yet: the policy that
+                     protects both the buyer and TCGo from a card going missing
+                     mid-return hasn't been settled. Shown rather than hidden so
+                     a buyer knows it is coming rather than assuming there is no
+                     recourse at all. -->
+                <button
+                  v-if="order.status === 'delivered'"
+                  type="button"
+                  disabled
+                  title="Returns and refunds for delivered orders are coming soon"
+                  class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-400 dark:text-zinc-500 cursor-not-allowed"
+                >
+                  Return &amp; refund · coming soon
+                </button>
                 <button
                   v-if="order.status === 'pending'"
                   @click="handleCancel"
@@ -555,7 +569,7 @@
             <span>You'll receive</span><span>RM {{ refundSummary.amount.toFixed(2) }}</span>
           </div>
           <p class="text-[11px] text-gray-500 dark:text-zinc-400 pt-1">
-            A 4% refund processing fee (minimum RM 1) covers the payment and transfer charges. Refunds are sent to your bank after review.
+            A 5% payment processing fee (capped at RM 2) covers the payment and transfer charges. Refunds are sent to your bank after review.
           </p>
         </div>
 
@@ -749,6 +763,7 @@ const buyerActions = computed(() => {
   return (
     isPayable.value ||
     o.status === "shipped" ||
+    o.status === "delivered" ||
     o.status === "pending" ||
     o.status === "confirmed"
   );

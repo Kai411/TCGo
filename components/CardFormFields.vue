@@ -149,27 +149,6 @@
       </div>
     </div>
 
-    <!-- Buyer-facing flags -->
-    <div class="flex flex-wrap gap-4 pt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
-      <label class="inline-flex items-center gap-2 cursor-pointer text-[13px] text-ink-subtle dark:text-zinc-200">
-        <input
-          type="checkbox"
-          :checked="modelValue.negotiable === true"
-          @change="onCheckboxInput('negotiable', $event)"
-          class="w-4 h-4 rounded text-pokemon-red focus:ring-pokemon-red"
-        />
-        Negotiable
-      </label>
-      <label class="inline-flex items-center gap-2 cursor-pointer text-[13px] text-ink-subtle dark:text-zinc-200">
-        <input
-          type="checkbox"
-          :checked="modelValue.pickupAvailable === true"
-          @change="onCheckboxInput('pickupAvailable', $event)"
-          class="w-4 h-4 rounded text-pokemon-red focus:ring-pokemon-red"
-        />
-        Pickup available
-      </label>
-    </div>
   </section>
 
   <!-- Description -->
@@ -292,8 +271,10 @@ export interface CardFormData {
   certNumber: string;
   // Commerce flags
   quantity: number;
-  negotiable: boolean;
-  pickupAvailable: boolean;
+  // No longer collected when listing; kept optional so an existing listing
+  // carries its saved value through the edit form unchanged.
+  negotiable?: boolean;
+  pickupAvailable?: boolean;
 }
 
 const props = defineProps<{
