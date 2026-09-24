@@ -39,6 +39,25 @@ CREATE INDEX IF NOT EXISTS cards_catalog_group_idx
 CREATE INDEX IF NOT EXISTS cards_catalog_rarity_idx
   ON cards_catalog (rarity);
 
+-- search_catalog filters with ILIKE '%…%' on rarity and group_name, and a
+-- plain btree index cannot answer a leading-wildcard match — it was only ever
+-- helping exact-equality lookups. These are the trigram equivalents, which
+-- can. Without them a rarity or set search reads all 63k rows.
+CREATE INDEX IF NOT EXISTS cards_catalog_rarity_trgm
+  ON cards_catalog USING gin (rarity gin_trgm_ops);
+
+CREATE INDEX IF NOT EXISTS cards_catalog_group_name_trgm
+  ON cards_catalog USING gin (group_name gin_trgm_ops);
+
+-- Every search filters on language now that both are searched by default.
+CREATE INDEX IF NOT EXISTS cards_catalog_language_idx
+  ON cards_catalog (language);
+
+-- Number searches match the whole value or up to the slash ("012", "012/202",
+-- "GG44/GG70"), which is a leading-anchored pattern trigrams handle well.
+CREATE INDEX IF NOT EXISTS cards_catalog_number_trgm
+  ON cards_catalog USING gin (number gin_trgm_ops);
+
 ------------------------------------------------------------------
 -- card_prices : daily upsert by cron, history kept inline as JSONB
 ------------------------------------------------------------------
@@ -284,3 +303,49 @@ RETURNS TABLE (rarity TEXT, card_count BIGINT) AS $$
   GROUP BY c.rarity
   ORDER BY c.rarity ASC;
 $$ LANGUAGE SQL STABLE;
+
+------------------------------------------------------------------
+-- card_price_sources : prices from somewhere other than TCGPlayer
+------------------------------------------------------------------
+-- A second opinion, kept apart from card_prices on purpose.
+--
+-- card_prices.prices is a map of TCGPlayer SUB-TYPES, and the reader falls
+-- back to "any key with a market value". Putting a Cardmarket figure in there
+-- would see it picked up as a sub-type and converted as though it were USD —
+-- a European price quoted as an American one, silently. They are different
+-- markets, not two readings of one number, so they get different rows.
+--
+-- Scarce cards are the reason this exists: TCGPlayer publishes a market price
+-- from recent sales, and a card that barely trades has none. 34 of 61 Gold
+-- Stars have no TCGPlayer price; Cardmarket prices the EX Deoxys Rayquaza at
+-- around EUR 2420.
+CREATE TABLE IF NOT EXISTS card_price_sources (
+  product_id  BIGINT NOT NULL REFERENCES cards_catalog(product_id) ON DELETE CASCADE,
+  source      TEXT   NOT NULL,             -- 'cardmarket'
+  currency    TEXT   NOT NULL,             -- ISO 4217, e.g. 'EUR'
+  market      NUMERIC,                     -- headline figure, source currency
+  low         NUMERIC,
+  high        NUMERIC,
+  -- Everything the source returned, so a figure can be re-derived later
+  -- without re-fetching.
+  raw         JSONB NOT NULL DEFAULT '{}'::jsonb,
+  fetched_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (product_id, source)
+);
+
+CREATE INDEX IF NOT EXISTS card_price_sources_product_idx
+  ON card_price_sources (product_id);
+
+DROP TRIGGER IF EXISTS card_price_sources_touch ON card_price_sources;
+CREATE TRIGGER card_price_sources_touch
+  BEFORE UPDATE ON card_price_sources
+  FOR EACH ROW
+  EXECUTE FUNCTION touch_updated_at();
+
+ALTER TABLE card_price_sources ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "price sources public read" ON card_price_sources;
+CREATE POLICY "price sources public read"
+  ON card_price_sources FOR SELECT
+  USING (true);
