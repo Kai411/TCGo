@@ -42,6 +42,15 @@ export const renderInvoiceEmail = (
   const addr = order.deliveryAddress;
   const orderUrl = `${opts.siteUrl}/orders/${order.id}`;
   const invoiceUrl = `${opts.siteUrl}/invoices/${order.id}`;
+  // The navbar's logo. The nav renders a 256x256 sprite as `w-[110px]
+  // object-cover`, i.e. a centred horizontal slice of it — and no email client
+  // supports object-fit, so the slice is pre-cropped into its own file rather
+  // than reproduced with CSS. Keep tcgo-email-logo.png in step with
+  // assets/images/tcgo_sprites.png if the nav logo ever changes.
+  //
+  // Gmail hides images from senders you haven't corresponded with, so the alt
+  // text is what most first-time recipients actually see — keep it the name.
+  const logoUrl = `${opts.siteUrl}/tcgo-email-logo.png`;
 
   const rows = (order.items ?? [])
     .map(
@@ -80,7 +89,10 @@ export const renderInvoiceEmail = (
 
   <tr><td style="padding-bottom:18px;border-bottom:1px solid #e5e7eb">
     <table role="presentation" width="100%"><tr>
-      <td style="font:800 20px Helvetica,Arial,sans-serif;color:#111">TCGo</td>
+      <td style="font:800 20px Helvetica,Arial,sans-serif;color:#111">
+        <img src="${esc(logoUrl)}" alt="TCGo" width="110" height="64"
+             style="display:block;border:0;outline:none;text-decoration:none;width:110px;height:64px" />
+      </td>
       <td align="right" style="font:14px Helvetica,Arial,sans-serif;color:#111">
         <strong>INVOICE</strong><br/>
         <span style="font-family:monospace;color:#666;font-size:12px">#${esc(ref)}</span>
