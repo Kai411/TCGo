@@ -317,12 +317,10 @@
         </div>
       </div>
 
-      <!-- Release notes. Someone who wants to know what changed should not
-           have to wait for the next release to see the sheet again. -->
-      <button
+      <!-- Release notes live on their own page; nothing pops up on its own. -->
+      <NuxtLink
         v-if="!loading"
-        type="button"
-        @click="openAll"
+        to="/update-notice"
         class="w-full text-left flex items-center gap-4 bg-white dark:bg-white/[0.04] rounded-xl p-5 border border-gray-200 dark:border-white/[0.08] mt-4 hover:border-gray-300 dark:hover:border-white/[0.16] transition-colors"
       >
         <div class="w-10 h-10 shrink-0 rounded-xl bg-pokemon-red/[0.08] flex items-center justify-center">
@@ -337,7 +335,7 @@
           </p>
         </div>
         <svg class="w-4 h-4 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-      </button>
+      </NuxtLink>
 
       <div
         v-if="!loading"
@@ -373,7 +371,6 @@ import { MY_STATES } from "~/shared/my-states";
 import { APP_VERSION } from "~/shared/releases";
 
 const {user} = useAuth();
-const { openAll } = useWhatsNew();
 const { goToLogin } = useSignInGate();
 const { profile, loading, updateProfile, updateCustomName } = useMyProfile();
 const { uploadImage } = useStorage();

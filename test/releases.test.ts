@@ -9,13 +9,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import {
-  APP_VERSION,
-  MAX_SHOWN,
-  RELEASES,
-  compareVersions,
-  unseenReleases,
-} from "~/shared/releases";
+import { APP_VERSION, RELEASES, compareVersions } from "~/shared/releases";
 
 /**
  * Words that describe how TCGo is built or run, not what it does.
@@ -97,42 +91,5 @@ describe("version ordering", () => {
   it("treats a missing segment as zero", () => {
     assert.equal(compareVersions("1.1", "1.1.0"), 0);
     assert.ok(compareVersions("1.1.1", "1.1") > 0);
-  });
-});
-
-describe("what someone is shown", () => {
-  it("shows only the current release to someone with nothing stored", () => {
-    // Brand-new visitor, or someone who was here before this existed. The
-    // whole history would be noise; nothing at all would waste the release
-    // they actually missed.
-    const shown = unseenReleases(null);
-    assert.equal(shown.length, 1);
-    assert.equal(shown[0]!.version, APP_VERSION);
-  });
-
-  it("shows nothing to someone already on the current version", () => {
-    assert.deepEqual(unseenReleases(APP_VERSION), []);
-  });
-
-  it("shows what they missed after being away", () => {
-    const oldest = RELEASES[RELEASES.length - 1]!.version;
-    const shown = unseenReleases(oldest);
-    assert.ok(shown.length >= 1);
-    assert.ok(
-      shown.every((r) => compareVersions(r.version, oldest) > 0),
-      "showed a release they had already seen",
-    );
-  });
-
-  it("never shows more than a screenful", () => {
-    assert.ok(unseenReleases("0.0.1").length <= MAX_SHOWN);
-  });
-
-  it("survives a stored version we do not recognise", () => {
-    // Storage is the user's, and it can hold anything.
-    assert.doesNotThrow(() => unseenReleases("banana"));
-    assert.doesNotThrow(() => unseenReleases(""));
-    assert.doesNotThrow(() => unseenReleases("999.0.0"));
-    assert.deepEqual(unseenReleases("999.0.0"), []);
   });
 });
