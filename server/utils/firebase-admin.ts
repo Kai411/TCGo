@@ -1,21 +1,29 @@
 import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
+import { getAuth, type Auth } from "firebase-admin/auth";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
 let adminApp: App | null = null;
 let _db: Firestore | null = null;
 
-export const getAdminFirestore = (): Firestore => {
-  if (!_db) {
-    const config = useRuntimeConfig();
-    const sa = JSON.parse(
-      Buffer.from(config.firebaseServiceAccount as string, "base64").toString("utf8"),
-    );
-    if (!getApps().length) {
-      adminApp = initializeApp({ credential: cert(sa) });
+const getAdminApp = (): App => {
+  if (!adminApp) {
+    const existing = getApps();
+    if (existing.length) {
+      adminApp = existing[0];
     } else {
-      adminApp = getApps()[0];
+      const config = useRuntimeConfig();
+      const sa = JSON.parse(
+        Buffer.from(config.firebaseServiceAccount as string, "base64").toString("utf8"),
+      );
+      adminApp = initializeApp({ credential: cert(sa) });
     }
-    _db = getFirestore(adminApp);
   }
+  return adminApp;
+};
+
+export const getAdminFirestore = (): Firestore => {
+  if (!_db) _db = getFirestore(getAdminApp());
   return _db;
 };
+
+export const getAdminAuth = (): Auth => getAuth(getAdminApp());

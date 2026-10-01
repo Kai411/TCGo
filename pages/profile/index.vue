@@ -393,14 +393,13 @@ const upgradeLoading = ref(false);
 const portalLoading = ref(false);
 const claimingBonus = ref(false);
 
+const { apiFetch } = useApi();
+
 const handleUpgrade = async () => {
   if (!user.value) return;
   upgradeLoading.value = true;
   try {
-    const res = await $fetch<{ url: string }>('/api/stripe/checkout', {
-      method: 'POST',
-      body: { type: 'subscription', uid: user.value.uid, email: user.value.email },
-    });
+    const res = await apiFetch<{ url: string }>('/api/stripe/checkout', { method: 'POST' });
     if (res.url) window.location.href = res.url;
   } catch (e: any) {
     alert(e?.data?.message || 'Failed to start checkout.');
@@ -413,10 +412,7 @@ const openPortal = async () => {
   if (!profile.value?.stripeCustomerId) return;
   portalLoading.value = true;
   try {
-    const res = await $fetch<{ url: string }>('/api/stripe/portal', {
-      method: 'POST',
-      body: { customerId: profile.value.stripeCustomerId },
-    });
+    const res = await apiFetch<{ url: string }>('/api/stripe/portal', { method: 'POST' });
     if (res.url) window.location.href = res.url;
   } catch (e: any) {
     alert(e?.data?.message || 'Failed to open portal.');

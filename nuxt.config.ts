@@ -167,6 +167,23 @@ export default defineNuxtConfig({
     stripeWebhookSecret: "",
     stripePricePremium: "",
     firebaseServiceAccount: "", // base64-encoded service account JSON
+    // Comma-separated Firebase uids allowed on /api/admin/* (NUXT_ADMIN_UIDS).
+    adminUids: "",
+    // Shared secret for /api/cron/* (NUXT_CRON_SECRET).
+    cronSecret: "",
+    // Billplz — Buyer Protection payments and payouts (see docs/system-design.md).
+    billplzApiKey: "",
+    billplzXSignatureKey: "",
+    billplzCollectionId: "",
+    billplzPaymentOrderCollectionId: "",
+    billplzSandbox: "true",
+    // TCGo's platform fee in basis points (300 = 3%), taken at payout.
+    platformFeeBps: "0",
+    // TCGo's own bank account that platform fees are swept into.
+    tcgoBankCode: "",
+    tcgoBankAccount: "",
+    tcgoAccountName: "",
+    tcgoIdentityNumber: "", // SSM registration number
     public: {
       firebaseApiKey: "",
       firebaseAuthDomain: "",
