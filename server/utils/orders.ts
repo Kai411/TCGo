@@ -277,6 +277,11 @@ export const mergeOrders = async (
     }
 
     const becomesConfirmed = list.some((o) => o.status === "confirmed");
+    // Folding pending items into a confirmed order reserves them, which is the
+    // seller's call, same as confirming.
+    if (becomesConfirmed && !caller.isAdmin && caller.uid !== sellerUid) {
+      throw forbidden("Only the seller can merge into a confirmed order");
+    }
     const now = Date.now();
     const cardRefs = items.map((i) => cards(db).doc(i.cardId));
 

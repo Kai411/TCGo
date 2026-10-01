@@ -168,7 +168,11 @@ first run): `compiledOrders` on `status ASC, payoutStatus ASC, payoutEligibleAt 
 1. Verify the Payment Order checksum field order and the `reference_id`
    parameter against Billplz's v5 docs in the sandbox (`server/utils/billplz.ts`).
 2. Get Billplz's written OK for marketplace use (see legal notes).
-3. Deploy the Firestore rules above.
+3. Deploy the Firestore rules above. Until they're live a browser can still
+   write order documents directly; payouts re-check every payment with
+   Billplz (bill paid, `reference_1` = order id, amount matches the ledger)
+   so a forged order can't be paid out, but forged statuses would still
+   show in the app.
 4. Schedule `/api/cron/release-payouts` (hourly is plenty).
 5. Build the UI pieces: Pay button on confirmed orders (`startPayment`),
    dispute button (`raiseDispute`), seller payout-account form, admin payout

@@ -1,7 +1,7 @@
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { canTransition, type CompiledOrder } from "~/utils/orders";
-import { createPaymentOrder, type PayoutAccount } from "~/server/utils/billplz";
-import { ledgerCol, platformFeeSen, postEntry } from "~/server/utils/ledger";
+import { createPaymentOrder, getBill, type PayoutAccount } from "~/server/utils/billplz";
+import { ledgerCol, ledgerId, platformFeeSen, postEntry } from "~/server/utils/ledger";
 
 // Money out of the holding account. Pattern for every outgoing transfer:
 //   1. transaction: check state, mark "processing" (a lock other callers see)
@@ -20,7 +20,7 @@ export const releasePayout = async (
 ) => {
   const ref = db.collection("compiledOrders").doc(orderId);
 
-  const { order, account } = await db.runTransaction(async (tx) => {
+  const { order, account, paidSen } = await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw fail(404, "Order not found");
     const o = { ...(snap.data() as CompiledOrder), id: snap.id };
@@ -33,13 +33,36 @@ export const releasePayout = async (
     if (o.status === "delivered" && !opts.force && Date.now() < (o.payoutEligibleAt ?? Infinity)) {
       throw fail(409, "Buyer Protection window is still open");
     }
+    const payment = await tx.get(ledgerCol(db).doc(ledgerId(o.id, "buyer_payment")));
+    if (!payment.exists) throw fail(409, "No payment recorded for this order");
     const acc = await tx.get(db.collection("payoutAccounts").doc(o.sellerUid));
     if (!acc.exists) throw fail(409, "Seller hasn't added a payout account");
     tx.update(ref, { payoutStatus: "processing", payoutStartedAt: Date.now() });
-    return { order: o, account: acc.data() as PayoutAccount };
+    return {
+      order: o,
+      account: acc.data() as PayoutAccount,
+      paidSen: payment.get("amountSen") as number,
+    };
   });
 
-  const amountSen = order.amountSen ?? 0;
+  // Never pay out on the order document's word alone: confirm with Billplz
+  // that this order's own bill was paid, and for how much.
+  const bill = order.billplzBillId
+    ? await getBill(order.billplzBillId!).catch(() => null)
+    : null;
+  const collectionId = useRuntimeConfig().billplzCollectionId as string;
+  if (
+    !bill ||
+    !bill.paid ||
+    bill.reference_1 !== order.id ||
+    (collectionId && bill.collection_id !== collectionId) ||
+    bill.paid_amount !== paidSen
+  ) {
+    await ref.update({ payoutStatus: "failed", payoutError: "Billplz bill doesn't match this order" });
+    throw fail(409, "Billplz bill doesn't match this order; check it before paying out");
+  }
+
+  const amountSen = paidSen;
   const feeSen = platformFeeSen(amountSen);
   const payoutSen = amountSen - feeSen;
 
