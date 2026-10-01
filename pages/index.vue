@@ -17,32 +17,51 @@
         <ListingFilters :filters="filters" :tcg-counts="tcgCounts" />
       </div>
 
-      <!-- Loading -->
-      <div v-if="loading" class="flex justify-center py-24">
-        <div
-          class="animate-spin rounded-full h-8 w-8 border-2 border-ink/10 border-t-pokemon-red"
-        />
+      <!-- Loading: skeleton tiles in the same grid, so the page doesn't
+           jump when listings arrive. -->
+      <div
+        v-if="loading"
+        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 xl:gap-5"
+        role="status"
+        aria-label="Loading listings"
+      >
+        <CardTileSkeleton v-for="n in 10" :key="n" />
       </div>
 
-      <!-- Empty -->
-      <div
-        v-else-if="availableCards.length === 0"
-        class="surface rounded-2xl py-20 text-center"
+      <!-- Empty because filters hid everything: offer a way back out. -->
+      <EmptyState
+        v-else-if="availableCards.length === 0 && filters.activeCount.value > 0"
+        headline="No cards match these filters"
+        caption="Try removing a filter or switching back to all games."
       >
-        <p class="text-lg font-semibold text-ink dark:text-white">
-          No cards listed yet
-        </p>
-        <p class="mt-1 text-sm text-ink-muted dark:text-zinc-400">
-          Be the first collector to list one.
-        </p>
+        <template #icon>
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 5h18l-7 8v6l-4-2v-4z" />
+          </svg>
+        </template>
+        <button
+          type="button"
+          @click="filters.reset()"
+          class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
+        >
+          Clear filters
+        </button>
+      </EmptyState>
+
+      <!-- Empty marketplace -->
+      <EmptyState
+        v-else-if="availableCards.length === 0"
+        headline="No cards listed yet"
+        caption="Be the first collector to list one."
+      >
         <NuxtLink
           v-if="user"
           to="/seller/listings/new"
-          class="mt-6 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow ease-premium"
+          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow ease-premium"
         >
           List your first card
         </NuxtLink>
-      </div>
+      </EmptyState>
 
       <!-- Grid -->
       <template v-else>

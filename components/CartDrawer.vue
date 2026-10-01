@@ -146,7 +146,13 @@
                 >
                   {{ item.cardName }}
                 </NuxtLink>
-                <p class="text-xs text-ink-muted dark:text-zinc-400 truncate">
+                <p
+                  v-if="unavailableIds.has(item.id)"
+                  class="text-xs font-semibold text-amber-700 dark:text-amber-300"
+                >
+                  No longer available
+                </p>
+                <p v-else class="text-xs text-ink-muted dark:text-zinc-400 truncate">
                   {{ item.cardSet }}
                   <span v-if="item.condition"> · {{ item.condition }}</span>
                 </p>
@@ -208,10 +214,28 @@
 </template>
 
 <script setup lang="ts">
+import { isAvailable } from "~/shared/card-availability";
 const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{ (e: "update:modelValue", v: boolean): void }>();
 
 const { items, removeFromCart } = useCart();
+
+// The cart is saved on the device, so an item can sell (or be reserved at a
+// seller's counter) after it was added. Flag it here; checkout and the
+// payment endpoint still refuse it either way.
+const { cards, loading: cardsLoading } = useCards();
+const unavailableIds = computed(() => {
+  if (cardsLoading.value) return new Set<string>();
+  const live = new Map(cards.value.map((c) => [c.id, c]));
+  return new Set(
+    items.value
+      .filter((it) => {
+        const c = live.get(it.id);
+        return !c || !isAvailable(c);
+      })
+      .map((it) => it.id),
+  );
+});
 const { startFromCart } = useCheckout();
 
 const close = () => emit("update:modelValue", false);

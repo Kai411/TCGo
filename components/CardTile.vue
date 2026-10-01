@@ -87,9 +87,12 @@ const timerClasses = computed(() => {
 </script>
 
 <template>
-  <NuxtLink :to="linkTo" class="group block">
+  <NuxtLink
+    :to="linkTo"
+    class="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokemon-red focus-visible:ring-offset-2 focus-visible:ring-offset-canvas dark:focus-visible:ring-offset-canvas-inverse"
+  >
     <article
-      class="surface rounded-2xl overflow-hidden hover:shadow-card-hover transition-shadow duration-300 ease-premium h-full flex flex-col"
+      class="surface rounded-2xl overflow-hidden group-hover:shadow-card-hover group-hover:-translate-y-0.5 transition duration-300 ease-premium h-full flex flex-col"
     >
       <!-- Image well -->
       <div class="p-2 sm:p-2.5 bg-white dark:bg-white/[0.04]">
@@ -124,6 +127,7 @@ const timerClasses = computed(() => {
           >
             <svg
               class="w-2.5 h-2.5"
+              aria-hidden="true"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -133,6 +137,7 @@ const timerClasses = computed(() => {
               <circle cx="12" cy="13" r="3" />
             </svg>
             {{ imageCount }}
+            <span class="sr-only">photos</span>
           </span>
 
           <!-- Top-right: grade/condition badge -->
@@ -170,6 +175,7 @@ const timerClasses = computed(() => {
           >
             <svg
               class="w-2.5 h-2.5"
+              aria-hidden="true"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -179,6 +185,7 @@ const timerClasses = computed(() => {
               <circle cx="12" cy="13" r="3" />
             </svg>
             {{ imageCount }}
+            <span class="sr-only">photos</span>
           </span>
         </div>
       </div>
