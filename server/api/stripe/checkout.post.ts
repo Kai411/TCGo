@@ -1,81 +1,31 @@
 import { getStripe } from "~/server/utils/stripe";
+import { requireUser } from "~/server/utils/auth";
 
-interface LineItem {
-  orderId: string;
-  name: string;
-  price: number;
-  shipping: number;
-  imageUrl?: string;
-}
-
+// Premium membership checkout. Stripe is only used for the subscription;
+// marketplace orders are paid through Billplz (/api/orders/:id/pay).
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event);
-  const { type, uid, email, items } = body as {
-    type: "subscription" | "payment";
-    uid: string;
-    email: string;
-    items?: LineItem[];
-  };
-
-  if (!uid || !email) {
-    throw createError({ statusCode: 400, message: "uid and email required" });
+  const token = await requireUser(event);
+  if (!token.email) {
+    throw createError({ statusCode: 400, message: "Your account has no email address" });
   }
 
   const config = useRuntimeConfig();
-  const stripe = getStripe();
-  const requestUrl = getRequestURL(event);
-  const siteUrl = (config.public.siteUrl as string) || requestUrl.origin;
-
-  if (type === "subscription") {
-    const pricePremium = config.stripePricePremium as string;
-    if (!pricePremium) {
-      throw createError({ statusCode: 500, message: "Stripe price not configured" });
-    }
-
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer_email: email,
-      line_items: [{ price: pricePremium, quantity: 1 }],
-      metadata: { uid, type: "subscription" },
-      success_url: `${siteUrl}/membership/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl}/membership/cancel`,
-      allow_promotion_codes: true,
-    });
-
-    return { url: session.url };
+  const pricePremium = config.stripePricePremium as string;
+  if (!pricePremium) {
+    throw createError({ statusCode: 500, message: "Stripe price not configured" });
   }
+  const siteUrl = (config.public.siteUrl as string) || getRequestURL(event).origin;
 
-  if (type === "payment") {
-    if (!items?.length) {
-      throw createError({ statusCode: 400, message: "items required for payment" });
-    }
+  const session = await getStripe().checkout.sessions.create({
+    mode: "subscription",
+    customer_email: token.email,
+    line_items: [{ price: pricePremium, quantity: 1 }],
+    metadata: { uid: token.uid, type: "subscription" },
+    subscription_data: { metadata: { uid: token.uid } },
+    success_url: `${siteUrl}/membership/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${siteUrl}/membership/cancel`,
+    allow_promotion_codes: true,
+  });
 
-    const orderIds = items.map((i) => i.orderId).join(",");
-
-    const lineItems = items.map((item) => ({
-      price_data: {
-        currency: "myr",
-        product_data: {
-          name: item.name,
-          ...(item.imageUrl ? { images: [item.imageUrl] } : {}),
-        },
-        unit_amount: Math.round((item.price + item.shipping) * 100),
-      },
-      quantity: 1,
-    }));
-
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      customer_email: email,
-      line_items: lineItems,
-      metadata: { uid, type: "payment", orderIds },
-      payment_intent_data: { metadata: { uid, orderIds } },
-      success_url: `${siteUrl}/orders?session_id={CHECKOUT_SESSION_ID}&success=1`,
-      cancel_url: `${siteUrl}/cart?cancelled=1`,
-    });
-
-    return { url: session.url };
-  }
-
-  throw createError({ statusCode: 400, message: "Invalid type" });
+  return { url: session.url };
 });

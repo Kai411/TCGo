@@ -26,6 +26,10 @@ export default defineEventHandler(async (event) => {
 
   const db = getAdminFirestore();
 
+  // Stripe delivers at least once; skip events we've already applied.
+  const seen = db.collection("stripeEvents").doc(stripeEvent.id);
+  if ((await seen.get()).exists) return { received: true, duplicate: true };
+
   switch (stripeEvent.type) {
     case "checkout.session.completed": {
       const session = stripeEvent.data.object as Stripe.Checkout.Session;
@@ -44,19 +48,6 @@ export default defineEventHandler(async (event) => {
         });
       }
 
-      if (meta.type === "payment" && meta.orderIds) {
-        const ids = meta.orderIds.split(",").filter(Boolean);
-        const batch = db.batch();
-        for (const id of ids) {
-          batch.update(db.collection("orders").doc(id), {
-            status: "paid",
-            paidAt: Date.now(),
-            stripeSessionId: session.id,
-            stripePaymentIntentId: session.payment_intent ?? "",
-          });
-        }
-        await batch.commit();
-      }
       break;
     }
 
@@ -68,7 +59,9 @@ export default defineEventHandler(async (event) => {
         .limit(1)
         .get();
       if (!snap.empty) {
-        const isActive = sub.status === "active" || sub.status === "trialing";
+        // past_due keeps Premium while Stripe retries the card (see roadmap).
+        const isActive =
+          sub.status === "active" || sub.status === "trialing" || sub.status === "past_due";
         await snap.docs[0].ref.update({
           tier: isActive ? "premium" : "free",
           subscriptionStatus: sub.status,
@@ -110,5 +103,6 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  await seen.set({ type: stripeEvent.type, processedAt: Date.now() });
   return { received: true };
 });
