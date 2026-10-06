@@ -13,13 +13,14 @@
 // photographed and priced a card.
 
 import {
+  isSellerArea,
   isSellerOnboardingExempt,
   sellerOnboardingState,
 } from "~/shared/onboarding";
 
 export default defineNuxtRouteMiddleware((to) => {
   if (import.meta.server) return;
-  if (!to.path.startsWith("/seller")) return;
+  if (!isSellerArea(to.path)) return;
 
   const { user, authLoading } = useAuth();
   const { profile, loading } = useMyProfile();

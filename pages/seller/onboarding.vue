@@ -207,7 +207,13 @@
         </template>
       </div>
 
-      <p class="mt-5 text-center text-[12px] text-ink-soft dark:text-zinc-500">
+      <p class="mt-5 text-center text-[12px] leading-relaxed text-ink-soft dark:text-zinc-500">
+        By selling on TCGo you agree to the
+        <NuxtLink to="/seller-policy" target="_blank" class="font-semibold hover:underline">Seller Policy</NuxtLink>,
+        including its fees and payout rules.
+      </p>
+
+      <p class="mt-2 text-center text-[12px] text-ink-soft dark:text-zinc-500">
         Just browsing?
         <NuxtLink to="/" class="font-semibold hover:underline">Back to the marketplace</NuxtLink>
       </p>

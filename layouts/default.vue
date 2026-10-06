@@ -26,7 +26,14 @@
         class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-6 border-t border-black/[0.05] dark:border-white/[0.06]"
       >
         <NuxtLink to="/landing" class="hover:text-pokemon-red">About TCGo</NuxtLink>
-        <NuxtLink to="/privacy-policy" class="hover:text-pokemon-red">Privacy</NuxtLink>
+        <NuxtLink
+          v-for="link in LEGAL_LINKS"
+          :key="link.to"
+          :to="link.to"
+          class="hover:text-pokemon-red"
+        >
+          {{ link.label }}
+        </NuxtLink>
         <span>© {{ new Date().getFullYear() }} TCGo Marketplace</span>
       </div>
     </footer>
@@ -35,5 +42,7 @@
 </template>
 
 <script setup lang="ts">
+import { LEGAL_LINKS } from "~/shared/legal";
+
 const route = useRoute();
 </script>

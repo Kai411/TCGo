@@ -215,6 +215,16 @@
     <!-- Footer -->
     <footer class="hairline py-8">
       <div class="container mx-auto px-4 text-center text-sm text-ink-soft">
+        <nav class="mb-3 flex flex-wrap justify-center gap-x-4 gap-y-1" aria-label="Legal">
+          <NuxtLink
+            v-for="link in LEGAL_LINKS"
+            :key="link.to"
+            :to="link.to"
+            class="hover:text-pokemon-red"
+          >
+            {{ link.label }}
+          </NuxtLink>
+        </nav>
         <p>
           © {{ new Date().getFullYear() }} TCGo Marketplace. Built for the
           Malaysian TCG community.
@@ -226,6 +236,7 @@
 
 <script setup lang="ts">
 import { BETA_PRICING, BETA_RATE, STANDARD_RATE } from "~/shared/pricing";
+import { LEGAL_LINKS } from "~/shared/legal";
 
 definePageMeta({ layout: "landing" });
 

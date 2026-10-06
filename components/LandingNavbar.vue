@@ -33,13 +33,13 @@
           >
             Privacy Policy
           </NuxtLink>
-          <!-- <NuxtLink
-            to="/privacy-policy"
+          <NuxtLink
+            to="/terms"
             class="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
             active-class="!text-pokemon-red"
           >
-            Terms of use
-          </NuxtLink> -->
+            Terms
+          </NuxtLink>
           <NuxtLink
             to="/"
             class="inline-flex items-center gap-1 px-3.5 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white shadow-glow"
@@ -186,11 +186,12 @@ const { isAdmin } = useAdmin();
 
 const mobileMenuOpen = ref(false);
 
-// One list, so a fourth link cannot arrive with different padding.
+// One list, so another link cannot arrive with different padding.
 const mobileLinks = [
   { to: "/pricing", label: "Pricing" },
   { to: "/update-notice", label: "Updates" },
   { to: "/privacy-policy", label: "Privacy policy" },
+  { to: "/terms", label: "Terms of use" },
 ];
 
 const handleSignOut = () => {

@@ -97,6 +97,16 @@
             </p>
           </div>
 
+          <label v-if="mode === 'register'" class="mt-4 flex items-start gap-2.5 text-[12px] leading-relaxed text-ink-muted dark:text-zinc-400">
+            <input v-model="acceptedTerms" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-pokemon-red" />
+            <span>
+              I agree to the
+              <NuxtLink to="/terms" target="_blank" class="font-semibold text-pokemon-red hover:underline">Terms of Use</NuxtLink>
+              and have read the
+              <NuxtLink to="/privacy-policy" target="_blank" class="font-semibold text-pokemon-red hover:underline">Privacy Policy</NuxtLink>.
+            </span>
+          </label>
+
           <p v-if="error" class="mt-3 text-[13px] text-rose-600 dark:text-rose-400">{{ error }}</p>
 
           <button type="submit" :disabled="busy" class="btn-primary mt-5">
@@ -200,8 +210,11 @@
       </div>
 
       <p class="mt-5 text-center text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500">
-        By continuing you agree to TCGo's terms. We never post anything or
-        share your address with other members.
+        By continuing, including with Google, you agree to TCGo's
+        <NuxtLink to="/terms" target="_blank" class="underline hover:text-pokemon-red">Terms of Use</NuxtLink>
+        and acknowledge the
+        <NuxtLink to="/privacy-policy" target="_blank" class="underline hover:text-pokemon-red">Privacy Policy</NuxtLink>.
+        We never post anything on your behalf.
       </p>
     </div>
   </div>
@@ -242,6 +255,9 @@ const purpose = ref<Purpose>("verify_email");
 const email = ref("");
 const password = ref("");
 const displayName = ref("");
+// Email sign-up asks for an explicit tick. Google sign-in can create an
+// account too, so the line under the card states the same terms for it.
+const acceptedTerms = ref(false);
 const code = ref("");
 const showPassword = ref(false);
 
@@ -321,6 +337,10 @@ const submitCredentials = () =>
       return;
     }
     if (mode.value === "register") {
+      if (!acceptedTerms.value) {
+        error.value = "Please agree to the Terms of Use to create an account.";
+        return;
+      }
       if (password.value.length < MIN_PASSWORD) {
         error.value = `Use at least ${MIN_PASSWORD} characters.`;
         return;

@@ -5,6 +5,9 @@ const LIGHT_ONLY_ROUTES = [
   "/landing",
   "/pricing",
   "/privacy-policy",
+  "/terms",
+  "/refund-policy",
+  "/seller-policy",
   "/update-notice",
 ];
 
