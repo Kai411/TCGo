@@ -154,10 +154,6 @@ const route = useRoute();
 
 const { state: pushState, busy: pushBusy, refresh: refreshPush, enable: enablePush } = usePush();
 
-// A string 'NuxtLink' in :is renders an unknown <nuxtlink> tag, so rows
-// would not navigate; resolve the real component instead.
-const NuxtLink = resolveComponent("NuxtLink");
-
 const open = ref(false);
 const panel = ref<HTMLElement | null>(null);
 
