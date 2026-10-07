@@ -17,10 +17,19 @@
         <ChatInboxList :active-uid="otherUid" />
       </div>
 
-      <section class="surface rounded-2xl flex flex-col chat-pane min-w-0">
+      <!-- On a phone the open conversation takes the whole screen, like a
+           messaging app: moved to <body> (out of the page's transformed
+           enter-animation wrapper) and sized to the visual viewport so the
+           composer rides on top of the keyboard. -->
+      <Teleport to="body" :disabled="!isPhone">
+      <section
+        class="flex flex-col min-w-0"
+        :class="isPhone ? 'chat-screen bg-canvas dark:bg-canvas-inverse' : 'surface rounded-2xl chat-pane'"
+        :style="isPhone && viewport.h ? { height: `${viewport.h}px`, transform: `translateY(${viewport.top}px)` } : undefined"
+      >
         <!-- Header: who, and how responsive they are -->
-        <header class="flex items-center gap-3 px-4 py-3 border-b border-black/[0.06] dark:border-white/[0.08]">
-          <NuxtLink to="/messages" class="lg:hidden -ml-1 p-1 text-ink-muted dark:text-zinc-400" aria-label="All messages">
+        <header class="chat-header flex items-center gap-2 lg:gap-3 px-2 lg:px-4 py-2 lg:py-3 border-b border-black/[0.06] dark:border-white/[0.08]">
+          <NuxtLink to="/messages" class="lg:hidden w-11 h-11 shrink-0 grid place-items-center rounded-full text-ink dark:text-white active:bg-black/[0.06] dark:active:bg-white/[0.08]" aria-label="All messages">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
           </NuxtLink>
           <NuxtLink :to="`/profile/${otherUid}`" class="flex items-center gap-3 min-w-0 flex-1">
@@ -37,7 +46,7 @@
         </header>
 
         <!-- Messages -->
-        <div ref="scroller" class="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        <div ref="scroller" class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 space-y-3">
           <p v-if="otherMissing" class="py-10 text-center text-sm text-ink-muted dark:text-zinc-400">
             This member doesn't exist, or their account was closed.
           </p>
@@ -73,7 +82,7 @@
         </div>
 
         <!-- Composer -->
-        <form v-if="!otherMissing" class="border-t border-black/[0.06] dark:border-white/[0.08] p-3 space-y-2" @submit.prevent="submit()">
+        <form v-if="!otherMissing" class="chat-composer border-t border-black/[0.06] dark:border-white/[0.08] p-2 lg:p-3 space-y-2" @submit.prevent="submit()">
           <div v-if="pending.length || attachment" class="space-y-2">
             <div v-if="pending.length" class="flex gap-2 overflow-x-auto">
               <div v-for="(p, i) in pending" :key="p.preview" class="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-canvas-sunken">
@@ -81,7 +90,7 @@
                 <button
                   type="button"
                   @click="removeImage(i)"
-                  class="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white text-xs leading-none"
+                  class="hit-44 absolute top-0.5 right-0.5 w-6 h-6 rounded-full bg-black/60 text-white text-sm leading-none"
                   aria-label="Remove photo"
                 >×</button>
               </div>
@@ -91,7 +100,7 @@
               <button
                 type="button"
                 @click="attachment = null"
-                class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-ink text-white dark:bg-white dark:text-ink text-sm leading-none shadow"
+                class="hit-44 absolute -top-2 -right-2 w-6 h-6 rounded-full bg-ink text-white dark:bg-white dark:text-ink text-sm leading-none shadow"
                 aria-label="Remove attachment"
               >×</button>
             </div>
@@ -104,7 +113,7 @@
               type="button"
               @click="fileInput?.click()"
               :disabled="pending.length >= CHAT_IMAGES_MAX"
-              class="p-2 rounded-lg text-ink-muted dark:text-zinc-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] disabled:opacity-40"
+              class="w-11 h-11 lg:w-9 lg:h-9 shrink-0 grid place-items-center rounded-full text-ink-muted dark:text-zinc-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-[0.94] transition-transform duration-150 ease-out disabled:opacity-40"
               aria-label="Attach photos"
               title="Attach photos"
             >
@@ -116,7 +125,7 @@
             <button
               type="button"
               @click="pickerOpen = true"
-              class="p-2 rounded-lg text-ink-muted dark:text-zinc-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
+              class="w-11 h-11 lg:w-9 lg:h-9 shrink-0 grid place-items-center rounded-full text-ink-muted dark:text-zinc-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] active:scale-[0.94] transition-transform duration-150 ease-out"
               aria-label="Attach an order or listing"
               title="Attach an order or listing"
             >
@@ -130,20 +139,22 @@
               rows="1"
               :maxlength="CHAT_TEXT_MAX"
               placeholder="Write a message"
-              class="flex-1 resize-none max-h-32 rounded-2xl border border-black/[0.10] dark:border-white/[0.10] bg-transparent px-3.5 py-2 text-sm text-ink dark:text-white placeholder-ink-soft focus:outline-none focus:border-pokemon-red"
+              class="flex-1 min-w-0 resize-none max-h-32 rounded-[22px] border border-black/[0.10] dark:border-white/[0.10] bg-transparent px-3.5 py-2.5 lg:py-2 text-sm text-ink dark:text-white placeholder-ink-soft focus:outline-none focus:border-pokemon-red"
               @input="grow"
               @keydown.enter="onEnter"
             />
             <button
               type="submit"
               :disabled="!canSend"
-              class="px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white disabled:opacity-40"
+              class="h-11 lg:h-9 shrink-0 px-4 rounded-full text-sm font-semibold bg-pokemon-red text-white disabled:opacity-40 active:scale-[0.97] transition-transform duration-150 ease-out"
+              @mousedown.prevent
             >
               Send
             </button>
           </div>
         </form>
       </section>
+      </Teleport>
     </div>
 
     <ChatAttachPicker
@@ -338,6 +349,47 @@ const scrollToBottom = () =>
     if (el) el.scrollTop = el.scrollHeight;
   });
 
+// ── Phone: full-screen conversation ───────────────────────────────────
+
+/** Below the lg breakpoint the conversation covers the app chrome. Set on
+ *  mount so the server render and hydration match the desktop markup. */
+const isPhone = ref(false);
+/** The visual viewport: on both iOS and Android it shrinks when the keyboard
+ *  opens, while 100dvh doesn't, so the screen follows it to keep the
+ *  composer just above the keyboard. */
+const viewport = ref({ h: 0, top: 0 });
+let phoneQuery: MediaQueryList | null = null;
+
+const syncViewport = () => {
+  const vv = window.visualViewport;
+  const wasAtBottom = nearBottom();
+  viewport.value = vv ? { h: vv.height, top: vv.offsetTop } : { h: window.innerHeight, top: 0 };
+  if (wasAtBottom) scrollToBottom();
+};
+const syncPhone = () => {
+  isPhone.value = !!phoneQuery?.matches;
+  // The page behind stays still while the conversation is on top of it.
+  document.documentElement.style.overflow = isPhone.value ? "hidden" : "";
+  if (isPhone.value) {
+    syncViewport();
+    scrollToBottom();
+  }
+};
+
+onMounted(() => {
+  phoneQuery = window.matchMedia("(max-width: 1023.98px)");
+  phoneQuery.addEventListener("change", syncPhone);
+  window.visualViewport?.addEventListener("resize", syncViewport);
+  window.visualViewport?.addEventListener("scroll", syncViewport);
+  syncPhone();
+});
+onBeforeUnmount(() => {
+  phoneQuery?.removeEventListener("change", syncPhone);
+  window.visualViewport?.removeEventListener("resize", syncViewport);
+  window.visualViewport?.removeEventListener("scroll", syncViewport);
+  document.documentElement.style.overflow = "";
+});
+
 const dayKey = (ts: number) => new Date(ts).toDateString();
 const dayChanged = (i: number) => i === 0 || dayKey(messages.value[i]!.at) !== dayKey(messages.value[i - 1]!.at);
 const dayLabel = (ts: number) => {
@@ -520,11 +572,33 @@ const preAttach = async () => {
 </script>
 
 <style scoped>
-/* The conversation fills the screen between the nav and the bottom tab bar,
-   so the composer stays put and only the messages scroll. */
+/* Desktop: the conversation fills the screen below the nav, so the composer
+   stays put and only the messages scroll. */
 .chat-pane {
   height: calc(100dvh - var(--app-nav-h, 7rem) - 8.5rem);
   min-height: 22rem;
+}
+/* Phone: the conversation is its own screen above the nav and tab bar
+   (z-40) and the install banner (z-50), below the cart drawer (z-60) and the
+   attach and warning sheets (z-70). Height comes from the visual viewport in
+   script; 100dvh is the fallback before it runs. */
+.chat-screen {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 100dvh;
+  z-index: 55;
+}
+.chat-screen .chat-header {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+.chat-screen .chat-composer {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+/* A 24px button with a 44px touch area. */
+.hit-44::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
 }
 @media (min-width: 1024px) {
   .chat-pane {
