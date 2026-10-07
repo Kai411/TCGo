@@ -61,6 +61,14 @@
               </p>
               <ChatBubble :message="m" :mine="m.senderUid === user.uid" @open-image="lightbox = $event" />
             </template>
+            <ChatBubble
+              v-for="m in outbox"
+              :key="m.id"
+              :message="m"
+              mine
+              pending
+              @open-image="lightbox = $event"
+            />
           </template>
         </div>
 
@@ -128,10 +136,10 @@
             />
             <button
               type="submit"
-              :disabled="sending || !canSend"
+              :disabled="!canSend"
               class="px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white disabled:opacity-40"
             >
-              {{ sending ? "Sending…" : "Send" }}
+              Send
             </button>
           </div>
         </form>
@@ -349,7 +357,6 @@ const textBox = ref<HTMLTextAreaElement | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 const pending = ref<{ file: File; preview: string; url?: string }[]>([]);
 const attachment = ref<{ ref: ChatAttachmentRef; preview: ChatAttachment } | null>(null);
-const sending = ref(false);
 const error = ref("");
 const pickerOpen = ref(false);
 const riskPrompt = ref<ChatRisk[]>([]);
@@ -388,8 +395,17 @@ const removeImage = (i: number) => {
   if (p) URL.revokeObjectURL(p.preview);
 };
 
-const submit = async (confirmRisk = false) => {
-  if (sending.value || !canSend.value || !user.value) return;
+/**
+ * Messages on their way. Shown straight away, so Send feels instant, and
+ * dropped once the server has written the real one (the live listener has
+ * usually delivered it by then). Sent one at a time so they arrive in the
+ * order they were written.
+ */
+const outbox = ref<(ChatMessage & { pending: true })[]>([]);
+let sendQueue: Promise<unknown> = Promise.resolve();
+
+const submit = (confirmRisk = false) => {
+  if (!canSend.value || !user.value) return;
   error.value = "";
 
   // Warn before anything is uploaded or sent. The server checks again.
@@ -399,30 +415,57 @@ const submit = async (confirmRisk = false) => {
     return;
   }
 
-  sending.value = true;
-  try {
-    for (const p of pending.value) {
-      if (!p.url) p.url = await uploadImage(p.file);
+  // Take the draft out of the composer now, so the next message can be typed.
+  const draft = {
+    text: text.value.trim(),
+    pending: pending.value,
+    attachment: attachment.value,
+  };
+  const temp = {
+    id: `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    senderUid: user.value.uid,
+    text: draft.text,
+    images: draft.pending.map((p) => p.preview),
+    attachment: draft.attachment?.preview ?? null,
+    risks: risks.map((r) => r.code),
+    at: Date.now(),
+    pending: true as const,
+  };
+  outbox.value.push(temp);
+  text.value = "";
+  pending.value = [];
+  attachment.value = null;
+  nextTick(grow);
+  scrollToBottom();
+
+  const toUid = otherUid.value;
+  sendQueue = sendQueue.then(async () => {
+    try {
+      for (const p of draft.pending) {
+        if (!p.url) p.url = await uploadImage(p.file);
+      }
+      await send({
+        toUid,
+        text: draft.text,
+        images: draft.pending.map((p) => p.url!),
+        attachment: draft.attachment?.ref ?? null,
+        confirmRisk,
+      });
+      draft.pending.forEach((p) => URL.revokeObjectURL(p.preview));
+    } catch (e: any) {
+      // Put it back in the composer rather than lose what they wrote.
+      if (!text.value && !pending.value.length && !attachment.value) {
+        text.value = draft.text;
+        pending.value = draft.pending;
+        attachment.value = draft.attachment;
+        nextTick(grow);
+      }
+      if (e instanceof RiskConfirmationNeeded) riskPrompt.value = e.risks;
+      else error.value = `Not sent: ${e?.message || "something went wrong"}. Your message is back in the box.`;
+    } finally {
+      outbox.value = outbox.value.filter((m) => m.id !== temp.id);
     }
-    await send({
-      toUid: otherUid.value,
-      text: text.value.trim(),
-      images: pending.value.map((p) => p.url!),
-      attachment: attachment.value?.ref ?? null,
-      confirmRisk,
-    });
-    text.value = "";
-    pending.value.forEach((p) => URL.revokeObjectURL(p.preview));
-    pending.value = [];
-    attachment.value = null;
-    nextTick(grow);
-    scrollToBottom();
-  } catch (e: any) {
-    if (e instanceof RiskConfirmationNeeded) riskPrompt.value = e.risks;
-    else error.value = e?.message || "Couldn't send that message.";
-  } finally {
-    sending.value = false;
-  }
+  });
 };
 
 /**

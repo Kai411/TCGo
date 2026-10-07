@@ -1,6 +1,6 @@
 <template>
   <div class="flex" :class="mine ? 'justify-end' : 'justify-start'">
-    <div class="max-w-[85%] sm:max-w-[70%] space-y-1.5" :class="mine ? 'items-end' : 'items-start'">
+    <div class="max-w-[85%] sm:max-w-[70%] space-y-1.5" :class="[mine ? 'items-end' : 'items-start', pending ? 'opacity-60' : '']">
       <div v-if="message.images?.length" class="grid gap-1.5" :class="message.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'">
         <button
           v-for="(src, i) in message.images"
@@ -37,7 +37,7 @@
       </div>
 
       <p class="text-[10px] text-ink-soft dark:text-zinc-500 px-1" :class="mine ? 'text-right' : ''">
-        {{ time }}
+        {{ pending ? "Sending…" : time }}
       </p>
     </div>
   </div>
@@ -48,7 +48,7 @@ import { computed } from "vue";
 import { cdnUrl } from "~/composables/useStorage";
 import { CHAT_RISKS, CHAT_THUMB_WIDTH, isChatRiskCode, type ChatMessage } from "~/shared/chat";
 
-const props = defineProps<{ message: ChatMessage; mine: boolean }>();
+const props = defineProps<{ message: ChatMessage; mine: boolean; pending?: boolean }>();
 defineEmits<{ "open-image": [src: string] }>();
 
 const riskList = computed(() =>

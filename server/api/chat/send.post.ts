@@ -16,6 +16,7 @@ import {
   conversationIdFor,
   detectChatRisks,
   messagePreview,
+  nextSendWindow,
   type ChatAttachment,
   type ChatAttachmentRef,
   type ChatPerson,
@@ -72,13 +73,14 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = getAdminFirestore();
-  const [meSnap, themSnap] = await Promise.all([
+  // One round of reads, in parallel: every extra await here is time the
+  // sender spends watching "Sending…".
+  const [meSnap, themSnap, attachment] = await Promise.all([
     db.collection("users").doc(caller.uid).get(),
     db.collection("users").doc(toUid).get(),
+    resolveAttachment(db, body?.attachment ?? null, caller.uid, toUid),
   ]);
   if (!themSnap.exists) throw createError({ statusCode: 404, message: "That member doesn't exist" });
-
-  const attachment = await resolveAttachment(db, body?.attachment ?? null, caller.uid, toUid);
 
   const convId = conversationIdFor(caller.uid, toUid);
   const convRef = db.collection("conversations").doc(convId);
@@ -99,6 +101,11 @@ export default defineEventHandler(async (event) => {
     const conv = convSnap.data() ?? {};
     const now = Date.now();
     message.at = now;
+
+    const window = nextSendWindow(statsSnap.data(), now);
+    if (!window.allowed) {
+      throw createError({ statusCode: 429, message: "You're sending messages very fast. Wait a minute and try again." });
+    }
 
     const { replyMs, next } = applyReplyTiming(conv, caller.uid, toUid, now);
 
@@ -121,17 +128,20 @@ export default defineEventHandler(async (event) => {
       },
       { merge: false },
     );
-    if (replyMs != null) {
-      tx.set(statsRef, { ...addReplySample(statsSnap.data(), replyMs), updatedAt: now });
-    }
+    tx.set(
+      statsRef,
+      {
+        ...(replyMs != null ? addReplySample(statsSnap.data(), replyMs) : {}),
+        sendWindowStart: window.sendWindowStart,
+        sendCount: window.sendCount,
+        updatedAt: now,
+      },
+      { merge: true },
+    );
+    // Sending a message means you're online, whether or not the heartbeat
+    // ran. In the same commit rather than a second round trip.
+    if (meSnap.exists) tx.update(meSnap.ref, { lastSeenAt: now });
   });
-
-  // Sending a message means you're online, whether or not the heartbeat ran.
-  await db
-    .collection("users")
-    .doc(caller.uid)
-    .update({ lastSeenAt: message.at })
-    .catch(() => {});
 
   return { ok: true, conversationId: convId, messageId: msgRef.id, at: message.at };
 });

@@ -34,6 +34,30 @@ export const CHAT_IMAGE_QUALITY = 0.72;
 /** Bubble thumbnails are asked for at this width from the image CDN. */
 export const CHAT_THUMB_WIDTH = 480;
 
+// ── Spam cap ──────────────────────────────────────────────────────────
+//
+// A person can send this many messages a minute, across all conversations.
+// Far above anyone typing, low enough that a script can't flood inboxes.
+// Counted in userStats alongside reply times, in the same transaction.
+
+export const SEND_LIMIT_PER_MINUTE = 30;
+const SEND_WINDOW_MS = 60 * 1000;
+
+export interface SendWindow {
+  sendWindowStart?: number;
+  sendCount?: number;
+}
+
+export const nextSendWindow = (
+  w: SendWindow | undefined,
+  now: number,
+): { allowed: boolean; sendWindowStart: number; sendCount: number } => {
+  const start = w?.sendWindowStart ?? 0;
+  if (now - start >= SEND_WINDOW_MS) return { allowed: true, sendWindowStart: now, sendCount: 1 };
+  const count = (w?.sendCount ?? 0) + 1;
+  return { allowed: count <= SEND_LIMIT_PER_MINUTE, sendWindowStart: start, sendCount: Math.min(count, SEND_LIMIT_PER_MINUTE + 1) };
+};
+
 // ── Conversation ids ──────────────────────────────────────────────────
 
 /**

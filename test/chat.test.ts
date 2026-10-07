@@ -13,6 +13,8 @@ import {
   isUnreadFor,
   lastSeenLabel,
   messagePreview,
+  nextSendWindow,
+  SEND_LIMIT_PER_MINUTE,
   replyTimeLabel,
 } from "~/shared/chat";
 
@@ -114,6 +116,18 @@ describe("reply times", () => {
     s = addReplySample(s, 30 * 60_000);
     s = addReplySample(s, 25 * 60_000);
     assert.equal(replyTimeLabel(s), "Replies in about 25 min on average");
+  });
+});
+
+describe("spam cap", () => {
+  it("allows a burst up to the limit, then refuses until the minute is up", () => {
+    let w = nextSendWindow(undefined, 1_000);
+    for (let i = 1; i < SEND_LIMIT_PER_MINUTE; i++) {
+      w = nextSendWindow(w, 1_000 + i);
+      assert.equal(w.allowed, true);
+    }
+    assert.equal(nextSendWindow(w, 2_000).allowed, false);
+    assert.equal(nextSendWindow(w, 61_000).allowed, true);
   });
 });
 

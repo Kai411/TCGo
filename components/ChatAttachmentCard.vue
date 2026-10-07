@@ -1,6 +1,6 @@
 <template>
   <component
-    :is="link ? 'NuxtLink' : 'div'"
+    :is="link ? NuxtLink : 'div'"
     :to="link ? attachmentHref(attachment) : undefined"
     class="flex items-center gap-3 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-[#1f1f26] p-2.5 text-left"
     :class="link ? 'hover:shadow-card-hover transition-shadow' : ''"
@@ -15,16 +15,21 @@
       <p class="text-sm font-semibold text-ink dark:text-white truncate">{{ title }}</p>
       <p class="text-xs text-ink-muted dark:text-zinc-400 truncate">{{ detail }}</p>
     </div>
-    <p class="shrink-0 text-sm font-bold tabular-nums text-ink dark:text-white">
-      RM {{ price.toFixed(2) }}
-    </p>
+    <div class="shrink-0 text-right">
+      <p class="text-sm font-bold tabular-nums text-ink dark:text-white">RM {{ price.toFixed(2) }}</p>
+      <p v-if="link" class="text-[11px] font-semibold text-pokemon-red">View →</p>
+    </div>
   </component>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, resolveComponent } from "vue";
 import { attachmentHref, type ChatAttachment } from "~/shared/chat";
 import { compiledOrderStatusLabel, type CompiledOrderStatus } from "~/composables/useCompiledOrders";
+
+// Resolved here, not by name in :is — a bare "NuxtLink" string there renders
+// an unknown element that goes nowhere.
+const NuxtLink = resolveComponent("NuxtLink");
 
 const props = withDefaults(defineProps<{ attachment: ChatAttachment; link?: boolean }>(), { link: true });
 
