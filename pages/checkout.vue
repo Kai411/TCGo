@@ -23,7 +23,7 @@
         </p>
         <template v-if="hasAddress">
           <p class="text-sm text-ink dark:text-white">{{ addressLine }}</p>
-          <NuxtLink to="/profile" class="text-xs font-semibold text-pokemon-red hover:underline">
+          <NuxtLink to="/account/addresses" class="text-xs font-semibold text-pokemon-red hover:underline">
             Change address →
           </NuxtLink>
         </template>
@@ -31,7 +31,7 @@
           <p class="text-sm text-gray-500 dark:text-zinc-400">
             Add a delivery address to see shipping costs.
           </p>
-          <NuxtLink to="/profile" class="text-xs font-semibold text-pokemon-red hover:underline">
+          <NuxtLink to="/account/addresses" class="text-xs font-semibold text-pokemon-red hover:underline">
             Add delivery address →
           </NuxtLink>
         </template>

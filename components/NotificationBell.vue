@@ -125,7 +125,7 @@
           </button>
           <NuxtLink
             v-else
-            to="/profile#notifications"
+            to="/account/notifications"
             @click="open = false"
             :class="isPhone ? 'min-h-[44px]' : 'min-h-[36px]'"
             class="shrink-0 inline-flex items-center px-3 rounded-lg text-[12px] font-semibold text-pokemon-red hover:bg-pokemon-red/10"
@@ -142,6 +142,10 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, resolveComponent, watch } from "vue";
 import { AUDIENCE_LABEL } from "~/shared/notifications";
+
+// Resolved here: a "NuxtLink" string in :is renders an unknown element, so
+// tapping a notification went nowhere.
+const NuxtLink = resolveComponent("NuxtLink");
 
 const { notifications, loading, unread, hasUnread, listen, markRead, markAllRead } =
   useNotifications();
