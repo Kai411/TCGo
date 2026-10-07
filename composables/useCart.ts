@@ -11,7 +11,36 @@ export interface CartItem {
   shippingEM: number;
 }
 
-const items = ref<CartItem[]>([]);
+// Persisted to localStorage so a refresh, a WhatsApp detour or closing the
+// tab doesn't silently empty the buyer's cart. A saved item can go stale
+// (sold or removed since), so the cart page checks each one against the
+// live listings before letting the buyer place orders.
+const STORAGE_KEY = "tcgo-cart";
+
+const loadItems = (): CartItem[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const items = ref<CartItem[]>(loadItems());
+
+if (typeof window !== "undefined") {
+  watch(
+    items,
+    (v) => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(v));
+      } catch {}
+    },
+    { deep: true },
+  );
+}
 
 export const useCart = () => {
   const cartCount = computed(() => items.value.length);

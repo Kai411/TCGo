@@ -53,6 +53,38 @@
     border-color: rgba(255, 255, 255, 0.20);
   }
 
+  /* Keyboard focus: one consistent, visible ring everywhere. Mouse and
+     touch clicks don't trigger :focus-visible, so taps stay clean. */
+  :focus-visible {
+    outline: 2px solid #E3350D;
+    outline-offset: 2px;
+  }
+  /* Text fields show focus on every click, so keep their ring quieter. */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline-width: 1px;
+    outline-offset: 0;
+  }
+  /* Kill the grey flash iOS/Android paint over tapped links and buttons. */
+  a,
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Respect the OS "reduce motion" setting: no pulsing badges, hover
+     zooms or smooth scrolls for people who've asked for less motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   /* Price numerals line up vertically */
   .tabular-price {
     font-variant-numeric: tabular-nums;
@@ -94,6 +126,11 @@
   }
   .chip-gold {
     @apply bg-amber-500/[0.10] text-amber-700 dark:text-amber-300;
+  }
+
+  /* Loading placeholder block — pair with a fixed size or aspect ratio */
+  .skeleton {
+    @apply animate-pulse rounded-md bg-black/[0.06] dark:bg-white/[0.06];
   }
 
   /* Hairline divider — for premium feel */

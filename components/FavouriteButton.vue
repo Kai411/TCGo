@@ -1,6 +1,9 @@
 <template>
   <button
+    type="button"
     @click.prevent.stop="handleToggle"
+    :aria-label="label"
+    :aria-pressed="user ? isFav : undefined"
     :disabled="!user"
     class="inline-flex items-center gap-0.5 transition-all"
     :class="[
@@ -9,13 +12,7 @@
         ? 'opacity-30 cursor-not-allowed'
         : 'hover:scale-110 active:scale-95',
     ]"
-    :title="
-      user
-        ? isFav
-          ? 'Remove from favourites'
-          : 'Add to favourites'
-        : 'Sign in to favourite'
-    "
+    :title="label"
   >
     <svg
       :class="size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'"
@@ -23,6 +20,7 @@
       :stroke="isFav ? '#E3350D' : 'currentColor'"
       stroke-width="2"
       viewBox="0 0 24 24"
+      aria-hidden="true"
     >
       <path
         stroke-linecap="round"
@@ -52,6 +50,13 @@ const { user } = useAuth();
 const { isFavourited, toggleFavourite } = useFavourites();
 
 const isFav = computed(() => isFavourited(props.itemId));
+const label = computed(() =>
+  !user.value
+    ? "Sign in to favourite"
+    : isFav.value
+      ? "Remove from favourites"
+      : "Add to favourites",
+);
 
 const handleToggle = () => {
   if (!user.value) return;
