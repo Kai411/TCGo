@@ -194,8 +194,9 @@
 
     <!-- Mobile search row. A field rather than an icon: it reads as "search
          here" at a glance. Tapping it opens the same search popup, which owns
-         results and history. Inside the nav so --app-nav-h grows with it. -->
-    <div class="lg:hidden container mx-auto px-4 pb-3">
+         results and history. Inside the nav so --app-nav-h grows with it.
+         Not on the Account page: it's a settings screen, not a place to shop. -->
+    <div v-if="route.path !== '/account'" class="lg:hidden container mx-auto px-4 pb-3">
       <button
         type="button"
         @click="openSearch"
