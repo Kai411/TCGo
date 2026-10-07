@@ -1,19 +1,24 @@
 <template>
+  <!-- On body: on a phone the conversation is itself a body-level layer
+       (z-55), and a sheet left inside the page opened underneath it. -->
+  <Teleport to="body">
   <div class="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60" @click.self="$emit('close')">
-    <div class="w-full sm:max-w-lg max-h-[85vh] flex flex-col rounded-t-2xl sm:rounded-2xl bg-white dark:bg-[#1b1b21] shadow-xl">
+    <div class="w-full sm:max-w-lg max-h-[85vh] max-h-[85dvh] pb-[env(safe-area-inset-bottom)] flex flex-col rounded-t-2xl sm:rounded-2xl bg-white dark:bg-[#1b1b21] shadow-xl">
       <div class="flex items-center justify-between px-4 pt-4 pb-2">
         <p class="text-base font-bold text-ink dark:text-white">Attach</p>
         <button type="button" @click="$emit('close')" aria-label="Close" class="p-1.5 rounded-lg text-ink-muted hover:bg-black/[0.05] dark:hover:bg-white/[0.08]">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
         </button>
       </div>
-      <div class="flex gap-1 px-4 pb-2">
+      <!-- Wraps on a phone: with a long name the third tab used to run off
+           the edge of the screen, out of reach. -->
+      <div class="flex flex-wrap gap-1 px-4 pb-2">
         <button
           v-for="t in tabs"
           :key="t.key"
           type="button"
           @click="tab = t.key"
-          class="px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
+          class="max-w-full truncate px-3 py-1.5 rounded-full text-sm font-semibold transition-colors"
           :class="tab === t.key ? 'bg-ink text-white dark:bg-white dark:text-ink' : 'text-ink-muted dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'"
         >
           {{ t.label }}
@@ -44,6 +49,7 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">

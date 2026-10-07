@@ -41,19 +41,19 @@
 
     <template v-else>
       <section
-        class="surface relative overflow-hidden rounded-3xl border border-black/[0.06] dark:border-white/[0.08]"
+        class="panel surface relative overflow-hidden rounded-3xl border border-black/[0.06] dark:border-white/[0.08]"
       >
         <div
-          class="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-pokemon-red/[0.08] blur-3xl dark:bg-pokemon-red/[0.12]"
+          class="pointer-events-none absolute hidden lg:block -right-24 -top-24 h-72 w-72 rounded-full bg-pokemon-red/[0.08] blur-3xl dark:bg-pokemon-red/[0.12]"
           aria-hidden="true"
         />
         <div
-          class="pointer-events-none absolute -bottom-32 left-1/4 h-72 w-72 rounded-full bg-pokemon-blue/[0.08] blur-3xl dark:bg-pokemon-blue/[0.12]"
+          class="pointer-events-none absolute hidden lg:block -bottom-32 left-1/4 h-72 w-72 rounded-full bg-pokemon-blue/[0.08] blur-3xl dark:bg-pokemon-blue/[0.12]"
           aria-hidden="true"
         />
 
         <div
-          class="relative grid grid-cols-1 items-center gap-7 p-5 sm:p-7 md:grid-cols-[minmax(230px,310px)_1fr] md:gap-10 lg:p-10"
+          class="panel-body relative grid grid-cols-1 items-center gap-7 p-5 sm:p-7 md:grid-cols-[minmax(230px,310px)_1fr] md:gap-10 lg:p-10"
         >
           <div class="relative mx-auto w-full max-w-[310px] md:mx-0">
             <div
@@ -291,7 +291,7 @@
               class="mt-7 grid grid-cols-2 gap-3 border-t border-black/[0.06] pt-5 dark:border-white/[0.08] sm:grid-cols-3"
             >
               <div
-                class="rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
+                class="panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
               >
                 <p
                   class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
@@ -305,7 +305,7 @@
                 </p>
               </div>
               <div
-                class="rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
+                class="panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
               >
                 <p
                   class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
@@ -319,7 +319,7 @@
                 </p>
               </div>
               <div
-                class="col-span-2 rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04] sm:col-span-1"
+                class="col-span-2 panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04] sm:col-span-1"
               >
                 <p
                   class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
@@ -338,7 +338,7 @@
         </div>
       </section>
 
-      <section class="surface rounded-2xl mt-8 p-5 sm:p-6">
+      <section class="panel surface rounded-2xl mt-8 p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
             <span class="eyebrow">Price history</span>
@@ -449,7 +449,7 @@
            smaller half of the market and never the cheapest way to own the
            card — a reader could see three slabs and conclude nobody was
            selling it. -->
-      <section class="surface rounded-2xl mt-6 p-5 sm:p-6">
+      <section class="panel surface rounded-2xl mt-6 p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <span class="eyebrow">Ungraded prices</span>
@@ -502,7 +502,7 @@
 
         <div
           v-else
-          class="mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
+          class="panel-tile mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
         >
           <div class="hidden sm:block overflow-x-auto">
             <table class="w-full min-w-[600px] text-sm">
@@ -574,7 +574,7 @@
               v-for="row in rawRows"
               :key="row.key"
               :to="`/cards/${row.lowestListingId}`"
-              class="flex items-center justify-between gap-4 p-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
+              class="flex items-center justify-between gap-4 py-4 lg:px-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
             >
               <div>
                 <span
@@ -612,7 +612,7 @@
         </p>
       </section>
 
-      <section class="surface rounded-2xl mt-6 p-5 sm:p-6">
+      <section class="panel surface rounded-2xl mt-6 p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <span class="eyebrow">Graded prices</span>
@@ -666,7 +666,7 @@
 
         <div
           v-else
-          class="mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
+          class="panel-tile mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
         >
           <div class="hidden sm:block overflow-x-auto">
             <table class="w-full min-w-[600px] text-sm">
@@ -741,7 +741,7 @@
               v-for="row in gradedRows"
               :key="row.key"
               :to="`/cards/${row.lowestListingId}`"
-              class="flex items-center justify-between gap-4 p-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
+              class="flex items-center justify-between gap-4 py-4 lg:px-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
             >
               <div>
                 <span

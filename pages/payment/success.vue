@@ -20,7 +20,7 @@
     <template v-if="order">
       <!-- A real sequence: each step is a status the order moves through, and
            the marker shows where it is right now. -->
-      <section v-if="view === 'success'" class="surface rounded-2xl p-5">
+      <section v-if="view === 'success'" class="panel surface rounded-2xl p-5">
         <h2 class="eyebrow">What happens next</h2>
         <ol class="mt-4">
           <li
@@ -58,7 +58,7 @@
       />
 
       <div v-if="view === 'success'" class="grid sm:grid-cols-2 gap-4">
-        <section class="surface rounded-2xl p-5">
+        <section class="panel surface rounded-2xl p-5">
           <h2 class="eyebrow">Delivering to</h2>
           <template v-if="order.deliveryAddress">
             <p class="mt-2 text-sm font-medium text-ink dark:text-white">{{ order.deliveryAddress.name }}</p>
@@ -73,7 +73,7 @@
           </p>
         </section>
 
-        <section class="surface rounded-2xl p-5">
+        <section class="panel surface rounded-2xl p-5">
           <h2 class="eyebrow">Receipt</h2>
           <p class="mt-2 text-sm text-gray-600 dark:text-zinc-300 leading-relaxed">{{ receiptLine }}</p>
           <p v-if="order.billplzBillId" class="mt-1 text-[11px] font-mono text-gray-400 dark:text-zinc-500">

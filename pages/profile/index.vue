@@ -17,7 +17,11 @@
       >
         Profile updated!
       </div>
-      <h1 class="text-2xl font-bold mb-6">Settings</h1>
+      <!-- Profile, membership and privacy only. Addresses, notifications,
+           dark mode, What's new and the customer code each have their own
+           place on the Account page. -->
+      <SubpageHeader />
+      <h1 class="text-2xl font-bold mb-6">Account settings</h1>
 
       <div v-if="loading" class="flex justify-center py-12">
         <div
@@ -27,7 +31,7 @@
 
       <div
         v-if="!loading"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6"
+        class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6"
       >
         <p class="text-xl font-bold">Profile</p>
         <!-- Avatar -->
@@ -164,22 +168,6 @@
         </div>
       </div>
 
-      <!-- #addresses: the account page's "Shipping addresses" row lands here. -->
-      <div
-        v-if="!loading"
-        id="addresses"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] mt-4 scroll-mt-[calc(var(--app-nav-h,64px)+16px)]"
-      >
-        <AddressBook />
-      </div>
-
-      <div
-        v-if="!loading"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] mt-4"
-      >
-        <BuyerQrCard />
-      </div>
-
       <!-- Seller settings moved out to /seller/settings.
            Shipping, couriers and staff are shop operations, not buyer profile
            preferences — mixing them here made this page a grab-bag and buried
@@ -205,7 +193,7 @@
 
       <div
         v-if="!loading && premiumEnabled"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-4 mt-4"
+        class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-4 mt-4"
       >
         <div class="flex items-center justify-between">
           <p class="text-xl font-bold">Membership</p>
@@ -299,51 +287,10 @@
         </template>
       </div>
 
-      <div
-        v-if="!loading"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
-      >
-        <p class="text-xl font-bold">Appearance</p>
-
-        <!-- Dark mode -->
-        <div>
-          <label class="flex items-center justify-between cursor-pointer">
-            <div>
-              <p class="text-sm font-medium text-gray-700 dark:text-zinc-200">Dark mode</p>
-              <p class="text-xs text-gray-400 dark:text-zinc-500">
-                Switch between light and dark themes
-              </p>
-            </div>
-            <ThemeToggle />
-          </label>
-        </div>
-      </div>
-
-      <PushSettings v-if="!loading" />
-
-      <!-- Release notes live on their own page; nothing pops up on its own. -->
-      <NuxtLink
-        v-if="!loading"
-        to="/update-notice"
-        class="w-full text-left flex items-center gap-4 bg-white dark:bg-white/[0.04] rounded-xl p-5 border border-gray-200 dark:border-white/[0.08] mt-4 hover:border-gray-300 dark:hover:border-white/[0.16] transition-colors"
-      >
-        <div class="w-10 h-10 shrink-0 rounded-xl bg-pokemon-red/[0.08] flex items-center justify-center">
-          <svg class="w-5 h-5 text-pokemon-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2v4M12 18v4M4.9 4.9l2.9 2.9M16.2 16.2l2.9 2.9M2 12h4M18 12h4M4.9 19.1l2.9-2.9M16.2 7.8l2.9-2.9" />
-          </svg>
-        </div>
-        <div class="min-w-0 flex-1">
-          <p class="text-sm font-bold text-ink dark:text-white">What's new</p>
-          <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-            Recent improvements to TCGo. You're on version {{ APP_VERSION }}.
-          </p>
-        </div>
-        <svg class="w-4 h-4 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-      </NuxtLink>
 
       <div
         v-if="!loading"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
+        class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
       >
         <p class="text-xl font-bold">Privacy</p>
 
@@ -372,7 +319,6 @@
 <script setup lang="ts">
 import type { UserProfile } from "~/composables/useProfile";
 import { MY_STATES } from "~/shared/my-states";
-import { APP_VERSION } from "~/shared/releases";
 
 const {user} = useAuth();
 const { goToLogin } = useSignInGate();

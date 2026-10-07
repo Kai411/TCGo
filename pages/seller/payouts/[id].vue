@@ -16,7 +16,7 @@
 
     <template v-else>
       <!-- Headline -->
-      <section class="surface rounded-2xl p-5 sm:p-6 mb-4">
+      <section class="panel surface rounded-2xl p-5 sm:p-6 mb-4">
         <div class="flex items-start justify-between gap-3">
           <div>
             <p class="eyebrow">Payout</p>
@@ -51,7 +51,7 @@
       </section>
 
       <!-- Status history -->
-      <section class="surface rounded-2xl p-5 sm:p-6 mb-4">
+      <section class="panel surface rounded-2xl p-5 sm:p-6 mb-4">
         <p class="eyebrow mb-4">Status history</p>
         <ol class="relative">
           <li
@@ -80,7 +80,7 @@
       </section>
 
       <!-- Orders covered -->
-      <section v-if="payout.orderIds?.length" class="surface rounded-2xl p-5 sm:p-6">
+      <section v-if="payout.orderIds?.length" class="panel surface rounded-2xl p-5 sm:p-6">
         <p class="eyebrow mb-3">Orders in this payout</p>
         <div class="flex flex-wrap gap-2">
           <NuxtLink

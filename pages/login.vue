@@ -27,7 +27,7 @@
         <p class="mt-2 text-sm text-ink-muted dark:text-zinc-400">{{ subheading }}</p>
       </div>
 
-      <div class="surface rounded-2xl p-6 sm:p-7">
+      <div class="panel surface rounded-2xl p-6 sm:p-7">
         <!-- ── Sign in / register ─────────────────────────────────── -->
         <form v-if="step === 'credentials'" @submit.prevent="submitCredentials" novalidate>
           <div v-if="mode === 'register'" class="mb-4">

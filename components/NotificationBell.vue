@@ -20,30 +20,52 @@
       />
     </button>
 
+    <!-- On a phone the list is its own full-height screen, like the open
+         chat: moved to <body> (out of the navbar's stacking context) and
+         covering the header and tab bar, with a back arrow to close it.
+         Desktop keeps the dropdown. -->
+    <Teleport to="body" :disabled="!isPhone">
     <Transition
-      enter-active-class="transition duration-150 ease-out"
-      leave-active-class="transition duration-100 ease-in"
-      enter-from-class="opacity-0 -translate-y-1"
-      leave-to-class="opacity-0 -translate-y-1"
+      :enter-active-class="isPhone ? 'notif-slide-enter' : 'transition duration-150 ease-out'"
+      :leave-active-class="isPhone ? 'notif-slide-leave' : 'transition duration-100 ease-in'"
+      :enter-from-class="isPhone ? 'translate-x-full' : 'opacity-0 -translate-y-1'"
+      :leave-to-class="isPhone ? 'translate-x-full' : 'opacity-0 -translate-y-1'"
     >
       <div
         v-if="open"
         ref="panel"
-        class="absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] z-50 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-[#1b1b21] shadow-xl overflow-hidden"
+        role="dialog"
+        aria-label="Notifications"
+        :class="isPhone
+          ? 'notif-screen flex flex-col bg-canvas dark:bg-canvas-inverse'
+          : 'absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] z-50 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-[#1b1b21] shadow-xl overflow-hidden'"
       >
-        <div class="flex items-center justify-between px-4 py-2.5 border-b border-black/[0.06] dark:border-white/[0.08]">
-          <p class="text-sm font-bold text-ink dark:text-white">Notifications</p>
+        <div
+          class="flex items-center justify-between border-b border-black/[0.06] dark:border-white/[0.08]"
+          :class="isPhone ? 'notif-header gap-2 px-2 py-2' : 'px-4 py-2.5'"
+        >
+          <button
+            v-if="isPhone"
+            type="button"
+            @click="open = false"
+            class="w-11 h-11 shrink-0 grid place-items-center rounded-full text-ink dark:text-white active:bg-black/[0.06] dark:active:bg-white/[0.08]"
+            aria-label="Close notifications"
+          >
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+          </button>
+          <p class="font-bold text-ink dark:text-white" :class="isPhone ? 'flex-1 text-base' : 'text-sm'">Notifications</p>
           <button
             v-if="hasUnread"
             type="button"
             @click="markAllRead"
-            class="text-[11px] font-semibold text-pokemon-red hover:underline"
+            class="font-semibold text-pokemon-red"
+            :class="isPhone ? 'min-h-[44px] px-3 rounded-full text-[13px] active:bg-pokemon-red/10' : 'text-[11px] hover:underline'"
           >
             Mark all read
           </button>
         </div>
 
-        <div class="max-h-[22rem] overflow-y-auto">
+        <div class="overflow-y-auto overscroll-contain" :class="isPhone ? 'flex-1 min-h-0' : 'max-h-[22rem]'">
           <p v-if="loading" class="px-4 py-8 text-center text-[13px] text-ink-soft">Loading…</p>
           <p v-else-if="!notifications.length" class="px-4 py-8 text-center text-[13px] text-ink-soft dark:text-zinc-500">
             Nothing yet. Orders you buy and sell will show up here.
@@ -51,11 +73,11 @@
           <component
             v-for="n in notifications"
             :key="n.id"
-            :is="n.href ? 'NuxtLink' : 'div'"
+            :is="n.href ? NuxtLink : 'div'"
             :to="n.href || undefined"
             @click="open = false; markRead(n.id)"
-            class="block px-4 py-3 border-b border-black/[0.04] dark:border-white/[0.05] last:border-0 hover:bg-black/[0.02] dark:hover:bg-white/[0.04] transition-colors"
-            :class="n.href ? 'cursor-pointer' : ''"
+            class="block px-4 border-b border-black/[0.04] dark:border-white/[0.05] last:border-0 hover:bg-black/[0.02] dark:hover:bg-white/[0.04] transition-colors"
+            :class="[n.href ? 'cursor-pointer active:bg-black/[0.04] dark:active:bg-white/[0.06]' : '', isPhone ? 'py-3.5' : 'py-3']"
           >
             <div class="flex items-start gap-2.5">
               <span
@@ -96,27 +118,34 @@
             type="button"
             :disabled="pushBusy"
             @click="enablePush"
-            class="shrink-0 min-h-[36px] px-3 rounded-lg text-[12px] font-semibold text-pokemon-red hover:bg-pokemon-red/10 disabled:opacity-60"
+            :class="isPhone ? 'min-h-[44px]' : 'min-h-[36px]'"
+            class="shrink-0 px-3 rounded-lg text-[12px] font-semibold text-pokemon-red hover:bg-pokemon-red/10 disabled:opacity-60"
           >
             {{ pushBusy ? "Turning on…" : "Turn on" }}
           </button>
           <NuxtLink
             v-else
-            to="/profile#notifications"
+            to="/account/notifications"
             @click="open = false"
-            class="shrink-0 min-h-[36px] inline-flex items-center px-3 rounded-lg text-[12px] font-semibold text-pokemon-red hover:bg-pokemon-red/10"
+            :class="isPhone ? 'min-h-[44px]' : 'min-h-[36px]'"
+            class="shrink-0 inline-flex items-center px-3 rounded-lg text-[12px] font-semibold text-pokemon-red hover:bg-pokemon-red/10"
           >
             How
           </NuxtLink>
         </div>
       </div>
     </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, resolveComponent, watch } from "vue";
 import { AUDIENCE_LABEL } from "~/shared/notifications";
+
+// Resolved here: a "NuxtLink" string in :is renders an unknown element, so
+// tapping a notification went nowhere.
+const NuxtLink = resolveComponent("NuxtLink");
 
 const { notifications, loading, unread, hasUnread, listen, markRead, markAllRead } =
   useNotifications();
@@ -139,7 +168,23 @@ watch(() => route.fullPath, () => (open.value = false));
 // worker, and the answer only matters when someone is looking at the offer.
 watch(open, (v) => {
   if (v) refreshPush().catch(() => {});
+  lockPage();
 });
+
+// ── Phone: full-height screen ─────────────────────────────────────────
+
+/** Below the lg breakpoint the list covers the app chrome, as the open chat
+ *  does. Set on mount so the server render matches the desktop markup. */
+const isPhone = ref(false);
+let phoneQuery: MediaQueryList | null = null;
+/** The page behind stays still while the list is on top of it. */
+const lockPage = () => {
+  document.documentElement.style.overflow = isPhone.value && open.value ? "hidden" : "";
+};
+const syncPhone = () => {
+  isPhone.value = !!phoneQuery?.matches;
+  lockPage();
+};
 
 const onDocClick = (e: MouseEvent) => {
   if (!open.value) return;
@@ -153,10 +198,15 @@ const onEsc = (e: KeyboardEvent) => {
 };
 
 onMounted(() => {
+  phoneQuery = window.matchMedia("(max-width: 1023.98px)");
+  phoneQuery.addEventListener("change", syncPhone);
+  syncPhone();
   document.addEventListener("click", onDocClick);
   document.addEventListener("keydown", onEsc);
 });
 onBeforeUnmount(() => {
+  phoneQuery?.removeEventListener("change", syncPhone);
+  if (open.value) document.documentElement.style.overflow = "";
   document.removeEventListener("click", onDocClick);
   document.removeEventListener("keydown", onEsc);
 });
@@ -175,3 +225,34 @@ const ago = (ts?: number): string => {
   return new Date(ts).toLocaleDateString("en-MY", { day: "numeric", month: "short" });
 };
 </script>
+
+<style scoped>
+/* Phone: the list is its own screen, at the same layer as the open chat:
+   above the nav and tab bar (z-40) and the install banner (z-50), below the
+   cart drawer (z-60). */
+.notif-screen {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  z-index: 55;
+}
+.notif-header {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+/* The list's last row (or the push offer) clears the home bar. */
+.notif-screen > :last-child {
+  padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+}
+.notif-slide-enter {
+  transition: transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.notif-slide-leave {
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .notif-slide-enter,
+  .notif-slide-leave {
+    transition: none;
+  }
+}
+</style>
