@@ -317,6 +317,8 @@
         </div>
       </div>
 
+      <PushSettings v-if="!loading" />
+
       <!-- Release notes live on their own page; nothing pops up on its own. -->
       <NuxtLink
         v-if="!loading"

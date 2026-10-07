@@ -45,6 +45,10 @@ useHead({ title: "Privacy Policy · TCGo" });
           <td>Automatically while you have TCGo open, and when you reply to a message</td>
         </tr>
         <tr>
+          <td>A push notification address for each device you turn notifications on for (an address your browser's push service gives that device, plus its encryption keys), and which kinds of notification you want</td>
+          <td>When you turn on push notifications in Settings</td>
+        </tr>
+        <tr>
           <td>Payment records: amount, status, reference and payment method. Not your online banking password or full card number</td>
           <td>When you pay through Billplz, subscribe through Stripe or pay at a counter through HitPay</td>
         </tr>
@@ -82,6 +86,7 @@ useHead({ title: "Privacy Policy · TCGo" });
       <li>To meet legal duties, including keeping seller and transaction records required by the Consumer Protection (Electronic Trade Transactions) Regulations and tax law.</li>
       <li>To handle reports, complaints and Buyer Protection claims.</li>
       <li>To let buyers and sellers message each other, and to warn you before you send a message that looks risky, such as one with a phone number, bank details, an address or a request to pay outside TCGo. This check runs automatically on the text of each message; it warns, it never blocks.</li>
+      <li>To send push notifications to the devices you turn them on for: new chat messages, order updates, and auction alerts such as being outbid or winning. They are optional. You can turn each kind off in Settings, or turn notifications off for a device there or in your browser; signing out of a device turns them off for it.</li>
       <li>To send service messages: order updates, receipts, invoices, security alerts. You can't opt out of these while you have an account, as they are part of the service.</li>
       <li>To send news or offers, only if you opt in. You can opt out any time.</li>
       <li>To improve TCGo, for example by understanding which features are used.</li>
@@ -116,6 +121,7 @@ useHead({ title: "Privacy Policy · TCGo" });
       <li><b>Resend</b>: sending emails such as codes, receipts and invoices.</li>
       <li><b>Supabase</b>: card catalogue and price data.</li>
       <li><b>Netlify</b>: website hosting.</li>
+      <li><b>Your browser's push service</b> (Google for Chrome, Edge and Android, Apple for Safari, Mozilla for Firefox, Microsoft for Edge on Windows): delivering push notifications to your device, if you turn them on. The notification text is encrypted so that only your device can read it; the push service sees the device address, and when and how often a notification is sent.</li>
     </ul>
     <p>
       Card price data comes from third-party sources such as TCGplayer,
@@ -145,6 +151,7 @@ useHead({ title: "Privacy Policy · TCGo" });
       <li>Order, payment, payout and seller records: 7 years, as required for tax and accounting, and at least 3 years for seller records under consumer protection rules.</li>
       <li>Identity verification images and biometrics: held by Didit under its retention policy; we keep only the result and the details listed in section 1.</li>
       <li>Chat messages and photos: while your account is open, so both sides can refer back to them if there is a problem with an order, then as for account data.</li>
+      <li>Push notification addresses: until you turn notifications off for that device, sign out of it, or the browser tells us the address no longer works.</li>
       <li>Logs: up to 12 months.</li>
     </ul>
     <p>After that we delete or anonymise it.</p>
@@ -177,7 +184,9 @@ useHead({ title: "Privacy Policy · TCGo" });
     <h2>8. Cookies and local storage</h2>
     <p>
       We use cookies and browser storage to keep you signed in, remember your
-      cart and preferences such as dark mode, and make the app work offline.
+      cart and preferences such as dark mode, make the app work offline, and,
+      if you turn on push notifications, receive them through the app's
+      service worker.
       We do not currently use advertising cookies. If we add analytics or
       advertising tools we will update this policy first. Blocking cookies
       may stop parts of TCGo working.

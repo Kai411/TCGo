@@ -28,6 +28,8 @@
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
 import { cancelShipmentForOrder } from "~/server/utils/book-shipment";
+import { notify } from "~/server/utils/notify";
+import { orderCancelled } from "~/shared/notifications";
 import { noteError } from "~/server/utils/oplog";
 import { bankByCode } from "~/shared/banks";
 import { CANCEL_GRACE_MINUTES, canBuyerCancel } from "~/shared/order-windows";
@@ -198,6 +200,13 @@ export default defineEventHandler(async (event) => {
   });
 
   await batch.commit();
+
+  // The seller has to stop packing. Swallows its own failures.
+  await notify(
+    db,
+    order.sellerUid,
+    orderCancelled({ orderId, buyerName: order.buyerName, refundAmount }),
+  );
 
   // Inventory mirrors the listings. Outside the batch because it needs a
   // query per card, and a failure here leaves the cards sellable again —

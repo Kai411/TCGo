@@ -8,6 +8,8 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
+import { sendPush } from "~/server/utils/push";
+import { chatPush } from "~/shared/push";
 import {
   CHAT_IMAGES_MAX,
   CHAT_TEXT_MAX,
@@ -142,6 +144,21 @@ export default defineEventHandler(async (event) => {
     // ran. In the same commit rather than a second round trip.
     if (meSnap.exists) tx.update(meSnap.ref, { lastSeenAt: now });
   });
+
+  // Buzz their phone. Awaited rather than left running: Netlify ends the
+  // function when the response goes, which would drop the push. The sender
+  // doesn't wait on it, since the chat shows the message before this returns.
+  await sendPush(
+    db,
+    toUid,
+    "messages",
+    chatPush({
+      senderUid: caller.uid,
+      senderName: personOf(meSnap.data()).name,
+      preview: messagePreview(message),
+      conversationId: convId,
+    }),
+  );
 
   return { ok: true, conversationId: convId, messageId: msgRef.id, at: message.at };
 });

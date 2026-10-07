@@ -84,6 +84,31 @@
             </div>
           </component>
         </div>
+
+        <!-- Offer push where it can actually work on this device. -->
+        <div
+          v-if="pushState === 'off' || pushState === 'needs-install'"
+          class="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03]"
+        >
+          <p class="text-[12px] text-ink-muted dark:text-zinc-400">Get these on your phone too.</p>
+          <button
+            v-if="pushState === 'off'"
+            type="button"
+            :disabled="pushBusy"
+            @click="enablePush"
+            class="shrink-0 min-h-[36px] px-3 rounded-lg text-[12px] font-semibold text-pokemon-red hover:bg-pokemon-red/10 disabled:opacity-60"
+          >
+            {{ pushBusy ? "Turning on…" : "Turn on" }}
+          </button>
+          <NuxtLink
+            v-else
+            to="/profile#notifications"
+            @click="open = false"
+            class="shrink-0 min-h-[36px] inline-flex items-center px-3 rounded-lg text-[12px] font-semibold text-pokemon-red hover:bg-pokemon-red/10"
+          >
+            How
+          </NuxtLink>
+        </div>
       </div>
     </Transition>
   </div>
@@ -98,6 +123,8 @@ const { notifications, loading, unread, hasUnread, listen, markRead, markAllRead
 const { user } = useAuth();
 const route = useRoute();
 
+const { state: pushState, busy: pushBusy, refresh: refreshPush, enable: enablePush } = usePush();
+
 const open = ref(false);
 const panel = ref<HTMLElement | null>(null);
 
@@ -108,6 +135,11 @@ const toggle = () => (open.value = !open.value);
 // values to whoever signed in next.
 watch(user, listen, { immediate: true });
 watch(() => route.fullPath, () => (open.value = false));
+// Checked when the panel opens, not on every page: it touches the service
+// worker, and the answer only matters when someone is looking at the offer.
+watch(open, (v) => {
+  if (v) refreshPush().catch(() => {});
+});
 
 const onDocClick = (e: MouseEvent) => {
   if (!open.value) return;

@@ -81,6 +81,9 @@ export default defineNuxtConfig({
       skipWaiting: true,
       clientsClaim: true,
       cleanupOutdatedCaches: true,
+      // Push notifications: the push and notificationclick handlers live in
+      // public/push-sw.js and are loaded into this generated worker.
+      importScripts: ["/push-sw.js"],
     },
     // PWA is production-only. Enabling in dev caches Vite module chunks
     // in the service worker, which then keeps serving stale bundles
@@ -255,7 +258,17 @@ export default defineNuxtConfig({
     delyvaApiKey: "",
     delyvaCustomerId: "",
     delyvaCompanyId: "",
+    // Web Push (VAPID). Generate a pair once with `npx web-push
+    // generate-vapid-keys`: the public key goes in
+    // NUXT_PUBLIC_VAPID_PUBLIC_KEY, the private one in NUXT_VAPID_PRIVATE_KEY.
+    // Unset = push is switched off and the settings card says it isn't
+    // available yet. Changing the pair later stops every existing
+    // subscription, so members would have to turn push on again.
+    vapidPrivateKey: "",
+    // Who push services contact about abuse. Defaults to support@tcgo.shop.
+    vapidSubject: "",
     public: {
+      vapidPublicKey: "",
       // Lets the POS show the QR option only when the platform can actually
       // create one. Not a secret — it's a feature flag, and the seller finds
       // out either way the moment they tap Pay.

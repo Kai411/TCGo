@@ -18,8 +18,11 @@ import { getAdminFirestore, getAdminRtdb } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
 import { billplzBillState, billplzDeleteBill } from "~/server/utils/billplz";
 import { noteError } from "~/server/utils/oplog";
+import { notify } from "~/server/utils/notify";
+import { auctionSold, auctionWon } from "~/shared/notifications";
 import { isAdminUid } from "~/shared/admins";
 import {
+  AUCTION_PAYMENT_WINDOW_HOURS,
   AUCTION_PAYMENT_WINDOW_MS,
   AUCTION_SETTLED_STATUSES,
   auctionHasEnded,
@@ -88,7 +91,7 @@ export default defineEventHandler(async (event) => {
   // with the auction pointing at whichever landed last. The other was an
   // orphan the winner could still pay. Re-reading inside the transaction
   // means the second caller sees the first one's order and returns it.
-  return await db.runTransaction(async (tx) => {
+  const settled = await db.runTransaction<SettleResult>(async (tx) => {
     const fresh = (await tx.get(auctionRef)).data() as any;
     const freshStatus: AuctionStatus = fresh?.status ?? "active";
     if (freshStatus === "pending_payment" && fresh.orderId) {
@@ -161,7 +164,39 @@ export default defineEventHandler(async (event) => {
 
     return { status: "pending_payment", orderId: orderRef.id, amount: price };
   });
+
+  // Only the caller that created the order tells anyone, so the seller and the
+  // winner opening the page together don't each trigger a notice.
+  if (settled.status === "pending_payment" && !settled.unchanged && settled.orderId) {
+    const cardName = auction.cardName || auction.title || "";
+    await Promise.all([
+      notify(
+        db,
+        winnerUid,
+        auctionWon({
+          auctionId,
+          orderId: settled.orderId,
+          cardName,
+          price,
+          payWithinHours: AUCTION_PAYMENT_WINDOW_HOURS,
+        }),
+      ),
+      notify(
+        db,
+        auction.sellerUid,
+        auctionSold({ auctionId, cardName, price, winnerName: summary.topBidder || winner?.customName }),
+      ),
+    ]);
+  }
+  return settled;
 });
+
+interface SettleResult {
+  status: AuctionStatus;
+  orderId: string | null;
+  amount?: number;
+  unchanged?: boolean;
+}
 
 // ── Awaiting payment: let the order decide ────────────────────────────────
 //
