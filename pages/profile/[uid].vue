@@ -302,7 +302,7 @@
         />
         <div
           v-else
-          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
+          class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
         >
           <div
             v-for="card in userCards"
@@ -323,7 +323,7 @@
         />
         <div
           v-else
-          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
+          class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
         >
           <div
             v-for="auction in userAuctions"
@@ -346,7 +346,7 @@
           <section v-if="favouriteCards.length">
             <span class="eyebrow mb-3 block">Cards</span>
             <div
-              class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
+              class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
             >
               <div
                 v-for="card in favouriteCards"
@@ -360,7 +360,7 @@
           <section v-if="favouriteAuctions.length">
             <span class="eyebrow mb-3 block">Auctions</span>
             <div
-              class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
+              class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
             >
               <div
                 v-for="auction in favouriteAuctions"

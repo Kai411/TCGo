@@ -62,6 +62,12 @@ const viewCount = computed(() => props.card?.viewCount ?? 0);
 // Auction-specific
 const bidCount = computed(() => (props.auction as any)?.bidCount ?? 0);
 
+const isLive = computed(
+  () => !!props.auction && props.auction.endsAt > Date.now(),
+);
+
+// Time left without the "LIVE" prefix, which the template hides on phones
+// so the badge doesn't run into the condition badge on a narrow tile.
 const statusTimeLabel = computed(() => {
   if (!props.auction) return "";
   const diff = props.auction.endsAt - Date.now();
@@ -70,9 +76,9 @@ const statusTimeLabel = computed(() => {
   const minutes = Math.floor((diff % 3600000) / 60000);
   if (hours > 24) {
     const days = Math.floor(hours / 24);
-    return `LIVE ${days}d ${hours % 24}h`;
+    return `${days}d ${hours % 24}h`;
   }
-  return `LIVE ${hours}h ${minutes}m`;
+  return `${hours}h ${minutes}m`;
 });
 
 const timerClasses = computed(() => {
@@ -95,7 +101,7 @@ const timerClasses = computed(() => {
       class="surface rounded-2xl overflow-hidden group-hover:shadow-card-hover group-hover:-translate-y-0.5 transition duration-300 ease-premium h-full flex flex-col"
     >
       <!-- Image well -->
-      <div class="p-2 sm:p-2.5 bg-white dark:bg-white/[0.04]">
+      <div class="p-1 sm:p-2.5 bg-white dark:bg-white/[0.04]">
         <div
           class="relative aspect-[3.55/5] rounded-lg overflow-hidden bg-canvas-sunken dark:bg-white/[0.02]"
         >
@@ -119,6 +125,7 @@ const timerClasses = computed(() => {
             class="absolute left-1.5 top-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide shadow-sm"
             :class="timerClasses"
           >
+            <span v-if="isLive" class="hidden sm:inline">LIVE</span>
             {{ statusTimeLabel }}
           </span>
           <span
@@ -162,6 +169,20 @@ const timerClasses = computed(() => {
             </span>
           </div>
 
+          <!-- Bottom-right, phones only: favourite button sits on the image
+               so the narrow tile doesn't spend a whole row on it. -->
+          <div
+            v-if="!isAuction"
+            class="sm:hidden absolute right-1 bottom-1 rounded-full bg-white/90 text-ink shadow-sm dark:bg-zinc-900/85 dark:text-zinc-200"
+          >
+            <FavouriteButton
+              :item-id="item?.id || ''"
+              item-type="card"
+              :count="card?.favouriteCount || 0"
+              size="sm"
+            />
+          </div>
+
           <!-- Bottom-left: language badge (cards) or photo count (auctions) -->
           <span
             v-if="!isAuction && item?.language && item.language !== 'EN'"
@@ -191,23 +212,28 @@ const timerClasses = computed(() => {
       </div>
 
       <!-- Body -->
-      <div class="px-3.5 sm:px-4 pt-2 pb-3.5 sm:pb-4 flex-1 flex flex-col">
+      <!-- Phones fit three tiles a row, so the name gets two lines there
+           (reserved so prices line up across a row), the seller and view
+           count drop out and the heart moves onto the image; from sm up it's
+           the single-line layout. -->
+      <div class="px-2 sm:px-4 pt-1.5 sm:pt-2 pb-2 sm:pb-4 flex-1 flex flex-col">
         <h3
-          class="font-semibold text-[15px] leading-tight text-ink dark:text-white truncate"
+          class="font-semibold text-sm sm:text-[15px] leading-tight text-ink dark:text-white line-clamp-2 min-h-[2.5em] break-words sm:line-clamp-1 sm:min-h-0"
+          :title="item?.cardName"
         >
           {{ item?.cardName }}
         </h3>
 
-        <div class="mt-auto pt-3">
+        <div class="mt-auto pt-2 sm:pt-3">
           <div class="flex items-end justify-between">
             <div class="min-w-0">
               <!-- Auction: current bid with hammer icon -->
               <template v-if="isAuction">
                 <p
-                  class="tabular-price font-extrabold text-[17px] leading-none text-ink dark:text-white inline-flex items-center gap-1"
+                  class="tabular-price font-extrabold text-[15px] sm:text-[17px] leading-none text-ink dark:text-white inline-flex flex-wrap items-center gap-x-1 gap-y-0.5"
                 >
                   <svg
-                    class="w-3.5 h-3.5 text-ink-soft dark:text-zinc-400 shrink-0"
+                    class="hidden sm:block w-3.5 h-3.5 text-ink-soft dark:text-zinc-400 shrink-0"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -230,7 +256,7 @@ const timerClasses = computed(() => {
               <!-- Card: fixed price -->
               <template v-else>
                 <p
-                  class="tabular-price font-extrabold text-[17px] leading-none text-ink dark:text-white"
+                  class="tabular-price font-extrabold text-[15px] sm:text-[17px] leading-none text-ink dark:text-white flex flex-wrap items-baseline gap-x-1 gap-y-0.5"
                 >
                   {{ formatPrice(card?.price || 0) }}
                   <span
@@ -242,7 +268,10 @@ const timerClasses = computed(() => {
               </template>
             </div>
           </div>
-          <div class="mt-1.5 flex justify-between items-center">
+          <div
+            class="mt-1 sm:mt-1.5 justify-between items-center gap-1"
+            :class="isAuction ? 'flex' : 'hidden sm:flex'"
+          >
             <span
               v-if="isAuction"
               class="text-[11px] text-ink-muted dark:text-zinc-400"
@@ -251,7 +280,7 @@ const timerClasses = computed(() => {
             </span>
             <span
               v-if="item?.seller"
-              class="text-[11px] text-ink-muted dark:text-zinc-400 truncate"
+              class="hidden sm:inline text-[11px] text-ink-muted dark:text-zinc-400 truncate"
             >
               @{{ item.seller }}
             </span>

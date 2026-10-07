@@ -38,7 +38,7 @@
       <!-- Grid -->
       <div
         v-else
-        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5"
+        class="grid grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-5"
       >
         <CardTile
           v-for="auction in publicAuctions"

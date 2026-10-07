@@ -21,7 +21,7 @@
            jump when listings arrive. -->
       <div
         v-if="loading"
-        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 xl:gap-5"
+        class="grid grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-4 xl:gap-5"
         role="status"
         aria-label="Loading listings"
       >
@@ -66,7 +66,7 @@
       <!-- Grid -->
       <template v-else>
         <div
-          class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 xl:gap-5"
+          class="grid grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-4 xl:gap-5"
         >
           <CardTile v-for="card in pageCards" :key="card.id" :card="card" />
         </div>
