@@ -101,7 +101,7 @@
         <!-- Beta giveaway -->
         <div
           v-if="summary.betaGiveaway > 0"
-          class="mb-6 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5"
+          class="panel mb-6 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5"
         >
           <div class="flex items-start justify-between gap-4 flex-wrap">
             <div class="min-w-0">
@@ -127,7 +127,7 @@
         <div class="grid gap-3 lg:grid-cols-3 mb-3">
           <!-- P&L -->
           <div
-            class="lg:col-span-2 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5"
+            class="panel lg:col-span-2 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5"
           >
             <h2 class="text-sm font-semibold text-ink dark:text-white mb-4">
               Profit &amp; loss — {{ periodLabel }}
@@ -155,7 +155,7 @@
 
           <!-- Subscriptions -->
           <div
-            class="rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5"
+            class="panel rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5"
           >
             <h2 class="text-sm font-semibold text-ink dark:text-white mb-4">
               Subscriptions
@@ -204,7 +204,7 @@
 
         <!-- Tax -->
         <div
-          class="rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5 mb-3"
+          class="panel rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5 mb-3"
         >
           <h2 class="text-sm font-semibold text-ink dark:text-white">Tax position</h2>
           <p class="text-xs text-ink-muted dark:text-zinc-400 mt-1">

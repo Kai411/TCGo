@@ -1,4 +1,7 @@
 <template>
+  <!-- On body: on a phone the conversation is itself a body-level layer
+       (z-55), and anything left inside the page renders underneath it. -->
+  <Teleport to="body">
   <div class="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60" @click.self="$emit('edit')">
     <div
       role="alertdialog"
@@ -47,6 +50,7 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">

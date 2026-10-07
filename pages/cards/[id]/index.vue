@@ -85,7 +85,8 @@
                   :src="cdnUrl(img, 900)"
                   :alt="`${card.cardName}, photo ${i + 1}`"
                   :loading="i === 0 ? 'eager' : 'lazy'"
-                  class="w-full h-full object-contain"
+                  class="w-full h-full object-contain cursor-zoom-in"
+                  @click="openLightbox(allImages, i)"
                 />
               </div>
             </div>
@@ -119,7 +120,7 @@
 
             <div
               v-if="!available"
-              class="absolute inset-0 bg-black/40 flex items-center justify-center z-10"
+              class="absolute inset-0 bg-black/40 flex items-center justify-center z-10 pointer-events-none"
             >
               <span class="px-3 py-1 rounded-full text-sm font-bold bg-black/70 text-white tracking-wide uppercase">{{ reserved ? "Reserved" : "Sold" }}</span>
             </div>
@@ -603,6 +604,8 @@ const onImageScroll = () => {
 
 const prevImage = () => scrollToImage(Math.max(0, activeImageIndex.value - 1));
 const nextImage = () => scrollToImage(Math.min(allImages.value.length - 1, activeImageIndex.value + 1));
+
+const { openLightbox } = useLightbox();
 
 const allImages = computed(() => {
   if (!card.value) return [];

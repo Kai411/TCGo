@@ -17,7 +17,7 @@
 
     <template v-else>
       <!-- Delivery address — shipping can't be quoted without it -->
-      <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4 mb-4">
+      <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4 mb-4">
         <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1">
           Deliver to
         </p>
@@ -42,7 +42,7 @@
         <div
           v-for="group in groupedBySeller"
           :key="group.sellerUid"
-          class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4"
+          class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4"
         >
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-3">
@@ -144,7 +144,7 @@
       </div>
 
       <!-- Grand summary + checkout -->
-      <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+      <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
         <div class="space-y-1 text-sm mb-4">
           <div class="flex justify-between text-gray-600 dark:text-zinc-300">
             <span>Items ({{ items.length }})</span>

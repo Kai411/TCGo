@@ -77,7 +77,7 @@
 
     <div
       v-else
-      class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5"
+      class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5"
     >
       <p class="text-lg font-bold text-ink dark:text-white">Your TCGo account</p>
       <p class="text-sm text-ink-muted dark:text-zinc-400 mt-1">
@@ -159,11 +159,11 @@
 
       <!-- My orders, by the same groups as the Orders page filters -->
       <section
-        class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] pt-2 pb-3"
+        class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] pt-2 pb-3"
       >
         <NuxtLink
           to="/activity"
-          class="press flex items-center justify-between px-4 min-h-[48px]"
+          class="press flex items-center justify-between lg:px-4 min-h-[48px]"
         >
           <span class="text-base font-bold text-ink dark:text-white">My Orders</span>
           <span class="flex items-center gap-0.5 text-xs font-medium text-ink-soft dark:text-zinc-500">
@@ -171,7 +171,7 @@
             <IconChevron class="w-4 h-4" />
           </span>
         </NuxtLink>
-        <div class="grid grid-cols-4 px-1">
+        <div class="grid grid-cols-4 lg:px-1">
           <NuxtLink
             v-for="g in orderGroups"
             :key="g.id"
@@ -194,13 +194,13 @@
 
       <!-- Settings list -->
       <section
-        class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] overflow-hidden"
+        class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] overflow-hidden"
       >
         <NuxtLink
           v-for="row in settingsRows"
           :key="row.to"
           :to="row.to"
-          class="press flex items-center gap-4 px-4 min-h-[56px]"
+          class="press flex items-center gap-4 lg:px-4 min-h-[56px]"
         >
           <span
             class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] text-ink dark:text-zinc-200 flex items-center justify-center"
@@ -211,7 +211,7 @@
           <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
         </NuxtLink>
         <!-- A label, not a link, so the whole row flips the switch. -->
-        <label class="flex items-center gap-4 px-4 min-h-[56px] cursor-pointer">
+        <label class="flex items-center gap-4 lg:px-4 min-h-[56px] cursor-pointer">
           <span
             class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] text-ink dark:text-zinc-200 flex items-center justify-center"
           >
@@ -226,13 +226,13 @@
     <!-- About and policies: what the footer used to hold. Shown signed out
          too, so the policy pages stay one tap away for visitors. -->
     <section
-      class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] overflow-hidden"
+      class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] overflow-hidden"
     >
       <NuxtLink
         v-for="link in aboutLinks"
         :key="link.to"
         :to="link.to"
-        class="press flex items-center justify-between gap-4 px-4 min-h-[52px] text-sm font-medium text-ink dark:text-white"
+        class="press flex items-center justify-between gap-4 lg:px-4 min-h-[52px] text-sm font-medium text-ink dark:text-white"
       >
         {{ link.label }}
         <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />

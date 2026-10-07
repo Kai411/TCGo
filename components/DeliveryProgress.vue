@@ -1,5 +1,5 @@
 <template>
-  <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+  <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
     <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
       Delivery
     </h2>

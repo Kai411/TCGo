@@ -100,7 +100,7 @@
         </div>
 
         <!-- How people paid -->
-        <div v-if="data.byMethod.length" class="surface rounded-2xl p-4 mb-6">
+        <div v-if="data.byMethod.length" class="panel surface rounded-2xl p-4 mb-6">
           <p class="eyebrow mb-3">How they paid</p>
           <div class="space-y-2">
             <div
@@ -125,7 +125,7 @@
         </div>
 
         <!-- Best sellers -->
-        <div v-if="data.topCards.length > 1" class="surface rounded-2xl p-4 mb-6">
+        <div v-if="data.topCards.length > 1" class="panel surface rounded-2xl p-4 mb-6">
           <p class="eyebrow mb-3">Moves fastest</p>
           <div class="space-y-2">
             <div v-for="c in data.topCards" :key="c.cardName" class="flex items-center gap-3">

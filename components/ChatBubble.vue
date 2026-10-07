@@ -6,7 +6,7 @@
           v-for="(src, i) in message.images"
           :key="src"
           type="button"
-          @click="$emit('open-image', src)"
+          @click="openLightbox(message.images, i)"
           class="block rounded-xl overflow-hidden bg-canvas-sunken dark:bg-white/[0.04]"
           :aria-label="`Open photo ${i + 1}`"
         >
@@ -49,7 +49,7 @@ import { cdnUrl } from "~/composables/useStorage";
 import { CHAT_RISKS, CHAT_THUMB_WIDTH, isChatRiskCode, type ChatMessage } from "~/shared/chat";
 
 const props = defineProps<{ message: ChatMessage; mine: boolean; pending?: boolean }>();
-defineEmits<{ "open-image": [src: string] }>();
+const { openLightbox } = useLightbox();
 
 const riskList = computed(() =>
   (props.message.risks ?? []).filter(isChatRiskCode).map((c) => CHAT_RISKS[c]),

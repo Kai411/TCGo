@@ -13,7 +13,11 @@
 
     <div v-else>
       <!-- Headline: current price + change over the window -->
-      <div v-if="showHeader" class="flex items-end justify-between gap-3 mb-3">
+      <div
+        v-if="showHeader"
+        class="flex items-end justify-between gap-3 mb-3"
+        :class="headerClass"
+      >
         <div>
           <p class="text-[11px] text-ink-muted dark:text-zinc-400">
             {{ valueLabel }}
@@ -166,6 +170,8 @@ const props = withDefaults(
     showHeader?: boolean;
     valueLabel?: string;
     emptyText?: string;
+    /** Extra classes for the headline row, e.g. to hide it on phones. */
+    headerClass?: string;
   }>(),
   {
     loading: false,

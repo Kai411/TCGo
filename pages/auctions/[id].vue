@@ -49,7 +49,12 @@
                   :key="i"
                   class="w-full h-full shrink-0 snap-start flex items-center justify-center"
                 >
-                  <img :src="img" :alt="auction.cardName" class="w-full h-full object-cover" />
+                  <img
+                    :src="img"
+                    :alt="auction.cardName"
+                    class="w-full h-full object-cover cursor-zoom-in"
+                    @click="openLightbox(allImages, i)"
+                  />
                 </div>
               </div>
 
@@ -101,7 +106,7 @@
 
         <!-- Card Info -->
         <div class="lg:col-span-4 space-y-4">
-          <div class="bg-white dark:bg-white/[0.04] rounded-xl p-5 border border-gray-200 dark:border-white/[0.08]">
+          <div class="panel bg-white dark:bg-white/[0.04] rounded-xl p-5 border border-gray-200 dark:border-white/[0.08]">
             <h1 class="text-xl font-bold mb-2">{{ auction.title }}</h1>
             <div
               v-if="auction.isPrivate"
@@ -158,7 +163,7 @@
             </MessageButton>
           </div>
           <!-- Bid History -->
-          <div class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
+          <div class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
             <h3 class="font-bold text-sm mb-4">
               Bid History ({{ bids.length }})
             </h3>
@@ -208,7 +213,7 @@
 
         <!-- Bidding Panel -->
         <div class="lg:col-span-4 space-y-4">
-          <div class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
+          <div class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
             <div class="text-center mb-4">
               <p class="text-xs text-gray-500 dark:text-zinc-400">Current Price</p>
               <p class="text-3xl font-bold text-pokemon-red">
@@ -448,6 +453,8 @@ const { profile: myProfile } = useMyProfile();
 // Image gallery
 const activeImageIndex = ref(0);
 const scrollContainer = ref<HTMLElement | null>(null);
+
+const { openLightbox } = useLightbox();
 
 const allImages = computed(() => {
   if (!auction.value) return [];

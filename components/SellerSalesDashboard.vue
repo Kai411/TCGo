@@ -41,7 +41,7 @@
     <slot name="after-attention" />
 
     <!-- ── Revenue + trend ─────────────────────────────────────────── -->
-    <section data-tour="dashboard-sales" class="surface rounded-2xl p-4 sm:p-5">
+    <section data-tour="dashboard-sales" class="panel surface rounded-2xl p-4 sm:p-5">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p class="eyebrow">Completed sales</p>

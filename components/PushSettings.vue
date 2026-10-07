@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-5"
+    class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-5"
   >
     <div>
       <p class="text-xl font-bold">Notifications</p>
