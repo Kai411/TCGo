@@ -21,9 +21,15 @@
         ×{{ quantity }}
       </span>
 
-      <div class="p-2.5" :class="readonly ? '' : 'pr-11'">
+      <div
+        :class="[
+          dense ? 'p-2 sm:p-2.5' : 'p-2.5',
+          readonly ? '' : 'pr-11',
+        ]"
+      >
         <p
-          class="font-semibold text-sm text-ink dark:text-white truncate"
+          class="font-semibold text-sm text-ink dark:text-white"
+          :class="dense ? 'line-clamp-2 min-h-[2.5em] leading-tight break-words sm:line-clamp-1 sm:min-h-0' : 'truncate'"
           :title="card.name"
         >
           {{ card.name }}
@@ -44,6 +50,7 @@
           <p
             v-if="card.price"
             class="text-md font-[900] text-ink dark:text-white tabular-nums"
+            :class="dense ? 'flex flex-wrap items-baseline gap-x-1 leading-tight' : ''"
           >
             {{ card.price.market.toFixed(2) }}
             <span class="text-xs font-semibold">MYR</span>
@@ -162,6 +169,11 @@ withDefaults(
    * question is still "do I own this at all?".
    */
     showQuantity?: boolean;
+    /**
+     * Phone-friendly layout for a three-column grid (profile Collection tab):
+     * tighter padding, two-line name, MYR wraps under long prices.
+     */
+    dense?: boolean;
   }>(),
   { quantity: 1 },
 );
