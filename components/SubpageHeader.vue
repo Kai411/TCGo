@@ -1,7 +1,7 @@
 <template>
   <!-- Back to the Account page, plus an optional title, for pages reached
        from it. Pages whose card already names itself skip the title. -->
-  <div class="mb-3">
+  <div class="mb-3 select-none">
     <NuxtLink
       :to="back"
       class="-ml-2 inline-flex items-center gap-1 min-h-[44px] px-2 text-sm font-medium text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"

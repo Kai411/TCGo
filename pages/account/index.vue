@@ -3,7 +3,7 @@
        the policy pages that used to sit in the footer. Laid out like the
        account screens of the marketplace apps people already use — header,
        quick shortcuts, a selling card, order statuses, then a settings list. -->
-  <div class="max-w-xl mx-auto space-y-4">
+  <div class="max-w-xl mx-auto space-y-4 select-none">
     <!-- Header. Signed out, it's a sign-in card instead; the policy links
          below stay visible either way, since visitors need them too. -->
     <div
