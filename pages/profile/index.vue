@@ -31,7 +31,7 @@
 
       <div
         v-if="!loading"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6"
+        class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6"
       >
         <p class="text-xl font-bold">Profile</p>
         <!-- Avatar -->
@@ -193,7 +193,7 @@
 
       <div
         v-if="!loading && premiumEnabled"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-4 mt-4"
+        class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-4 mt-4"
       >
         <div class="flex items-center justify-between">
           <p class="text-xl font-bold">Membership</p>
@@ -290,7 +290,7 @@
 
       <div
         v-if="!loading"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
+        class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
       >
         <p class="text-xl font-bold">Privacy</p>
 

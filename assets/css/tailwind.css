@@ -300,7 +300,8 @@
    the content runs to the normal page gutter instead of sitting 20px further
    in; panels that follow each other are split by a hairline instead. Desktop
    keeps the card look. `panel-body` is for a panel whose padding sits on an
-   inner wrapper rather than on the panel itself.
+   inner wrapper rather than on the panel itself, and `panel-tile` for a
+   box nested inside a panel.
 
    Outside @layer and !important for the same reason as the input rule
    above: the box's own rounded, padding and border utilities, and `.dark .surface`,
@@ -325,5 +326,14 @@
   }
   .panel-body {
     padding: 0 !important;
+  }
+  /* A box nested inside a panel (stat tiles, a framed list) goes flat too,
+     keeping only its vertical rhythm. */
+  .panel-tile {
+    background: transparent !important;
+    border-width: 0 !important;
+    border-radius: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 }

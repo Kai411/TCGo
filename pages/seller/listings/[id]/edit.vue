@@ -41,7 +41,7 @@
               <!-- Photos (read-only) -->
               <div
                 v-if="existingImages.length > 0"
-                class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3 lg:col-span-2"
+                class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3 lg:col-span-2"
               >
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
                   Photos
@@ -60,7 +60,7 @@
 
           <!-- Price -->
           <div
-            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5"
+            class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5"
           >
             <label
               class="block text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-2"
@@ -80,7 +80,7 @@
 
           <!-- Shipping -->
           <div
-            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3"
+            class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3"
           >
             <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
               Shipping

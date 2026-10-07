@@ -173,13 +173,16 @@
       @send="riskPrompt = []; submit(true)"
     />
 
-    <div
-      v-if="lightbox"
-      class="fixed inset-0 z-[80] bg-black/90 flex items-center justify-center p-4"
-      @click="lightbox = ''"
-    >
-      <img :src="lightbox" alt="" class="max-w-full max-h-full object-contain" />
-    </div>
+    <!-- On body, above the phone's full-screen conversation layer. -->
+    <Teleport to="body">
+      <div
+        v-if="lightbox"
+        class="fixed inset-0 z-[80] bg-black/90 flex items-center justify-center p-4"
+        @click="lightbox = ''"
+      >
+        <img :src="lightbox" alt="" class="max-w-full max-h-full object-contain" />
+      </div>
+    </Teleport>
   </div>
 </template>
 
