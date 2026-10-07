@@ -47,7 +47,7 @@
 
       <!-- Add to inventory. Uses the same AddMethodPicker as Listings and
            Auctions so the choice looks and reads identically everywhere. -->
-      <div v-if="addOpen" class="surface rounded-2xl p-4 sm:p-5 mb-6">
+      <div v-if="addOpen" class="panel surface rounded-2xl p-4 sm:p-5 mb-6">
         <div class="flex items-center justify-between gap-3 mb-4">
           <p class="text-sm font-bold text-ink dark:text-white">Add to inventory</p>
           <button
@@ -143,7 +143,7 @@
             />
 
             <!-- Photos (optional for stock; the catalogue image is the fallback) -->
-            <div class="surface rounded-2xl p-5 space-y-3 lg:col-span-2">
+            <div class="panel surface rounded-2xl p-5 space-y-3 lg:col-span-2">
               <div class="flex items-center justify-between">
                 <h3 class="text-sm font-bold text-ink dark:text-zinc-100">Photos <span class="text-ink-muted dark:text-zinc-400 font-normal">(optional)</span></h3>
                 <span class="text-xs text-gray-400 dark:text-zinc-500">{{ selectedFiles.length }}/{{ MAX_PHOTOS }}</span>
@@ -176,7 +176,7 @@
             <!-- Prices: what you'll ask, and what you paid. Cost and remark
                  are private — they feed the stock value card and the profit
                  column, and never appear on a listing. -->
-            <div class="surface rounded-2xl p-5 space-y-4">
+            <div class="panel surface rounded-2xl p-5 space-y-4">
               <div>
                 <FormField label="List price (RM)">
                   <div class="relative">

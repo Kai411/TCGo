@@ -1,5 +1,5 @@
 <template>
-  <div class="surface rounded-2xl border p-5" :class="config?.enabled ? 'border-emerald-200 dark:border-emerald-500/25' : 'border-black/[0.06] dark:border-white/[0.08]'">
+  <div class="panel surface rounded-2xl border p-5" :class="config?.enabled ? 'border-emerald-200 dark:border-emerald-500/25' : 'border-black/[0.06] dark:border-white/[0.08]'">
     <div class="flex items-start justify-between gap-3 flex-wrap">
       <div class="min-w-0">
         <h2 class="text-sm font-bold flex items-center gap-2">

@@ -249,3 +249,38 @@
     font-size: 16px !important;
   }
 }
+
+/* Section panels flatten on phones (under the lg breakpoint, same as the
+   bottom nav). Add `panel` next to `surface` (or any bordered box) on a box
+   that wraps a page section, not on an item like a tile, row or modal. On a
+   phone the box loses its fill, border, shadow, corners and side padding so
+   the content runs to the normal page gutter instead of sitting 20px further
+   in; panels that follow each other are split by a hairline instead. Desktop
+   keeps the card look. `panel-body` is for a panel whose padding sits on an
+   inner wrapper rather than on the panel itself.
+
+   Outside @layer and !important for the same reason as the input rule
+   above: the box's own rounded, padding and border utilities, and `.dark .surface`,
+   would otherwise win. */
+@media (max-width: 1023.98px) {
+  .panel {
+    background: transparent !important;
+    border-width: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  .panel + .panel {
+    border-top: 1px solid rgb(0 0 0 / 0.06) !important;
+    padding-top: 1.5rem !important;
+  }
+  .dark .panel + .panel {
+    border-top-color: rgb(255 255 255 / 0.06) !important;
+  }
+  .panel-body {
+    padding: 0 !important;
+  }
+}

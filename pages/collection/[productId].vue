@@ -41,19 +41,19 @@
 
     <template v-else>
       <section
-        class="surface relative overflow-hidden rounded-3xl border border-black/[0.06] dark:border-white/[0.08]"
+        class="panel surface relative overflow-hidden rounded-3xl border border-black/[0.06] dark:border-white/[0.08]"
       >
         <div
-          class="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-pokemon-red/[0.08] blur-3xl dark:bg-pokemon-red/[0.12]"
+          class="pointer-events-none absolute hidden lg:block -right-24 -top-24 h-72 w-72 rounded-full bg-pokemon-red/[0.08] blur-3xl dark:bg-pokemon-red/[0.12]"
           aria-hidden="true"
         />
         <div
-          class="pointer-events-none absolute -bottom-32 left-1/4 h-72 w-72 rounded-full bg-pokemon-blue/[0.08] blur-3xl dark:bg-pokemon-blue/[0.12]"
+          class="pointer-events-none absolute hidden lg:block -bottom-32 left-1/4 h-72 w-72 rounded-full bg-pokemon-blue/[0.08] blur-3xl dark:bg-pokemon-blue/[0.12]"
           aria-hidden="true"
         />
 
         <div
-          class="relative grid grid-cols-1 items-center gap-7 p-5 sm:p-7 md:grid-cols-[minmax(230px,310px)_1fr] md:gap-10 lg:p-10"
+          class="panel-body relative grid grid-cols-1 items-center gap-7 p-5 sm:p-7 md:grid-cols-[minmax(230px,310px)_1fr] md:gap-10 lg:p-10"
         >
           <div class="relative mx-auto w-full max-w-[310px] md:mx-0">
             <div
@@ -338,7 +338,7 @@
         </div>
       </section>
 
-      <section class="surface rounded-2xl mt-8 p-5 sm:p-6">
+      <section class="panel surface rounded-2xl mt-8 p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
             <span class="eyebrow">Price history</span>
@@ -449,7 +449,7 @@
            smaller half of the market and never the cheapest way to own the
            card — a reader could see three slabs and conclude nobody was
            selling it. -->
-      <section class="surface rounded-2xl mt-6 p-5 sm:p-6">
+      <section class="panel surface rounded-2xl mt-6 p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <span class="eyebrow">Ungraded prices</span>
@@ -612,7 +612,7 @@
         </p>
       </section>
 
-      <section class="surface rounded-2xl mt-6 p-5 sm:p-6">
+      <section class="panel surface rounded-2xl mt-6 p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <span class="eyebrow">Graded prices</span>

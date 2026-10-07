@@ -52,7 +52,7 @@
         </li>
       </ol>
 
-      <div class="surface rounded-2xl p-6">
+      <div class="panel surface rounded-2xl p-6">
         <!-- ── Identity ─────────────────────────────────────────────── -->
         <template v-if="state.current === 'identity'">
           <h2 class="text-lg font-bold text-ink dark:text-white">Verify your identity</h2>

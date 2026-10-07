@@ -27,7 +27,7 @@
       />
 
       <!-- Scan: open the camera -->
-      <div v-if="mode === 'scan'" class="surface rounded-2xl p-5 mb-6">
+      <div v-if="mode === 'scan'" class="panel surface rounded-2xl p-5 mb-6">
         <div class="flex items-center justify-between gap-4 flex-wrap">
           <div class="min-w-0">
             <p class="text-sm font-semibold text-ink dark:text-zinc-100">Scan cards</p>
