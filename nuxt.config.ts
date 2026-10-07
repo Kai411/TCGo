@@ -120,7 +120,13 @@ export default defineNuxtConfig({
         { charset: "utf-8" },
         // viewport-fit=cover makes env(safe-area-inset-*) report the iPhone
         // home bar and notch, so fixed bars and the chat composer can pad for them.
-        { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+        // maximum-scale/user-scalable stop page zoom on phones (kai's call, so
+        // it feels like an app); photos zoom in the lightbox instead. Desktop
+        // browsers ignore this tag. See plugins/no-zoom.client.ts.
+        {
+          name: "viewport",
+          content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
+        },
         {
           name: "description",
           content:

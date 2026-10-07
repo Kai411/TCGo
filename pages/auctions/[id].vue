@@ -49,7 +49,12 @@
                   :key="i"
                   class="w-full h-full shrink-0 snap-start flex items-center justify-center"
                 >
-                  <img :src="img" :alt="auction.cardName" class="w-full h-full object-cover" />
+                  <img
+                    :src="img"
+                    :alt="auction.cardName"
+                    class="w-full h-full object-cover cursor-zoom-in"
+                    @click="openLightbox(allImages, i)"
+                  />
                 </div>
               </div>
 
@@ -448,6 +453,8 @@ const { profile: myProfile } = useMyProfile();
 // Image gallery
 const activeImageIndex = ref(0);
 const scrollContainer = ref<HTMLElement | null>(null);
+
+const { openLightbox } = useLightbox();
 
 const allImages = computed(() => {
   if (!auction.value) return [];
