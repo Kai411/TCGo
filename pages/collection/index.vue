@@ -277,7 +277,7 @@
          Hidden while searching: the point of a search is to look at
          candidates, not at what you already own. -->
     <section v-if="!showingSearch && count > 0" class="pt-5">
-      <div class="surface rounded-2xl p-4 sm:p-5">
+      <div class="panel surface rounded-2xl p-4 sm:p-5">
         <div class="flex items-start justify-between gap-3">
           <div>
             <p class="eyebrow">Estimated value</p>

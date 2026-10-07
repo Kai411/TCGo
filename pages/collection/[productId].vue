@@ -40,11 +40,8 @@
     </div>
 
     <template v-else>
-      <!-- Phones (under lg) get no panel here: the card, name and price sit
-           straight on the page so the price and its trend fit on the first
-           screen. From lg up it is the same raised panel as before. -->
       <section
-        class="relative lg:surface lg:overflow-hidden lg:rounded-3xl lg:border lg:border-black/[0.06] lg:dark:border-white/[0.08]"
+        class="panel surface relative overflow-hidden rounded-3xl border border-black/[0.06] dark:border-white/[0.08]"
       >
         <div
           class="pointer-events-none absolute hidden lg:block -right-24 -top-24 h-72 w-72 rounded-full bg-pokemon-red/[0.08] blur-3xl dark:bg-pokemon-red/[0.12]"
@@ -61,7 +58,7 @@
              into this grid. The second row is 1fr so the card's extra height
              lands under the chips instead of spreading the title apart. -->
         <div
-          class="relative grid grid-cols-[7.5rem_minmax(0,1fr)] grid-rows-[auto_1fr_auto_auto] gap-x-4 sm:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[minmax(230px,310px)_1fr] lg:grid-rows-none lg:items-center lg:gap-10 lg:p-10"
+          class="panel-body relative grid grid-cols-[7.5rem_minmax(0,1fr)] grid-rows-[auto_1fr_auto_auto] gap-x-4 sm:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[minmax(230px,310px)_1fr] lg:grid-rows-none lg:items-center lg:gap-10 lg:p-10"
         >
           <div
             class="relative col-start-1 row-span-2 row-start-1 w-full self-start lg:row-span-1 lg:mx-0 lg:max-w-[310px] lg:self-auto"
@@ -354,7 +351,7 @@
         </div>
       </section>
 
-      <section class="surface rounded-2xl mt-8 p-5 sm:p-6">
+      <section class="panel surface rounded-2xl mt-8 p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
             <span class="eyebrow">Price history</span>
@@ -465,7 +462,7 @@
            smaller half of the market and never the cheapest way to own the
            card — a reader could see three slabs and conclude nobody was
            selling it. -->
-      <section class="surface rounded-2xl mt-6 p-5 sm:p-6">
+      <section class="panel surface rounded-2xl mt-6 p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <span class="eyebrow">Ungraded prices</span>
@@ -628,7 +625,7 @@
         </p>
       </section>
 
-      <section class="surface rounded-2xl mt-6 p-5 sm:p-6">
+      <section class="panel surface rounded-2xl mt-6 p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <span class="eyebrow">Graded prices</span>

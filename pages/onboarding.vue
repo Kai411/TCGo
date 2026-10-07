@@ -45,7 +45,7 @@
         </li>
       </ol>
 
-      <div class="surface rounded-2xl p-6">
+      <div class="panel surface rounded-2xl p-6">
         <!-- ── Email ────────────────────────────────────────────────── -->
         <template v-if="state.current === 'email'">
           <h1 class="text-lg font-bold text-ink dark:text-white">Confirm your email</h1>
