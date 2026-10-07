@@ -2,6 +2,7 @@
 import type { Card } from "~/composables/useCards";
 import type { Auction } from "~/composables/useAuctions";
 import { cdnUrl } from "~/composables/useStorage";
+import { isAvailable, isReserved } from "~/shared/card-availability";
 
 const props = defineProps<{
   card?: Card;
@@ -56,6 +57,8 @@ const formatPrice = (price: number): string => {
   });
 };
 
+const viewCount = computed(() => props.card?.viewCount ?? 0);
+
 // Auction-specific
 const bidCount = computed(() => (props.auction as any)?.bidCount ?? 0);
 
@@ -84,9 +87,12 @@ const timerClasses = computed(() => {
 </script>
 
 <template>
-  <NuxtLink :to="linkTo" class="group block">
+  <NuxtLink
+    :to="linkTo"
+    class="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokemon-red focus-visible:ring-offset-2 focus-visible:ring-offset-canvas dark:focus-visible:ring-offset-canvas-inverse"
+  >
     <article
-      class="surface rounded-2xl overflow-hidden hover:shadow-card-hover transition-shadow duration-300 ease-premium h-full flex flex-col"
+      class="surface rounded-2xl overflow-hidden group-hover:shadow-card-hover group-hover:-translate-y-0.5 transition duration-300 ease-premium h-full flex flex-col"
     >
       <!-- Image well -->
       <div class="p-2 sm:p-2.5 bg-white dark:bg-white/[0.04]">
@@ -121,6 +127,7 @@ const timerClasses = computed(() => {
           >
             <svg
               class="w-2.5 h-2.5"
+              aria-hidden="true"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -130,6 +137,7 @@ const timerClasses = computed(() => {
               <circle cx="12" cy="13" r="3" />
             </svg>
             {{ imageCount }}
+            <span class="sr-only">photos</span>
           </span>
 
           <!-- Top-right: grade/condition badge -->
@@ -141,13 +149,16 @@ const timerClasses = computed(() => {
             {{ conditionLabel }}
           </span>
 
-          <!-- Sold overlay (cards only — auctions already show ENDED via the timer badge) -->
+          <!-- Unavailable overlay (cards only — auctions already show ENDED via
+               the timer badge). "Reserved" is a card being paid for at a
+               seller's counter right now; it comes back on its own if that
+               payment falls through, so it must not read as Sold. -->
           <div
-            v-if="card?.sold"
+            v-if="card && !isAvailable(card)"
             class="absolute inset-0 bg-black/40 flex items-end p-1.5"
           >
             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/60 text-white/90 tracking-wide uppercase">
-              Sold
+              {{ isReserved(card) ? "Reserved" : "Sold" }}
             </span>
           </div>
 
@@ -164,6 +175,7 @@ const timerClasses = computed(() => {
           >
             <svg
               class="w-2.5 h-2.5"
+              aria-hidden="true"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -173,6 +185,7 @@ const timerClasses = computed(() => {
               <circle cx="12" cy="13" r="3" />
             </svg>
             {{ imageCount }}
+            <span class="sr-only">photos</span>
           </span>
         </div>
       </div>
@@ -242,7 +255,26 @@ const timerClasses = computed(() => {
             >
               @{{ item.seller }}
             </span>
-            <div v-if="!isAuction" class="flex items-center gap-1.5 shrink-0">
+            <div v-if="!isAuction" class="flex items-center gap-2 shrink-0">
+              <span
+                v-if="viewCount > 0"
+                class="inline-flex items-center gap-0.5 text-[11px] tabular-nums text-ink-muted dark:text-zinc-400"
+                :title="`${viewCount} view${viewCount === 1 ? '' : 's'}`"
+              >
+                <svg
+                  class="w-3 h-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                {{ viewCount }}
+              </span>
               <FavouriteButton
                 :item-id="item?.id || ''"
                 item-type="card"

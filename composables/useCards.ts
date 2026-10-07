@@ -1,8 +1,8 @@
+import { isListable } from "~/shared/listing-lifecycle";
 import {
   collection,
   addDoc,
   updateDoc,
-  deleteDoc,
   doc,
   onSnapshot,
   query,
@@ -24,13 +24,19 @@ export interface Card {
   customGradingProvider: string;
   description: string;
   price: number;
-  shippingWM: number;
-  shippingEM: number;
+  // Legacy per-listing shipping. Superseded by live courier quotes at
+  // checkout; retained so existing listings keep the same document shape.
+  shippingWM?: number;
+  shippingEM?: number;
   imageUrl: string;
   imageUrls: string[];
   seller: string;
   sellerUid: string;
   createdAt: number;
+  /** When it went live. Reset on relist; absent on pre-lifecycle listings. */
+  listedAt?: number;
+  /** Set by a soft delete — the document is kept, just hidden. */
+  deletedAt?: number | null;
   sold: boolean;
   interestedCount: number;
   favouriteCount: number;
@@ -44,6 +50,8 @@ export interface Card {
   // scanner when a TCGo DB match is picked; lets the detail page show
   // up-to-date market price without hitting an external API.
   productId?: number;
+  // Back-link to the inventory item this listing was created from (bridge).
+  inventoryId?: string;
 
   // ── Product metadata (auto-filled by scanner where possible) ─────────
   rarity?: string;
@@ -94,10 +102,14 @@ const initialize = () => {
   unsubscribe = onSnapshot(
     q,
     (snapshot) => {
-      cards.value = snapshot.docs.map((d) => ({
-        ...(d.data() as Omit<Card, "id">),
-        id: d.id,
-      }));
+      // Filtered here rather than in the query: Firestore cannot express
+      // "not deleted AND not older than 90 days" without a composite index
+      // per sort order, and expiry is a moving target that a stored query
+      // can't track. isListable() is the single definition — see
+      // shared/listing-lifecycle.ts.
+      cards.value = snapshot.docs
+        .map((d) => ({ ...(d.data() as Omit<Card, "id">), id: d.id }))
+        .filter((c) => isListable(c));
       loading.value = false;
     },
     (error) => {
@@ -121,7 +133,14 @@ export const useCards = () => {
   ) => {
     const newCard = {
       ...card,
+      // Firestore rejects undefined, and these are no longer collected.
+      shippingWM: card.shippingWM ?? 0,
+      shippingEM: card.shippingEM ?? 0,
       createdAt: Date.now(),
+      // When it went live, which is what its 3-month life is measured from.
+      // Separate from createdAt so a relist restarts the clock without
+      // rewriting when the card was first entered.
+      listedAt: Date.now(),
       sold: false,
       interestedCount: 0,
       favouriteCount: 0,
@@ -140,10 +159,56 @@ export const useCards = () => {
     await updateDoc(cardDoc, { interestedCount: increment(1) });
   };
 
+  /**
+   * Soft delete. The document stays.
+   *
+   * Orders, sales history and dispute evidence all point at listing ids, so
+   * removing the document turns those into dangling references — a past order
+   * would lose the name and photo of what was actually bought. Hiding it costs
+   * a field; hard-deleting it costs the record.
+   */
   const deleteCard = async (cardId: string) => {
     const cardDoc = doc(firestore!, "cards", cardId);
-    await deleteDoc(cardDoc);
+    await updateDoc(cardDoc, {
+      deletedAt: Date.now(),
+      status: "deleted",
+    });
   };
 
-  return { cards, loading, createCard, markAsSold, markInterested, deleteCard };
+  /** Put an expired or deleted listing back on the marketplace, clock reset. */
+  const relistCard = async (cardId: string) => {
+    const cardDoc = doc(firestore!, "cards", cardId);
+    await updateDoc(cardDoc, {
+      deletedAt: null,
+      status: "active",
+      listedAt: Date.now(),
+    });
+  };
+
+  // View counter. Counted once per browser session per listing so a buyer
+  // refreshing the page (or bouncing between photos) doesn't inflate it.
+  // Sellers opening their own listing are skipped by the caller.
+  const recordView = async (cardId: string) => {
+    if (!import.meta.client) return;
+    const key = `tcgo:viewed:card:${cardId}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      // Storage blocked (private mode) — still count, just without dedupe.
+    }
+    const cardDoc = doc(firestore!, "cards", cardId);
+    await updateDoc(cardDoc, { viewCount: increment(1) });
+  };
+
+  return {
+    cards,
+    loading,
+    createCard,
+    markAsSold,
+    markInterested,
+    recordView,
+    deleteCard,
+    relistCard,
+  };
 };

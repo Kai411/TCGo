@@ -56,19 +56,10 @@
                   </svg>
                   Premium
                 </span>
-                <span
-                  v-if="profile.whatsappVerified"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide uppercase bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                >
-                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fill-rule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                  Beta Verified
-                </span>
+                <VerifiedBadge
+                  v-if="profile.kycStatus === 'verified'"
+                  :verified-at="profile.kycVerifiedAt ?? profile.kycStatusAt"
+                />
                 <span v-else-if="profile.whatsappNumber" class="chip">
                   Contact added
                 </span>
@@ -83,6 +74,12 @@
               <p class="mt-1 text-[11px] text-ink-soft dark:text-zinc-500">
                 Member since {{ formatDate(profile.createdAt) }}
               </p>
+              <ChatResponsiveness
+                v-if="!isOwnProfile"
+                :uid="uid"
+                :last-seen-at="(profile as any).lastSeenAt"
+                class="mt-0.5"
+              />
             </div>
           </div>
 
@@ -161,6 +158,7 @@
             >
               Report
             </button>
+            <MessageButton v-if="!isOwnProfile" :uid="uid" small class="order-first" />
           </div>
         </div>
       </section>
@@ -200,7 +198,7 @@
 
         <NuxtLink
           v-if="premiumEnabled && isOwnProfile && profile.tier !== 'premium'"
-          to="/pricing"
+          to="/membership"
           class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-amber-400/15 dark:bg-amber-400/10 border border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 hover:bg-amber-400/25 dark:hover:bg-amber-400/20 transition-colors ease-premium"
         >
           <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
@@ -208,14 +206,64 @@
           </svg>
           <span class="text-[11px] font-semibold tracking-wide uppercase">Go Premium</span>
         </NuxtLink>
+
+        <!-- Held up at a shop counter with a queue behind you, so it lives
+             one tap from where the Profile tab already lands rather than
+             three taps and a scroll into settings. Own profile only —
+             visitors never see it. -->
+        <button
+          v-if="isOwnProfile"
+          type="button"
+          @click="showBuyerQr = true"
+          class="inline-flex items-center gap-1.5 rounded-full surface px-3 py-1.5 hover:shadow-card-hover transition-shadow ease-premium"
+        >
+          <svg class="w-3.5 h-3.5 text-ink-muted dark:text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <path d="M14 14h3v3h-3zM19 19h2v2h-2z" />
+          </svg>
+          <span class="text-[11px] font-semibold tracking-wide uppercase">My code</span>
+        </button>
       </section>
+
+      <!-- Customer code -->
+      <Teleport to="body">
+        <Transition
+          enter-active-class="transition-opacity duration-150"
+          leave-active-class="transition-opacity duration-150"
+          enter-from-class="opacity-0"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="showBuyerQr"
+            class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+            @click.self="showBuyerQr = false"
+          >
+            <div class="w-full max-w-sm rounded-2xl bg-white p-5 dark:bg-[#17171c]" role="dialog" aria-label="Your customer code">
+              <BuyerQrCard />
+              <button
+                type="button"
+                @click="showBuyerQr = false"
+                class="mt-4 w-full rounded-xl border border-black/[0.10] py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-black/[0.03] dark:border-white/[0.12] dark:text-white dark:hover:bg-white/[0.05]"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
 
       <!-- Underline tabs -->
       <div class="hairline mb-6">
-        <div class="flex items-center gap-5 sm:gap-6 -mb-px">
+        <div
+          ref="containerEl"
+          class="relative flex items-center gap-5 sm:gap-6 -mb-px"
+        >
           <button
             v-for="tab in tabs"
             :key="tab.id"
+            :ref="(el) => setTabRef(tab.id, el)"
             @click="activeTab = tab.id"
             class="relative pb-3 pt-1 text-base sm:text-lg font-bold tracking-tightest transition-colors ease-premium"
             :class="
@@ -235,11 +283,13 @@
             >
               {{ tab.count }}
             </span>
-            <span
-              v-if="activeTab === tab.id"
-              class="absolute left-0 right-0 -bottom-px h-[2px] bg-pokemon-red rounded-full"
-            />
           </button>
+          <!-- Single underline that slides between tabs -->
+          <span
+            aria-hidden="true"
+            class="absolute left-0 -bottom-px h-[2px] bg-pokemon-red rounded-full transition-[transform,width,opacity] duration-300 ease-premium"
+            :style="indicatorStyle"
+          />
         </div>
       </div>
 
@@ -537,6 +587,7 @@ const { userFavourites } = useUserFavourites(uid);
 const { getScoreBadge } = useTrustScore();
 
 const isOwnProfile = computed(() => user.value?.uid === uid);
+const showBuyerQr = ref(false);
 
 const showReportForm = ref(false);
 const reportSubmitted = ref(false);
@@ -583,16 +634,35 @@ const formatMyr = (n: number) =>
     maximumFractionDigits: 2,
   });
 
+// Available first, sold pushed to the bottom, newest first within each group.
+//
+// Sold cards stay on the profile — they're the seller's track record, and a
+// shop with visible history reads as a real one. But they aren't buyable, so
+// leading with five greyed-out SOLD tiles makes an active seller look closed.
 const userCards = computed(() =>
   cards.value
     .filter((c: any) => c.sellerUid === uid)
-    .sort((a: any, b: any) => b.createdAt - a.createdAt),
+    .sort((a: any, b: any) => {
+      if (!!a.sold !== !!b.sold) return a.sold ? 1 : -1;
+      return b.createdAt - a.createdAt;
+    }),
 );
 
+// Same rule for auctions: live ones first, ended ones after.
 const userAuctions = computed(() =>
   auctions.value
     .filter((a: any) => a.sellerUid === uid)
-    .sort((a: any, b: any) => b.createdAt - a.createdAt),
+    .sort((a: any, b: any) => {
+      // `settled` doesn't exist on an auction — status does. An auction is
+      // over when it left "active", or when its clock ran out regardless of
+      // whether settlement has caught up yet.
+      const over = (x: any) =>
+        (x.status && x.status !== "active") || (x.endsAt ?? 0) < Date.now();
+      const aEnded = over(a);
+      const bEnded = over(b);
+      if (aEnded !== bEnded) return aEnded ? 1 : -1;
+      return b.createdAt - a.createdAt;
+    }),
 );
 
 const favouriteCards = computed(() => {
@@ -629,6 +699,15 @@ const tabs = computed(() => {
   return base;
 });
 
+// Sliding red underline under the active tab. Re-measure when the active
+// tab changes and when labels/counts change (they alter tab widths).
+const { containerEl, setTabRef, indicatorStyle, measure } = useTabIndicator();
+onMounted(() => nextTick(() => measure(activeTab.value)));
+watch(
+  () => [activeTab.value, tabs.value.map((t) => `${t.id}:${t.count}`).join()],
+  () => nextTick(() => measure(activeTab.value)),
+);
+
 const emptyFavouritesCaption = computed(() =>
   isOwnProfile.value
     ? "Tap the heart on any card or auction to save it here."
@@ -660,7 +739,12 @@ const badgeChipVariant = (score: number) => {
   return "bg-pokemon-red/10 text-pokemon-red";
 };
 
-const handleSignOut = () => signOut();
+const handleSignOut = async () => {
+  await signOut();
+  // Staying put would leave them on a profile page they can no longer act on,
+  // and the onboarding gate would bounce a half-loaded session around.
+  await navigateTo("/");
+};
 
 const { origin } = useRequestURL();
 const profileUrl = computed(() => `${origin}/profile/${uid}`);

@@ -16,6 +16,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { ref, computed, onUnmounted } from "vue";
+import type { AuctionStatus } from "~/shared/auctions";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -56,8 +57,17 @@ export interface Auction {
   negotiable?: boolean;
   pickupAvailable?: boolean;
   quantity?: number;
-  status?: "active" | "reserved" | "pending_payment" | "sold" | "cancelled" | "expired";
+  status?: AuctionStatus;
   viewCount?: number;
+  // ── Settlement (written by /api/auctions/settle) ──────────────────────
+  orderId?: string; // compiled order the winner pays
+  winnerUid?: string;
+  winnerName?: string;
+  winningBid?: number;
+  endedAt?: number;
+  paymentDueAt?: number; // winner must pay before this or the result is voided
+  soldAt?: number;
+  expiredAt?: number;
   // From RTDB auction_summaries (merged in at read time)
   bidCount?: number;
   antiSnipeTriggered?: boolean;
@@ -258,6 +268,16 @@ export const useAuctionDetail = (auctionId: string) => {
     });
   };
 
+  // ── tellOutbid ───────────────────────────────────────────────────────────────
+  // Bids land in RTDB straight from this browser, so the server learns about
+  // them here. It works out who was beaten from RTDB itself; this only says
+  // "look now". Best-effort: the bid already stands.
+  const tellOutbid = () => {
+    useAuthedFetch()
+      .authedFetch("/api/auctions/outbid", { method: "POST", body: { auctionId } })
+      .catch(() => {});
+  };
+
   // ── placeBid ─────────────────────────────────────────────────────────────────
 
   const placeBid = async (bidderUid: string, bidder: string, amount: number) => {
@@ -294,6 +314,7 @@ export const useAuctionDetail = (auctionId: string) => {
     await writeBidSummary(bidderUid, bidder, amount, isAntiSnipe, currentEndsAt);
     await recordUserBid(bidderUid, amount);
     await processAutoBids(auctionId, bidderUid, amount);
+    tellOutbid();
   };
 
   // ── setAutoBid ───────────────────────────────────────────────────────────────
@@ -337,6 +358,7 @@ export const useAuctionDetail = (auctionId: string) => {
     await writeBidSummary(bidderUid, bidder, bidAmount, isAntiSnipe, currentEndsAt);
     await recordUserBid(bidderUid, bidAmount);
     await processAutoBids(auctionId, bidderUid, bidAmount);
+    tellOutbid();
   };
 
   // ── processAutoBids ──────────────────────────────────────────────────────────

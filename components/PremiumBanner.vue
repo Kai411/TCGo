@@ -28,7 +28,7 @@
 
       <!-- Upgrade button -->
       <NuxtLink
-        to="/pricing"
+        to="/membership"
         @click="dismiss"
         class="shrink-0 bg-amber-500 hover:bg-amber-400 text-ink text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
       >

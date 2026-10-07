@@ -3,10 +3,10 @@
     <div v-if="!user" class="text-center py-12">
       <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to manage your profile.</p>
       <button
-        @click="signInWithGoogle"
+        @click="goToLogin"
         class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors"
       >
-        Sign in with Google
+        Sign in
       </button>
     </div>
 
@@ -17,7 +17,11 @@
       >
         Profile updated!
       </div>
-      <h1 class="text-2xl font-bold mb-6">Settings</h1>
+      <!-- Profile, membership and privacy only. Addresses, notifications,
+           dark mode, What's new and the customer code each have their own
+           place on the Account page. -->
+      <SubpageHeader />
+      <h1 class="text-2xl font-bold mb-6">Account settings</h1>
 
       <div v-if="loading" class="flex justify-center py-12">
         <div
@@ -27,7 +31,7 @@
 
       <div
         v-if="!loading"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6"
+        class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6"
       >
         <p class="text-xl font-bold">Profile</p>
         <!-- Avatar -->
@@ -115,7 +119,7 @@
         <!-- Contact Number -->
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-            Contact Number (WhatsApp)
+            Mobile Number
           </label>
           <div class="flex gap-2">
             <select
@@ -164,63 +168,32 @@
         </div>
       </div>
 
-      <div
-        v-if="!loading"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
+      <!-- Seller settings moved out to /seller/settings.
+           Shipping, couriers and staff are shop operations, not buyer profile
+           preferences — mixing them here made this page a grab-bag and buried
+           the seller controls behind a buyer-facing screen. -->
+      <NuxtLink
+        v-if="!loading && sellerReady"
+        to="/seller/settings"
+        class="flex items-center gap-4 bg-white dark:bg-white/[0.04] rounded-xl p-5 border border-gray-200 dark:border-white/[0.08] mt-4 hover:border-gray-300 dark:hover:border-white/[0.16] transition-colors"
       >
-        <p class="text-xl font-bold">Shipping</p>
-
-        <!-- Shipping Defaults -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-2">
-            Default Shipping (RM)
-          </label>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1"
-                >West Malaysia</label
-              >
-              <input
-                v-model.number="editShippingWM"
-                type="number"
-                min="0"
-                step="0.01"
-                class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-              />
-            </div>
-            <div>
-              <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1"
-                >East Malaysia</label
-              >
-              <input
-                v-model.number="editShippingEM"
-                type="number"
-                min="0"
-                step="0.01"
-                class="w-full border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-              />
-            </div>
-          </div>
-          <button
-            v-if="
-              editShippingWM !== profile?.shippingWM ||
-              editShippingEM !== profile?.shippingEM
-            "
-            @click="saveShipping"
-            :disabled="savingShipping"
-            class="mt-2 bg-pokemon-red text-white text-sm px-4 py-1.5 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-          >
-            {{ savingShipping ? "Saving..." : "Save Shipping" }}
-          </button>
-          <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
-            Used as default when creating new listings.
+        <div class="w-10 h-10 shrink-0 rounded-xl bg-pokemon-red/[0.08] flex items-center justify-center">
+          <svg class="w-5 h-5 text-pokemon-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9h18M3 9l1.5-4.5A2 2 0 0 1 6.4 3h11.2a2 2 0 0 1 1.9 1.5L21 9M3 9v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9" />
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-bold text-ink dark:text-white">Seller settings</p>
+          <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+            Pickup address, parcel handover, preferred couriers and staff.
           </p>
         </div>
-      </div>
+        <svg class="w-4 h-4 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+      </NuxtLink>
 
       <div
         v-if="!loading && premiumEnabled"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-4 mt-4"
+        class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-4 mt-4"
       >
         <div class="flex items-center justify-between">
           <p class="text-xl font-bold">Membership</p>
@@ -307,36 +280,17 @@
             >
               {{ upgradeLoading ? 'Redirecting...' : 'Upgrade to Premium · RM 5.99/mo' }}
             </button>
-            <NuxtLink to="/pricing" class="text-xs text-gray-400 dark:text-zinc-500 hover:text-ink dark:hover:text-white transition-colors">
+            <NuxtLink to="/membership" class="text-xs text-gray-400 dark:text-zinc-500 hover:text-ink dark:hover:text-white transition-colors">
               Compare plans →
             </NuxtLink>
           </div>
         </template>
       </div>
 
-      <div
-        v-if="!loading"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
-      >
-        <p class="text-xl font-bold">Appearance</p>
-
-        <!-- Dark mode -->
-        <div>
-          <label class="flex items-center justify-between cursor-pointer">
-            <div>
-              <p class="text-sm font-medium text-gray-700 dark:text-zinc-200">Dark mode</p>
-              <p class="text-xs text-gray-400 dark:text-zinc-500">
-                Switch between light and dark themes
-              </p>
-            </div>
-            <ThemeToggle />
-          </label>
-        </div>
-      </div>
 
       <div
         v-if="!loading"
-        class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
+        class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
       >
         <p class="text-xl font-bold">Privacy</p>
 
@@ -364,8 +318,10 @@
 
 <script setup lang="ts">
 import type { UserProfile } from "~/composables/useProfile";
+import { MY_STATES } from "~/shared/my-states";
 
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { profile, loading, updateProfile, updateCustomName } = useMyProfile();
 const { uploadImage } = useStorage();
 const { premiumEnabled } = useFeatureFlags();
@@ -438,12 +394,11 @@ const editName = ref("");
 const phonePrefix = ref("60");
 const phoneNumber = ref("");
 const phoneError = ref("");
-const editShippingWM = ref(8);
-const editShippingEM = ref(12);
 const editFavouritesPublic = ref(true);
+
+
 const saving = ref(false);
 const savingPhone = ref(false);
-const savingShipping = ref(false);
 const saveSuccess = ref(false);
 const uploadingPhoto = ref(false);
 
@@ -457,8 +412,6 @@ watch(
   (p: UserProfile | null) => {
     if (p) {
       editName.value = p.customName || p.displayName;
-      editShippingWM.value = p.shippingWM ?? 8;
-      editShippingEM.value = p.shippingEM ?? 12;
       editFavouritesPublic.value = p.favouritesPublic ?? true;
 
       // Parse existing phone into prefix + number
@@ -522,22 +475,7 @@ const savePhone = async () => {
   }
 };
 
-const saveShipping = async () => {
-  savingShipping.value = true;
-  saveSuccess.value = false;
-  try {
-    await updateProfile({
-      shippingWM: editShippingWM.value,
-      shippingEM: editShippingEM.value,
-    });
-    saveSuccess.value = true;
-    setTimeout(() => {
-      saveSuccess.value = false;
-    }, 3000);
-  } finally {
-    savingShipping.value = false;
-  }
-};
+const { sellerReady } = useSellerKyc();
 
 const toggleFavouritesPublic = async () => {
   editFavouritesPublic.value = !editFavouritesPublic.value;

@@ -49,7 +49,12 @@
                   :key="i"
                   class="w-full h-full shrink-0 snap-start flex items-center justify-center"
                 >
-                  <img :src="img" :alt="auction.cardName" class="w-full h-full object-cover" />
+                  <img
+                    :src="img"
+                    :alt="auction.cardName"
+                    class="w-full h-full object-cover cursor-zoom-in"
+                    @click="openLightbox(allImages, i)"
+                  />
                 </div>
               </div>
 
@@ -101,7 +106,7 @@
 
         <!-- Card Info -->
         <div class="lg:col-span-4 space-y-4">
-          <div class="bg-white dark:bg-white/[0.04] rounded-xl p-5 border border-gray-200 dark:border-white/[0.08]">
+          <div class="panel bg-white dark:bg-white/[0.04] rounded-xl p-5 border border-gray-200 dark:border-white/[0.08]">
             <h1 class="text-xl font-bold mb-2">{{ auction.title }}</h1>
             <div
               v-if="auction.isPrivate"
@@ -147,9 +152,18 @@
                 >
               </p>
             </div>
+            <MessageButton
+              :uid="auction.sellerUid"
+              :product-id="auction.id"
+              product-kind="auction"
+              small
+              class="mt-3"
+            >
+              Message seller
+            </MessageButton>
           </div>
           <!-- Bid History -->
-          <div class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
+          <div class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
             <h3 class="font-bold text-sm mb-4">
               Bid History ({{ bids.length }})
             </h3>
@@ -199,7 +213,7 @@
 
         <!-- Bidding Panel -->
         <div class="lg:col-span-4 space-y-4">
-          <div class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
+          <div class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
             <div class="text-center mb-4">
               <p class="text-xs text-gray-500 dark:text-zinc-400">Current Price</p>
               <p class="text-3xl font-bold text-pokemon-red">
@@ -232,10 +246,10 @@
             <div v-if="!user && !isEnded" class="mt-4 text-center">
               <p class="text-gray-500 dark:text-zinc-400 text-sm mb-3">Sign in to place a bid</p>
               <button
-                @click="signInWithGoogle"
+                @click="goToLogin"
                 class="bg-gray-900 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
               >
-                Sign in with Google
+                Sign in
               </button>
             </div>
 
@@ -372,24 +386,39 @@
               <p class="text-sm text-gray-600 dark:text-zinc-300">
                 Final: RM {{ bids[0].amount.toFixed(2) }}
               </p>
-              <div
-                v-if="isSeller"
-                class="mt-3 pt-3 border-t border-amber-200 space-y-2"
-              >
-                <a
-                  :href="winnerWhatsappLink"
-                  target="_blank"
-                  rel="noopener"
-                  class="w-full inline-flex items-center justify-center gap-2 bg-green-500 text-white text-sm py-2.5 rounded-lg font-medium hover:bg-green-600 transition-colors"
-                >
-                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path
-                      d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
-                    />
-                  </svg>
-                  Contact Buyer
-                </a>
+              <!-- Settlement: the winner pays via FPX, same rail as the shop -->
+              <div class="mt-3 pt-3 border-t border-amber-200 space-y-2">
+                <p v-if="settling" class="text-xs text-gray-500 dark:text-zinc-400">
+                  Finalising the result…
+                </p>
+                <p v-else-if="settleError" class="text-xs text-red-600">{{ settleError }}</p>
+
+                <template v-else-if="settledOrderId">
+                  <NuxtLink
+                    v-if="isWinner"
+                    :to="`/orders/${settledOrderId}`"
+                    class="w-full inline-flex items-center justify-center gap-2 bg-pokemon-red text-white text-sm py-2.5 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                  >
+                    Pay now (FPX)
+                  </NuxtLink>
+                  <NuxtLink
+                    v-else-if="isSeller"
+                    :to="`/orders/${settledOrderId}`"
+                    class="w-full inline-flex items-center justify-center gap-2 border border-amber-300 text-amber-800 text-sm py-2.5 rounded-lg font-semibold hover:bg-amber-100 transition-colors"
+                  >
+                    View order
+                  </NuxtLink>
+                  <p v-if="isSeller" class="text-xs text-center text-amber-700">
+                    You'll be notified when the buyer pays. Funds are released after delivery.
+                  </p>
+                </template>
+
+                <p v-else-if="auctionStatus === 'expired'" class="text-xs text-center text-amber-700">
+                  The winner didn't pay in time — this auction was voided.
+                </p>
+
                 <NuxtLink
+                  v-if="isSeller"
                   :to="`/profile/${bids[0].bidderUid}`"
                   class="block text-center text-xs text-amber-700 hover:underline"
                 >
@@ -417,12 +446,15 @@ const auctionId = route.params.id as string;
 
 const { auction, bids, loading, placeBid, setAutoBid } =
   useAuctionDetail(auctionId);
-const { user, signInWithGoogle } = useAuth();
+const {user} = useAuth();
+const { goToLogin } = useSignInGate();
 const { profile: myProfile } = useMyProfile();
 
 // Image gallery
 const activeImageIndex = ref(0);
 const scrollContainer = ref<HTMLElement | null>(null);
+
+const { openLightbox } = useLightbox();
 
 const allImages = computed(() => {
   if (!auction.value) return [];
@@ -456,6 +488,52 @@ const isLeadingBidder = computed(() => {
   if (!user.value || !bids.value.length) return false;
   return bids.value[0].bidderUid === user.value.uid;
 });
+
+const isWinner = computed(() => isEnded.value && isLeadingBidder.value);
+
+// ── Settlement ────────────────────────────────────────────────────────
+// There's no scheduler, so the auction settles lazily: whoever opens an ended
+// auction (seller or winner) triggers it. The route is idempotent, so a race
+// between the two of them converges on one order.
+const { authedFetch } = useAuthedFetch();
+const settling = ref(false);
+const settleError = ref("");
+const settledOrderId = ref("");
+const auctionStatus = computed(() => (auction.value as any)?.status ?? "active");
+
+const settle = async () => {
+  if (settling.value || !user.value || !auction.value) return;
+  // Only the two parties can settle; everyone else just sees the result.
+  if (!isSeller.value && !isLeadingBidder.value) return;
+  settling.value = true;
+  settleError.value = "";
+  try {
+    const res = await authedFetch<{ orderId: string | null }>("/api/auctions/settle", {
+      method: "POST",
+      body: { auctionId },
+    });
+    if (res.orderId) settledOrderId.value = res.orderId;
+  } catch (e: any) {
+    settleError.value = e?.data?.message || e?.message || "Couldn't finalise this auction.";
+  } finally {
+    settling.value = false;
+  }
+};
+
+// Fires once the clock runs out (and on load for an already-ended auction).
+watch(
+  () => isEnded.value && bids.value.length > 0 && !!user.value,
+  (ready) => {
+    if (!ready) return;
+    const existing = (auction.value as any)?.orderId;
+    if (existing) {
+      settledOrderId.value = existing;
+      // Still call through so a lapsed payment window gets enforced.
+    }
+    void settle();
+  },
+  { immediate: true },
+);
 
 const antiSnipeActive = computed(
   () => auction.value && (auction.value as any).antiSnipeTriggered,
@@ -582,43 +660,4 @@ const handleAutoBid = async () => {
 
 const formatTime = (timestamp: number) => new Date(timestamp).toLocaleString();
 
-// Winner WhatsApp link
-const winnerPhone = ref("");
-
-const fetchWinnerPhone = async () => {
-  if (!bids.value.length) return;
-  const winnerUid = bids.value[0].bidderUid;
-  try {
-    const { doc, getDoc } = await import("firebase/firestore");
-    const { firestore } = useFirebase();
-    const userDoc = await getDoc(doc(firestore!, "users", winnerUid));
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      winnerPhone.value = (data.whatsappNumber || data.phone || "") as string;
-    }
-  } catch {}
-};
-
-watch(
-  () => isEnded.value && bids.value.length > 0,
-  (ready: any) => {
-    if (ready) fetchWinnerPhone();
-  },
-  { immediate: true },
-);
-
-const winnerWhatsappLink = computed(() => {
-  if (!auction.value || !bids.value.length) return "#";
-  let cleanPhone = winnerPhone.value.replace(/[^0-9]/g, "");
-  if (cleanPhone.startsWith("0")) {
-    cleanPhone = "60" + cleanPhone.slice(1);
-  }
-  const message = encodeURIComponent(
-    `Hi ${bids.value[0].bidder}, you won the auction for ${auction.value.cardName} at RM ${auction.value.currentPrice.toFixed(2)} on TCGo Marketplace. Let's arrange the deal!`,
-  );
-  if (cleanPhone) {
-    return `https://wa.me/${cleanPhone}?text=${message}`;
-  }
-  return `https://wa.me/?text=${message}`;
-});
 </script>

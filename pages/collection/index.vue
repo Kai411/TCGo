@@ -1,0 +1,940 @@
+<template>
+  <div>
+    <!-- ── Sticky top: summary + search/filter ─────────────────────── -->
+    <div
+      class="sticky z-30 -mx-4 px-4 bg-canvas/95 dark:bg-canvas-inverse/95 backdrop-blur border-b border-black/[0.06] dark:border-white/[0.08]"
+      :style="{ top: 'var(--app-nav-h, 4rem)' }"
+    >
+      <!-- Search row: [scanner] [search] [filter].
+           An empty <p class="py-2"> used to sit above this — the remains of a
+           summary strip — adding ~24px of padding to a block that looked like
+           it had none. Symmetric padding now, so the bar sits the same
+           distance from the nav as it does from the results. -->
+      <div class="flex items-center gap-2 py-3">
+        <!-- Scanner placeholder — not yet implemented -->
+        <button
+          type="button"
+          disabled
+          title="Card scanner — coming soon"
+          class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg border border-gray-200 dark:border-white/[0.10] text-gray-400 dark:text-zinc-600 opacity-60 cursor-not-allowed"
+          aria-label="Scan card (coming soon)"
+        >
+          <svg
+            class="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M3 9a2 2 0 0 1 2-2h.93a2 2 0 0 0 1.664-.89l.812-1.22A2 2 0 0 1 10.07 4h3.86a2 2 0 0 1 1.664.89l.812 1.22A2 2 0 0 0 18.07 7H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"
+            />
+            <circle cx="12" cy="13" r="3" />
+          </svg>
+        </button>
+
+        <!-- Search input — Enter dispatches the search -->
+        <div class="relative flex-1 min-w-0">
+          <svg
+            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            v-model="searchInput"
+            type="search"
+            enterkeyhint="search"
+            placeholder='Search — e.g. "pikachu 151", "charizard ir"'
+            class="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white focus:border-pokemon-blue focus:outline-none"
+            @keydown.enter.prevent="runSearch"
+          />
+        </div>
+
+        <!-- Price sort: one button, three states. -->
+        <button
+          type="button"
+          @click="cyclePrice"
+          class="shrink-0 inline-flex items-center gap-1 h-10 px-2.5 rounded-lg border text-xs font-semibold transition-colors"
+          :class="
+            priceSort
+              ? 'border-pokemon-red text-pokemon-red bg-pokemon-red/5'
+              : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300'
+          "
+          :aria-label="priceLabel"
+          :title="priceLabel"
+        >
+          <span>$</span>
+          <!-- Both chevrons when off, so the control reads as a sort before
+               it has been touched; the active one alone once it is on. -->
+          <svg
+            class="w-3.5 h-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <template v-if="priceSort === 'desc'">
+              <path d="M12 5v14M6 13l6 6 6-6" />
+            </template>
+            <template v-else-if="priceSort === 'asc'">
+              <path d="M12 19V5M6 11l6-6 6 6" />
+            </template>
+            <template v-else>
+              <path d="M7 20V4M3 8l4-4 4 4" />
+              <path d="M17 4v16M13 16l4 4 4-4" />
+            </template>
+          </svg>
+        </button>
+
+        <!-- Filter toggle -->
+        <button
+          type="button"
+          @click="filtersOpen = !filtersOpen"
+          class="relative shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg border transition-colors"
+          :class="
+            filtersOpen || hasActiveFilters
+              ? 'border-pokemon-red text-pokemon-red bg-pokemon-red/5'
+              : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300'
+          "
+          aria-label="Sort and filter"
+        >
+          <svg
+            class="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="4" y1="6" x2="20" y2="6" />
+            <line x1="7" y1="12" x2="17" y2="12" />
+            <line x1="10" y1="18" x2="14" y2="18" />
+          </svg>
+          <span
+            v-if="hasActiveFilters"
+            class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-pokemon-red"
+          />
+        </button>
+
+        <!-- "Your collection" only exists once there's an account. A guest
+             gets the same row pointed at sign-in rather than a dead link to
+             /profile/undefined. -->
+        <NuxtLink
+          :to="user ? `/profile/${user.uid}?tab=collection` : { path: '/login', query: { next: $route.fullPath } }"
+          class="flex items-center justify-between gap-3 py-3 group"
+        >
+          <span
+            class="shrink-0 inline-flex items-center gap-0.5 text-ink-muted dark:text-zinc-400 group-hover:text-pokemon-red transition-colors"
+          >
+            <svg
+              class="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <svg
+              class="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </span>
+        </NuxtLink>
+      </div>
+
+      <!-- Expandable Sort + Filter panel -->
+      <Transition
+        enter-active-class="transition-all duration-200"
+        enter-from-class="opacity-0 -translate-y-1"
+        leave-active-class="transition-all duration-150"
+        leave-to-class="opacity-0 -translate-y-1"
+      >
+        <div v-if="filtersOpen" class="pb-3">
+          <div
+            class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] p-3 space-y-3"
+          >
+            <!-- Sort -->
+            <div>
+              <p
+                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5"
+              >
+                Sort
+              </p>
+              <div class="flex flex-wrap gap-1.5">
+                <button
+                  v-for="opt in sortOptions"
+                  :key="opt.value"
+                  type="button"
+                  @click="baseSort = opt.value"
+                  class="px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors"
+                  :class="
+                    baseSort === opt.value
+                      ? 'bg-pokemon-red text-white border-pokemon-red'
+                      : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300'
+                  "
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Language -->
+            <div>
+              <p
+                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5"
+              >
+                Language
+              </p>
+              <div class="flex gap-1.5">
+                <button
+                  v-for="opt in languageOptions"
+                  :key="opt.value"
+                  type="button"
+                  @click="languageFilter = opt.value"
+                  class="px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors"
+                  :class="
+                    languageFilter === opt.value
+                      ? 'bg-pokemon-red text-white border-pokemon-red'
+                      : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300'
+                  "
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Filter -->
+            <div>
+              <p
+                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5"
+              >
+                Filter
+              </p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <select
+                  v-model="setFilter"
+                  class="px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
+                >
+                  <option value="">All sets</option>
+                  <option v-for="s in sets" :key="s.name" :value="s.name">
+                    {{ s.name }} ({{ s.count }})
+                  </option>
+                </select>
+                <select
+                  v-model="rarityFilter"
+                  class="px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
+                >
+                  <option value="">All rarities</option>
+                  <option v-for="r in rarities" :key="r.name" :value="r.name">
+                    {{ r.name }} ({{ r.count }})
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex gap-2 pt-1">
+              <button
+                type="button"
+                @click="resetFilters"
+                class="flex-1 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200"
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                @click="applyFilters"
+                class="flex-1 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </div>
+
+    <!-- ── Portfolio value + trend ─────────────────────────────────
+         Hidden while searching: the point of a search is to look at
+         candidates, not at what you already own. -->
+    <section v-if="!showingSearch && count > 0" class="pt-5">
+      <div class="panel surface rounded-2xl p-4 sm:p-5">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="eyebrow">Estimated value</p>
+            <p
+              class="mt-2 text-3xl sm:text-4xl font-bold text-ink dark:text-white tabular-price leading-none tracking-tightest"
+            >
+              RM {{ formatMyr(totalValue) }}
+            </p>
+            <p class="mt-1.5 text-xs text-ink-soft dark:text-zinc-500">
+              {{ count }} card{{ count === 1 ? "" : "s"
+              }}<template v-if="totalCopies !== count">
+                · {{ totalCopies }} copies</template
+              >
+              <template
+                v-if="
+                  valueTrend.trackedCards && valueTrend.trackedCards < count
+                "
+              >
+                · trend from {{ valueTrend.trackedCards }} with price history
+              </template>
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <PriceTrendChart
+            :trend="valueTrend.trend"
+            :loading="trendLoading"
+            :height="120"
+            :show-header="false"
+          />
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Your collection ─────────────────────────────────────────── -->
+    <section v-if="!showingSearch" class="pt-5">
+      <div v-if="collectionLoading" class="flex justify-center py-16">
+        <div
+          class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red"
+        />
+      </div>
+
+      <div v-else-if="!collectionCards.length" class="text-center py-16">
+        <p class="text-ink dark:text-white font-semibold">
+          Your collection is empty
+        </p>
+        <p
+          class="text-sm text-ink-muted dark:text-zinc-400 mt-1 max-w-sm mx-auto"
+        >
+          Search the TCGo catalogue above and tap + on any card to start
+          tracking it.
+        </p>
+      </div>
+
+      <template v-else>
+        <div class="flex items-center justify-between mb-3">
+          <h2
+            class="text-sm font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400"
+          >
+            Your collection
+          </h2>
+          <span
+            class="text-[11px] text-ink-soft dark:text-zinc-500 tabular-price"
+          >
+            {{ collectionCards.length }} card{{
+              collectionCards.length === 1 ? "" : "s"
+            }}
+          </span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <CollectionItemCard
+            v-for="card in collectionCards"
+            :key="card.productId"
+            :card="card"
+            :in-collection="true"
+            show-quantity
+            :quantity="quantityOf(card.productId)"
+            :busy="busyIds.has(card.productId)"
+            @increment="handleIncrement(card.productId)"
+            @decrement="handleDecrement(card.productId)"
+          />
+        </div>
+      </template>
+    </section>
+
+    <!-- ── Search results ──────────────────────────────────────────── -->
+    <div v-else class="pt-5">
+      <div
+        v-if="searchLoading && searchResults.length === 0"
+        class="flex justify-center py-16"
+      >
+        <div
+          class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red"
+        />
+      </div>
+
+      <p
+        v-else-if="searchResults.length === 0"
+        class="text-center text-ink-soft dark:text-zinc-500 py-16 px-6"
+      >
+        <!-- A DPBP number will never match, so say why rather than leaving
+             them to retype it. -->
+        <template v-if="looksLikeDpbp">
+          Japanese DP-era cards are in the catalogue, but their DPBP number
+          isn't — it isn't published with the card data we use.
+          <span class="block mt-2 text-ink dark:text-white font-semibold">
+            Search the name and set instead, like “omanyte dp4”.
+          </span>
+        </template>
+        <!-- A search narrowed to one language finding nothing is the single
+             most confusing empty state here: "charizard mur" is a Japanese-
+             only rarity, "067/082" a Japanese-only number, and the page just
+             looks broken. Say which way it is narrowed, and offer the fix. -->
+        <template v-else-if="languageFilter !== 'ALL'">
+          No {{ languageFilter === "EN" ? "English" : "Japanese" }} cards match.
+          <button
+            type="button"
+            @click="searchBothLanguages"
+            class="mt-3 block mx-auto rounded-lg bg-pokemon-red px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            Search both languages
+          </button>
+        </template>
+        <template v-else>No matches. Try a different name, set, or rarity.</template>
+      </p>
+
+      <template v-else>
+        <div class="flex items-center justify-between mb-3 gap-3">
+          <h2
+            class="text-sm font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400"
+          >
+            Search results
+          </h2>
+          <div class="flex items-center gap-3">
+            <span
+              class="text-[11px] text-ink-soft dark:text-zinc-500 tabular-price"
+            >
+              {{ searchResults.length }} of {{ searchTotal }}
+            </span>
+            <button
+              type="button"
+              @click="clearSearch"
+              class="text-[11px] font-semibold text-pokemon-red hover:underline"
+            >
+              Back to collection
+            </button>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <CollectionItemCard
+            v-for="card in searchResults"
+            :key="card.productId"
+            :card="card"
+            :in-collection="isInCollection(card.productId)"
+            :quantity="quantityOf(card.productId)"
+            :busy="busyIds.has(card.productId)"
+            @toggle="handleToggle(card.productId)"
+          />
+        </div>
+        <!-- Scrolling to the bottom IS the request for more. The sentinel sits
+             below the grid and fetches when it comes near the viewport; the
+             button it replaced made every extra page a decision. -->
+        <div
+          v-if="hasMoreResults"
+          ref="loadMoreSentinel"
+          class="mt-4 flex justify-center py-4"
+        >
+          <span
+            class="h-5 w-5 animate-spin rounded-full border-2 border-black/[0.12] border-t-pokemon-red dark:border-white/[0.16] dark:border-t-pokemon-red"
+            aria-hidden="true"
+          />
+          <span class="sr-only">Loading more results</span>
+        </div>
+        <p
+          v-else-if="searchResults.length >= SEARCH_PAGE_SIZE"
+          class="mt-4 text-center text-[12px] text-gray-400 dark:text-zinc-500"
+        >
+          {{ searchTotal }} result{{ searchTotal === 1 ? "" : "s" }} — that's all
+        </p>
+      </template>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+// The search bar is sticky and is the first thing on this page, so the
+// layout's usual top padding leaves it floating below the nav with a gap that
+// only appears once you scroll. See layouts/default.vue.
+definePageMeta({ flushTop: true });
+
+import {
+  type CatalogMatch,
+  type CatalogSort,
+  type CollectionPriceTrend,
+} from "~/composables/useCardCatalog";
+import { parseSearchQuery } from "~/shared/search-query";
+
+useHead({ title: "Add Cards | TCGo Marketplace" });
+
+// Divisible by 2, 3 and 5 — the three grid widths — so the last row is never
+// left with empty slots at any breakpoint.
+const SEARCH_PAGE_SIZE = 30;
+
+const { user } = useAuth();
+const { requireSignIn } = useSignInGate();
+const {
+  searchCatalog,
+  getCardsByIds,
+  listSets,
+  listRarities,
+  getCollectionPriceTrend,
+} = useCardCatalog();
+const {
+  entries,
+  count,
+  totalCopies,
+  isInCollection,
+  quantities,
+  quantityOf,
+  addCopy,
+  removeCopy,
+  toggleInCollection,
+  listenMyCollection,
+} = useUserCollection();
+
+onBeforeRouteLeave((to) => {
+  // Only a card page. Anywhere else and the search is done with.
+  resumeOnReturn.value = /^\/collection\/[^/]+$/.test(to.path);
+  savedScroll.value = window.scrollY;
+});
+
+onMounted(async () => {
+  if (user.value) listenMyCollection();
+  loadDropdowns();
+
+  // Arriving from a card's set name. The link already existed on the card
+  // page and landed here doing nothing, because nothing read the query.
+  const wantedSet = route.query.set;
+  if (typeof wantedSet === "string" && wantedSet.trim()) {
+    setFilter.value = wantedSet;
+    searchInput.value = "";
+    appliedQuery.value = "";
+    // Skip the saved scroll: this is a new search, not a return trip.
+    resumeOnReturn.value = false;
+    await runSearch();
+    return;
+  }
+
+  if (!resumeOnReturn.value || !searchResults.value.length) return;
+  resumeOnReturn.value = false;
+  // Two frames: one for the grid to render from the results already in hand,
+  // one for the card images to claim their space. Without the second the page
+  // is still short and the scroll lands well above where they left.
+  await nextTick();
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => window.scrollTo(0, savedScroll.value)),
+  );
+});
+watch(user, (u) => {
+  if (u) listenMyCollection();
+});
+
+// ── Filter dropdown data ──────────────────────────────────────────────
+const sets = ref<Array<{ name: string; count: number }>>([]);
+const rarities = ref<Array<{ name: string; count: number }>>([]);
+// Rarities from every language, for parsing only — the dropdown above stays
+// English. "mur" is Mega Ultra Rare, which has no English printing, so an
+// English-only list cannot resolve the word at all.
+const allRarities = ref<Array<{ name: string; count: number }>>([]);
+const allSets = ref<Array<{ name: string; count: number }>>([]);
+// Memoised, because runSearch awaits it too: set abbreviations ("ssp", "rc")
+// can only resolve once the set list is here, and a fast typist reaches the
+// search button before the mount-time fetch has returned.
+let dropdownsPromise: Promise<void> | null = null;
+const loadDropdowns = (): Promise<void> => {
+  if (dropdownsPromise) return dropdownsPromise;
+  dropdownsPromise = (async () => {
+    const [s, r, sAll, rAll] = await Promise.all([
+      listSets("EN"),
+      listRarities("EN"),
+      listSets("ALL"),
+      listRarities("ALL"),
+    ]);
+    sets.value = s;
+    rarities.value = r;
+    allSets.value = sAll;
+    allRarities.value = rAll;
+    // A failed load must not be remembered for the session: with no set list
+    // "151" and "ssp" stop being recognised as sets. Let the next search retry.
+    if (!sAll.length || !rAll.length) dropdownsPromise = null;
+  })();
+  return dropdownsPromise;
+};
+
+// ── Search + filter state ─────────────────────────────────────────────
+// Price is its own axis, not one of these. Sorting by price is the thing
+// people flip back and forth while scanning results, and burying it in a
+// panel meant opening the panel, choosing, and applying every time.
+type BaseSort = Extract<CatalogSort, "best" | "name">;
+
+const languageOptions = [
+  { value: "ALL", label: "Both" },
+  { value: "EN", label: "English" },
+  { value: "JP", label: "Japanese" },
+] as const;
+
+const sortOptions: Array<{ value: BaseSort; label: string }> = [
+  { value: "best", label: "Best match" },
+  { value: "name", label: "Name A–Z" },
+];
+
+/** Off, then dearest first, then cheapest first, then off again. */
+const PRICE_CYCLE = [null, "desc", "asc"] as const;
+type PriceSort = (typeof PRICE_CYCLE)[number];
+
+const PRICE_LABEL: Record<string, string> = {
+  null: "Sort by price",
+  desc: "Price: high to low",
+  asc: "Price: low to high",
+};
+
+// The search outlives this page on purpose.
+//
+// Opening a card and pressing back used to land on an empty search box: the
+// component unmounts, its refs go with it, and the reader loses both their
+// results and their place in them — after scrolling through several auto-
+// loaded pages to get there. useState survives navigation, so coming back is
+// coming back.
+const searchInput = useState("collection:query-input", () => "");
+const appliedQuery = useState("collection:query", () => "");
+const setFilter = useState("collection:set", () => "");
+const rarityFilter = useState("collection:rarity", () => "");
+// Both languages by default. Half the catalogue is Japanese — 30,470 cards —
+// and an English-only default hid all of it with no way to ask for it. It was
+// also the real cause behind three separate "nothing found" reports: "mur" is
+// a Japanese-only rarity, "067/082" a Japanese-only number, and a Gold Star's
+// Japanese printing sits beside its English one.
+const languageFilter = useState<"ALL" | "EN" | "JP">("collection:language", () => "ALL");
+const baseSort = useState<BaseSort>("collection:sort", () => "best");
+const priceSort = useState<PriceSort>("collection:price-sort", () => null);
+const filtersOpen = ref(false);
+
+// What actually goes to the catalogue. Price wins while it is on, and the
+// panel's choice is remembered underneath it — turning price off returns to
+// the sort they had, rather than resetting them to Best match.
+const sortBy = computed<CatalogSort>(() =>
+  priceSort.value === null
+    ? baseSort.value
+    : priceSort.value === "asc"
+      ? "price_asc"
+      : "price_desc",
+);
+
+const priceLabel = computed(() => PRICE_LABEL[String(priceSort.value)]!);
+
+/**
+ * The number printed on Japanese Diamond & Pearl cards — "DPBP#168".
+ *
+ * It is a continuous count across the whole era rather than a per-set number,
+ * and TCGPlayer does not record it, so no amount of parsing will find the
+ * card. Every Japanese DP-era card in the catalogue has no number at all. The
+ * cards themselves ARE here — that Omanyte is in DP4: Moonlit Pursuit — so
+ * the useful thing is to point at the search that does work.
+ */
+const looksLikeDpbp = computed(() =>
+  /\bdpbp\s*#?\s*\d+/i.test(appliedQuery.value),
+);
+
+const searchBothLanguages = () => {
+  languageFilter.value = "ALL";
+  runSearch();
+};
+
+const cyclePrice = () => {
+  const i = PRICE_CYCLE.indexOf(priceSort.value);
+  priceSort.value = PRICE_CYCLE[(i + 1) % PRICE_CYCLE.length]!;
+};
+
+// A toggle that needs a second button pressed is not a toggle. The panel
+// keeps its Apply because changing a set or rarity is a considered edit;
+// flipping price is not.
+watch(priceSort, () => {
+  if (hasRunSearch.value) runSearch();
+});
+
+const hasActiveFilters = computed(
+  () =>
+    !!setFilter.value ||
+    !!rarityFilter.value ||
+    languageFilter.value !== "ALL" ||
+    baseSort.value !== "best",
+);
+
+// One parser for every search surface — see useCardCatalog. This page used
+// to call parseSmartQuery directly, which knows about rarities and numeric
+// set hints but nothing about set names or card numbers, so "reshiram rc" and
+// "pikachu 012" found nothing here while working in the seller's picker.
+const parsed = computed(() =>
+  parseSearchQuery(
+    appliedQuery.value,
+    // Every language, so Japanese set codes ("sm11b", "xy3", "sv2a") resolve.
+    // Two rules make that safe: a bare word can no longer swallow the whole
+    // query — sets are named after Pokémon, and "Pokemon TCG Classic:
+    // Charizard" would otherwise claim "charizard" — and an abbreviation that
+    // several sets share resolves to whichever reading has the most sets
+    // behind it rather than being dropped.
+    allSets.value.map((s) => s.name),
+    // Rarities, though, are worth taking from every language: "mur" is Mega
+    // Ultra Rare, which has no English printing at all.
+    allRarities.value.map((r) => r.name),
+  ),
+);
+
+// What the reader asked for, and nothing clever on top. This used to widen
+// to every language on its own whenever a query named something with no
+// English printing — a patch applied three times for three symptoms of the
+// English-only default that is now gone.
+const effectiveLanguage = computed(() => languageFilter.value);
+
+// What the query said, else what the dropdown says. Typing beats the dropdown
+// so a smart query is not silently narrowed by a filter left over from an
+// earlier search.
+const effectiveSetMatch = computed(
+  () => parsed.value.setHint || setFilter.value || null,
+);
+const effectiveRarityMatch = computed(
+  () => parsed.value.rarityHint || rarityFilter.value || null,
+);
+
+const searchResults = useState<CatalogMatch[]>("collection:results", () => []);
+const searchTotal = useState("collection:total", () => 0);
+const searchPage = useState("collection:page", () => 0);
+// Where they were, and whether returning here should put them back there.
+// Only a trip into a card counts — arriving from the nav bar is a fresh visit
+// and should start at the top.
+const savedScroll = useState("collection:scroll", () => 0);
+const resumeOnReturn = useState("collection:resume", () => false);
+const searchLoading = ref(false);
+const hasRunSearch = useState("collection:has-run", () => false);
+
+// Search replaces the collection view rather than stacking below it — the
+// page is either "what I own" or "what I might add", never both at once.
+const showingSearch = computed(() => hasRunSearch.value);
+
+const clearSearch = () => {
+  savedScroll.value = 0;
+  resumeOnReturn.value = false;
+  searchInput.value = "";
+  appliedQuery.value = "";
+  searchResults.value = [];
+  searchTotal.value = 0;
+  searchPage.value = 0;
+  hasRunSearch.value = false;
+};
+
+const hasMoreResults = computed(
+  () => searchResults.value.length < searchTotal.value,
+);
+
+const route = useRoute();
+const { dismissKeyboard } = useDismissKeyboard();
+
+const runSearch = async () => {
+  // Results are about to replace the screen; the keyboard would cover them.
+  dismissKeyboard();
+  appliedQuery.value = searchInput.value;
+  // The set list is what turns "ssp" into Surging Sparks.
+  await loadDropdowns();
+  const trimmed = parsed.value.name.trim();
+  // Need a name (≥2) OR a filter to search.
+  if (
+    trimmed.length < 2 &&
+    !parsed.value.numberMatch &&
+    !effectiveSetMatch.value &&
+    !effectiveRarityMatch.value
+  ) {
+    return;
+  }
+  searchPage.value = 0;
+  hasRunSearch.value = true;
+  searchLoading.value = true;
+  const { results, total } = await searchCatalog(trimmed, {
+    limit: SEARCH_PAGE_SIZE,
+    page: 0,
+    language: effectiveLanguage.value,
+    rarityMatches: parsed.value.rarityMatches,
+    numberMatch: parsed.value.numberMatch,
+    setOrNumber: parsed.value.setOrNumber,
+    setMatch: effectiveSetMatch.value,
+    rarityMatch: effectiveRarityMatch.value,
+    sort: sortBy.value,
+  });
+  searchResults.value = results;
+  searchTotal.value = total;
+  searchLoading.value = false;
+};
+
+const loadMore = async () => {
+  if (searchLoading.value || !hasMoreResults.value) return;
+  searchLoading.value = true;
+  const nextPage = searchPage.value + 1;
+  const { results } = await searchCatalog(parsed.value.name.trim(), {
+    limit: SEARCH_PAGE_SIZE,
+    page: nextPage,
+    language: effectiveLanguage.value,
+    rarityMatches: parsed.value.rarityMatches,
+    // Page 2 has to be the same search as page 1. Without this a number
+    // search fell back to matching the name alone as soon as you scrolled.
+    numberMatch: parsed.value.numberMatch,
+    setOrNumber: parsed.value.setOrNumber,
+    setMatch: effectiveSetMatch.value,
+    rarityMatch: effectiveRarityMatch.value,
+    sort: sortBy.value,
+  });
+  searchResults.value = [...searchResults.value, ...results];
+  searchPage.value = nextPage;
+  searchLoading.value = false;
+};
+
+// Auto-load when the sentinel nears the viewport.
+//
+// rootMargin fetches a screenful early, so the next page is usually already
+// there by the time the reader arrives and the scroll never visibly stalls.
+// The sentinel lives inside a v-if, so it is watched rather than grabbed once
+// on mount — it does not exist until there is a second page to load.
+const loadMoreSentinel = ref<HTMLElement | null>(null);
+let observer: IntersectionObserver | null = null;
+
+watch(loadMoreSentinel, (el) => {
+  observer?.disconnect();
+  if (!el || typeof IntersectionObserver === "undefined") return;
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting)) loadMore();
+    },
+    { rootMargin: "600px 0px" },
+  );
+  observer.observe(el);
+});
+
+onBeforeUnmount(() => observer?.disconnect());
+
+const applyFilters = () => {
+  filtersOpen.value = false;
+  runSearch();
+};
+
+const resetFilters = () => {
+  setFilter.value = "";
+  rarityFilter.value = "";
+  languageFilter.value = "ALL";
+  baseSort.value = "best";
+  priceSort.value = null;
+  if (hasRunSearch.value) runSearch();
+};
+
+// ── Collection summary (for the sticky header) ────────────────────────
+// Hydrate the pivot productIds so we can sum a live estimated value.
+const collectionCards = ref<CatalogMatch[]>([]);
+const collectionLoading = ref(false);
+const collectionProductIds = computed(() =>
+  [...entries.value]
+    .sort((a, b) => b.addedAt - a.addedAt)
+    .map((e) => e.productId),
+);
+
+// Portfolio trend over the same basket. getCollectionPriceTrend holds the
+// basket fixed across every point, so a card with a short history can't fake a
+// jump by entering the series midway — see useCardCatalog.
+const valueTrend = ref<CollectionPriceTrend>({
+  trend: null,
+  trackedCards: 0,
+  historyCards: 0,
+  totalCards: 0,
+});
+const trendLoading = ref(false);
+
+watch(
+  collectionProductIds,
+  async (ids) => {
+    if (!ids.length) {
+      collectionCards.value = [];
+      valueTrend.value = {
+        trend: null,
+        trackedCards: 0,
+        historyCards: 0,
+        totalCards: 0,
+      };
+      return;
+    }
+    collectionLoading.value = true;
+    trendLoading.value = true;
+    try {
+      // getCardsByIds does not guarantee input order, so re-sort into the
+      // newest-first order the ids were built in.
+      const cards = await getCardsByIds(ids);
+      const rank = new Map(ids.map((id, i) => [id, i]));
+      collectionCards.value = [...cards].sort(
+        (a, b) => (rank.get(a.productId) ?? 0) - (rank.get(b.productId) ?? 0),
+      );
+    } finally {
+      collectionLoading.value = false;
+    }
+    try {
+      valueTrend.value = await getCollectionPriceTrend(
+        ids,
+        30,
+        quantities.value,
+      );
+    } finally {
+      trendLoading.value = false;
+    }
+  },
+  { immediate: true },
+);
+const totalValue = computed(() =>
+  // Weighted by copies — owning four of a card is four times the value.
+  collectionCards.value.reduce(
+    (sum, c) => sum + (c.price?.market ?? 0) * quantityOf(c.productId),
+    0,
+  ),
+);
+
+const formatMyr = (n: number) =>
+  n.toLocaleString("en-MY", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+// Per-card in-flight guard. A shared boolean would freeze the whole grid
+// while one card saved.
+const busyIds = ref<Set<number>>(new Set());
+
+const withBusy = async (productId: number, fn: () => Promise<void>) => {
+  if (busyIds.value.has(productId)) return;
+  busyIds.value = new Set(busyIds.value).add(productId);
+  try {
+    await fn();
+  } catch (err) {
+    console.error("[collection] update failed:", err);
+  } finally {
+    const next = new Set(busyIds.value);
+    next.delete(productId);
+    busyIds.value = next;
+  }
+};
+
+const handleToggle = (productId: number) => {
+  // Browsing is open; adding needs an account.
+  if (!requireSignIn()) return;
+  withBusy(productId, () => toggleInCollection(productId));
+};
+
+const handleIncrement = (productId: number) =>
+  withBusy(productId, () => addCopy(productId));
+
+const handleDecrement = (productId: number) =>
+  withBusy(productId, () => removeCopy(productId));
+</script>

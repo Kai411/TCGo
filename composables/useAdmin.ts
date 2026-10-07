@@ -1,11 +1,10 @@
-const ADMIN_UIDS = ["sFXZjtYD13dT2DYE7XDaTwtx4Dn1"];
+import { isAdminUid } from "~/shared/admins";
 
 export const useAdmin = () => {
   const { user } = useAuth();
 
-  const isAdmin = computed(() => {
-    return user.value ? ADMIN_UIDS.includes(user.value.uid) : false;
-  });
+  // UI gate only — money-moving server routes re-check with requireAdmin().
+  const isAdmin = computed(() => isAdminUid(user.value?.uid));
 
   return { isAdmin };
 };

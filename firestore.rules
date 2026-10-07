@@ -1,0 +1,418 @@
+rules_version = '2';
+
+// TCGo Firestore security rules.
+//
+// WHY THIS FILE EXISTS
+// Listings, auctions and inventory are written straight from the browser with
+// addDoc — there is no server route in the path. That makes every check in the
+// Vue pages a UX convenience, not a control: an authenticated user can open
+// devtools and write whatever they like. These rules are the only thing that
+// actually enforces "you must be verified to sell".
+//
+// The Firebase Admin SDK bypasses rules entirely, so every Nitro route (the
+// Billplz webhook, the Didit webhook, payouts, shipping) keeps working
+// untouched. Anything that must not be self-served is written server-side.
+//
+// DEPLOY:  node scripts/deploy-firestore-rules.mjs --yes   (service account, no CLI needed)
+//     or:  firebase deploy --only firestore:rules
+// A collection with no match block below is DENIED — add one before shipping
+// a new collection.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // Keep in sync with shared/admins.ts.
+    function isAdmin() {
+      return signedIn() &&
+        request.auth.uid in ['sFXZjtYD13dT2DYE7XDaTwtx4Dn1'];
+    }
+
+    function profileOf(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    // ── THE SWITCH ───────────────────────────────────────────────────
+    //
+    // false = anyone signed in may list; true = only verified sellers may.
+    // Must be kept in step with KYC_REQUIRED in shared/didit.ts, and rules
+    // only take effect once deployed:
+    //     firebase deploy --only firestore:rules
+    //
+    // Everything else in this file stays in force either way — kycStatus is
+    // still unwritable by the client, so flipping this back to true can't be
+    // undone by a user setting the field on themselves.
+    function kycRequired() {
+      // Moved with KYC_REQUIRED in shared/didit.ts. These two must agree, or
+      // the browser and the database disagree about who is allowed to sell.
+      return true;
+    }
+
+    // The seller gate. kycStatus is written ONLY by the Didit webhook through
+    // the Admin SDK (see the users rules below), so this cannot be self-
+    // certified — which is the whole point.
+    //
+    // The short-circuit matters for cost as well as policy: while the gate is
+    // off, the profileOf() lookup never runs, so listing a card doesn't pay
+    // for an extra document read on every write.
+    function kycGatePassed() {
+      return signedIn() && (!kycRequired() ||
+        profileOf(request.auth.uid).kycStatus == 'verified');
+    }
+
+    // Fields the client must never set or change on its own profile. Each is
+    // written by a server route holding evidence the browser doesn't have:
+    // the Didit webhook (kyc*), the Stripe webhook (tier/subscription*), and
+    // admin moderation (trustScore).
+    function protectedProfileFields() {
+      return [
+        'kycStatus', 'kycStatusAt', 'kycVerifiedAt', 'kycVerifiedName',
+        'kycSessionId', 'kycStartedAt', 'kycDocumentType', 'kycIssuingState',
+        'kycDeclineReason',
+        'tier', 'subscriptionStatus', 'stripeCustomerId',
+        'stripeSubscriptionId', 'currentPeriodEnd', 'cancelAtPeriodEnd',
+        'trustScore'
+      ];
+    }
+
+    // Favouriting and view-interest bump counters on someone else's listing.
+    // That's engagement, not editing, so it's allowed for any signed-in user —
+    // but ONLY these keys, and hasOnly means nothing else may ride along.
+    // viewCount is here because the card page bumps it on every open
+    // (useCards.recordView); without it, view counts would have silently
+    // frozen the day these rules went live.
+    function onlyEngagementCounters() {
+      return signedIn() && request.resource.data.diff(resource.data)
+        .affectedKeys().hasOnly(['favouriteCount', 'interestedCount', 'viewCount'].toSet());
+    }
+
+    function touchesProtectedProfileFields() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys().hasAny(protectedProfileFields().toSet());
+    }
+
+    // ── users ────────────────────────────────────────────────────────
+    //
+    // NOTE (known gap, tracked separately): reads are open to any signed-in
+    // user because public profile pages render another seller's name, photo
+    // and trust score, and Firestore cannot filter fields on read. That means
+    // identityNumber and bank details on this document are readable by any
+    // authenticated user. The fix is to move those into a
+    // users/{uid}/private/* subdocument — done as its own change, because it
+    // needs a data migration. These rules do not make that worse; they stop
+    // it being writable, which is the part that matters for the seller gate.
+    match /users/{uid} {
+      allow read: if signedIn();
+
+      // A new profile is created by the client on first sign-in, and that
+      // document legitimately carries tier and trustScore — so pin their
+      // values rather than forbidding the keys, and forbid the rest outright.
+      // Nobody self-issues a verified, premium, high-trust account.
+      allow create: if isOwner(uid)
+        && request.resource.data.get('tier', 'free') == 'free'
+        && request.resource.data.get('trustScore', 100) == 100
+        && !request.resource.data.keys().hasAny([
+             'kycStatus', 'kycStatusAt', 'kycVerifiedAt', 'kycVerifiedName',
+             'kycSessionId', 'kycStartedAt', 'kycDocumentType',
+             'kycIssuingState', 'kycDeclineReason',
+             'subscriptionStatus', 'stripeCustomerId', 'stripeSubscriptionId',
+             'currentPeriodEnd', 'cancelAtPeriodEnd'
+           ].toSet());
+
+      allow update: if isOwner(uid) && !touchesProtectedProfileFields();
+      allow delete: if false;
+
+      // Reserved for the sensitive-fields migration noted above.
+      match /private/{docId} {
+        allow read, write: if false; // server (Admin SDK) only
+      }
+    }
+
+    // ── cards (marketplace listings) ─────────────────────────────────
+    //
+    // THE SELLER GATE. Creating a listing requires a verified identity.
+    match /cards/{cardId} {
+      allow read: if true; // public shop
+
+      allow create: if isOwner(request.resource.data.sellerUid)
+        && kycGatePassed();
+
+      // Edits stay with the seller, and the listing can't be handed to
+      // someone else. `sold` is flipped by the payment webhook server-side.
+      allow update: if isAdmin()
+        || onlyEngagementCounters()
+        || (isOwner(resource.data.sellerUid)
+            && kycGatePassed()
+            && request.resource.data.sellerUid == resource.data.sellerUid);
+
+      allow delete: if isAdmin() || isOwner(resource.data.sellerUid);
+    }
+
+    // ── auctions ─────────────────────────────────────────────────────
+    // Same gate. Bids live in RTDB and are governed by its own rules.
+    match /auctions/{auctionId} {
+      allow read: if true;
+
+      allow create: if isOwner(request.resource.data.sellerUid)
+        && kycGatePassed();
+
+      allow update: if isAdmin()
+        || onlyEngagementCounters()
+        || (isOwner(resource.data.sellerUid)
+            && kycGatePassed()
+            && request.resource.data.sellerUid == resource.data.sellerUid);
+
+      allow delete: if isAdmin() || isOwner(resource.data.sellerUid);
+    }
+
+    // ── inventory (private stock ledger) ─────────────────────────────
+    //
+    // Deliberately NOT behind the KYC gate: cataloguing what you own isn't
+    // selling, and making people verify before they can even try the POS or
+    // scanner would cost us users for no safety gain. The gate belongs on the
+    // moment stock becomes publicly purchasable — cards and auctions above.
+    match /inventory/{itemId} {
+      allow read: if isOwner(resource.data.userUid) || isAdmin();
+      allow create: if isOwner(request.resource.data.userUid);
+      allow update: if isOwner(resource.data.userUid)
+        && request.resource.data.userUid == resource.data.userUid;
+      allow delete: if isOwner(resource.data.userUid) || isAdmin();
+    }
+
+    // ── compiledOrders ───────────────────────────────────────────────
+    //
+    // Buyers create orders from the cart; both parties read their own. Money
+    // fields (status, paidAt, payout*, shipment*, billplz*) are written only
+    // by server routes through the Admin SDK, so the narrow client updates
+    // allowed here can't settle an order or move a payout along.
+    match /compiledOrders/{orderId} {
+      // Won at auction — see the update rule below.
+      function isAuctionOrder() {
+        return resource.data.get('auctionId', null) != null;
+      }
+
+      allow read: if isAdmin()
+        || isOwner(resource.data.buyerUid)
+        || isOwner(resource.data.sellerUid);
+
+      allow create: if isOwner(request.resource.data.buyerUid)
+        && request.resource.data.status == 'pending';
+
+      // Buyer may edit an unpaid order (add items, set the address) or cancel
+      // it. Separately the buyer confirms receipt on a shipped order — that
+      // one matters: it's what starts the payout hold clock, so it has to stay
+      // the buyer's to give and cannot be the seller declaring their own
+      // parcel delivered. Everything involving money settles server-side.
+      //
+      // An auction win is a commitment, not a cart: neither party may cancel
+      // it from the client. The only ways out are the payment window lapsing
+      // (server-side, /api/auctions/settle) or an admin. The buyer also can't
+      // strip auctionId off the order to slip past this.
+      allow update: if isAdmin()
+        || (isOwner(resource.data.buyerUid)
+            && resource.data.status == 'pending'
+            && request.resource.data.get('auctionId', null) == resource.data.get('auctionId', null)
+            && !(isAuctionOrder() && request.resource.data.status == 'cancelled'))
+        || (isOwner(resource.data.buyerUid)
+            && resource.data.status == 'shipped'
+            && request.resource.data.status == 'delivered')
+        || (isOwner(resource.data.sellerUid)
+            && request.resource.data.status in ['shipped', 'delivered', 'cancelled']
+            && !(isAuctionOrder() && request.resource.data.status == 'cancelled'));
+
+      allow delete: if isAdmin();
+    }
+
+    // ── orders (legacy, pre-compiledOrders) ──────────────────────────
+    match /orders/{orderId} {
+      allow read: if isAdmin()
+        || isOwner(resource.data.buyerUid)
+        || isOwner(resource.data.sellerUid);
+      allow create: if isOwner(request.resource.data.buyerUid);
+      allow update: if isAdmin()
+        || isOwner(resource.data.buyerUid)
+        || isOwner(resource.data.sellerUid);
+      allow delete: if isAdmin();
+    }
+
+    // ── favourites ───────────────────────────────────────────────────
+    match /favourites/{favId} {
+      allow read: if signedIn();
+      allow create: if isOwner(request.resource.data.userId);
+      allow update: if isOwner(resource.data.userId);
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    // ── userCollection (personal collection tracking) ────────────────
+    match /userCollection/{entryId} {
+      // Readable by any signed-in user, like favourites: a collection is a
+      // public showcase on the profile page (useUserCollection reads other
+      // people's rows for exactly that). Owner-only would have emptied every
+      // showcase the day the rules went live. Tighten to a per-user toggle if
+      // collections ever need to be private.
+      allow read: if signedIn();
+      allow create: if isOwner(request.resource.data.userUid);
+      allow update: if isOwner(resource.data.userUid)
+        && request.resource.data.userUid == resource.data.userUid;
+      allow delete: if isOwner(resource.data.userUid);
+    }
+
+    // ── reports (user moderation) ────────────────────────────────────
+    //
+    // A reporter may file and read their own; only an admin may review. The
+    // verdict fields are admin-only so nobody can dismiss a report about
+    // themselves.
+    match /reports/{reportId} {
+      allow read: if isAdmin() || isOwner(resource.data.reporterUid);
+      allow create: if isOwner(request.resource.data.reporterUid)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.reportedUid != request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── conversations (buyer and seller chat) ────────────────────────
+    //
+    // Only the two people in a conversation read it. Admins may too, so a
+    // reported conversation or a Buyer Protection claim can be checked; the
+    // Privacy Policy says so. Every message is written by /api/chat/send
+    // through the Admin SDK (it checks attachments, the risk warning and
+    // reply times), so the browser never writes one.
+    //
+    // The one client write: marking a conversation read, which may touch
+    // only your own entry in lastReadAt.
+    match /conversations/{convId} {
+      function isParticipant() {
+        return signedIn() && request.auth.uid in resource.data.participants;
+      }
+
+      // The id is the two uids, sorted, joined by "__" (conversationIdFor in
+      // shared/chat.ts, and only the server creates one). Checking the id as
+      // well as the document lets you open a conversation that doesn't exist
+      // yet, before the first message, and lets messages be read without a
+      // get() of the parent on every query.
+      function inConversationId() {
+        return signedIn() && request.auth.uid in convId.split('__');
+      }
+
+      allow read: if isAdmin() || isParticipant() || inConversationId();
+      allow update: if isParticipant()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['lastReadAt'])
+        && request.resource.data.lastReadAt.diff(resource.data.lastReadAt)
+             .affectedKeys().hasOnly([request.auth.uid])
+        && request.resource.data.lastReadAt[request.auth.uid] is number;
+      allow create, delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isAdmin() || inConversationId();
+        allow write: if false;
+      }
+    }
+
+    // ── userStats (public reply-time stats) ──────────────────────────
+    // Shown next to a member in chat. Computed by /api/chat/send from
+    // server timestamps, so nobody can give themselves a fast reply time.
+    match /userStats/{uid} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // ── server-only collections ──────────────────────────────────────
+    //
+    // The Admin SDK ignores rules, so denying everything here costs the
+    // server nothing and keeps payout ledgers and webhook receipts entirely
+    // out of the browser's reach. Admins read payouts through
+    // /api/payouts/list, which returns bank details behind requireAdmin.
+    match /payouts/{payoutId} {
+      allow read, write: if false;
+    }
+
+    // ── posSales ─────────────────────────────────────────────────────
+    //
+    // Counter sales. A seller reads their own — the dashboard reports takings
+    // and discounts from these — but never writes one: every field that
+    // matters (status, total, the lines and their prices) is what decides
+    // whether stock gets marked sold, and all of it is written by
+    // /api/pos/* through the Admin SDK.
+    //
+    // Letting a client write here would let a seller mark a sale paid without
+    // any money moving, which is exactly what the reservation rail exists to
+    // prevent.
+    match /posSales/{saleId} {
+      allow read: if isOwner(resource.data.sellerUid) || isAdmin();
+      allow write: if false;
+    }
+
+    match /webhookEvents/{eventId} {
+      allow read, write: if false;
+    }
+
+    // Mint Condition operations console. Staff credentials, sessions, roles,
+    // the ID counters, the operations log and the auto-payout settings.
+    //
+    // Every one of these is denied to the browser outright. The console does
+    // not use Firebase Auth at all — it talks to /api/mc/* over its own
+    // session cookie, and those routes run through the Admin SDK, which
+    // ignores rules. So there is no legitimate client read here, and a great
+    // deal that must never be readable: password hashes, live session tokens,
+    // and a log that names which staff member did what.
+    match /staff/{staffId} {
+      allow read, write: if false;
+    }
+    match /staffRoles/{roleId} {
+      allow read, write: if false;
+    }
+    match /staffSessions/{tokenHash} {
+      allow read, write: if false;
+    }
+    match /staffCounters/{prefix} {
+      allow read, write: if false;
+    }
+    match /errorLogs/{logId} {
+      allow read, write: if false;
+    }
+    match /actionLogs/{logId} {
+      allow read, write: if false;
+    }
+    match /autoPayoutRuns/{runId} {
+      allow read, write: if false;
+    }
+    // ── refunds ──────────────────────────────────────────────────────
+    // Buyer refund requests: IC and bank account. Server (Admin SDK) only.
+    match /refunds/{refundId} {
+      allow read, write: if false;
+    }
+
+    // ── notifications ────────────────────────────────────────────────
+    // Created only by the server (Admin SDK bypasses rules). A user may read
+    // their own, mark them read, and delete ones they have already read.
+    match /notifications/{notificationId} {
+      allow read: if isOwner(resource.data.userUid);
+      allow update: if isOwner(resource.data.userUid)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['readAt', 'expireAt']);
+      allow delete: if isOwner(resource.data.userUid)
+        && resource.data.readAt != null;
+      allow create: if false;
+    }
+
+    match /settings/{docId} {
+      allow read, write: if false;
+    }
+
+    // Deny anything not matched above.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

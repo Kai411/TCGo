@@ -1,18 +1,36 @@
 # Netlify build config.
 #
-# Why the `rm -f package-lock.json` here:
-# npm has a long-standing bug with platform-specific optional dependencies
-# (https://github.com/npm/cli/issues/4828) — when the lockfile is generated
-# on macOS or Windows it doesn't always include Rollup's Linux-x64 native
-# binary, so a Netlify (Linux) install fails with:
-#   "Cannot find module @rollup/rollup-linux-x64-gnu"
+# Dependency installation is handled by Netlify's own "Installing dependencies"
+# stage, which runs a plain `npm install` *before* the command below. Flags
+# added here would come too late — the npm settings that matter live in
+# .npmrc, which every npm invocation reads. See that file for why
+# legacy-peer-deps is required.
 #
-# Removing the lockfile here forces npm to do a fresh resolution on the
-# Linux build container, which picks the correct native binary. Local
-# devs still keep the committed package-lock.json for reproducible
-# installs.
+# This used to run `rm -f package-lock.json && npm install` to dodge
+# npm/cli#4828, where a macOS-generated lockfile could omit Rollup's Linux
+# binary. That deletion is unnecessary: package-lock.json isn't committed at
+# all (see .gitignore), so the build container already resolves from scratch.
+#
+# Worth revisiting as a team: committing the lockfile and using `npm ci` would
+# make builds reproducible and stop every deploy silently resolving a
+# different vue-router than was tested locally. Current npm writes all
+# platform binaries into the lockfile, rollup-linux-x64-gnu included, so the
+# original reason for ignoring it no longer holds.
 [build]
-  command = "rm -f package-lock.json && npm install && npm run build"
+  command = "npm run build"
 
 [build.environment]
   NODE_VERSION = "22"
+  # Belt and braces: Netlify passes this to its own install step, so the build
+  # stays green even if .npmrc is ever lost or overridden.
+  NPM_FLAGS = "--legacy-peer-deps"
+
+# Netlify Image CDN.
+#
+# Card art is stored in the catalogue as TCGPlayer CDN URLs, which put their
+# hostname in the source of every page. Routing them through /.netlify/images
+# serves them from our own domain, caches them at our edge, and resizes per
+# surface. Remote hosts must be listed here or the endpoint returns 404 — the
+# allowlist and shared/card-image.ts have to agree.
+[images]
+  remote_images = ['https://tcgplayer-cdn\.tcgplayer\.com/.*']

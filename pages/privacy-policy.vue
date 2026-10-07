@@ -1,339 +1,221 @@
 <script setup lang="ts">
-definePageMeta({
-  layout: "landing",
-});
+import { OPERATOR, POLICY_DEFAULTS as D } from "~/shared/legal";
 
-useHead({
-  title: "Privacy Policy · TCGo",
-});
+definePageMeta({ layout: "landing" });
+useHead({ title: "Privacy Policy · TCGo" });
 </script>
 
 <template>
-  <div class="w-[90%] sm:w-[60%] mx-auto pt-8 pb-[120px]">
-    <div class="header">
-      <h1>Privacy Policy</h1>
-      <p class="italic mt-2">Last updated: May 19, 2026</p>
+  <LegalDoc
+    title="Privacy Policy"
+    summary="We collect what we need to run a safe card marketplace: your account, orders, chat messages, addresses, and for sellers, identity and bank details. We share it only with the services that make TCGo work and with the other party to your order as needed to deliver it. We never sell your data."
+  >
+    <p>
+      This notice is given under the Personal Data Protection Act 2010
+      (PDPA). It explains what personal data {{ OPERATOR.legalName }}
+      ("TCGo", "we") collects, why, who we share it with and your rights. It
+      applies to everyone who uses TCGo, including buyers, sellers, shops
+      using the POS counter and visitors.
+    </p>
 
-      <br />
-      <p>
-        Welcome to <b>TCGo</b> (“we”, “our”, “us”). Your privacy is important to
-        us, and we are committed to protecting your personal information while
-        providing a safe and transparent platform for trading collectible cards
-        and related items.
-      </p>
-      <br />
-      <p>
-        By using our platform, you agree to the practices described in this
-        Privacy Policy.
-      </p>
-    </div>
-    <hr class="my-8" />
-    <div class="content-container">
-      <div class="content">
-        <h2>1. Information We Collect</h2>
-        <br />
-        <p>Account Information</p>
-        <br />
-        <div class="list-container">
-          <div class="list-title">
-            When users sign in using Google authentication, we may collect:
-          </div>
-          <ul>
-            <li>Name</li>
-            <li>Email Address</li>
-            <li>Profile Image</li>
-            <li>Google account identifier</li>
-          </ul>
-          <p class="mt-2">We do not collect or store your Google password.</p>
-        </div>
-      </div>
+    <h2>1. What we collect</h2>
+    <table>
+      <thead>
+        <tr><th>Data</th><th>When we collect it</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Name, display name, email, profile photo, and a password (stored only in hashed form by Firebase) or your Google account identifier</td>
+          <td>When you create an account or sign in with Google</td>
+        </tr>
+        <tr>
+          <td>Phone number, delivery addresses and pickup address</td>
+          <td>When you buy, sell or book shipping</td>
+        </tr>
+        <tr>
+          <td>Orders, bids, listings, photos, collection and inventory records, POS sales, favourites and reports you make</td>
+          <td>When you use those features</td>
+        </tr>
+        <tr>
+          <td>Chat messages you send and receive, the photos and the orders or listings you attach, and safety warnings shown on a message</td>
+          <td>When you use chat</td>
+        </tr>
+        <tr>
+          <td>When you were last online, and your average time to reply in chat</td>
+          <td>Automatically while you have TCGo open, and when you reply to a message</td>
+        </tr>
+        <tr>
+          <td>A push notification address for each device you turn notifications on for (an address your browser's push service gives that device, plus its encryption keys), and which kinds of notification you want</td>
+          <td>When you turn on push notifications in Settings</td>
+        </tr>
+        <tr>
+          <td>Payment records: amount, status, reference and payment method. Not your online banking password or full card number</td>
+          <td>When you pay through Billplz, subscribe through Stripe or pay at a counter through HitPay</td>
+        </tr>
+        <tr>
+          <td>Bank account name, bank and account number</td>
+          <td>Sellers, for payouts. Buyers, when a refund is due</td>
+        </tr>
+        <tr>
+          <td>MyKad / IC number</td>
+          <td>When needed to send a refund or payout through Billplz</td>
+        </tr>
+        <tr>
+          <td>Identity verification: photo of your ID document, a selfie and liveness check, face match result and IP-based checks. We keep the result, your verified name, document type and issuing state</td>
+          <td>Sellers, during verification through our provider Didit</td>
+        </tr>
+        <tr>
+          <td>Device and usage data: IP address, browser, pages used, error logs</td>
+          <td>Automatically when you use TCGo</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <b>Sensitive data.</b> The selfie and face matching used for identity
+      verification involve biometric data, which the PDPA treats as sensitive
+      personal data. We only process it with your explicit consent, given
+      when you start verification, and only to confirm you are who you say
+      you are.
+    </p>
 
-      <hr />
+    <h2>2. Why we use it</h2>
+    <ul>
+      <li>To create and secure your account and confirm your email.</li>
+      <li>To run orders: take payment, hold it under Buyer Protection, arrange shipping, pay sellers and send refunds.</li>
+      <li>To verify sellers, prevent fraud and counterfeits, and keep the marketplace safe.</li>
+      <li>To meet legal duties, including keeping seller and transaction records required by the Consumer Protection (Electronic Trade Transactions) Regulations and tax law.</li>
+      <li>To handle reports, complaints and Buyer Protection claims.</li>
+      <li>To let buyers and sellers message each other, and to warn you before you send a message that looks risky, such as one with a phone number, bank details, an address or a request to pay outside TCGo. This check runs automatically on the text of each message; it warns, it never blocks.</li>
+      <li>To send push notifications to the devices you turn them on for: new chat messages, order updates, and auction alerts such as being outbid or winning. They are optional. You can turn each kind off in Settings, or turn notifications off for a device there or in your browser; signing out of a device turns them off for it.</li>
+      <li>To send service messages: order updates, receipts, invoices, security alerts. You can't opt out of these while you have an account, as they are part of the service.</li>
+      <li>To send news or offers, only if you opt in. You can opt out any time.</li>
+      <li>To improve TCGo, for example by understanding which features are used.</li>
+    </ul>
+    <p>
+      Giving us your data is voluntary, but if you don't provide what a
+      feature needs (for example a delivery address to ship, or identity
+      verification to sell), you won't be able to use that feature.
+    </p>
 
-      <div class="content">
-        <h2>2. Listing Information</h2>
-        <br />
-        <div class="list-container">
-          <div class="list-title">
-            When users create listings, we may collect:
-          </div>
-          <ul>
-            <li>Card or product details</li>
-            <li>Images uploaded by users</li>
-            <li>Pricing information</li>
-            <li>Listing descriptions</li>
-            <li>Optional contact information provided by users</li>
-          </ul>
-          <p class="mt-2">
-            Listings submitted to the platform may be publicly visible.
-          </p>
-        </div>
-      </div>
+    <h2>3. Who we share it with</h2>
+    <h3>Other members</h3>
+    <ul>
+      <li>Your display name, profile photo, listings, verified badge and public profile are visible to everyone.</li>
+      <li>When you buy, the seller gets what they need to fulfil the order, such as your name and order details. Shipping labels carry the delivery details couriers need.</li>
+      <li>We don't show a seller's pickup address or bank details to buyers.</li>
+      <li>When you message someone, they see your messages and anything you attach. Signed-in members can see when you were last online and your average reply time, in chat and on your profile.</li>
+      <li>Photos sent in chat are stored on Cloudinary and can be opened by anyone who has the photo's link, so don't send photos of documents you want to keep private.</li>
+      <li>Messages are private between the two people in the conversation. Authorised TCGo staff may read a conversation only to handle a report, a Buyer Protection claim, or suspected fraud.</li>
+    </ul>
+    <h3>Service providers</h3>
+    <p>These companies process data for us, under their own security and privacy terms:</p>
+    <ul>
+      <li><b>Google Firebase / Google Cloud</b>: sign-in, database and hosting of app data.</li>
+      <li><b>Google Gemini</b>: identifying cards from photos you choose to scan or upload.</li>
+      <li><b>Billplz</b>: online payments, seller payouts and refunds.</li>
+      <li><b>Stripe</b>: Premium subscription billing.</li>
+      <li><b>HitPay</b>: QR payments at the POS counter.</li>
+      <li><b>Didit</b>: seller identity verification.</li>
+      <li><b>Delyva and its courier partners</b>: shipping quotes, labels and tracking.</li>
+      <li><b>Cloudinary</b>: storing and serving images.</li>
+      <li><b>Resend</b>: sending emails such as codes, receipts and invoices.</li>
+      <li><b>Supabase</b>: card catalogue and price data.</li>
+      <li><b>Netlify</b>: website hosting.</li>
+      <li><b>Your browser's push service</b> (Google for Chrome, Edge and Android, Apple for Safari, Mozilla for Firefox, Microsoft for Edge on Windows): delivering push notifications to your device, if you turn them on. The notification text is encrypted so that only your device can read it; the push service sees the device address, and when and how often a notification is sent.</li>
+    </ul>
+    <p>
+      Card price data comes from third-party sources such as TCGplayer,
+      Cardmarket and Collectr. We only send them what is needed to look up a
+      card, not your personal data.
+    </p>
+    <h3>Others</h3>
+    <p>
+      We may disclose data where the law requires it, to a regulator, court
+      or the police; to protect members from fraud or harm; or to a successor
+      if TCGo's business is transferred, who must keep using it under this
+      policy. We do not sell your personal data.
+    </p>
 
-      <hr />
+    <h2>4. Data stored outside Malaysia</h2>
+    <p>
+      Several of the providers above store or process data on servers outside
+      Malaysia (for example in Singapore, the United States or the European
+      Union). We transfer data only to providers that protect it to a
+      standard at least comparable to the PDPA, as permitted by section 129
+      of the PDPA.
+    </p>
 
-      <div class="content">
-        <h2>3. User Communications</h2>
-        <div class="list-container">
-          <br />
-          <p>
-            Buyers and sellers may communicate externally through WhatsApp or
-            other third-party messaging services.
-          </p>
-          <br />
+    <h2>5. How long we keep it</h2>
+    <ul>
+      <li>Account data: while your account is open, and up to 12 months after it is closed to deal with any remaining questions.</li>
+      <li>Order, payment, payout and seller records: 7 years, as required for tax and accounting, and at least 3 years for seller records under consumer protection rules.</li>
+      <li>Identity verification images and biometrics: held by Didit under its retention policy; we keep only the result and the details listed in section 1.</li>
+      <li>Chat messages and photos: while your account is open, so both sides can refer back to them if there is a problem with an order, then as for account data.</li>
+      <li>Push notification addresses: until you turn notifications off for that device, sign out of it, or the browser tells us the address no longer works.</li>
+      <li>Logs: up to 12 months.</li>
+    </ul>
+    <p>After that we delete or anonymise it.</p>
 
-          <div class="list-title">Please note:</div>
-          <ul>
-            <li>
-              Communications conducted outside our platform are not monitored or
-              controlled by us.
-            </li>
-            <li>
-              We do not store private WhatsApp conversations between users.
-            </li>
-            <li>
-              Users are solely responsible for their own transactions,
-              communications, and agreements.
-            </li>
-          </ul>
+    <h2>6. Security</h2>
+    <p>
+      We protect data with access controls, encryption in transit, and by
+      limiting who on our team can see payment and identity details. No system
+      is perfectly secure. If a breach is likely to cause significant harm, we
+      will notify the Personal Data Protection Commissioner within 72 hours
+      and affected users without undue delay, as the PDPA requires. Keep your
+      own password safe and don't share login codes.
+    </p>
 
-          <p class="mt-2">
-            All risks relating to purchases, sales, trades, deliveries,
-            payments, authenticity, condition, scams, disputes, or user conduct
-            must be independently evaluated and accepted by both buyers and
-            sellers.
-          </p>
+    <h2>7. Your rights</h2>
+    <p>Under the PDPA you can:</p>
+    <ul>
+      <li>ask for a copy of the personal data we hold about you;</li>
+      <li>ask us to correct data that is wrong or incomplete;</li>
+      <li>withdraw consent, or ask us to stop or limit processing, including for marketing;</li>
+      <li>ask us to transfer your data to another service where the law gives you that right;</li>
+      <li>ask us to close your account and delete your data, subject to the records we must keep by law.</li>
+    </ul>
+    <p>
+      Email {{ OPERATOR.privacyEmail }}. We'll reply within 21 days. We may
+      need to confirm your identity first, and may charge a fee the PDPA
+      allows for a copy of your data.
+    </p>
 
-          <br />
-          <div class="list-title">We are not responsible or liable for:</div>
-          <ul>
-            <li>Fraudulent transactions</li>
-            <li>Misrepresentation of items</li>
-            <li>Payment disputes</li>
-            <li>Lost shipments</li>
-            <li>Damaged items</li>
-            <li>Counterfeit products</li>
-            <li>User misconduct</li>
-            <li>
-              Any losses arising from transactions conducted outside the
-              platform
-            </li>
-          </ul>
+    <h2>8. Cookies and local storage</h2>
+    <p>
+      We use cookies and browser storage to keep you signed in, remember your
+      cart and preferences such as dark mode, make the app work offline, and,
+      if you turn on push notifications, receive them through the app's
+      service worker.
+      We do not currently use advertising cookies. If we add analytics or
+      advertising tools we will update this policy first. Blocking cookies
+      may stop parts of TCGo working.
+    </p>
 
-          <p class="mt-2">
-            Users are encouraged to exercise caution and perform their own due
-            diligence before completing any transaction.
-          </p>
-        </div>
-      </div>
+    <h2>9. Children</h2>
+    <p>
+      TCGo is not meant for children under 13, and we don't knowingly collect
+      their data. Users under {{ D.minimumAge }} may only use TCGo with a
+      parent or guardian's consent, and cannot sell. If you believe a child
+      has given us data, contact us and we'll delete it.
+    </p>
 
-      <hr />
+    <h2>10. Changes</h2>
+    <p>
+      We'll post any update here with a new effective date, and tell you by
+      email or in the app if the change is significant.
+    </p>
 
-      <div class="content">
-        <h2>4. Third-Party Services</h2>
-        <br />
-        <div class="list-container">
-          <div class="list-title">
-            We may use trusted third-party services to operate and improve the
-            platform, including:
-          </div>
-          <ul>
-            <li>Google for user authentication and login</li>
-            <li>
-              Firebase for authentication, database, and backend infrastructure
-            </li>
-            <li>Cloudinary for image storage and delivery</li>
-            <li>WhatsApp for buyer and seller communication</li>
-            <li>
-              Collectr for optional public link imports used to help
-              auto-populate listing details
-            </li>
-          </ul>
-          <p class="mt-2">
-            These services may process certain user data according to their own
-            privacy policies and terms of service.
-          </p>
-        </div>
-      </div>
-
-      <hr />
-
-      <div class="content">
-        <h2>5. Collectr Link Imports</h2>
-        <br />
-        <p>
-          Users may optionally paste publicly accessible Collectr product links
-          to assist with listing creation.
-        </p>
-        <br />
-        <div class="list-container">
-          <div class="list-title">
-            We may retrieve publicly available metadata from these links,
-            including:
-          </div>
-          <ul>
-            <li>Card names</li>
-            <li>Set names</li>
-            <li>Card numbers</li>
-            <li>Product images</li>
-          </ul>
-          <p class="mt-2">
-            We do not access private Collectr account information.
-          </p>
-        </div>
-      </div>
-
-      <hr />
-
-      <div class="content">
-        <h2>6. How We Use Information</h2>
-        <br />
-        <div class="list-container">
-          <div class="list-title">We may use collected information to:</div>
-          <ul>
-            <li>Provide and maintain platform functionality</li>
-            <li>Enable user authentication</li>
-            <li>Display and manage listings</li>
-            <li>Improve user experience</li>
-            <li>Prevent abuse, fraud, or misuse</li>
-            <li>Respond to support inquiries</li>
-            <li>Maintain platform security and stability</li>
-          </ul>
-        </div>
-      </div>
-
-      <hr />
-
-      <div class="content">
-        <h2>7. Data Storage and Security</h2>
-        <br />
-        <p>
-          We take reasonable measures to protect user information against
-          unauthorized access, disclosure, or misuse.
-        </p>
-        <br />
-        <p>
-          However, no online platform or electronic storage system can guarantee
-          absolute security.
-        </p>
-        <br />
-        <p>
-          Users are responsible for safeguarding their own accounts, devices,
-          and communications.
-        </p>
-      </div>
-
-      <hr />
-
-      <div class="content">
-        <h2>8. Cookies and Analytics</h2>
-        <br />
-        <div class="list-container">
-          <div class="list-title">
-            We may use cookies or similar technologies to:
-          </div>
-          <ul>
-            <li>Keep users signed in</li>
-            <li>Remember preferences</li>
-            <li>Improve platform functionality</li>
-            <li>Analyze usage and performance</li>
-          </ul>
-        </div>
-        <p class="mt-2">
-          Users may disable cookies through browser settings, though some
-          features may not function properly.
-        </p>
-      </div>
-
-      <hr />
-
-      <div class="content">
-        <h2>9. User Responsibilities</h2>
-        <br />
-        <div class="list-container">
-          <div class="list-title">Users are solely responsible for:</div>
-          <ul>
-            <li>The accuracy of listings they post</li>
-            <li>Verifying item authenticity and condition</li>
-            <li>Conducting safe transactions</li>
-            <li>Evaluating transaction risks</li>
-            <li>Complying with applicable laws and regulations</li>
-          </ul>
-        </div>
-
-        <br />
-        <div class="list-container">
-          <div class="list-title">We do not verify or guarantee:</div>
-          <ul>
-            <li>Seller legitimacy</li>
-            <li>Buyer legitimacy</li>
-            <li>Product authenticity</li>
-            <li>Market prices</li>
-            <li>Transaction outcomes</li>
-          </ul>
-        </div>
-      </div>
-
-      <hr />
-
-      <div class="content">
-        <h2>10. Children's Privacy</h2>
-        <br />
-        <p>Our platform is not intended for children under the age of 13.</p>
-        <br />
-        <p>We do not knowingly collect personal information from children.</p>
-      </div>
-
-      <hr />
-
-      <div class="content">
-        <h2>11. Account Removal</h2>
-        <br />
-        <p>Users may request account deletion by contacting us.</p>
-        <br />
-        <div class="list-container">
-          <div class="list-title">
-            We may retain limited information where necessary for:
-          </div>
-          <ul>
-            <li>Legal compliance</li>
-            <li>Fraud prevention</li>
-            <li>Dispute resolution</li>
-            <li>Security purposes</li>
-          </ul>
-        </div>
-      </div>
-
-      <hr />
-
-      <div class="content">
-        <h2>12. Changes to This Privacy Policy</h2>
-        <br />
-        <p>We may update this Privacy Policy from time to time.</p>
-        <br />
-        <p>
-          Any updates will be posted on this page with a revised effective date.
-        </p>
-      </div>
-    </div>
-  </div>
+    <h2>11. Contact</h2>
+    <p>
+      {{ OPERATOR.legalName }}, {{ OPERATOR.address }}.<br />
+      Privacy requests: {{ OPERATOR.privacyEmail }}. Other questions:
+      {{ OPERATOR.supportEmail }}.
+    </p>
+    <p>
+      If you're not satisfied with our answer, you can complain to the
+      Personal Data Protection Commissioner of Malaysia (Jabatan
+      Perlindungan Data Peribadi).
+    </p>
+  </LegalDoc>
 </template>
-
-<style scoped>
-h1 {
-  @apply text-3xl font-bold;
-}
-
-h2 {
-  @apply text-2xl font-bold;
-}
-
-ul {
-  list-style: disc;
-  margin-left: 30px;
-}
-
-.content-container {
-  @apply flex flex-col gap-8;
-}
-</style>

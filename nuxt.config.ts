@@ -1,3 +1,23 @@
+// Marketing surfaces are light-only. Listed here (rather than only in the
+// landing layout) because the pre-paint script below has to know before Vue
+// mounts — otherwise a dark-mode visitor gets a dark flash on these routes.
+const LIGHT_ONLY_ROUTES = [
+  "/landing",
+  "/pricing",
+  "/privacy-policy",
+  "/terms",
+  "/refund-policy",
+  "/seller-policy",
+  "/update-notice",
+];
+
+// The PWA module only emits manifest.webmanifest for production builds
+// (devOptions.enabled is false, deliberately — see the pwa block below).
+// Linking it in dev anyway makes the browser fetch a file that doesn't exist,
+// get the SPA's index.html fallback, and log
+// "Manifest: Line: 1, column: 1, Syntax error" on every page load.
+const isDev = process.env.NODE_ENV === "development";
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
@@ -61,6 +81,9 @@ export default defineNuxtConfig({
       skipWaiting: true,
       clientsClaim: true,
       cleanupOutdatedCaches: true,
+      // Push notifications: the push and notificationclick handlers live in
+      // public/push-sw.js and are loaded into this generated worker.
+      importScripts: ["/push-sw.js"],
     },
     // PWA is production-only. Enabling in dev caches Vite module chunks
     // in the service worker, which then keeps serving stale bundles
@@ -70,6 +93,10 @@ export default defineNuxtConfig({
     },
   },
   app: {
+    // NOTE: no `pageTransition` here on purpose. An out-in <Transition>
+    // around nested routes (pages/cards/[id].vue → <NuxtPage/>) left the next
+    // page blank after leaving a card. Route animation is a CSS enter
+    // animation on a route-keyed wrapper in layouts/default.vue instead.
     head: {
       title: "TCGo Marketplace - Buy, Sell & Auction Pokemon Cards in Malaysia",
       htmlAttrs: { lang: "en" },
@@ -77,19 +104,33 @@ export default defineNuxtConfig({
         {
           // Apply theme synchronously before paint to avoid a light→dark flash.
           // Mirrors the logic in composables/useTheme.ts; keep in sync.
-          innerHTML:
-            "(function(){try{var t=localStorage.getItem('tcgo-theme');var d=t==='dark'||((!t||t==='system')&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();",
+          //
+          // Two rules, both deliberate:
+          //  1. Light-only routes never get `dark`, whatever the visitor chose.
+          //  2. An ABSENT key resolves to light, not to the OS preference —
+          //     dark is opt-in. Only an explicit "system" follows the OS.
+          innerHTML: `(function(){try{var L=${JSON.stringify(
+            LIGHT_ONLY_ROUTES
+          )};var p=location.pathname.replace(/\\/+$/,'')||'/';if(L.indexOf(p)!==-1)return;var t=localStorage.getItem('tcgo-theme');var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,
           type: "text/javascript",
           tagPosition: "head",
         },
       ],
       meta: [
         { charset: "utf-8" },
-        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        // viewport-fit=cover makes env(safe-area-inset-*) report the iPhone
+        // home bar and notch, so fixed bars and the chat composer can pad for them.
+        // maximum-scale/user-scalable stop page zoom on phones (kai's call, so
+        // it feels like an app); photos zoom in the lightbox instead. Desktop
+        // browsers ignore this tag. See plugins/no-zoom.client.ts.
+        {
+          name: "viewport",
+          content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
+        },
         {
           name: "description",
           content:
-            "TCGo Marketplace is Malaysia's trusted community for buying, selling, and auctioning Pokemon TCG cards. List your cards, place bids, and connect with collectors via WhatsApp.",
+            "TCGo Marketplace is Malaysia's trusted community for buying, selling, and auctioning Pokemon TCG cards. List your cards, place bids, and pay securely online with FPX.",
         },
         {
           name: "keywords",
@@ -144,8 +185,8 @@ export default defineNuxtConfig({
         },
         { rel: "canonical", href: "https://tcgo.shop/" },
         // PWA manifest — @vite-pwa/nuxt doesn't auto-inject this in
-        // ssr:false mode, so we add it ourselves.
-        { rel: "manifest", href: "/manifest.webmanifest" },
+        // ssr:false mode, so we add it ourselves. Production only: see isDev.
+        ...(isDev ? [] : [{ rel: "manifest", href: "/manifest.webmanifest" }]),
         // Inter font — preconnect + non-blocking link starts the fetch in
         // parallel with HTML, not after CSS parses (much faster than @import).
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -161,13 +202,89 @@ export default defineNuxtConfig({
       ],
     },
   },
+  // Dev-server only: allow Cloudflare/ngrok tunnel hosts so the Billplz
+  // webhook can reach localhost during payment testing. No effect on the
+  // production build.
+  vite: {
+    server: {
+      allowedHosts: [".trycloudflare.com", ".ngrok-free.app", ".ngrok.io"],
+    },
+  },
   runtimeConfig: {
     // Server-only secrets (no NUXT_PUBLIC_ prefix)
+    // Supabase with the service role, for server routes that read the catalogue
+    // (NUXT_SUPABASE_URL / NUXT_SUPABASE_SERVICE_KEY).
+    supabaseUrl: "",
+    supabaseServiceKey: "",
     stripeSecretKey: "",
     stripeWebhookSecret: "",
     stripePricePremium: "",
     firebaseServiceAccount: "", // base64-encoded service account JSON
+    // Billplz (FPX order payments). Sandbox: set billplzSandbox=true and use
+    // billplz-sandbox.com credentials.
+    billplzApiKey: "",
+    billplzCollectionId: "",
+    billplzXSignatureKey: "",
+    billplzSandbox: "",
+    // Mailtrap. mailtrapInboxId set = sandbox (captured, not delivered);
+    // clear it once a sending domain is verified to deliver for real.
+    mailtrapApiToken: "",
+    mailtrapInboxId: "",
+    mailFrom: "",
+    mailFromName: "",
+    // Where replies go. Mail is sent from a no-reply address, so this must be
+    // a mailbox somebody reads. Defaults to support@tcgo.shop in mail.ts.
+    mailReplyTo: "",
+    // Didit (identity verification). Server-only: the API key must never
+    // reach the browser, and the webhook secret verifies inbound signatures.
+    // The workflow id is per-session config, not a secret — see shared/didit.ts.
+    diditApiKey: "",
+    diditWebhookSecret: "",
+    // Shared secret for scheduled jobs (the automatic payout runner). Empty
+    // means the scheduled path is refused outright — automation you forgot to
+    // configure should not be automation anyone can trigger.
+    cronSecret: "",
+    // Keys the HMAC over email verification and password-reset codes, so a
+    // leaked Firestore export doesn't yield working codes (six digits is a
+    // small enough space to reverse from a plain hash). Optional: unset falls
+    // back to the service account, which is always present — see
+    // server/utils/auth-codes.ts. Set it to rotate codes independently.
+    authCodeSecret: "",
+    // HitPay (DuitNow QR at the counter). Separate from Billplz on purpose:
+    // Billplz cannot return an embeddable QR payload, only a hosted page.
+    // hitpayApiKey is the platform account; each seller's own sub-merchant key
+    // lives on their user doc so counter takings settle to their bank, not
+    // ours. Unset = the POS offers cash only.
+    hitpayApiKey: "",
+    hitpayPlatformKey: "",
+    hitpayWebhookSalt: "",
+    hitpaySandbox: "",
+    // Delyva (courier aggregator) — live shipping quotes at checkout.
+    // delyvaApiBase empty = production; set it to the sandbox base URL
+    // (with matching sandbox credentials) to test without real money.
+    delyvaApiBase: "",
+    delyvaApiKey: "",
+    delyvaCustomerId: "",
+    delyvaCompanyId: "",
+    // Web Push (VAPID). Generate a pair once with `npx web-push
+    // generate-vapid-keys`: the public key goes in
+    // NUXT_PUBLIC_VAPID_PUBLIC_KEY, the private one in NUXT_VAPID_PRIVATE_KEY.
+    // Unset = push is switched off and the settings card says it isn't
+    // available yet. Changing the pair later stops every existing
+    // subscription, so members would have to turn push on again.
+    vapidPrivateKey: "",
+    // Who push services contact about abuse. Defaults to support@tcgo.shop.
+    vapidSubject: "",
     public: {
+      vapidPublicKey: "",
+      // Lets the POS show the QR option only when the platform can actually
+      // create one. Not a secret — it's a feature flag, and the seller finds
+      // out either way the moment they tap Pay.
+      posQrEnabled: "",
+      // Mirrors the server-side billplzSandbox flag. Public because the seller
+      // KYC form needs to know whether to offer Billplz's sandbox test bank —
+      // it's an environment marker, not a secret.
+      billplzSandbox: "",
       firebaseApiKey: "",
       firebaseAuthDomain: "",
       firebaseDatabaseURL: "",
@@ -177,7 +294,6 @@ export default defineNuxtConfig({
       firebaseAppId: "",
       cloudinaryCloudName: "",
       cloudinaryUploadPreset: "",
-      adminWhatsApp: "",
       stripePublishableKey: "",
       siteUrl: "https://tcgo.shop",
       // Supabase (browser-side anon — catalog + price reads are public).
