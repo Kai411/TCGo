@@ -15,53 +15,65 @@
       <div class="h-5 w-36 rounded bg-black/5 dark:bg-white/10 animate-pulse" />
     </div>
 
-    <NuxtLink
-      v-else-if="user"
-      :to="`/profile/${user.uid}`"
-      class="press flex items-center gap-4 min-h-[64px] py-2"
-    >
-      <img
-        v-if="avatarUrl"
-        :src="avatarUrl"
-        alt=""
-        class="w-14 h-14 rounded-full object-cover ring-2 ring-white dark:ring-zinc-900 bg-black/5 dark:bg-white/10 shrink-0"
-      />
-      <span
-        v-else
-        aria-hidden="true"
-        class="w-14 h-14 rounded-full shrink-0 bg-black/[0.06] dark:bg-white/10 text-ink-muted dark:text-zinc-300 text-xl font-bold flex items-center justify-center"
+    <div v-else-if="user" class="flex items-center gap-2">
+      <NuxtLink
+        :to="`/profile/${user.uid}`"
+        class="press flex-1 min-w-0 flex items-center gap-4 min-h-[64px] py-2"
       >
-        {{ displayName.charAt(0).toUpperCase() }}
-      </span>
-      <div class="min-w-0 flex-1">
-        <div class="flex items-center gap-1">
-          <p class="text-lg font-bold text-ink dark:text-white truncate">
-            {{ displayName }}
+        <img
+          v-if="avatarUrl"
+          :src="avatarUrl"
+          alt=""
+          class="w-14 h-14 rounded-full object-cover ring-2 ring-white dark:ring-zinc-900 bg-black/5 dark:bg-white/10 shrink-0"
+        />
+        <span
+          v-else
+          aria-hidden="true"
+          class="w-14 h-14 rounded-full shrink-0 bg-black/[0.06] dark:bg-white/10 text-ink-muted dark:text-zinc-300 text-xl font-bold flex items-center justify-center"
+        >
+          {{ displayName.charAt(0).toUpperCase() }}
+        </span>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-1">
+            <p class="text-lg font-bold text-ink dark:text-white truncate">
+              {{ displayName }}
+            </p>
+            <svg
+              class="w-5 h-5 shrink-0 text-ink-soft dark:text-zinc-500"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </div>
+          <p class="text-xs text-ink-soft dark:text-zinc-500 mt-0.5">
+            <span
+              v-if="profile?.kycStatus === 'verified'"
+              class="font-semibold text-emerald-700 dark:text-emerald-300"
+            >
+              Verified ·
+            </span>
+            View your profile
           </p>
-          <svg
-            class="w-5 h-5 shrink-0 text-ink-soft dark:text-zinc-500"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="m9 18 6-6-6-6" />
-          </svg>
         </div>
-        <p class="text-xs text-ink-soft dark:text-zinc-500 mt-0.5">
-          <span
-            v-if="profile?.kycStatus === 'verified'"
-            class="font-semibold text-emerald-700 dark:text-emerald-300"
-          >
-            Verified ·
-          </span>
-          View your profile
-        </p>
-      </div>
-    </NuxtLink>
+      </NuxtLink>
+      <!-- Customer code: shown at a shop counter, so it opens as a popup
+           right here instead of sending anyone into settings. -->
+      <button
+        type="button"
+        @click="showBuyerQr = true"
+        class="press shrink-0 flex flex-col items-center justify-center gap-1 min-w-[56px] min-h-[56px] rounded-2xl surface border border-black/[0.06] dark:border-white/[0.08] text-ink dark:text-white"
+        aria-haspopup="dialog"
+      >
+        <IconQr class="w-6 h-6" />
+        <span class="text-[10px] font-semibold">My code</span>
+      </button>
+    </div>
 
     <div
       v-else
@@ -236,6 +248,8 @@
       Sign out
     </button>
 
+    <BuyerQrDialog v-if="user" v-model="showBuyerQr" />
+
     <p class="text-center text-xs text-ink-soft dark:text-zinc-500 pt-2">
       © {{ new Date().getFullYear() }} TCGo Marketplace
     </p>
@@ -243,7 +257,7 @@
 </template>
 
 <script setup lang="ts">
-import { h, computed, watch } from "vue";
+import { h, computed, ref, watch } from "vue";
 import { LEGAL_LINKS } from "~/shared/legal";
 import { badgeLabel } from "~/shared/notifications";
 import { withoutMergedChildren } from "~/shared/delivery-stage";
@@ -275,6 +289,8 @@ watch(
 const displayName = computed(
   () => profile.value?.customName || user.value?.displayName || "Your account",
 );
+
+const showBuyerQr = ref(false);
 
 const avatarUrl = computed(() => profile.value?.photoURL || user.value?.photoURL || "");
 
@@ -315,6 +331,12 @@ const IconBell = icon(p("M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"), p("M13.
 const IconUserCog = icon(h("circle", { cx: "10", cy: "8", r: "4" }), p("M3 21a7 7 0 0 1 11-5.7"), h("circle", { cx: "18", cy: "17", r: "2.5" }));
 const IconStar = icon(p("M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"));
 const IconSpark = icon(p("M12 2v4M12 18v4M4.9 4.9l2.9 2.9M16.2 16.2l2.9 2.9M2 12h4M18 12h4M4.9 19.1l2.9-2.9M16.2 7.8l2.9-2.9"));
+const IconQr = icon(
+  h("rect", { x: "3", y: "3", width: "7", height: "7", rx: "1" }),
+  h("rect", { x: "14", y: "3", width: "7", height: "7", rx: "1" }),
+  h("rect", { x: "3", y: "14", width: "7", height: "7", rx: "1" }),
+  p("M14 14h3v3h-3zM19 19h2v2h-2z"),
+);
 const IconMoon = icon(p("M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"));
 
 // ── Shortcuts ────────────────────────────────────────────────────────
@@ -347,11 +369,12 @@ const orderGroups = computed(() => [
 ].map((g) => ({ ...g, label: ORDER_FILTER_LABELS[g.id as OrderFilter] })));
 
 // ── Settings ─────────────────────────────────────────────────────────
-// Each lands on its section of the settings page.
+// Each row opens its own page, so none of them lands somewhere it didn't name.
 const settingsRows = computed(() => {
   const rows = [
-    { label: "Shipping addresses", to: "/profile#addresses", icon: IconPin },
-    { label: "Notifications", to: "/profile#notifications", icon: IconBell },
+    { label: "Shipping addresses", to: "/account/addresses", icon: IconPin },
+    { label: "Notifications", to: "/account/notifications", icon: IconBell },
+    // Name, photo, contact details, membership and privacy.
     { label: "Account settings", to: "/profile", icon: IconUserCog },
   ];
   if (premiumEnabled) rows.push({ label: "TCGo Premium", to: "/membership", icon: IconStar });

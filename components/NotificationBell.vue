@@ -102,7 +102,7 @@
           </button>
           <NuxtLink
             v-else
-            to="/profile#notifications"
+            to="/account/notifications"
             @click="open = false"
             class="shrink-0 min-h-[36px] inline-flex items-center px-3 rounded-lg text-[12px] font-semibold text-pokemon-red hover:bg-pokemon-red/10"
           >

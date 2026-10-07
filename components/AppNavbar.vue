@@ -171,9 +171,13 @@
           v-if="authLoading"
           class="hidden lg:block w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 animate-pulse"
         />
+        <!-- The avatar opens the Account page on desktop too: orders,
+             selling, addresses, notifications and the customer code live
+             there, with your public profile one click further. -->
         <NuxtLink
           v-else-if="user"
-          :to="`/profile/${user.uid}`"
+          to="/account"
+          aria-label="Account"
           class="hidden lg:flex ml-1 items-center hover:opacity-80 transition-opacity"
         >
           <img
@@ -195,8 +199,8 @@
     <!-- Mobile search row. A field rather than an icon: it reads as "search
          here" at a glance. Tapping it opens the same search popup, which owns
          results and history. Inside the nav so --app-nav-h grows with it.
-         Not on the Account page: it's a settings screen, not a place to shop. -->
-    <div v-if="route.path !== '/account'" class="lg:hidden container mx-auto px-4 pb-3">
+         Not on the Account pages: they are settings screens, not places to shop. -->
+    <div v-if="!route.path.startsWith('/account')" class="lg:hidden container mx-auto px-4 pb-3">
       <button
         type="button"
         @click="openSearch"
@@ -451,7 +455,7 @@ const isTabActive = (to: string) => {
   if (to === "/") return path === "/";
   if (to === "/account") {
     return (
-      path === "/account" ||
+      path.startsWith("/account") ||
       path === "/activity" ||
       path === "/profile" ||
       (!!user.value && path === `/profile/${user.value.uid}`)
