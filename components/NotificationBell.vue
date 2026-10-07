@@ -51,7 +51,7 @@
           <component
             v-for="n in notifications"
             :key="n.id"
-            :is="n.href ? 'NuxtLink' : 'div'"
+            :is="n.href ? NuxtLink : 'div'"
             :to="n.href || undefined"
             @click="open = false; markRead(n.id)"
             class="block px-4 py-3 border-b border-black/[0.04] dark:border-white/[0.05] last:border-0 hover:bg-black/[0.02] dark:hover:bg-white/[0.04] transition-colors"
@@ -115,8 +115,12 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, resolveComponent, watch } from "vue";
 import { AUDIENCE_LABEL } from "~/shared/notifications";
+
+// Resolved here: a "NuxtLink" string in :is renders an unknown element, so
+// tapping a notification went nowhere.
+const NuxtLink = resolveComponent("NuxtLink");
 
 const { notifications, loading, unread, hasUnread, listen, markRead, markAllRead } =
   useNotifications();
