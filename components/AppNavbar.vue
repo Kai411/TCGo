@@ -131,6 +131,7 @@
 
         <!-- The same bell as the seller dashboard: buyer and seller events
              in one feed, so neither role has to go looking for the other. -->
+        <ChatNavButton v-if="user" />
         <NotificationBell v-if="user" />
 
         <!-- Cart — opens the slide-in drawer so shoppers keep their place

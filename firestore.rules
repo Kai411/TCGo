@@ -280,6 +280,53 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ── conversations (buyer and seller chat) ────────────────────────
+    //
+    // Only the two people in a conversation read it. Admins may too, so a
+    // reported conversation or a Buyer Protection claim can be checked; the
+    // Privacy Policy says so. Every message is written by /api/chat/send
+    // through the Admin SDK (it checks attachments, the risk warning and
+    // reply times), so the browser never writes one.
+    //
+    // The one client write: marking a conversation read, which may touch
+    // only your own entry in lastReadAt.
+    match /conversations/{convId} {
+      function isParticipant() {
+        return signedIn() && request.auth.uid in resource.data.participants;
+      }
+
+      // The id is the two uids, sorted, joined by "__" (conversationIdFor in
+      // shared/chat.ts, and only the server creates one). Checking the id as
+      // well as the document lets you open a conversation that doesn't exist
+      // yet, before the first message, and lets messages be read without a
+      // get() of the parent on every query.
+      function inConversationId() {
+        return signedIn() && request.auth.uid in convId.split('__');
+      }
+
+      allow read: if isAdmin() || isParticipant() || inConversationId();
+      allow update: if isParticipant()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['lastReadAt'])
+        && request.resource.data.lastReadAt.diff(resource.data.lastReadAt)
+             .affectedKeys().hasOnly([request.auth.uid])
+        && request.resource.data.lastReadAt[request.auth.uid] is number;
+      allow create, delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isAdmin() || inConversationId();
+        allow write: if false;
+      }
+    }
+
+    // ── userStats (public reply-time stats) ──────────────────────────
+    // Shown next to a member in chat. Computed by /api/chat/send from
+    // server timestamps, so nobody can give themselves a fast reply time.
+    match /userStats/{uid} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
     // ── server-only collections ──────────────────────────────────────
     //
     // The Admin SDK ignores rules, so denying everything here costs the

@@ -288,6 +288,15 @@
             </div>
             <span class="text-sm font-medium text-ink-muted dark:text-zinc-400">View profile</span>
           </NuxtLink>
+          <!-- Opens chat with this listing ready to attach. Hidden on your own. -->
+          <MessageButton
+            :uid="card.sellerUid"
+            :product-id="card.id"
+            product-kind="listing"
+            class="mt-2 w-full"
+          >
+            Message seller
+          </MessageButton>
 
           <!-- Description -->
           <section v-if="card.description" class="mt-8">

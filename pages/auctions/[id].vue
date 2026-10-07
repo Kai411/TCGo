@@ -147,6 +147,15 @@
                 >
               </p>
             </div>
+            <MessageButton
+              :uid="auction.sellerUid"
+              :product-id="auction.id"
+              product-kind="auction"
+              small
+              class="mt-3"
+            >
+              Message seller
+            </MessageButton>
           </div>
           <!-- Bid History -->
           <div class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">

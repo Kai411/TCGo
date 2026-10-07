@@ -107,6 +107,16 @@
                 </NuxtLink>
               </div>
             </div>
+            <!-- Chat with the other party, with this order attached. -->
+            <MessageButton
+              v-if="role"
+              :uid="role === 'buyer' ? order.sellerUid : order.buyerUid"
+              :order-id="order.id"
+              small
+              class="mt-4"
+            >
+              {{ role === "buyer" ? "Message seller" : "Message buyer" }}
+            </MessageButton>
           </div>
 
           <!-- Items + money -->
