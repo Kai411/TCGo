@@ -165,85 +165,8 @@
           </span>
         </button>
 
-        <div v-if="user" class="lg:hidden relative" @click.stop>
-          <button
-            @click="sellMenuOpen = !sellMenuOpen"
-            class="inline-flex items-center gap-1 px-3.5 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white shadow-glow"
-            aria-haspopup="true"
-            :aria-expanded="sellMenuOpen"
-          >
-            <svg
-              class="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Sell
-            <svg
-              class="w-3 h-3 -mr-0.5"
-              :class="sellMenuOpen ? 'rotate-180' : ''"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </button>
-          <Transition
-            enter-active-class="transition duration-150"
-            enter-from-class="opacity-0 -translate-y-1"
-            leave-active-class="transition duration-100"
-            leave-to-class="opacity-0 -translate-y-1"
-          >
-            <div
-              v-if="sellMenuOpen"
-              class="absolute right-0 top-full mt-2 w-48 surface rounded-xl overflow-hidden py-1.5 z-50"
-            >
-              <NuxtLink
-                to="/seller/listings/new"
-                @click="sellMenuOpen = false"
-                class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
-              >
-                Sell a card
-              </NuxtLink>
-              <NuxtLink
-                to="/seller/auctions/new"
-                @click="sellMenuOpen = false"
-                class="block px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
-              >
-                Start an auction
-              </NuxtLink>
-              <div
-                class="my-1 border-t border-black/[0.06] dark:border-white/[0.08]"
-              />
-              <NuxtLink
-                to="/seller"
-                @click="sellMenuOpen = false"
-                class="flex items-center justify-between gap-2 px-4 py-2.5 text-sm font-medium text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
-              >
-                Seller Dashboard
-                <!-- The dot follows the seller into the marketplace: a new
-                     order is worth knowing about from wherever they are, not
-                     only once they've already opened the dashboard. -->
-                <span
-                  v-if="sellerHasUnread"
-                  class="w-2 h-2 rounded-full bg-pokemon-red shrink-0"
-                  aria-label="Unread seller notifications"
-                />
-              </NuxtLink>
-            </div>
-          </Transition>
-        </div>
-
         <!-- Auth: avatar/sign-in shown on desktop only; mobile gets it via
-             the bottom-nav Profile tab. -->
+             the bottom-nav Account tab. Sell lives in the bottom nav too. -->
         <div
           v-if="authLoading"
           class="hidden lg:block w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 animate-pulse"
@@ -324,32 +247,105 @@
     </div>
   </nav>
 
-  <!-- Mobile bottom tab bar (3 tabs: Shop / Auctions / Profile).
-       Sell + Search both moved to the top bar. -->
+  <!-- Mobile bottom tab bar: Shop / Auctions / Sell / Collection / Account.
+       Sell sits in the middle as the one raised action; Orders moved into the
+       Account page. Pads for the iPhone home bar, keeping the old 16px as the floor. -->
   <nav
-    class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] pb-[16px]"
+    class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] pb-[max(16px,env(safe-area-inset-bottom))]"
+    aria-label="Main"
   >
-    <div
-      class="grid h-16 px-1"
-      :style="{
-        gridTemplateColumns: `repeat(${mobileTabs.length}, minmax(0, 1fr))`,
-      }"
-    >
-      <NuxtLink
-        v-for="tab in mobileTabs"
-        :key="tab.to"
-        :to="tab.to"
-        class="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors duration-200 ease-premium"
-        active-class="!text-pokemon-red [&_.tab-dot]:!opacity-100"
-      >
-        <component :is="tab.icon" class="w-6 h-6" />
-        <span>{{ tab.label }}</span>
-        <span
-          class="tab-dot absolute -bottom-0.5 w-1 h-1 rounded-full bg-pokemon-red opacity-0 transition-opacity duration-200 ease-premium"
-        />
-      </NuxtLink>
+    <div class="grid grid-cols-5 h-16 px-1">
+      <template v-for="tab in mobileTabs" :key="tab.label">
+        <button
+          v-if="tab.sell"
+          type="button"
+          @click.stop="onSellTap"
+          class="tab-press flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-wide text-ink dark:text-white"
+          aria-haspopup="dialog"
+          :aria-expanded="sellSheetOpen"
+        >
+          <span
+            class="-mt-5 w-12 h-12 rounded-full bg-pokemon-red text-white shadow-glow ring-4 ring-canvas dark:ring-canvas-inverse flex items-center justify-center"
+          >
+            <component :is="tab.icon" class="w-6 h-6" />
+          </span>
+          <span>{{ tab.label }}</span>
+        </button>
+        <NuxtLink
+          v-else
+          :to="tab.to!"
+          class="tab-press relative flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500"
+          :class="isTabActive(tab.to!) ? '!text-pokemon-red' : ''"
+          :aria-current="isTabActive(tab.to!) ? 'page' : undefined"
+        >
+          <span class="relative">
+            <component :is="tab.icon" class="w-6 h-6" />
+            <span
+              v-if="tab.dot"
+              class="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-pokemon-red ring-2 ring-white dark:ring-zinc-900"
+              aria-label="Unread seller notifications"
+            />
+          </span>
+          <span>{{ tab.label }}</span>
+        </NuxtLink>
+      </template>
     </div>
   </nav>
+
+  <!-- Sell sheet: the bottom-nav Sell button asks card or auction, like the
+       desktop Sell menu, and keeps the dashboard one tap away. -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition-opacity duration-200 ease-out"
+      enter-from-class="opacity-0"
+      leave-active-class="transition-opacity duration-150 ease-out"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="sellSheetOpen"
+        class="lg:hidden fixed inset-0 z-[70] bg-black/40"
+        @click="sellSheetOpen = false"
+      />
+    </Transition>
+    <Transition
+      enter-active-class="transition-transform duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)]"
+      enter-from-class="translate-y-full"
+      leave-active-class="transition-transform duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
+      leave-to-class="translate-y-full"
+    >
+      <div
+        v-if="sellSheetOpen"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Sell"
+        class="lg:hidden fixed inset-x-0 bottom-0 z-[71] surface rounded-t-3xl border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]"
+      >
+        <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15" aria-hidden="true" />
+        <p class="px-2 pb-2 text-base font-bold text-ink dark:text-white">What are you selling?</p>
+        <NuxtLink
+          v-for="item in sellItems"
+          :key="item.to"
+          :to="item.to"
+          class="tab-press flex items-center gap-3 px-2 min-h-[56px] rounded-xl active:bg-black/[0.04] dark:active:bg-white/[0.06]"
+        >
+          <span class="w-10 h-10 shrink-0 rounded-xl bg-pokemon-red/[0.08] text-pokemon-red flex items-center justify-center">
+            <component :is="item.icon" class="w-5 h-5" />
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center gap-2 text-sm font-semibold text-ink dark:text-white">
+              {{ item.label }}
+              <span
+                v-if="item.dot"
+                class="w-2 h-2 rounded-full bg-pokemon-red"
+                aria-label="Unread seller notifications"
+              />
+            </span>
+            <span class="block text-xs text-ink-soft dark:text-zinc-500">{{ item.hint }}</span>
+          </span>
+        </NuxtLink>
+      </div>
+    </Transition>
+  </Teleport>
 
   <SearchModal v-model="searchOpen" :initial-query="navQuery" />
   <CartDrawer v-model="cartOpen" />
@@ -403,20 +399,6 @@ const IconPlus = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke, "stroke-width": "2.5" }, [
     h("path", { d: "M12 5v14M5 12h14" }),
   ]);
-const IconUser = () =>
-  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
-    h("circle", { cx: "12", cy: "8", r: "4" }),
-    h("path", { d: "M4 21a8 8 0 0 1 16 0" }),
-  ]);
-// A parcel, not a heartbeat. The old glyph was an activity/pulse line, which
-// reads as analytics — a reasonable icon for the page's other tab, and a
-// misleading one for a tab labelled "Orders".
-const IconActivity = () =>
-  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
-    h("path", { d: "M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z" }),
-    h("polyline", { points: "3.3 7 12 12 20.7 7" }),
-    h("line", { x1: "12", y1: "22", x2: "12", y2: "12" }),
-  ]);
 const IconCollection = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [
     h("rect", { x: "3", y: "3", width: "7", height: "7", rx: "1" }),
@@ -425,36 +407,71 @@ const IconCollection = () =>
     h("rect", { x: "14", y: "14", width: "7", height: "7", rx: "1" }),
   ]);
 
-const mobileTabs = computed(() => {
-  const tabs: {
-    to: string;
-    label: string;
-    icon: any;
-  }[] = [
-    { to: "/", label: "Shop", icon: IconShop },
-    { to: "/auctions", label: "Auctions", icon: IconGavel },
-  ];
-  // Collection is a public catalogue browser — signing in is only needed to
-  // ADD to a collection, so hiding the tab from guests hid the thing most
-  // likely to bring them back.
-  tabs.push({ to: "/collection", label: "Collection", icon: IconCollection });
+const IconStore = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("path", { d: "M3 9l1.5-5h15L21 9" }),
+    h("path", { d: "M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9" }),
+    h("path", { d: "M9 13h6" }),
+  ]);
+// A person in a circle: the account, distinct from Collection's grid.
+const IconAccount = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("circle", { cx: "12", cy: "12", r: "9.5" }),
+    h("circle", { cx: "12", cy: "10", r: "3" }),
+    h("path", { d: "M6.2 18.4a6.5 6.5 0 0 1 11.6 0" }),
+  ]);
 
-  if (user.value) {
-    tabs.push(
-      { to: "/activity", label: "Orders", icon: IconActivity },
-      {
-        to: `/profile/${user.value.uid}`,
-        label: "Profile",
-        icon: IconUser,
-      },
+interface MobileTab {
+  label: string;
+  icon: any;
+  to?: string;
+  sell?: boolean;
+  dot?: boolean;
+}
+
+// Collection is a public catalogue browser, and Account works signed out
+// too (sign in plus the policy pages that used to live in the footer), so
+// the bar is the same five tabs for everyone.
+const mobileTabs = computed<MobileTab[]>(() => [
+  { to: "/", label: "Shop", icon: IconShop },
+  { to: "/auctions", label: "Auctions", icon: IconGavel },
+  { label: "Sell", icon: IconPlus, sell: true },
+  { to: "/collection", label: "Collection", icon: IconCollection },
+  // The seller dot used to ride on the top-bar Sell menu; the dashboard
+  // link now lives on the Account page, so the dot follows it there.
+  { to: "/account", label: "Account", icon: IconAccount, dot: sellerHasUnread.value },
+]);
+
+// Exact match for Shop, prefix match for the rest, so /auctions/123 keeps
+// Auctions lit. The account page's own sub-pages (orders, settings, your
+// profile) count as Account, since that is where they're reached from now.
+const isTabActive = (to: string) => {
+  const path = route.path;
+  if (to === "/") return path === "/";
+  if (to === "/account") {
+    return (
+      path === "/account" ||
+      path === "/activity" ||
+      path === "/profile" ||
+      (!!user.value && path === `/profile/${user.value.uid}`)
     );
-  } else {
-    // Straight to the login page rather than /profile, which only bounced
-    // them there anyway.
-    tabs.push({ to: "/login", label: "Sign in", icon: IconUser });
   }
-  return tabs;
-});
+  return path === to || path.startsWith(to + "/");
+};
+
+const sellSheetOpen = ref(false);
+const onSellTap = () => {
+  if (!user.value) {
+    goToLogin();
+    return;
+  }
+  sellSheetOpen.value = !sellSheetOpen.value;
+};
+const sellItems = computed(() => [
+  { to: "/seller/listings/new", label: "Sell a card", hint: "List it at a fixed price", icon: IconPlus, dot: false },
+  { to: "/seller/auctions/new", label: "Start an auction", hint: "Let buyers bid on it", icon: IconGavel, dot: false },
+  { to: "/seller", label: "Seller Dashboard", hint: "Listings, orders to ship and payouts", icon: IconStore, dot: sellerHasUnread.value },
+]);
 
 // ── Our height, published for anything that sticks beneath us ───────────
 //
@@ -514,7 +531,6 @@ watch(
   () => nextTick(() => measureTab(activeTabKey.value)),
 );
 
-const sellMenuOpen = ref(false);
 const desktopSellOpen = ref(false);
 const searchOpen = ref(false);
 const cartOpen = ref(false);
@@ -531,14 +547,18 @@ watch(searchOpen, (open) => {
 
 // Close the sell menu when user clicks anywhere else.
 const handleDocClick = () => {
-  sellMenuOpen.value = false;
   desktopSellOpen.value = false;
+};
+const handleEsc = (e: KeyboardEvent) => {
+  if (e.key === "Escape") sellSheetOpen.value = false;
 };
 onMounted(() => {
   document.addEventListener("click", handleDocClick);
+  document.addEventListener("keydown", handleEsc);
 });
 onBeforeUnmount(() => {
   document.removeEventListener("click", handleDocClick);
+  document.removeEventListener("keydown", handleEsc);
 });
 
 // Close transient menus on route change.
@@ -546,7 +566,7 @@ const route = useRoute();
 watch(
   () => route.fullPath,
   () => {
-    sellMenuOpen.value = false;
+    sellSheetOpen.value = false;
     desktopSellOpen.value = false;
     searchOpen.value = false;
     cartOpen.value = false;
@@ -559,3 +579,15 @@ watch(
 const { hasUnreadSeller: sellerHasUnread, listen: listenNotifications } = useNotifications();
 watch(() => user.value?.uid, () => listenNotifications(), { immediate: true });
 </script>
+
+<style scoped>
+/* Tabs switch instantly, like a native tab bar; the only motion is a slight
+   scale while pressed, which never sticks after a tap. */
+.tab-press {
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+.tab-press:active {
+  transform: scale(0.95);
+}
+</style>

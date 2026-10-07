@@ -1,7 +1,7 @@
 <template>
   <div
     id="notifications"
-    class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-5 mt-4 scroll-mt-20"
+    class="bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-5 mt-4 scroll-mt-[calc(var(--app-nav-h,64px)+16px)]"
   >
     <div>
       <p class="text-xl font-bold">Notifications</p>

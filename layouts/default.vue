@@ -19,8 +19,10 @@
         <slot />
       </div>
     </main>
+    <!-- Desktop only. On phones these links live on the Account tab
+         (pages/account.vue), which the bottom nav reaches. -->
     <footer
-      class="container mx-auto px-4 pb-24 lg:pb-8 text-xs text-ink-soft dark:text-zinc-500"
+      class="hidden lg:block container mx-auto px-4 pb-8 text-xs text-ink-soft dark:text-zinc-500"
     >
       <div
         class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-6 border-t border-black/[0.05] dark:border-white/[0.06]"
