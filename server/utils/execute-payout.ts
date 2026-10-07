@@ -19,6 +19,7 @@ import {
 import { noteError } from "~/server/utils/oplog";
 import { toPayoutRecipient } from "~/shared/payout-details";
 import type { PayoutBatch } from "~/shared/payout-ledger";
+import { getUserProfile } from "~/server/utils/user-profile";
 
 export interface ExecuteActor {
   staffId: string;
@@ -91,8 +92,7 @@ export const executePayoutBatch = async (
   }
 
   // The IC is never stored on the ledger — read it fresh from the profile.
-  const profileSnap = await db.collection("users").doc(claimed.sellerUid).get();
-  const recipient = toPayoutRecipient(profileSnap.data() as any);
+  const recipient = toPayoutRecipient((await getUserProfile(db, claimed.sellerUid)) as any);
   if (!recipient) {
     await release("Seller payout details are incomplete");
     noteError({

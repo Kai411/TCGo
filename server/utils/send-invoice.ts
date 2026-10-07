@@ -8,6 +8,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { renderInvoiceEmail } from "~/server/utils/invoice-email";
 import { sendMail, mailConfigured } from "~/server/utils/mail";
 import { isOrderCompleted } from "~/shared/delivery-stage";
+import { getUserProfile } from "~/server/utils/user-profile";
 
 export const sendInvoiceForOrder = async (
   db: Firestore,
@@ -35,8 +36,7 @@ export const sendInvoiceForOrder = async (
   // back to the profile in case it was never denormalised onto the order.
   let email: string = order.buyerEmail || "";
   if (!email && order.buyerUid) {
-    const u = await db.collection("users").doc(order.buyerUid).get();
-    email = (u.data() as any)?.email || "";
+    email = (await getUserProfile(db, order.buyerUid))?.email || "";
   }
   if (!email) return { sent: false, reason: "Buyer has no email address" };
 

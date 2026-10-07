@@ -9,6 +9,7 @@
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireStaff } from "~/server/utils/staff-auth";
 import type { KycStatus } from "~/shared/didit";
+import { getUserProfile } from "~/server/utils/user-profile";
 
 export default defineEventHandler(async (event) => {
   await requireStaff(event, "identity.view");
@@ -19,10 +20,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = getAdminFirestore();
-  const snap = await db.collection("users").doc(uid).get();
-  if (!snap.exists) return { found: false };
-
-  const p = snap.data() as Record<string, any>;
+  const p = await getUserProfile(db, uid);
+  if (!p) return { found: false };
 
   return {
     found: true,

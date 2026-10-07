@@ -155,6 +155,8 @@ export interface CompiledOrder {
   // the money is moved by hand from their dashboard and only then does this
   // become "refunded" — see server/api/orders/cancel.post.ts.
   refundStatus?: "pending" | "processing" | "refunded" | "failed";
+  /** A problem the buyer reported after paying; see shared/order-problems.ts. */
+  problem?: import("~/shared/order-problems").OrderProblem;
   refundAmount?: number;
   refundBillplzBillId?: string | null;
   refundedAt?: number;

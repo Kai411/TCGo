@@ -40,6 +40,8 @@ const sum = (ns: number[]) => round2(ns.reduce((t, n) => t + n, 0));
 export interface FinanceOrder {
   status?: string;
   paymentMethod?: string;
+  /** Set once a refund is owed or sent for this order. */
+  refundStatus?: string | null;
   paidAt?: number;
   subtotal?: number;
   /** Shipping charged to the buyer. */
@@ -74,7 +76,10 @@ export interface FinancePosSale {
 /** Orders that represent collected money. Only these carry revenue or cost. */
 export const isSettled = (o: FinanceOrder): boolean =>
   o.paymentMethod === "billplz" &&
-  ["paid", "shipped", "delivered"].includes(o.status || "");
+  ["paid", "shipped", "delivered"].includes(o.status || "") &&
+  // Refunded after a reported problem: the money went back to the buyer,
+  // so it is not revenue even though the parcel was delivered.
+  !o.refundStatus;
 
 // ── Per-order economics ──────────────────────────────────────────────
 

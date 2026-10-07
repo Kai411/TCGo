@@ -30,9 +30,10 @@ import {
 } from "~/shared/pricing";
 import { REFUND_FEE_CAP, REFUND_FEE_RATE } from "~/shared/refunds";
 import { HIGH_VALUE_THRESHOLD } from "~/shared/photo-policy";
+import { SELLER_REPLY_BUSINESS_DAYS } from "~/shared/order-problems";
 
-export const LEGAL_VERSION = "2026-10-06";
-export const LEGAL_EFFECTIVE_DATE = "6 October 2026";
+export const LEGAL_VERSION = "2026-10-07";
+export const LEGAL_EFFECTIVE_DATE = "7 October 2026";
 
 // ── Who we are (placeholders) ─────────────────────────────────────────
 export const OPERATOR = {
@@ -66,6 +67,8 @@ export const POLICY_NUMBERS = {
   payoutHoldDays: PAYOUT_HOLD_DAYS,
   auctionPayHours: AUCTION_PAYMENT_WINDOW_HOURS,
   highValuePhotoThreshold: `RM ${HIGH_VALUE_THRESHOLD}`,
+  /** Business days a seller is asked to answer a reported problem. */
+  sellerReplyBusinessDays: SELLER_REPLY_BUSINESS_DAYS,
 } as const;
 
 // ── Policy defaults (not enforced by code yet; change if you decide) ──
@@ -76,7 +79,7 @@ export const POLICY_DEFAULTS = {
    */
   claimWindowDays: PAYOUT_HOLD_DAYS,
   /** Business days a seller has to ship after the cancellation window closes. */
-  shipWithinBusinessDays: 3,
+  shipWithinBusinessDays: 2,
   /** Business days for TCGo to send an approved refund. */
   refundWithinBusinessDays: 7,
   /** Days a buyer has to send back an item after a return is approved. */
@@ -87,8 +90,6 @@ export const POLICY_DEFAULTS = {
   minimumAge: 18,
   /** Days of notice before a material change to these terms takes effect. */
   changeNoticeDays: 14,
-  /** Courts named for disputes that do not go to the Consumer Claims Tribunal. */
-  courtVenue: "Kuala Lumpur",
 } as const;
 
 export const LEGAL_LINKS = [

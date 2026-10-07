@@ -224,20 +224,6 @@
                 >
                   Mark received
                 </button>
-                <!-- Returns after delivery aren't open yet: the policy that
-                     protects both the buyer and TCGo from a card going missing
-                     mid-return hasn't been settled. Shown rather than hidden so
-                     a buyer knows it is coming rather than assuming there is no
-                     recourse at all. -->
-                <button
-                  v-if="order.status === 'delivered'"
-                  type="button"
-                  disabled
-                  title="Returns and refunds for delivered orders are coming soon"
-                  class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-400 dark:text-zinc-500 cursor-not-allowed"
-                >
-                  Return &amp; refund · coming soon
-                </button>
                 <!-- Not for auction wins: a bid is a commitment. The rules
                      and /api/orders/cancel refuse it too. -->
                 <button
@@ -290,6 +276,9 @@
               We couldn't match the amount received against this order's total. It hasn't been settled — please contact support before paying again.
             </p>
           </div>
+
+          <!-- Report a problem, and the conversation that follows. -->
+          <OrderProblemPanel v-if="role" :order="order" :role="role" />
         </div>
 
         <!-- ═══ RIGHT: where it's going ═══ -->
@@ -766,7 +755,6 @@ const buyerActions = computed(() => {
   return (
     isPayable.value ||
     o.status === "shipped" ||
-    o.status === "delivered" ||
     o.status === "pending" ||
     o.status === "confirmed"
   );

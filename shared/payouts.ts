@@ -65,6 +65,10 @@ export interface PayableOrder {
   selfShipped?: boolean;
   /** Seller's subscription plan, once orders record it. Beta ignores this. */
   sellerPlan?: PlanId;
+  /** A buyer-reported problem; see shared/order-problems.ts. */
+  problem?: { status?: string } | null;
+  /** Set once a refund is owed or sent for this order. */
+  refundStatus?: string | null;
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -169,11 +173,21 @@ export const payoutEligibleAt = (order: PayableOrder): number | null =>
 
 // The authoritative "can this order be paid out right now" check. The server
 // re-runs this at request and execution time; the client uses it for display.
+// A reported problem that hasn't been settled holds the order's money: the
+// buyer may be owed it back. Lives here rather than in shared/order-problems
+// so the payout maths has no import cycle.
+export const PAYOUT_HOLDING_PROBLEM_STATUSES = ["open", "escalated", "refund_agreed"];
+
+export const problemHoldsPayout = (order: PayableOrder): boolean =>
+  PAYOUT_HOLDING_PROBLEM_STATUSES.includes(order.problem?.status ?? "") ||
+  !!order.refundStatus;
+
 export const isPayoutEligible = (
   order: PayableOrder,
   now: number = Date.now(),
 ): boolean => {
   if (!isPayoutTrackable(order)) return false;
+  if (problemHoldsPayout(order)) return false;
   const ps = order.payoutStatus ?? "pending";
   if (ps !== "pending" && ps !== "failed") return false;
   if (recordedPayout(order) <= 0) return false;

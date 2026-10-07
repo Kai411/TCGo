@@ -25,6 +25,7 @@ import { quoteOrderShipping } from "~/server/utils/shipping";
 import { stateName } from "~/shared/my-states";
 import { PARCEL_DIMS, parcelWeightKg } from "~/shared/parcel";
 import { noteError } from "~/server/utils/oplog";
+import { getUserProfile } from "~/server/utils/user-profile";
 
 // Couriers don't collect on Sundays; schedule the next working day. Delyva
 // wants ISO8601 with an explicit offset, and MY is always +0800.
@@ -71,8 +72,7 @@ export const bookShipmentForOrder = async (
     return { booked: false, reason: "A shipment already exists for this order" };
   }
 
-  const sellerSnap = await db.collection("users").doc(order.sellerUid).get();
-  const seller = sellerSnap.data() as any;
+  const seller = (await getUserProfile(db, order.sellerUid)) as any;
   if (!seller?.pickupAddress1 || !seller?.pickupPostcode) {
     return { booked: false, reason: "Seller pickup address is incomplete" };
   }

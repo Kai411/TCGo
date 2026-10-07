@@ -102,14 +102,33 @@ service cloud.firestore {
 
     // ── users ────────────────────────────────────────────────────────
     //
-    // NOTE (known gap, tracked separately): reads are open to any signed-in
-    // user because public profile pages render another seller's name, photo
-    // and trust score, and Firestore cannot filter fields on read. That means
-    // identityNumber and bank details on this document are readable by any
-    // authenticated user. The fix is to move those into a
-    // users/{uid}/private/* subdocument — done as its own change, because it
-    // needs a data migration. These rules do not make that worse; they stop
-    // it being writable, which is the part that matters for the seller gate.
+    // Reads are open to any signed-in user because public profile pages
+    // render another seller's name, photo and trust score, and Firestore
+    // cannot filter fields on read. So nothing personal may live here: IC,
+    // bank, contact and address fields belong in users/{uid}/private/profile
+    // (see shared/private-profile.ts, which this list mirrors).
+    //
+    // Legacy profiles still carry some of these fields until they are
+    // migrated, so updates may REMOVE them but never add or change them.
+    function privateProfileFields() {
+      return [
+        'identityNumber', 'bankAccountNumber', 'bankAccountHolder',
+        'email', 'phone', 'whatsappNumber',
+        'addresses', 'deliveryName', 'deliveryPhone', 'deliveryAddress1',
+        'deliveryAddress2', 'deliveryPostcode', 'deliveryCity', 'deliveryState',
+        'pickupAddress1', 'pickupAddress2', 'pickupPostcode', 'pickupCity',
+        'pickupState',
+        'kycVerifiedName', 'kycDocumentType', 'kycIssuingState',
+        'kycDeclineReason', 'hitpayAccessToken', 'hitpayMerchantKey'
+      ];
+    }
+
+    function writesPrivateFieldsPublicly() {
+      let d = request.resource.data.diff(resource.data);
+      return d.addedKeys().union(d.changedKeys())
+        .hasAny(privateProfileFields().toSet());
+    }
+
     match /users/{uid} {
       allow read: if signedIn();
 
@@ -126,14 +145,43 @@ service cloud.firestore {
              'kycIssuingState', 'kycDeclineReason',
              'subscriptionStatus', 'stripeCustomerId', 'stripeSubscriptionId',
              'currentPeriodEnd', 'cancelAtPeriodEnd'
-           ].toSet());
+           ])
+        // keys() is a list, and list.hasAny() takes a list: passing a set
+        // made this an evaluation error, which refused every new profile.
+        && !request.resource.data.keys().hasAny(privateProfileFields());
 
-      allow update: if isOwner(uid) && !touchesProtectedProfileFields();
+      allow update: if isOwner(uid)
+        && !touchesProtectedProfileFields()
+        && !writesPrivateFieldsPublicly();
       allow delete: if false;
 
-      // Reserved for the sensitive-fields migration noted above.
+      // The personal half of the profile. Only its owner and admins read it.
+      // The owner writes their own contact, address and payout details; the
+      // identity result and merchant credentials are written by the server.
       match /private/{docId} {
-        allow read, write: if false; // server (Admin SDK) only
+        allow read: if isOwner(uid) || isAdmin();
+        allow create, update: if isOwner(uid)
+          && docId == 'profile'
+          && request.resource.data.keys().hasOnly([
+               'identityNumber', 'bankAccountNumber', 'bankAccountHolder',
+               'email', 'phone', 'whatsappNumber',
+               'addresses', 'deliveryName', 'deliveryPhone', 'deliveryAddress1',
+               'deliveryAddress2', 'deliveryPostcode', 'deliveryCity',
+               'deliveryState', 'pickupAddress1', 'pickupAddress2',
+               'pickupPostcode', 'pickupCity', 'pickupState',
+               // Server-written; may be present, never changed by the owner.
+               'kycVerifiedName', 'kycDocumentType', 'kycIssuingState',
+               'kycDeclineReason', 'hitpayAccessToken', 'hitpayMerchantKey'
+             ])
+          && (resource == null
+              ? !request.resource.data.keys().hasAny(['kycVerifiedName',
+                  'kycDocumentType', 'kycIssuingState', 'kycDeclineReason',
+                  'hitpayAccessToken', 'hitpayMerchantKey'])
+              : !request.resource.data.diff(resource.data).affectedKeys()
+                  .hasAny(['kycVerifiedName', 'kycDocumentType',
+                    'kycIssuingState', 'kycDeclineReason',
+                    'hitpayAccessToken', 'hitpayMerchantKey'].toSet()));
+        allow delete: if false;
       }
     }
 
@@ -217,17 +265,35 @@ service cloud.firestore {
       // it from the client. The only ways out are the payment window lapsing
       // (server-side, /api/auctions/settle) or an admin. The buyer also can't
       // strip auctionId off the order to slip past this.
+      // Money and Buyer Protection fields are written by the server only.
+      // Without this, the status branches below let a seller rewrite their
+      // own sellerPayout, or close a problem the buyer reported.
+      function touchesServerOrderFields() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'sellerPayout', 'platformFee', 'platformFeeRate', 'sstAmount',
+          'payoutStatus', 'payoutBatchId', 'payoutPaidAt', 'paidAt',
+          'refundStatus', 'refundAmount', 'refundFee', 'problem',
+          'buyerUid', 'sellerUid'
+        ].toSet());
+      }
+
       allow update: if isAdmin()
-        || (isOwner(resource.data.buyerUid)
+        || (!touchesServerOrderFields() && (
+        (isOwner(resource.data.buyerUid)
             && resource.data.status == 'pending'
             && request.resource.data.get('auctionId', null) == resource.data.get('auctionId', null)
             && !(isAuctionOrder() && request.resource.data.status == 'cancelled'))
         || (isOwner(resource.data.buyerUid)
             && resource.data.status == 'shipped'
             && request.resource.data.status == 'delivered')
+        // The seller ships, or cancels an order nobody has paid for yet. A
+        // seller may not mark their own parcel delivered (that starts the
+        // payout clock) or cancel a paid order (that skips the refund).
         || (isOwner(resource.data.sellerUid)
-            && request.resource.data.status in ['shipped', 'delivered', 'cancelled']
-            && !(isAuctionOrder() && request.resource.data.status == 'cancelled'));
+            && (request.resource.data.status == 'shipped'
+                || (request.resource.data.status == 'cancelled'
+                    && resource.data.status in ['pending', 'confirmed']))
+            && !(isAuctionOrder() && request.resource.data.status == 'cancelled'))));
 
       allow delete: if isAdmin();
     }
@@ -340,6 +406,13 @@ service cloud.firestore {
     match /autoPayoutRuns/{runId} {
       allow read, write: if false;
     }
+    // ── orderProblems ────────────────────────────────────────────────
+    // A reported problem's refund bank details (IC included). The problem
+    // itself is on the order; this half is server (Admin SDK) only.
+    match /orderProblems/{orderId} {
+      allow read, write: if false;
+    }
+
     // ── refunds ──────────────────────────────────────────────────────
     // Buyer refund requests: IC and bank account. Server (Admin SDK) only.
     match /refunds/{refundId} {
