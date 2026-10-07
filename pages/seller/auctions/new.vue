@@ -54,7 +54,7 @@
       <!-- Scanned drafts queue -->
       <div
         v-if="mode === 'scan' && queue.length > 0"
-        class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 mb-6"
+        class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 mb-6"
       >
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-gray-900 dark:text-zinc-100">
@@ -506,7 +506,7 @@
 
           <!-- Card: Photos (full width) -->
           <div
-            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3 lg:col-span-2"
+            class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3 lg:col-span-2"
           >
             <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
               Photos <span class="text-pokemon-red">*</span>
@@ -577,7 +577,7 @@
 
           <!-- Card: Auction Settings (full width) -->
           <div
-            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-4 lg:col-span-2"
+            class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-4 lg:col-span-2"
           >
             <div class="flex items-center justify-between">
               <h3
@@ -704,7 +704,7 @@
           <!-- Shipping is quoted live from your pickup address at checkout,
                so there's nothing to set per listing. -->
           <div
-            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5"
+            class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5"
           >
             <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-1">
               Shipping

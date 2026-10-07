@@ -291,7 +291,7 @@
               class="mt-7 grid grid-cols-2 gap-3 border-t border-black/[0.06] pt-5 dark:border-white/[0.08] sm:grid-cols-3"
             >
               <div
-                class="rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
+                class="panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
               >
                 <p
                   class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
@@ -305,7 +305,7 @@
                 </p>
               </div>
               <div
-                class="rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
+                class="panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
               >
                 <p
                   class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
@@ -319,7 +319,7 @@
                 </p>
               </div>
               <div
-                class="col-span-2 rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04] sm:col-span-1"
+                class="col-span-2 panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04] sm:col-span-1"
               >
                 <p
                   class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
@@ -502,7 +502,7 @@
 
         <div
           v-else
-          class="mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
+          class="panel-tile mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
         >
           <div class="hidden sm:block overflow-x-auto">
             <table class="w-full min-w-[600px] text-sm">
@@ -574,7 +574,7 @@
               v-for="row in rawRows"
               :key="row.key"
               :to="`/cards/${row.lowestListingId}`"
-              class="flex items-center justify-between gap-4 p-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
+              class="flex items-center justify-between gap-4 py-4 lg:px-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
             >
               <div>
                 <span
@@ -666,7 +666,7 @@
 
         <div
           v-else
-          class="mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
+          class="panel-tile mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
         >
           <div class="hidden sm:block overflow-x-auto">
             <table class="w-full min-w-[600px] text-sm">
@@ -741,7 +741,7 @@
               v-for="row in gradedRows"
               :key="row.key"
               :to="`/cards/${row.lowestListingId}`"
-              class="flex items-center justify-between gap-4 p-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
+              class="flex items-center justify-between gap-4 py-4 lg:px-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
             >
               <div>
                 <span
