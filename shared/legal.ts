@@ -31,8 +31,8 @@ import {
 import { REFUND_FEE_CAP, REFUND_FEE_RATE } from "~/shared/refunds";
 import { HIGH_VALUE_THRESHOLD } from "~/shared/photo-policy";
 
-export const LEGAL_VERSION = "2026-10-06";
-export const LEGAL_EFFECTIVE_DATE = "6 October 2026";
+export const LEGAL_VERSION = "2026-10-07";
+export const LEGAL_EFFECTIVE_DATE = "7 October 2026";
 
 // ── Who we are (placeholders) ─────────────────────────────────────────
 export const OPERATOR = {

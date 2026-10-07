@@ -74,6 +74,12 @@
               <p class="mt-1 text-[11px] text-ink-soft dark:text-zinc-500">
                 Member since {{ formatDate(profile.createdAt) }}
               </p>
+              <ChatResponsiveness
+                v-if="!isOwnProfile"
+                :uid="uid"
+                :last-seen-at="(profile as any).lastSeenAt"
+                class="mt-0.5"
+              />
             </div>
           </div>
 
@@ -152,6 +158,7 @@
             >
               Report
             </button>
+            <MessageButton v-if="!isOwnProfile" :uid="uid" small class="order-first" />
           </div>
         </div>
       </section>
