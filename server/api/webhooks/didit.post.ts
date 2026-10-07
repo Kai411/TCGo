@@ -15,6 +15,8 @@ import {
   DIDIT_WEBHOOK_MAX_SKEW_SECONDS,
   kycStatusFor,
 } from "~/shared/didit";
+import { splitProfileWrite } from "~/shared/private-profile";
+import { privateProfileRef } from "~/server/utils/user-profile";
 
 /**
  * Whole-number floats (1.0) → integers (1), recursively, matching Didit's
@@ -183,7 +185,15 @@ export default defineEventHandler(async (event) => {
 
   // Merge so a webhook for a user who somehow has no profile document can't
   // fail the whole delivery and trigger pointless retries.
-  await db.collection("users").doc(uid).set(patch, { merge: true });
+  //
+  // The verified name and document details are personal data, so they go to
+  // the private half of the profile; the status stays public for the badge
+  // and the seller gate in firestore.rules.
+  const { pub, priv } = splitProfileWrite(patch);
+  await db.collection("users").doc(uid).set(pub, { merge: true });
+  if (Object.keys(priv).length) {
+    await privateProfileRef(db, uid).set(priv, { merge: true });
+  }
 
   // 6. 2xx promptly. Nothing slow happens above; if that changes, queue it.
   return { ok: true, status: next };

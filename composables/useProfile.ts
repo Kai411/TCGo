@@ -5,12 +5,19 @@ import {
   type Address,
 } from "~/shared/addresses";
 import {
+  deleteField,
   doc,
   onSnapshot,
   setDoc,
   updateDoc,
   type Unsubscribe,
 } from "firebase/firestore";
+import {
+  legacyPrivateFields,
+  mergeProfile,
+  PRIVATE_PROFILE_DOC,
+  splitProfileWrite,
+} from "~/shared/private-profile";
 import { effectScope, ref, onUnmounted, watch } from "vue";
 import type { KycStatus } from "~/shared/didit";
 
@@ -81,7 +88,13 @@ export interface UserProfile {
   deliveryCity?: string;
   deliveryState?: string; // state code, e.g. "sgr"
 
+  /** Public stand-in for phone/whatsappNumber, which are private. */
+  hasContact?: boolean;
+
   // ── Seller KYC ──────────────────────────────────────────────────────
+  // The IC, bank account, contact and address fields in this type live in
+  // users/{uid}/private/profile — see shared/private-profile.ts. useMyProfile
+  // merges them back in for the owner; nobody else can read them.
   // Bank account for payouts (Billplz Payment Orders / manual transfer).
   bankCode?: string; // Billplz bank_code (SWIFT) — see shared/banks.ts
   bankName?: string; // display only, denormalised from bankCode
@@ -159,7 +172,25 @@ const loading = ref(true);
 const isNewUser = ref(false);
 let myProfileInitialized = false;
 let myProfileUnsubscribe: Unsubscribe | null = null;
+let myPrivateUnsubscribe: Unsubscribe | null = null;
 let lastUserId: string | null = null;
+
+// The two halves of the signed-in user's profile. `profile` is always their
+// merge, so callers never need to know which document a field lives in.
+let publicPart: UserProfile | null = null;
+let privatePart: Record<string, unknown> | null = null;
+let migratingPrivate = false;
+// Loading ends only once BOTH documents have answered. Ending it on the
+// public one alone would let the seller gate see a profile with no bank
+// details for a moment and bounce a finished seller back to setup.
+let publicLoaded = false;
+let privateLoaded = false;
+const settle = () => {
+  if (publicLoaded && privateLoaded) loading.value = false;
+};
+const publish = () => {
+  profile.value = mergeProfile(publicPart as any, privatePart) as UserProfile | null;
+};
 
 export const useMyProfile = () => {
   const { firestore } = useFirebase();
@@ -176,8 +207,30 @@ export const useMyProfile = () => {
         lastUserId = u?.uid || null;
         myProfileUnsubscribe?.();
         myProfileUnsubscribe = null;
+        myPrivateUnsubscribe?.();
+        myPrivateUnsubscribe = null;
+        publicPart = null;
+        privatePart = null;
+        publicLoaded = false;
+        privateLoaded = false;
         if (u) {
+          loading.value = true;
           const profileDoc = doc(firestore!, "users", u.uid);
+          const privateDoc = doc(firestore!, "users", u.uid, "private", PRIVATE_PROFILE_DOC);
+          myPrivateUnsubscribe = onSnapshot(
+            privateDoc,
+            (snapshot) => {
+              privatePart = snapshot.exists() ? snapshot.data() : {};
+              if (publicPart) publish();
+              privateLoaded = true;
+              settle();
+            },
+            (error) => {
+              console.error("[useMyProfile] private listener error:", error);
+              privateLoaded = true;
+              settle();
+            },
+          );
           myProfileUnsubscribe = onSnapshot(
             profileDoc,
             (snapshot) => {
@@ -190,14 +243,41 @@ export const useMyProfile = () => {
                   now.getMonth() + 1,
                   1,
                 ).getTime();
-                profile.value = {
+                publicPart = {
                   tier: "free",
                   scansUsed: 0,
                   scansResetAt: firstOfNextMonth,
                   ...data,
                   uid: u.uid,
                 } as UserProfile;
+                publish();
                 isNewUser.value = false;
+
+                // Move personal data written before the private document
+                // existed. Copy first, then remove from the public document,
+                // so a failure part-way leaves a duplicate, never a loss.
+                // Runs once: the condition stops matching after the delete.
+                const legacy = legacyPrivateFields(data);
+                if (Object.keys(legacy).length && !migratingPrivate) {
+                  migratingPrivate = true;
+                  const removals = Object.fromEntries(
+                    Object.keys(legacy).map((k) => [k, deleteField()]),
+                  );
+                  // Server-written fields can't be copied by the owner; the
+                  // migration script moves those.
+                  const { priv } = splitProfileWrite(legacy);
+                  for (const k of ["kycVerifiedName", "kycDocumentType", "kycIssuingState", "kycDeclineReason", "hitpayAccessToken", "hitpayMerchantKey"]) {
+                    delete priv[k];
+                    delete removals[k];
+                  }
+                  const hasContact = !!(String(legacy.phone ?? "").trim() || String(legacy.whatsappNumber ?? "").trim());
+                  setDoc(privateDoc, priv, { merge: true })
+                    .then(() => updateDoc(profileDoc, { ...removals, hasContact }))
+                    .catch((e) => console.error("[useMyProfile] private migration failed:", e))
+                    .finally(() => {
+                      migratingPrivate = false;
+                    });
+                }
 
                 // Turn a pre-address-book profile into its first card.
                 //
@@ -261,18 +341,25 @@ export const useMyProfile = () => {
                 // Merged, not overwritten: registration may already have
                 // written the display name into this document a moment ago,
                 // and a bare setDoc would erase it.
-                setDoc(profileDoc, newProfile, { merge: true });
-                profile.value = newProfile;
+                const { pub, priv } = splitProfileWrite(newProfile as any);
+                setDoc(profileDoc, pub, { merge: true });
+                if (Object.keys(priv).length) setDoc(privateDoc, priv, { merge: true });
+                publicPart = newProfile;
+                publish();
                 isNewUser.value = true;
               }
-              loading.value = false;
+              publicLoaded = true;
+              settle();
             },
             (error) => {
               console.error("[useMyProfile] listener error:", error);
-              loading.value = false;
+              publicLoaded = true;
+              settle();
             },
           );
         } else {
+          publicPart = null;
+          privatePart = null;
           profile.value = null;
           isNewUser.value = false;
           loading.value = false;
@@ -288,7 +375,16 @@ export const useMyProfile = () => {
   ) => {
     if (!user.value) return;
     const profileDoc = doc(firestore!, "users", user.value.uid);
-    await updateDoc(profileDoc, data);
+    // Personal fields go to the private document; see shared/private-profile.
+    const { pub, priv } = splitProfileWrite(data as Record<string, unknown>);
+    if (Object.keys(priv).length) {
+      await setDoc(
+        doc(firestore!, "users", user.value.uid, "private", PRIVATE_PROFILE_DOC),
+        priv,
+        { merge: true },
+      );
+    }
+    if (Object.keys(pub).length) await updateDoc(profileDoc, pub);
     if (data.customName || data.photoURL) {
       isNewUser.value = false;
     }

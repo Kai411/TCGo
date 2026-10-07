@@ -138,8 +138,10 @@ useHead({ title: "Privacy Policy · TCGo" });
 
     <h2>6. Security</h2>
     <p>
-      We protect data with access controls, encryption in transit, and by
-      limiting who on our team can see payment and identity details. No system
+      We protect data with access controls and encryption in transit. Your
+      IC number, bank details, phone number and addresses are stored
+      separately from your public profile, where only you and authorised TCGo
+      staff can read them. No system
       is perfectly secure. If a breach is likely to cause significant harm, we
       will notify the Personal Data Protection Commissioner within 72 hours
       and affected users without undue delay, as the PDPA requires. Keep your

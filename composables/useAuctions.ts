@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { ref, computed, onUnmounted } from "vue";
 import type { AuctionStatus } from "~/shared/auctions";
+import { mergeProfile, PRIVATE_PROFILE_DOC } from "~/shared/private-profile";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -268,13 +269,21 @@ export const useAuctionDetail = (auctionId: string) => {
     });
   };
 
+  // The contact number lives in the private half of the profile.
+  const readOwnProfile = async (uid: string): Promise<Record<string, any> | null> => {
+    const [pub, priv] = await Promise.all([
+      getDoc(doc(firestore!, "users", uid)),
+      getDoc(doc(firestore!, "users", uid, "private", PRIVATE_PROFILE_DOC)).catch(() => null),
+    ]);
+    return mergeProfile(pub.exists() ? pub.data() : null, priv?.exists() ? priv.data() : null);
+  };
+
   // ── placeBid ─────────────────────────────────────────────────────────────────
 
   const placeBid = async (bidderUid: string, bidder: string, amount: number) => {
     if (!auction.value) return;
 
-    const userSnap = await getDoc(doc(firestore!, "users", bidderUid));
-    const userData = userSnap.exists() ? userSnap.data() : null;
+    const userData = await readOwnProfile(bidderUid);
     if (!userData?.phone && !userData?.whatsappNumber) {
       throw new Error("Please add your contact number in your Profile before bidding.");
     }
@@ -311,8 +320,7 @@ export const useAuctionDetail = (auctionId: string) => {
   const setAutoBid = async (bidderUid: string, bidder: string, maxAmount: number) => {
     if (!auction.value) return;
 
-    const userSnap = await getDoc(doc(firestore!, "users", bidderUid));
-    const userData = userSnap.exists() ? userSnap.data() : null;
+    const userData = await readOwnProfile(bidderUid);
     if (!userData?.phone && !userData?.whatsappNumber) {
       throw new Error("Please add your contact number in your Profile before bidding.");
     }

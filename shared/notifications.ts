@@ -18,6 +18,7 @@ export type NotificationKind =
   | "order_created"
   | "order_merged"
   | "order_cancelled"
+  | "order_problem"
   | "new_follower";
 
 export type NotificationAudience = "buyer" | "seller";

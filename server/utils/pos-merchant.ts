@@ -8,13 +8,13 @@
 
 import type { Firestore } from "firebase-admin/firestore";
 import type { MerchantCredential } from "~/server/utils/pos-payment";
+import { getUserProfile } from "~/server/utils/user-profile";
 
 export const sellerMerchant = async (
   db: Firestore,
   sellerUid: string,
 ): Promise<MerchantCredential> => {
-  const snap = await db.collection("users").doc(sellerUid).get();
-  const user = (snap.data() ?? {}) as any;
+  const user = ((await getUserProfile(db, sellerUid)) ?? {}) as any;
   return {
     // OAuth wins when both exist: it's scoped and the merchant can
     // revoke it themselves.
