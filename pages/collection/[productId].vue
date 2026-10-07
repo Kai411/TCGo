@@ -52,16 +52,17 @@
           aria-hidden="true"
         />
 
-        <!-- Phone: a small card beside the title, then the price row and the
-             collection control across the full width. Every item is placed
+        <!-- Phone: a small card beside the title, chips and collection
+             control, then the price row across the full width. Every item is placed
              explicitly because the info column below dissolves (`contents`)
              into this grid. The second row is 1fr so the card's extra height
-             lands under the chips instead of spreading the title apart. -->
+             lands under the collection control instead of spreading the title
+             apart. -->
         <div
-          class="panel-body relative grid grid-cols-[7.5rem_minmax(0,1fr)] grid-rows-[auto_1fr_auto_auto] gap-x-4 sm:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[minmax(230px,310px)_1fr] lg:grid-rows-none lg:items-center lg:gap-10 lg:p-10"
+          class="panel-body relative grid grid-cols-[7.5rem_minmax(0,1fr)] grid-rows-[auto_auto_1fr_auto] gap-x-4 sm:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[minmax(230px,310px)_1fr] lg:grid-rows-none lg:items-center lg:gap-10 lg:p-10"
         >
           <div
-            class="relative col-start-1 row-span-2 row-start-1 w-full self-start lg:row-span-1 lg:mx-0 lg:max-w-[310px] lg:self-auto"
+            class="relative col-start-1 row-span-3 row-start-1 w-full self-start lg:row-span-1 lg:mx-0 lg:max-w-[310px] lg:self-auto"
           >
             <div
               class="absolute inset-x-5 bottom-0 h-1/2 rounded-full bg-black/15 blur-2xl dark:bg-black/40"
@@ -97,10 +98,11 @@
                 }}</span>
               </div>
 
-              <!-- Last on a phone: the name, number and price are what the
-                   reader came for, and the button pushed all of it down. -->
+              <!-- On a phone it sits beside the card under the chips, in space
+                   the card's height leaves empty anyway, so it never pushes
+                   the price down. -->
               <div
-                class="col-span-2 row-start-4 mt-4 flex shrink-0 items-center gap-2 lg:mt-0"
+                class="col-start-2 row-start-3 mt-3 flex shrink-0 items-start gap-2 self-start lg:mt-0 lg:items-center lg:self-auto"
               >
                 <!-- Owned: a status mark, not a button. The only action left
                      (changing how many copies) sits with the price below. -->
@@ -109,7 +111,7 @@
                   v-if="!inCollection"
                   type="button"
                   :disabled="collectionBusy || (!!user && collectionLoading)"
-                  class="inline-flex min-w-[166px] items-center justify-center gap-2 rounded-full bg-pokemon-blue px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:translate-y-0 disabled:opacity-60"
+                  class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-pokemon-blue px-4 py-2.5 lg:min-w-[166px] lg:px-5 lg:py-3 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:translate-y-0 disabled:opacity-60"
                   @click="handleCollectionToggle"
                 >
                   <div
@@ -175,7 +177,7 @@
                  stepper reads as a property of the card rather than a second
                  call to action stacked under the header. -->
             <div
-              class="col-span-2 row-start-3 mt-5 flex flex-wrap items-end justify-between gap-4 lg:mt-7"
+              class="col-span-2 row-start-4 mt-5 flex flex-wrap items-end justify-between gap-4 lg:mt-7"
             >
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
@@ -371,8 +373,8 @@
         </div>
       </section>
 
-      <section class="panel surface rounded-2xl mt-8 p-5 sm:p-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
+      <section class="panel surface rounded-2xl mt-6 p-5 sm:p-6 lg:mt-8">
+        <div class="flex flex-wrap items-center justify-between gap-4 lg:items-start">
           <div>
             <span class="eyebrow hidden lg:inline-block">Price history</span>
             <h2
@@ -382,7 +384,7 @@
             </h2>
             <p
               v-if="historyCoverageLabel"
-              class="mt-1.5 text-xs text-ink-muted dark:text-zinc-400"
+              class="mt-1.5 hidden text-xs text-ink-muted dark:text-zinc-400 lg:block"
             >
               {{ historyCoverageLabel }}
             </p>
@@ -450,7 +452,7 @@
         <!-- Phone only: the secondary figures from the top panel, moved
              under the chart. -->
         <dl
-          class="mt-5 grid grid-cols-3 divide-x divide-black/[0.06] rounded-xl bg-black/[0.025] py-3 text-center dark:divide-white/[0.08] dark:bg-white/[0.04] lg:hidden"
+          class="mt-5 grid grid-cols-3 divide-x divide-black/[0.06] border-t border-black/[0.06] pt-4 text-center dark:divide-white/[0.08] dark:border-white/[0.08] lg:hidden"
         >
           <div class="px-2">
             <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
