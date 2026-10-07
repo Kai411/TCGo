@@ -130,6 +130,9 @@ export const useAuth = () => {
     });
 
   const signOut = async () => {
+    // While still signed in: the server needs the token to drop this
+    // device's push subscription, so the next person on it doesn't get ours.
+    await usePush().forgetDevice();
     await firebaseSignOut(auth);
   };
 

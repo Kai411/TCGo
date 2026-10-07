@@ -1,4 +1,5 @@
-// Writing a notification, from the server only.
+// Writing a notification, from the server only. Each one is also pushed to
+// the member's devices (server/utils/push.ts) when they've turned that on.
 //
 // Every caller is a route that has just done the thing being announced, so
 // the notification is a side effect of an event that already happened rather
@@ -14,6 +15,8 @@
 import type { Firestore } from "firebase-admin/firestore";
 import type { DraftNotification } from "~/shared/notifications";
 import { noteError } from "~/server/utils/oplog";
+import { sendPush } from "~/server/utils/push";
+import { buildPushPayload, categoryForKind } from "~/shared/push";
 
 const COLLECTION = "notifications";
 
@@ -51,4 +54,12 @@ export const notify = async (
       hint: "The underlying event still succeeded — only the bell was lost.",
     });
   }
+  // The same words to their phone, if they turned push on. Swallows its own
+  // failures too, so this still can't fail the event it describes.
+  await sendPush(
+    db,
+    userUid,
+    categoryForKind(draft.kind),
+    buildPushPayload({ title: draft.title, body: draft.body, href: draft.href }),
+  );
 };

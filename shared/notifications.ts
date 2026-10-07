@@ -18,7 +18,12 @@ export type NotificationKind =
   | "order_created"
   | "order_merged"
   | "order_cancelled"
-  | "new_follower";
+  | "order_shipped"
+  | "order_delivered"
+  | "new_follower"
+  | "auction_outbid"
+  | "auction_won"
+  | "auction_sold";
 
 export type NotificationAudience = "buyer" | "seller";
 
@@ -78,6 +83,8 @@ export const badgeLabel = (count: number): string =>
 /** Newest first, which is the only order a notification list is ever read in. */
 export const byNewest = <T extends NotificationView>(list: T[]): T[] =>
   [...list].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+
+import { PAYOUT_HOLD_DAYS } from "~/shared/payouts";
 
 // ── Copy ──────────────────────────────────────────────────────────────
 //
@@ -180,4 +187,90 @@ export const newFollower = (input: {
   body: `${input.followerName || "Someone"} is now following your shop.`,
   href: `/profile/${input.followerUid}`,
   meta: { followerUid: input.followerUid },
+});
+
+/** To the buyer, once the courier has the parcel. */
+export const orderShipped = (input: {
+  orderId: string;
+  sellerName?: string;
+  courier?: string;
+}): DraftNotification => ({
+  kind: "order_shipped",
+  audience: "buyer",
+  title: "Your order is on its way",
+  body:
+    `${input.sellerName || "The seller"} has sent your cards` +
+    `${input.courier ? ` with ${input.courier}` : ""}. Track it from your order.`,
+  href: `/orders/${input.orderId}`,
+  meta: { orderId: input.orderId },
+});
+
+/** To the buyer, when the parcel arrives. */
+export const orderDeliveredBuyer = (input: { orderId: string }): DraftNotification => ({
+  kind: "order_delivered",
+  audience: "buyer",
+  title: "Order delivered",
+  body: "Your parcel has arrived. If anything is wrong with it, report a problem from the order page.",
+  href: `/orders/${input.orderId}`,
+  meta: { orderId: input.orderId },
+});
+
+/** To the seller, when the parcel arrives: the point their payout starts counting. */
+export const orderDeliveredSeller = (input: {
+  orderId: string;
+  buyerName?: string;
+}): DraftNotification => ({
+  kind: "order_delivered",
+  audience: "seller",
+  title: "Order delivered",
+  body: `${input.buyerName || "The buyer"} has received their cards. The payout for this order is released after the ${PAYOUT_HOLD_DAYS}-day hold.`,
+  href: `/seller/orders`,
+  meta: { orderId: input.orderId },
+});
+
+/** To a bidder whose best bid has just been beaten. */
+export const auctionOutbid = (input: {
+  auctionId: string;
+  cardName?: string;
+  currentPrice: number;
+}): DraftNotification => ({
+  kind: "auction_outbid",
+  audience: "buyer",
+  title: `You've been outbid · ${money(input.currentPrice)}`,
+  body: `Someone bid higher on ${input.cardName || "an auction you're in"}. Bid again before it ends.`,
+  href: `/auctions/${input.auctionId}`,
+  meta: { auctionId: input.auctionId, currentPrice: input.currentPrice },
+});
+
+/** To the winner, the moment the auction is settled. */
+export const auctionWon = (input: {
+  auctionId: string;
+  orderId: string;
+  cardName?: string;
+  price: number;
+  payWithinHours: number;
+}): DraftNotification => ({
+  kind: "auction_won",
+  audience: "buyer",
+  title: `You won · ${money(input.price)}`,
+  body: `${input.cardName || "The auction"} is yours. Pay within ${input.payWithinHours} hours to keep it.`,
+  href: `/orders/${input.orderId}`,
+  meta: { auctionId: input.auctionId, orderId: input.orderId, price: input.price },
+});
+
+/** To the seller, when their auction ends with a winner. */
+export const auctionSold = (input: {
+  auctionId: string;
+  cardName?: string;
+  price: number;
+  winnerName?: string;
+}): DraftNotification => ({
+  kind: "auction_sold",
+  audience: "seller",
+  title: `Auction ended · ${money(input.price)}`,
+  body:
+    `${input.winnerName || "The top bidder"} won ${input.cardName || "your auction"}. ` +
+    `We'll tell you when they've paid.`,
+  href: `/auctions/${input.auctionId}`,
+  meta: { auctionId: input.auctionId, price: input.price },
 });

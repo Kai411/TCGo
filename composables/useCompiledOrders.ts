@@ -434,6 +434,15 @@ export const useCompiledOrders = () => {
   // FPX-only now: the Billplz webhook is the only thing that can mark an order
   // paid, and cards are locked there.
 
+  // Tell the other side (bell and push). The server reads the order itself
+  // and never announces the same status twice. Best-effort: the status change
+  // already happened, and a missed notice mustn't look like it failed.
+  const announceStatus = (orderId: string) => {
+    useAuthedFetch()
+      .authedFetch("/api/orders/status-notify", { method: "POST", body: { orderId } })
+      .catch(() => {});
+  };
+
   const markShipped = async (
     orderId: string,
     trackingNumber?: string,
@@ -447,6 +456,7 @@ export const useCompiledOrders = () => {
     if (trackingNumber) patch.trackingNumber = trackingNumber;
     if (carrier) patch.shippingCarrier = carrier;
     await updateDoc(doc(firestore, "compiledOrders", orderId), patch);
+    announceStatus(orderId);
   };
 
   const markDelivered = async (orderId: string) => {
@@ -455,6 +465,7 @@ export const useCompiledOrders = () => {
       status: "delivered",
       deliveredAt: Date.now(),
     });
+    announceStatus(orderId);
   };
 
   const cancelOrder = async (orderId: string, reason?: string) => {
