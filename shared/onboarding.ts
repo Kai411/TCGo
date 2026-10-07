@@ -125,6 +125,8 @@ const OPEN_PREFIXES = [
   "/landing",
   "/privacy-policy",
   "/terms",
+  "/refund-policy",
+  "/seller-policy",
   "/update-notice",
 ];
 
@@ -257,6 +259,16 @@ export const sellerOnboardingState = (
  * reach the form that fixes it.
  */
 const SELLER_OPEN = ["/seller/onboarding", "/seller/settings", "/seller/verify"];
+
+/**
+ * Whether a path is inside the seller dashboard.
+ *
+ * Segment-aware on purpose: a bare startsWith("/seller") also matches
+ * /seller-policy, which would send someone who only wants to read the rules
+ * for selling into the seller setup flow.
+ */
+export const isSellerArea = (path: string): boolean =>
+  path === "/seller" || path.startsWith("/seller/");
 
 export const isSellerOnboardingExempt = (path: string): boolean =>
   SELLER_OPEN.some((p) => path === p || path.startsWith(p + "/"));

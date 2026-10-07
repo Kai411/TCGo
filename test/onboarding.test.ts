@@ -17,6 +17,7 @@ import {
   hasIdentity,
   hasSellerContact,
   isOnboardingExempt,
+  isSellerArea,
   isSellerOnboardingExempt,
   onboardingState,
   sellerOnboardingState,
@@ -129,7 +130,7 @@ describe("what stays reachable while setup is unfinished", () => {
   });
 
   it("keeps marketing and legal pages open", () => {
-    for (const p of ["/landing", "/privacy-policy", "/terms"]) {
+    for (const p of ["/landing", "/privacy-policy", "/terms", "/refund-policy", "/seller-policy"]) {
       assert.equal(isOnboardingExempt(p), true, `${p} must stay open`);
     }
   });
@@ -235,6 +236,15 @@ describe("what stays reachable while seller setup is unfinished", () => {
   it("gates the parts that take money or ship things", () => {
     for (const p of ["/seller", "/seller/pos", "/seller/listings/new", "/seller/funds"]) {
       assert.equal(isSellerOnboardingExempt(p), false, `${p} must be gated`);
+    }
+  });
+
+  it("treats only the dashboard as the seller area, not the Seller Policy", () => {
+    for (const p of ["/seller", "/seller/pos", "/seller/onboarding"]) {
+      assert.equal(isSellerArea(p), true, `${p} is the seller area`);
+    }
+    for (const p of ["/seller-policy", "/sellers", "/"]) {
+      assert.equal(isSellerArea(p), false, `${p} is not the seller area`);
     }
   });
 });
