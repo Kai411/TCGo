@@ -66,6 +66,49 @@
     outline-width: 1px;
     outline-offset: 0;
   }
+  /* UI chrome isn't text: a long-press or drag on a button, tab, nav item
+     or card shouldn't paint a selection, like a native app. Only controls
+     opt out. Content (product and auction text, chat messages, order and
+     tracking details, addresses, policies) and every form field stay
+     selectable, because people copy those. Links sitting inside running
+     text stay selectable too, so copying a paragraph keeps its link words.
+     Anything inside a control that should still be copyable can opt back
+     in with `select-text`. */
+  button,
+  summary,
+  label,
+  nav,
+  img,
+  svg,
+  .press,
+  [role="button"],
+  [role="tab"],
+  [role="tablist"],
+  [role="menuitem"],
+  [role="switch"],
+  a:not(:is(p, li, dd, td, blockquote, .prose) a) {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Fields are always editable and selectable, even inside a <label> or
+     another control above (older iOS Safari blocks typing otherwise). */
+  input,
+  textarea,
+  select,
+  [contenteditable]:not([contenteditable="false"]) {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  /* No iOS long-press preview or "Copy" bubble on controls. Content links
+     and images keep theirs. */
+  button,
+  nav a,
+  .press,
+  [role="button"],
+  [role="tab"] {
+    -webkit-touch-callout: none;
+  }
+
   /* Kill the grey flash iOS/Android paint over tapped links and buttons. */
   a,
   button {
