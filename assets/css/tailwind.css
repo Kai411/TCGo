@@ -115,6 +115,13 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* No pinch or double-tap page zoom on touch screens (also kills the tap
+     delay); photos zoom in the lightbox. Scrolling is unaffected, and mouse
+     and keyboard zoom don't go through touch-action. */
+  html {
+    touch-action: pan-x pan-y;
+  }
+
   /* Respect the OS "reduce motion" setting: no pulsing badges, hover
      zooms or smooth scrolls for people who've asked for less motion. */
   @media (prefers-reduced-motion: reduce) {

@@ -68,7 +68,7 @@
               <p v-if="dayChanged(i)" class="text-center text-[11px] font-semibold text-ink-soft dark:text-zinc-500 pt-2">
                 {{ dayLabel(m.at) }}
               </p>
-              <ChatBubble :message="m" :mine="m.senderUid === user.uid" @open-image="lightbox = $event" />
+              <ChatBubble :message="m" :mine="m.senderUid === user.uid" />
             </template>
             <ChatBubble
               v-for="m in outbox"
@@ -76,7 +76,6 @@
               :message="m"
               mine
               pending
-              @open-image="lightbox = $event"
             />
           </template>
         </div>
@@ -172,17 +171,6 @@
       @edit="riskPrompt = []; textBox?.focus()"
       @send="riskPrompt = []; submit(true)"
     />
-
-    <!-- On body, above the phone's full-screen conversation layer. -->
-    <Teleport to="body">
-      <div
-        v-if="lightbox"
-        class="fixed inset-0 z-[80] bg-black/90 flex items-center justify-center p-4"
-        @click="lightbox = ''"
-      >
-        <img :src="lightbox" alt="" class="max-w-full max-h-full object-contain" />
-      </div>
-    </Teleport>
   </div>
 </template>
 
@@ -418,7 +406,6 @@ const attachment = ref<{ ref: ChatAttachmentRef; preview: ChatAttachment } | nul
 const error = ref("");
 const pickerOpen = ref(false);
 const riskPrompt = ref<ChatRisk[]>([]);
-const lightbox = ref("");
 
 const canSend = computed(() => !!text.value.trim() || pending.value.length > 0 || !!attachment.value);
 
