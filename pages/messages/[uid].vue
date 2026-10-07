@@ -24,7 +24,7 @@
       <Teleport to="body" :disabled="!isPhone">
       <section
         class="flex flex-col min-w-0"
-        :class="isPhone ? 'chat-screen bg-canvas dark:bg-canvas-inverse' : 'surface rounded-2xl chat-pane'"
+        :class="isPhone ? ['chat-screen bg-canvas dark:bg-canvas-inverse', { 'keyboard-open': keyboardOpen }] : 'surface rounded-2xl chat-pane'"
         :style="isPhone && viewport.h ? { height: `${viewport.h}px`, transform: `translateY(${viewport.top}px)` } : undefined"
       >
         <!-- Header: who, and how responsive they are -->
@@ -359,6 +359,9 @@ const isPhone = ref(false);
  *  composer just above the keyboard. */
 const viewport = ref({ h: 0, top: 0 });
 let phoneQuery: MediaQueryList | null = null;
+/** The keyboard covers the home bar, so the composer drops its safe-area
+ *  padding while it's up (iOS keeps reporting the inset). */
+const keyboardOpen = computed(() => isPhone.value && viewport.value.h > 0 && viewport.value.h < window.innerHeight - 120);
 
 const syncViewport = () => {
   const vv = window.visualViewport;
@@ -593,6 +596,9 @@ const preAttach = async () => {
 }
 .chat-screen .chat-composer {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+.chat-screen.keyboard-open .chat-composer {
+  padding-bottom: 0.5rem;
 }
 /* A 24px button with a 44px touch area. */
 .hit-44::before {

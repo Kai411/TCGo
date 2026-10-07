@@ -118,7 +118,9 @@ export default defineNuxtConfig({
       ],
       meta: [
         { charset: "utf-8" },
-        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        // viewport-fit=cover makes env(safe-area-inset-*) report the iPhone
+        // home bar and notch, so fixed bars and the chat composer can pad for them.
+        { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
         {
           name: "description",
           content:
