@@ -6,8 +6,9 @@
 //      (TCGCSV returns one row per sub-type), filter to known products.
 //   3. Upsert into card_prices (replacing the `prices` JSONB; `history`
 //      stays untouched on conflict).
-//   4. Call snapshot_prices_today() RPC — Postgres prepends today's
-//      market value to each row's history array and trims to 365 entries.
+//   4. Call snapshot_prices_range() RPC slice by slice — Postgres prepends
+//      today's market value to each row's history array and trims to 365
+//      entries.
 //
 // Run locally:
 //   node scripts/snapshot-pokemon-prices.mjs
@@ -33,6 +34,10 @@ const UPSERT_BATCH_SIZE = 500;
 // Must match Supabase's PostgREST default db_max_rows (1000) — otherwise
 // the catalog-id load silently stops after one page.
 const CATALOG_PAGE_SIZE = 1000;
+// Rows per history-snapshot call. One call over the whole table outgrew
+// PostgREST's statement timeout (~8s) once JP cards were added; a slice this
+// size finishes in well under a second.
+const SNAPSHOT_SLICE_SIZE = 2000;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: { persistSession: false },
@@ -180,14 +185,23 @@ async function main() {
   );
 
   console.log("Snapshotting today's history entry via Postgres…");
-  const { data: rowsSnapshotted, error: rpcErr } = await supabase.rpc(
-    "snapshot_prices_today",
-  );
-  if (rpcErr) {
-    console.error(`History snapshot failed: ${rpcErr.message}`);
-    process.exit(1);
+  const sortedIds = [...knownIds].sort((a, b) => a - b);
+  let rowsSnapshotted = 0;
+  for (let i = 0; i < sortedIds.length; i += SNAPSHOT_SLICE_SIZE) {
+    const slice = sortedIds.slice(i, i + SNAPSHOT_SLICE_SIZE);
+    const { data, error: rpcErr } = await supabase.rpc("snapshot_prices_range", {
+      from_id: slice[0],
+      to_id: slice[slice.length - 1],
+    });
+    if (rpcErr) {
+      console.error(
+        `History snapshot failed for product_ids ${slice[0]}–${slice[slice.length - 1]}: ${rpcErr.message}`,
+      );
+      process.exit(1);
+    }
+    rowsSnapshotted += data ?? 0;
   }
-  console.log(`Snapshotted ${rowsSnapshotted?.toLocaleString?.() ?? rowsSnapshotted} rows into history.`);
+  console.log(`Snapshotted ${rowsSnapshotted.toLocaleString()} rows into history.`);
 
   const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
   console.log(`\nDone in ${seconds}s.`);
