@@ -99,22 +99,39 @@ export const useChat = () => {
     unsubInbox?.();
     inboxFor = uid;
     inboxLoading.value = true;
-    const q = query(
-      collection(firestore!, "conversations"),
-      where("participants", "array-contains", uid),
-      orderBy("updatedAt", "desc"),
-      limit(INBOX_LIMIT),
-    );
+    subscribeInbox(uid, true);
+  };
+
+  /**
+   * The sorted query needs a composite index. Until it exists (or while it
+   * builds) Firestore refuses it with failed-precondition, so fall back to
+   * the unsorted query, which needs no index, and sort here instead.
+   */
+  const subscribeInbox = (uid: string, sorted: boolean) => {
+    const base = collection(firestore!, "conversations");
+    const q = sorted
+      ? query(base, where("participants", "array-contains", uid), orderBy("updatedAt", "desc"), limit(INBOX_LIMIT))
+      : query(base, where("participants", "array-contains", uid), limit(INBOX_LIMIT * 4));
     unsubInbox = onSnapshot(
       q,
       (snap) => {
-        conversations.value = snap.docs.map((d) => ({ ...(d.data() as Omit<Conversation, "id">), id: d.id }));
+        conversations.value = snap.docs
+          .map((d) => ({ ...(d.data() as Omit<Conversation, "id">), id: d.id }))
+          .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+          .slice(0, INBOX_LIMIT);
         inboxLoading.value = false;
         inboxError.value = "";
       },
-      (e) => {
+      (e: any) => {
         console.error("[chat] inbox listener failed", e);
-        inboxError.value = "Couldn't load your messages.";
+        if (sorted && e?.code === "failed-precondition" && inboxFor === uid) {
+          subscribeInbox(uid, false);
+          return;
+        }
+        inboxError.value =
+          e?.code === "permission-denied"
+            ? "Couldn't load your messages: the chat rules aren't published yet."
+            : "Couldn't load your messages.";
         inboxLoading.value = false;
       },
     );
