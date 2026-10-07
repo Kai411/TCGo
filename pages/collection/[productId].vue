@@ -270,6 +270,24 @@
                 >
                   Price unavailable
                 </p>
+                <!-- Phone only: the chart's own headline repeats the price, so
+                     on a phone it is hidden and the change sits here, on the
+                     first screen. -->
+                <p
+                  v-if="trend && trend.changePct !== null && trend.points.length >= 2"
+                  class="mt-1.5 inline-flex items-center gap-1 text-xs font-bold tabular-price lg:hidden"
+                  :class="
+                    trend.changePct >= 0
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-rose-600 dark:text-rose-400'
+                  "
+                >
+                  {{ trend.changePct >= 0 ? "▲" : "▼" }}
+                  {{ Math.abs(trend.changePct).toFixed(1) }}%
+                  <span class="font-semibold text-ink-soft dark:text-zinc-500"
+                    >past {{ selectedRangeLabel }}</span
+                  >
+                </p>
               </div>
               <div
                 v-if="inCollection && user"
@@ -300,8 +318,10 @@
 
             </div>
 
+            <!-- Desktop only. On a phone these sit under the chart instead,
+                 so the price and its trend come first. -->
             <div
-              class="mt-7 grid grid-cols-2 gap-3 border-t border-black/[0.06] pt-5 dark:border-white/[0.08] sm:grid-cols-3"
+              class="mt-7 hidden grid-cols-3 gap-3 border-t border-black/[0.06] pt-5 dark:border-white/[0.08] lg:grid"
             >
               <div
                 class="rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
@@ -354,9 +374,9 @@
       <section class="panel surface rounded-2xl mt-8 p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <span class="eyebrow">Price history</span>
+            <span class="eyebrow hidden lg:inline-block">Price history</span>
             <h2
-              class="mt-1 text-xl font-bold tracking-tight text-ink dark:text-white"
+              class="text-base font-bold tracking-tight text-ink dark:text-white lg:mt-1 lg:text-xl"
             >
               Raw card trend
             </h2>
@@ -418,13 +438,46 @@
           </div>
         </div>
 
-        <div class="mt-6">
+        <div class="mt-4 lg:mt-6">
           <PriceTrendChart
             :trend="trend"
             :loading="trendLoading"
             :height="190"
+            header-class="hidden lg:flex"
           />
         </div>
+
+        <!-- Phone only: the secondary figures from the top panel, moved
+             under the chart. -->
+        <dl
+          class="mt-5 grid grid-cols-3 divide-x divide-black/[0.06] rounded-xl bg-black/[0.025] py-3 text-center dark:divide-white/[0.08] dark:bg-white/[0.04] lg:hidden"
+        >
+          <div class="px-2">
+            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+              Market low
+            </dt>
+            <dd class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
+              {{ card.price ? formatMyr(card.price.low) : "—" }}
+            </dd>
+          </div>
+          <div class="px-2">
+            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+              Market high
+            </dt>
+            <dd class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
+              {{ card.price ? formatMyr(card.price.high) : "—" }}
+            </dd>
+          </div>
+          <div class="px-2">
+            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+              Graded
+            </dt>
+            <dd class="mt-1 text-sm font-bold text-ink dark:text-white">
+              {{ activeGradedListings.length }}
+              {{ activeGradedListings.length === 1 ? "listing" : "listings" }}
+            </dd>
+          </div>
+        </dl>
 
         <div
           v-if="fullTrend"
@@ -1008,6 +1061,13 @@ const rangeOptions = computed(() =>
     };
   }),
 );
+
+const RANGE_WORDS: Record<HistoryDays, string> = {
+  30: "month",
+  90: "3 months",
+  365: "year",
+};
+const selectedRangeLabel = computed(() => RANGE_WORDS[selectedRange.value]);
 
 const trend = computed<PriceTrend | null>(
   () =>
