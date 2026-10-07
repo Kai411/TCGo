@@ -1,6 +1,6 @@
 <template>
-  <!-- On body, so nothing on the page (transforms, stacking, the mobile tab
-       bar) can clip or cover the sheet. -->
+  <!-- On body: on a phone the conversation is itself a body-level layer
+       (z-55), and a sheet left inside the page opened underneath it. -->
   <Teleport to="body">
   <div class="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60" @click.self="$emit('close')">
     <div class="w-full sm:max-w-lg max-h-[85vh] max-h-[85dvh] pb-[env(safe-area-inset-bottom)] flex flex-col rounded-t-2xl sm:rounded-2xl bg-white dark:bg-[#1b1b21] shadow-xl">
