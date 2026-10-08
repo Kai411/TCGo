@@ -76,6 +76,21 @@ const compactPriceSize = computed(() =>
     : "text-[13px] min-[380px]:text-sm",
 );
 
+// Phone tiles have one line for the name, so "Manectric ex - 2006 (Jason
+// Klaczynski)" shows "Manectric ex" there and the rest moves to the
+// subtitle with the set.
+const nameParts = computed(() => {
+  const name = item.value?.cardName || "";
+  const i = name.indexOf(" - ");
+  const title = i > 0 ? name.slice(0, i) : name;
+  const variant = i > 0 ? name.slice(i + 3) : "";
+  const set = item.value?.cardSet || "";
+  return {
+    title,
+    subtitle: [variant, set].filter(Boolean).join(" · "),
+  };
+});
+
 const viewCount = computed(() => props.card?.viewCount ?? 0);
 
 // Auction-specific
@@ -217,22 +232,30 @@ const timerClasses = computed(() => {
       </div>
 
       <!-- Body -->
-      <!-- Phones fit three tiles a row: a smaller two-line name (reserved so
-           prices line up across a row), a compact "RM" price in one size, and
-           no seller, views or favourite button. From sm up it's the original
-           single-line layout. -->
-      <div class="px-2 sm:px-4 pt-1.5 sm:pt-2 pb-2 sm:pb-4 flex-1 flex flex-col">
+      <!-- Phones fit three tiles a row: one-line name, a muted variant/set
+           line, then a compact "RM" price, so every tile has the same three
+           rows. No seller, views or favourite button there. From sm up it's
+           the original layout. -->
+      <div class="px-2 sm:px-4 pt-2 pb-2.5 sm:pb-4 flex-1 flex flex-col">
         <h3
-          class="font-medium sm:font-semibold text-[13px] sm:text-[15px] leading-snug sm:leading-tight text-ink dark:text-white line-clamp-2 min-h-[2.75em] break-words sm:line-clamp-1 sm:min-h-0"
+          class="font-semibold text-[13px] sm:text-[15px] leading-tight text-ink dark:text-white truncate"
           :title="item?.cardName"
         >
-          {{ item?.cardName }}
+          <span class="sm:hidden">{{ nameParts.title }}</span>
+          <span class="hidden sm:inline">{{ item?.cardName }}</span>
         </h3>
+        <!-- Phones: the variant and set go on a quiet second line, always
+             present so every tile in a row has the same shape. -->
+        <p
+          class="sm:hidden mt-0.5 text-[11px] leading-tight text-ink-muted dark:text-zinc-400 truncate"
+        >
+          {{ nameParts.subtitle || "\u00a0" }}
+        </p>
 
-        <div class="mt-auto pt-1.5 sm:pt-3">
+        <div class="mt-auto pt-2 sm:pt-3">
           <!-- Phones: one line, one size, so thousands still fit. -->
           <p
-            class="sm:hidden tabular-price font-bold leading-tight text-ink dark:text-white truncate"
+            class="sm:hidden tabular-price font-extrabold leading-none text-ink dark:text-white truncate"
             :class="compactPriceSize"
           >
             {{ compactPrice }}
