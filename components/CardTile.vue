@@ -123,15 +123,15 @@ const timerClasses = computed(() => {
 <template>
   <NuxtLink
     :to="linkTo"
-    class="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokemon-red focus-visible:ring-offset-2 focus-visible:ring-offset-canvas dark:focus-visible:ring-offset-canvas-inverse"
+    class="group block rounded-[6px] sm:rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokemon-red focus-visible:ring-offset-2 focus-visible:ring-offset-canvas dark:focus-visible:ring-offset-canvas-inverse"
   >
     <article
-      class="surface rounded-2xl overflow-hidden group-hover:shadow-card-hover group-hover:-translate-y-0.5 transition duration-300 ease-premium h-full flex flex-col"
+      class="surface rounded-[6px] sm:rounded-2xl overflow-hidden group-hover:shadow-card-hover group-hover:-translate-y-0.5 transition duration-300 ease-premium h-full flex flex-col"
     >
       <!-- Image well -->
       <div class="p-1 sm:p-2.5 bg-white dark:bg-white/[0.04]">
         <div
-          class="relative aspect-[3.55/5] rounded-lg overflow-hidden bg-canvas-sunken dark:bg-white/[0.02]"
+          class="relative aspect-[3.55/5] rounded-[3px] sm:rounded-lg overflow-hidden bg-canvas-sunken dark:bg-white/[0.02]"
         >
           <img
             v-if="imageUrl"

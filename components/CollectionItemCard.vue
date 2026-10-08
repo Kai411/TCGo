@@ -1,6 +1,7 @@
 <template>
   <div
-    class="group relative surface rounded-xl overflow-hidden border border-black/[0.06] dark:border-white/[0.08] transition-shadow hover:shadow-card"
+    class="group relative surface overflow-hidden border border-black/[0.06] dark:border-white/[0.08] transition-shadow hover:shadow-card"
+    :class="dense ? 'rounded-[6px] sm:rounded-xl' : 'rounded-xl'"
   >
     <NuxtLink
       :to="`/collection/${card.productId}`"
