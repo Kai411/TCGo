@@ -29,12 +29,12 @@
       >
         <p
           class="text-ink dark:text-white"
-          :class="dense ? 'font-semibold text-[13px] sm:text-sm leading-tight truncate' : 'font-semibold text-sm truncate'"
+          :class="dense ? 'font-semibold text-[12px] sm:text-sm leading-tight truncate' : 'font-semibold text-sm truncate'"
           :title="card.name"
         >
           {{ card.name }}
         </p>
-        <p class="text-[11px] text-gray-500 dark:text-zinc-400 truncate" :class="dense ? 'mt-0.5 leading-tight' : ''">
+        <p class="text-gray-500 dark:text-zinc-400 truncate" :class="dense ? 'mt-0.5 leading-tight text-[8px] sm:text-[11px]' : 'text-[11px]'">
           <!-- Both languages are searched now, and the same card exists in
                each — two "Rayquaza ★" rows are otherwise indistinguishable.
                Only the Japanese one is marked: English is the common case and
@@ -50,7 +50,7 @@
           <!-- Dense phones: same one-line "RM" price as the listing tiles. -->
           <p
             v-if="card.price && dense"
-            class="sm:hidden min-w-0 truncate tabular-nums font-extrabold text-[13px] min-[380px]:text-sm leading-none text-ink dark:text-white"
+            class="sm:hidden min-w-0 truncate tabular-nums font-bold text-[10px] leading-none text-ink dark:text-white"
           >
             RM{{ card.price.market.toLocaleString("en-MY", { minimumFractionDigits: Number.isInteger(card.price.market) ? 0 : 2, maximumFractionDigits: 2 }) }}
           </p>

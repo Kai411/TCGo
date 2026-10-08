@@ -69,12 +69,6 @@ const compactPrice = computed(() =>
     (isAuction.value ? props.auction?.currentPrice : props.card?.price) || 0,
   ),
 );
-// Six-figure prices with cents step down a size rather than get cut off.
-const compactPriceSize = computed(() =>
-  compactPrice.value.length > 10
-    ? "text-xs"
-    : "text-[13px] min-[380px]:text-sm",
-);
 
 // Phone tiles have one line for the name, so "Manectric ex - 2006 (Jason
 // Klaczynski)" shows "Manectric ex" there and the rest moves to the
@@ -238,7 +232,7 @@ const timerClasses = computed(() => {
            the original layout. -->
       <div class="px-2 sm:px-4 pt-2 pb-2.5 sm:pb-4 flex-1 flex flex-col">
         <h3
-          class="font-semibold text-[13px] sm:text-[15px] leading-tight text-ink dark:text-white truncate"
+          class="font-semibold text-[12px] sm:text-[15px] leading-tight text-ink dark:text-white truncate"
           :title="item?.cardName"
         >
           <span class="sm:hidden">{{ nameParts.title }}</span>
@@ -247,16 +241,15 @@ const timerClasses = computed(() => {
         <!-- Phones: the variant and set go on a quiet second line, always
              present so every tile in a row has the same shape. -->
         <p
-          class="sm:hidden mt-0.5 text-[11px] leading-tight text-ink-muted dark:text-zinc-400 truncate"
+          class="sm:hidden mt-0.5 text-[8px] leading-tight text-ink-muted dark:text-zinc-400 truncate"
         >
           {{ nameParts.subtitle || "\u00a0" }}
         </p>
 
-        <div class="mt-auto pt-2 sm:pt-3">
+        <div class="mt-auto pt-1.5 sm:pt-3">
           <!-- Phones: one line, one size, so thousands still fit. -->
           <p
-            class="sm:hidden tabular-price font-extrabold leading-none text-ink dark:text-white truncate"
-            :class="compactPriceSize"
+            class="sm:hidden tabular-price font-bold text-[10px] leading-none text-ink dark:text-white truncate"
           >
             {{ compactPrice }}
           </p>
@@ -309,7 +302,7 @@ const timerClasses = computed(() => {
           >
             <span
               v-if="isAuction"
-              class="text-[11px] text-ink-muted dark:text-zinc-400"
+              class="text-[8px] sm:text-[11px] text-ink-muted dark:text-zinc-400"
             >
               {{ bidCount }} bid{{ bidCount === 1 ? "" : "s" }}
             </span>
