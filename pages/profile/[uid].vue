@@ -309,7 +309,7 @@
             :key="card.id"
             :class="{ 'opacity-40': card.sold }"
           >
-            <CardTile :card="card" />
+            <CardTile :card="card" hide-seller />
           </div>
         </div>
       </div>
@@ -330,7 +330,7 @@
             :key="auction.id"
             :class="{ 'opacity-40': auction.endsAt <= Date.now() }"
           >
-            <CardTile :auction="auction" />
+            <CardTile :auction="auction" hide-seller />
           </div>
         </div>
       </div>

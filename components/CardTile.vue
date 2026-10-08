@@ -7,6 +7,9 @@ import { isAvailable, isReserved } from "~/shared/card-availability";
 const props = defineProps<{
   card?: Card;
   auction?: Auction;
+  /** Phones show the set on the grey line instead of the seller; for grids
+   *  where every tile has the same seller (a profile's own listings). */
+  hideSeller?: boolean;
 }>();
 
 const item = computed(() => props.card || props.auction);
@@ -238,12 +241,16 @@ const timerClasses = computed(() => {
           <span class="sm:hidden">{{ nameParts.title }}</span>
           <span class="hidden sm:inline">{{ item?.cardName }}</span>
         </h3>
-        <!-- Phones: the variant and set go on a quiet second line, always
-             present so every tile in a row has the same shape. -->
+        <!-- Phones: a quiet second line with the seller (or, with
+             hideSeller, the variant and set), always present so every tile
+             in a row has the same shape. -->
         <p
           class="sm:hidden mt-0.5 text-[8px] leading-tight text-ink-muted dark:text-zinc-400 truncate"
         >
-          {{ nameParts.subtitle || "\u00a0" }}
+          {{
+            (!hideSeller && item?.seller ? `@${item.seller}` : nameParts.subtitle) ||
+            "\u00a0"
+          }}
         </p>
 
         <div class="mt-auto pt-1.5 sm:pt-3">
