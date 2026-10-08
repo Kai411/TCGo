@@ -275,6 +275,11 @@ export default defineNuxtConfig({
     vapidPrivateKey: "",
     // Who push services contact about abuse. Defaults to support@tcgo.shop.
     vapidSubject: "",
+    // eBay production keyset (App ID and Cert ID) for the eBay listings on
+    // the card price page: NUXT_EBAY_APP_ID and NUXT_EBAY_CERT_ID. Server
+    // only. Unset = no eBay section anywhere.
+    ebayAppId: "",
+    ebayCertId: "",
     public: {
       vapidPublicKey: "",
       // Lets the POS show the QR option only when the platform can actually

@@ -850,6 +850,13 @@
         </p>
       </section>
 
+      <!-- Below TCGo's own listings: eBay asking prices, a separate source. -->
+      <EbayListings
+        :name="card.name"
+        :number="card.number"
+        :language="card.language"
+      />
+
       <section v-if="relatedLoading || relatedCards.length" class="mt-10 pb-4">
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
