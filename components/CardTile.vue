@@ -57,6 +57,25 @@ const formatPrice = (price: number): string => {
   });
 };
 
+// Phone tiles: "RM1,250" for whole amounts so big prices fit one line.
+const formatPriceCompact = (price: number): string =>
+  "RM" +
+  price.toLocaleString("en-MY", {
+    minimumFractionDigits: Number.isInteger(price) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+const compactPrice = computed(() =>
+  formatPriceCompact(
+    (isAuction.value ? props.auction?.currentPrice : props.card?.price) || 0,
+  ),
+);
+// Six-figure prices with cents step down a size rather than get cut off.
+const compactPriceSize = computed(() =>
+  compactPrice.value.length > 10
+    ? "text-xs"
+    : "text-[13px] min-[380px]:text-sm",
+);
+
 const viewCount = computed(() => props.card?.viewCount ?? 0);
 
 // Auction-specific
@@ -169,20 +188,6 @@ const timerClasses = computed(() => {
             </span>
           </div>
 
-          <!-- Bottom-right, phones only: favourite button sits on the image
-               so the narrow tile doesn't spend a whole row on it. -->
-          <div
-            v-if="!isAuction"
-            class="sm:hidden absolute right-1 bottom-1 rounded-full bg-white/90 text-ink shadow-sm dark:bg-zinc-900/85 dark:text-zinc-200"
-          >
-            <FavouriteButton
-              :item-id="item?.id || ''"
-              item-type="card"
-              :count="card?.favouriteCount || 0"
-              size="sm"
-            />
-          </div>
-
           <!-- Bottom-left: language badge (cards) or photo count (auctions) -->
           <span
             v-if="!isAuction && item?.language && item.language !== 'EN'"
@@ -212,28 +217,35 @@ const timerClasses = computed(() => {
       </div>
 
       <!-- Body -->
-      <!-- Phones fit three tiles a row, so the name gets two lines there
-           (reserved so prices line up across a row), the seller and view
-           count drop out and the heart moves onto the image; from sm up it's
-           the single-line layout. -->
+      <!-- Phones fit three tiles a row: a smaller two-line name (reserved so
+           prices line up across a row), a compact "RM" price in one size, and
+           no seller, views or favourite button. From sm up it's the original
+           single-line layout. -->
       <div class="px-2 sm:px-4 pt-1.5 sm:pt-2 pb-2 sm:pb-4 flex-1 flex flex-col">
         <h3
-          class="font-semibold text-sm sm:text-[15px] leading-tight text-ink dark:text-white line-clamp-2 min-h-[2.5em] break-words sm:line-clamp-1 sm:min-h-0"
+          class="font-medium sm:font-semibold text-[13px] sm:text-[15px] leading-snug sm:leading-tight text-ink dark:text-white line-clamp-2 min-h-[2.75em] break-words sm:line-clamp-1 sm:min-h-0"
           :title="item?.cardName"
         >
           {{ item?.cardName }}
         </h3>
 
-        <div class="mt-auto pt-2 sm:pt-3">
-          <div class="flex items-end justify-between">
+        <div class="mt-auto pt-1.5 sm:pt-3">
+          <!-- Phones: one line, one size, so thousands still fit. -->
+          <p
+            class="sm:hidden tabular-price font-bold leading-tight text-ink dark:text-white truncate"
+            :class="compactPriceSize"
+          >
+            {{ compactPrice }}
+          </p>
+          <div class="hidden sm:flex items-end justify-between">
             <div class="min-w-0">
               <!-- Auction: current bid with hammer icon -->
               <template v-if="isAuction">
                 <p
-                  class="tabular-price font-extrabold text-[15px] sm:text-[17px] leading-none text-ink dark:text-white inline-flex flex-wrap items-center gap-x-1 gap-y-0.5"
+                  class="tabular-price font-extrabold text-[17px] leading-none text-ink dark:text-white inline-flex items-center gap-1"
                 >
                   <svg
-                    class="hidden sm:block w-3.5 h-3.5 text-ink-soft dark:text-zinc-400 shrink-0"
+                    class="w-3.5 h-3.5 text-ink-soft dark:text-zinc-400 shrink-0"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -256,7 +268,7 @@ const timerClasses = computed(() => {
               <!-- Card: fixed price -->
               <template v-else>
                 <p
-                  class="tabular-price font-extrabold text-[15px] sm:text-[17px] leading-none text-ink dark:text-white flex flex-wrap items-baseline gap-x-1 gap-y-0.5"
+                  class="tabular-price font-extrabold text-[17px] leading-none text-ink dark:text-white"
                 >
                   {{ formatPrice(card?.price || 0) }}
                   <span
@@ -269,7 +281,7 @@ const timerClasses = computed(() => {
             </div>
           </div>
           <div
-            class="mt-1 sm:mt-1.5 justify-between items-center gap-1"
+            class="mt-0.5 sm:mt-1.5 justify-between items-center gap-1"
             :class="isAuction ? 'flex' : 'hidden sm:flex'"
           >
             <span

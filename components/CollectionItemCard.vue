@@ -28,8 +28,8 @@
         ]"
       >
         <p
-          class="font-semibold text-sm text-ink dark:text-white"
-          :class="dense ? 'line-clamp-2 min-h-[2.5em] leading-tight break-words sm:line-clamp-1 sm:min-h-0' : 'truncate'"
+          class="text-ink dark:text-white"
+          :class="dense ? 'font-medium sm:font-semibold text-[13px] sm:text-sm line-clamp-2 min-h-[2.75em] leading-snug break-words sm:line-clamp-1 sm:min-h-0' : 'font-semibold text-sm truncate'"
           :title="card.name"
         >
           {{ card.name }}
@@ -47,10 +47,17 @@
           >{{ card.setName }}<span v-if="card.number"> · {{ card.number }}</span>
         </p>
         <div class="flex items-center justify-between mt-2">
+          <!-- Dense phones: same one-line "RM" price as the listing tiles. -->
+          <p
+            v-if="card.price && dense"
+            class="sm:hidden min-w-0 truncate tabular-nums font-bold text-[13px] min-[380px]:text-sm leading-tight text-ink dark:text-white"
+          >
+            RM{{ card.price.market.toLocaleString("en-MY", { minimumFractionDigits: Number.isInteger(card.price.market) ? 0 : 2, maximumFractionDigits: 2 }) }}
+          </p>
           <p
             v-if="card.price"
             class="text-md font-[900] text-ink dark:text-white tabular-nums"
-            :class="dense ? 'flex flex-wrap items-baseline gap-x-1 leading-tight' : ''"
+            :class="dense ? 'hidden sm:block' : ''"
           >
             {{ card.price.market.toFixed(2) }}
             <span class="text-xs font-semibold">MYR</span>
@@ -171,7 +178,7 @@ withDefaults(
     showQuantity?: boolean;
     /**
      * Phone-friendly layout for a three-column grid (profile Collection tab):
-     * tighter padding, two-line name, MYR wraps under long prices.
+     * tighter padding, two-line name, one-line "RM" price.
      */
     dense?: boolean;
   }>(),
