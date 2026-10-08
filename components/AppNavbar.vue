@@ -199,8 +199,9 @@
     <!-- Mobile search row. A field rather than an icon: it reads as "search
          here" at a glance. Tapping it opens the same search popup, which owns
          results and history. Inside the nav so --app-nav-h grows with it.
-         Not on the Account pages: they are settings screens, not places to shop. -->
-    <div v-if="!route.path.startsWith('/account')" class="lg:hidden container mx-auto px-4 pb-3">
+         Not on the Account pages (settings screens, not places to shop) or
+         Collection, which has its own search bar right beneath the nav. -->
+    <div v-if="showMobileSearch" class="lg:hidden container mx-auto px-4 pb-3">
       <button
         type="button"
         @click="openSearch"
@@ -568,6 +569,9 @@ onBeforeUnmount(() => {
 
 // Close transient menus on route change.
 const route = useRoute();
+const showMobileSearch = computed(
+  () => !["/account", "/collection"].some((p) => route.path === p || route.path.startsWith(p + "/")),
+);
 watch(
   () => route.fullPath,
   () => {
