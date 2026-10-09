@@ -48,6 +48,9 @@ export type EbayListingsResponse =
       fetchedAt: number;
       total: number;
       items: EbayListing[];
+      // Only when ok is false: which eBay call failed and eBay's own reason,
+      // so the problem can be read from the endpoint without the logs.
+      error?: { stage: "token" | "search"; status: number | null; reason: string };
     };
 
 // eBay caps `q` at 100 characters.

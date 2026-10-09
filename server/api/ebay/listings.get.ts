@@ -77,7 +77,13 @@ export default defineEventHandler(async (event): Promise<EbayListingsResponse> =
     const summary = ebayErrorSummary(err);
     if (summary.status === 401) forgetEbayToken();
     console.error("[ebay] listings search failed:", summary);
-    const body: EbayListingsResponse = { ...base, ok: false, total: 0, items: [] };
+    const body: EbayListingsResponse = {
+      ...base,
+      ok: false,
+      total: 0,
+      items: [],
+      error: summary,
+    };
     remember(query, FAIL_TTL_MS, body);
     return body;
   }

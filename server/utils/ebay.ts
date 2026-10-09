@@ -38,7 +38,9 @@ const appToken = async (appId: string, certId: string) => {
       }).toString(),
       timeout: 6000,
     },
-  );
+  ).catch((err) => {
+    throw new EbayCallError("token", err);
+  });
   tokenCache = {
     token: res.access_token,
     expiresAt: Date.now() + Math.max(60, (res.expires_in ?? 7200) - 300) * 1000,
@@ -67,19 +69,43 @@ export const searchEbayCards = async (query: string, limit: number) => {
       },
       timeout: 6000,
     },
-  );
+  ).catch((err) => {
+    throw new EbayCallError("search", err);
+  });
   return { total: res.total ?? 0, items: res.itemSummaries ?? [] };
 };
 
-// What to log when eBay refuses: status and eBay's error ids, never the
-// request (its Authorization header holds the token).
+// What to log and report when eBay refuses: status and eBay's own error
+// codes and messages, never the request (its headers hold the keys/token).
+export class EbayCallError extends Error {
+  constructor(
+    readonly stage: "token" | "search",
+    readonly inner: any,
+  ) {
+    super(`eBay ${stage} call failed`);
+  }
+}
+
 export const ebayErrorSummary = (err: any) => {
-  const errors = err?.data?.errors ?? err?.data?.error;
+  const stage: "token" | "search" =
+    err instanceof EbayCallError ? err.stage : "search";
+  const inner = err instanceof EbayCallError ? err.inner : err;
+  const data = inner?.data;
+  let reason: string;
+  if (Array.isArray(data?.errors)) {
+    reason = data.errors
+      .map((e: any) => `${e?.errorId ?? ""} ${e?.message ?? ""}`.trim())
+      .join("; ");
+  } else if (typeof data?.error === "string") {
+    // OAuth errors: { error: "invalid_client", error_description: "..." }
+    reason = [data.error, data.error_description].filter(Boolean).join(": ");
+  } else {
+    reason = String(inner?.statusMessage ?? inner?.message ?? "unknown").slice(0, 200);
+  }
   return {
-    status: err?.statusCode ?? err?.status ?? null,
-    errors: Array.isArray(errors)
-      ? errors.map((e: any) => `${e?.errorId ?? ""} ${e?.message ?? ""}`.trim())
-      : (typeof errors === "string" ? errors : err?.message ?? "unknown"),
+    stage,
+    status: inner?.statusCode ?? inner?.status ?? null,
+    reason: reason.slice(0, 300),
   };
 };
 
