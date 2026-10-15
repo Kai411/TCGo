@@ -12,6 +12,7 @@ import {
   ONBOARDING_STEPS,
   SELLER_STEPS,
   hasBankDetails,
+  hasCurrentConsent,
   hasDeliveryAddress,
   hasHandover,
   hasIdentity,
@@ -24,6 +25,7 @@ import {
 } from "~/shared/onboarding";
 import { payoutDetailsComplete } from "~/shared/payout-details";
 import { kycStatusFor, KYC_REQUIRED } from "~/shared/didit";
+import { LEGAL_VERSION } from "~/shared/legal";
 
 const address = {
   deliveryName: "Kai",
@@ -33,6 +35,9 @@ const address = {
   deliveryCity: "Puchong",
   deliveryState: "sgr",
 };
+
+// A member who has given PDPA consent to the current policies.
+const consented = { consentVersion: LEGAL_VERSION };
 
 describe("identity", () => {
   it("accepts the value Didit's Approved actually maps to", () => {
@@ -82,9 +87,37 @@ describe("delivery address", () => {
   });
 });
 
-describe("buyer onboarding state", () => {
-  it("is complete on email plus an address", () => {
+describe("PDPA consent", () => {
+  it("accepts consent to the current policies", () => {
+    assert.equal(hasCurrentConsent(consented), true);
+  });
+
+  it("asks again when the policies change", () => {
+    assert.equal(hasCurrentConsent({ consentVersion: "2000-01-01" }), false);
+  });
+
+  it("treats a member who never consented as not consented", () => {
+    assert.equal(hasCurrentConsent({}), false);
+    assert.equal(hasCurrentConsent(null), false);
+  });
+
+  it("is asked before anything else", () => {
+    assert.equal(ONBOARDING_STEPS[0].id, "consent");
+    assert.equal(onboardingState({}, false).current, "consent");
+  });
+
+  it("stops a finished account until it consents", () => {
+    // Members who joined before the consent step have email and address
+    // done; they must still be asked.
     const s = onboardingState(address, true);
+    assert.deepEqual(s.remaining, ["consent"]);
+    assert.equal(s.complete, false);
+  });
+});
+
+describe("buyer onboarding state", () => {
+  it("is complete on consent, email and an address", () => {
+    const s = onboardingState({ ...consented, ...address }, true);
     assert.equal(s.complete, true);
     assert.equal(s.current, null);
     assert.equal(s.percent, 100);
@@ -93,18 +126,18 @@ describe("buyer onboarding state", () => {
   it("never asks a buyer for identity", () => {
     // Spending money is the low-risk direction; the ID check belongs to
     // selling, where money flows the other way.
-    const s = onboardingState({ ...address, kycStatus: "none" }, true);
+    const s = onboardingState({ ...consented, ...address, kycStatus: "none" }, true);
     assert.equal(s.complete, true);
     assert.ok(!s.remaining.includes("identity" as never));
   });
 
-  it("asks for the email first", () => {
-    const s = onboardingState(address, false);
+  it("asks for the email once consent is given", () => {
+    const s = onboardingState({ ...consented, ...address }, false);
     assert.equal(s.current, "email");
   });
 
   it("asks for the address once the email is done", () => {
-    const s = onboardingState({}, true);
+    const s = onboardingState(consented, true);
     assert.deepEqual(s.remaining, ["address"]);
   });
 
@@ -116,19 +149,23 @@ describe("buyer onboarding state", () => {
   });
 
   it("lets someone browse before giving an address", () => {
-    const s = onboardingState({}, true);
+    const s = onboardingState(consented, true);
     assert.equal(s.complete, false);
     assert.equal(s.blocking, null);
   });
 
   it("keeps an unconfirmed email out of the marketplace", () => {
-    assert.equal(onboardingState({}, false).blocking, "email");
-    assert.equal(onboardingState(address, false).blocking, "email");
+    assert.equal(onboardingState(consented, false).blocking, "email");
+    assert.equal(onboardingState({ ...consented, ...address }, false).blocking, "email");
+  });
+
+  it("keeps the personal data consent ahead of everything", () => {
+    assert.equal(onboardingState({}, true).blocking, "consent");
   });
 
   it("never trusts a profile flag for email — only the token", () => {
     // Passing emailVerified: false must win even if the document claims it.
-    const s = onboardingState({ ...address, emailVerified: true } as never, false);
+    const s = onboardingState({ ...consented, ...address, emailVerified: true } as never, false);
     assert.ok(s.remaining.includes("email"));
   });
 });
@@ -192,7 +229,7 @@ describe("seller onboarding", () => {
   it("requires identity to sell, unlike buying", () => {
     // One profile carrying both sides' details — a delivery address for
     // buying, pickup and bank for selling — and no verified identity.
-    const noId = { ...address, ...seller, kycStatus: "none" };
+    const noId = { ...consented, ...address, ...seller, kycStatus: "none" };
     assert.equal(onboardingState(noId, true).complete, true, "should be able to buy");
     assert.equal(sellerOnboardingState(noId).complete, false, "must not be able to sell");
   });
