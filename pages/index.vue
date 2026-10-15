@@ -12,6 +12,31 @@
     <div class="flex-1 min-w-0">
       <PremiumBanner />
 
+      <!-- First visit, signed out: one line on what this is and what protects
+           the money, since nothing else on the grid says so. Gone once
+           dismissed or signed in. Rendered after mount so a signed-in member
+           never sees it flash in from the server render. -->
+      <div
+        v-if="showIntro"
+        class="mb-3 flex items-start gap-3 rounded-2xl bg-pokemon-red/[0.06] dark:bg-pokemon-red/[0.12] px-4 py-3"
+      >
+        <p class="min-w-0 flex-1 text-[13px] leading-relaxed text-ink dark:text-zinc-200">
+          Cards from Malaysian collectors. Your payment is held until your card
+          arrives.
+          <NuxtLink to="/refund-policy" class="font-semibold text-pokemon-red hover:underline">How Buyer Protection works</NuxtLink>
+        </p>
+        <button
+          type="button"
+          @click="dismissIntro"
+          class="-m-2 shrink-0 p-2 text-ink-soft hover:text-ink dark:hover:text-white"
+          aria-label="Dismiss"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
       <!-- Mobile filter trigger (hidden on desktop where sidebar is shown) -->
       <div v-if="!loading" class="lg:hidden mb-2">
         <ListingFilters :filters="filters" :tcg-counts="tcgCounts" />
@@ -149,7 +174,30 @@ useHead({
   ],
 });
 
-const { user } = useAuth();
+const { user, authLoading } = useAuth();
+
+const INTRO_KEY = "tcgo:intro-dismissed";
+const mounted = ref(false);
+const introDismissed = ref(false);
+onMounted(() => {
+  try {
+    introDismissed.value = localStorage.getItem(INTRO_KEY) === "1";
+  } catch {
+    // Storage blocked: show it; dismissing still hides it for this visit.
+  }
+  mounted.value = true;
+});
+const showIntro = computed(
+  () => mounted.value && !authLoading.value && !user.value && !introDismissed.value,
+);
+const dismissIntro = () => {
+  introDismissed.value = true;
+  try {
+    localStorage.setItem(INTRO_KEY, "1");
+  } catch {
+    // Nothing to do: it stays hidden until the page is reloaded.
+  }
+};
 const { cards, loading } = useCards();
 const filters = useListingFilters();
 

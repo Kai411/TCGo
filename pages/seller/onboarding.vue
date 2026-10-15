@@ -55,13 +55,9 @@
       <div class="panel surface rounded-2xl p-6">
         <!-- ── Identity ─────────────────────────────────────────────── -->
         <template v-if="state.current === 'identity'">
-          <h2 class="text-lg font-bold text-ink dark:text-white">Verify your identity</h2>
-          <p class="mt-1.5 text-[13px] leading-relaxed text-ink-muted dark:text-zinc-400">
-            Your MyKad and a selfie — about a minute. Buyers see a Verified
-            badge on your listings, and it's what lets money move to your
-            account.
-          </p>
-          <div class="mt-5"><KycVerifyCard /></div>
+          <!-- The checklist above and the card already say what this is and
+               why; a third explanation here pushed the button off screen. -->
+          <KycVerifyCard />
         </template>
 
         <!-- ── Contact + pickup ─────────────────────────────────────── -->
@@ -70,11 +66,14 @@
           <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
             Where couriers collect your parcels. Buyers never see this address.
           </p>
+          <p v-if="seededFromDelivery" class="mt-3 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] px-3 py-2 text-[12px] text-ink-muted dark:text-zinc-300">
+            Filled in from your delivery address. Change it if your parcels go out from somewhere else.
+          </p>
 
           <div class="mt-5 space-y-3">
             <label class="block">
               <span class="lbl">Mobile number</span>
-              <input v-model="form.phone" inputmode="tel" autocomplete="tel" placeholder="e.g. 0123456789" class="field" />
+              <input v-model="form.phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="e.g. 0123456789" class="field" />
               <span class="hint">For delivery updates. Not shown publicly.</span>
             </label>
             <label class="block">
@@ -88,16 +87,16 @@
             <div class="grid grid-cols-3 gap-3">
               <label class="block">
                 <span class="lbl">Postcode</span>
-                <input v-model="form.pickupPostcode" inputmode="numeric" maxlength="5" class="field" />
+                <input v-model="form.pickupPostcode" inputmode="numeric" maxlength="5" autocomplete="postal-code" class="field" />
               </label>
               <label class="col-span-2 block">
                 <span class="lbl">City</span>
-                <input v-model="form.pickupCity" class="field" />
+                <input v-model="form.pickupCity" autocomplete="address-level2" class="field" />
               </label>
             </div>
             <label class="block">
               <span class="lbl">State</span>
-              <select v-model="form.pickupState" class="field">
+              <select v-model="form.pickupState" autocomplete="address-level1" class="field">
                 <option value="" disabled>Choose a state</option>
                 <option v-for="s in MY_STATES" :key="s.code" :value="s.code">{{ s.name }}</option>
               </select>
@@ -202,7 +201,7 @@
             <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
               List your first card whenever you're ready.
             </p>
-            <button @click="finish" class="btn-primary mt-5">Go to the dashboard</button>
+            <button @click="finish" class="btn-primary mt-5">{{ finishLabel }}</button>
           </div>
         </template>
       </div>
@@ -223,7 +222,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
-import { MY_STATES } from "~/shared/my-states";
+import { MY_STATES, stateForPostcode } from "~/shared/my-states";
 import {
   SELLER_STEPS,
   sellerOnboardingState,
@@ -267,6 +266,8 @@ const bankOptions = computed(() =>
   banksFor(!!config.public.billplzSandbox || MY_BANKS.length === 0),
 );
 
+const seededFromDelivery = ref(false);
+
 // Seeded from the profile so a half-finished setup comes back filled in —
 // which, with the step derived from what's missing, is the whole of "resume".
 const form = reactive({
@@ -293,12 +294,32 @@ watch(
       }
     }
     if (!form.phone && p.whatsappNumber) form.phone = p.whatsappNumber;
+    // Most sellers ship from where they live, and they typed that address
+    // when they joined. Offer it rather than an empty form.
+    if (!form.phone && p.deliveryPhone) form.phone = p.deliveryPhone;
+    if (!form.pickupAddress1 && p.deliveryAddress1) {
+      form.pickupAddress1 = p.deliveryAddress1;
+      form.pickupAddress2 = p.deliveryAddress2 || "";
+      form.pickupPostcode = p.deliveryPostcode || "";
+      form.pickupCity = p.deliveryCity || "";
+      form.pickupState = p.deliveryState || "";
+      seededFromDelivery.value = true;
+    }
     if (!form.bankAccountHolder && p.kycVerifiedName) {
       // The name Didit read off their document is the one the bank will have.
       form.bankAccountHolder = p.kycVerifiedName;
     }
   },
   { immediate: true },
+);
+
+// A full postcode fills an empty State; a chosen one is never overwritten.
+watch(
+  () => form.pickupPostcode,
+  (pc) => {
+    const code = stateForPostcode(pc);
+    if (code && !form.pickupState) form.pickupState = code;
+  },
 );
 
 const accountCheck = computed(() =>
@@ -384,6 +405,13 @@ const saveHandover = () =>
   });
 
 const finish = () => navigateTo((route.query.next as string) || "/seller");
+// Named by where it goes: setup started from "Sell a card" ends at the form.
+const finishLabel = computed(() => {
+  const next = (route.query.next as string) || "";
+  if (next.startsWith("/seller/listings/new")) return "List your first card";
+  if (next.startsWith("/seller/auctions/new")) return "Start your first auction";
+  return next ? "Continue" : "Go to the dashboard";
+});
 
 // Same rule as buyer onboarding: celebrate finishing, never having finished.
 const sawIncomplete = ref(false);

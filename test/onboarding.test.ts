@@ -115,6 +115,17 @@ describe("buyer onboarding state", () => {
     assert.equal(s.complete, false);
   });
 
+  it("lets someone browse before giving an address", () => {
+    const s = onboardingState({}, true);
+    assert.equal(s.complete, false);
+    assert.equal(s.blocking, null);
+  });
+
+  it("keeps an unconfirmed email out of the marketplace", () => {
+    assert.equal(onboardingState({}, false).blocking, "email");
+    assert.equal(onboardingState(address, false).blocking, "email");
+  });
+
   it("never trusts a profile flag for email — only the token", () => {
     // Passing emailVerified: false must win even if the document claims it.
     const s = onboardingState({ ...address, emailVerified: true } as never, false);

@@ -1,4 +1,4 @@
-// Nobody uses the marketplace with setup half-finished.
+// Nobody uses the marketplace with an unconfirmed email.
 //
 // This replaces the beta programme's banner, which only nagged: it could be
 // dismissed, and the account it was nagging about could buy and sell anyway.
@@ -8,6 +8,10 @@
 // It never blocks a signed-out visitor. Browsing is open — see
 // useSignInGate() — and a gate that demanded an account to look at cards
 // would be a worse product for no safety gain.
+//
+// It does not ask for the delivery address either. That only matters once
+// someone buys, so checkout and the first bid ask for it (see NEEDED_TO_BUY
+// in shared/onboarding.ts).
 //
 // It also never runs before auth and profile have settled. Redirecting on a
 // half-loaded profile would bounce a fully set-up user to /onboarding on
@@ -42,7 +46,9 @@ export default defineNuxtRouteMiddleware((to) => {
   }
 
   if (isOnboardingExempt(to.path)) return;
-  if (state.complete) return;
+  // Only steps that guard the whole marketplace send people here. The
+  // address is asked for at checkout and the first bid instead.
+  if (!state.blocking) return;
 
   return navigateTo({
     path: "/onboarding",

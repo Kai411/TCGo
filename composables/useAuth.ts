@@ -12,6 +12,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { computed, ref } from "vue";
+import { SIGNED_IN_BEFORE_KEY } from "~/composables/useSignInGate";
 
 const user = ref<User | null>(null);
 const authLoading = ref(true);
@@ -57,6 +58,13 @@ export const useAuth = () => {
     onAuthStateChanged(auth, (u) => {
       user.value = u;
       authLoading.value = false;
+      if (u) {
+        try {
+          localStorage.setItem(SIGNED_IN_BEFORE_KEY, "1");
+        } catch {
+          // Storage blocked: the login page just opens on sign-up next time.
+        }
+      }
     });
   }
 

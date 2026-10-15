@@ -80,11 +80,24 @@ export const hasDeliveryAddress = (p: OnboardingView | null | undefined): boolea
 export const hasIdentity = (p: OnboardingView | null | undefined): boolean =>
   isKycVerified(p?.kycStatus as KycStatus | undefined);
 
+/**
+ * Steps that only matter once someone buys, so they never block browsing.
+ *
+ * The delivery address used to gate every page, which made signing up lock
+ * the app tighter than staying signed out: a Google sign-up landed on the
+ * card they came for, then their next tap anywhere was swapped for an
+ * address form. It is asked for where it is needed instead — checkout and
+ * the first bid send people to /onboarding with `next` set.
+ */
+const NEEDED_TO_BUY: readonly OnboardingStepId[] = ["address"];
+
 export interface OnboardingState {
   /** Steps still outstanding, in the order they should be done. */
   remaining: OnboardingStepId[];
   /** The one to show now. Null when there's nothing left. */
   current: OnboardingStepId | null;
+  /** The first outstanding step that keeps someone out of the marketplace. */
+  blocking: OnboardingStepId | null;
   complete: boolean;
   /** 0–100, for a progress bar. */
   percent: number;
@@ -107,6 +120,7 @@ export const onboardingState = (
   return {
     remaining,
     current: remaining[0] ?? null,
+    blocking: remaining.find((id) => !NEEDED_TO_BUY.includes(id)) ?? null,
     complete: remaining.length === 0,
     percent: Math.round((finished / ONBOARDING_STEPS.length) * 100),
   };

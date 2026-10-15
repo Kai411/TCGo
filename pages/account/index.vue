@@ -83,13 +83,22 @@
       <p class="text-sm text-ink-muted dark:text-zinc-400 mt-1">
         Sign in to see your orders, messages and selling.
       </p>
-      <button
-        type="button"
-        @click="goToLogin"
-        class="press mt-4 min-h-[44px] px-5 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink"
-      >
-        Sign in
-      </button>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          @click="goToLogin('register')"
+          class="press min-h-[44px] px-5 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink"
+        >
+          Create account
+        </button>
+        <button
+          type="button"
+          @click="goToLogin('signin')"
+          class="press min-h-[44px] px-5 rounded-full text-sm font-semibold border border-black/[0.12] dark:border-white/[0.16] text-ink dark:text-white"
+        >
+          Sign in
+        </button>
+      </div>
     </div>
 
     <template v-if="user">
