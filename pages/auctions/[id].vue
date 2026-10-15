@@ -467,7 +467,7 @@
           <ul class="mt-3 space-y-2.5 text-[14px] leading-relaxed text-ink-muted dark:text-zinc-300">
             <li>A bid is a promise to buy at that price if you win.</li>
             <li>If you win, you have {{ AUCTION_PAYMENT_WINDOW_HOURS }} hours to pay. Not paying cancels the win and can get your bidding restricted.</li>
-            <li>Shipping to your delivery address is added when you pay.</li>
+            <li>The seller's shipping fee is added to the winning price when you pay.</li>
           </ul>
           <button
             type="button"

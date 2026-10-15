@@ -285,7 +285,9 @@ export const useAuctionDetail = (auctionId: string) => {
 
     const userSnap = await getDoc(doc(firestore!, "users", bidderUid));
     const userData = userSnap.exists() ? userSnap.data() : null;
-    if (!userData?.phone && !userData?.whatsappNumber) {
+    // The delivery phone counts: it is the number new members give, and
+    // without it they were told to add a phone they had just typed in.
+    if (!userData?.phone && !userData?.whatsappNumber && !userData?.deliveryPhone) {
       throw new Error("Please add your contact number in your Profile before bidding.");
     }
     if ((userData?.trustScore ?? 100) < 60) {
@@ -324,7 +326,9 @@ export const useAuctionDetail = (auctionId: string) => {
 
     const userSnap = await getDoc(doc(firestore!, "users", bidderUid));
     const userData = userSnap.exists() ? userSnap.data() : null;
-    if (!userData?.phone && !userData?.whatsappNumber) {
+    // The delivery phone counts: it is the number new members give, and
+    // without it they were told to add a phone they had just typed in.
+    if (!userData?.phone && !userData?.whatsappNumber && !userData?.deliveryPhone) {
       throw new Error("Please add your contact number in your Profile before bidding.");
     }
     if ((userData?.trustScore ?? 100) < 60) {
