@@ -4,23 +4,177 @@ import {
   where,
   onSnapshot,
   doc,
+  setDoc,
+  updateDoc,
   getDoc,
+  getDocs,
+  writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
-import type {
-  CompiledOrder,
-  CompiledOrderItem,
-  CompiledOrderStatus,
-} from "~/utils/orders";
+import type { PayoutStatus } from "~/shared/payouts";
 
-// The order model and lifecycle live in utils/orders.ts so the server can use
-// them too. Re-exported here so existing imports keep working.
-export type {
-  CompiledOrder,
-  CompiledOrderItem,
-  CompiledOrderStatus,
-  CompiledPaymentMethod,
-} from "~/utils/orders";
+// pending  → order placed, awaiting the buyer's online payment
+// confirmed → legacy: seller confirmed a manual payment. No new order reaches
+//             this state — payment is FPX-only — but historical orders still
+//             carry it, so it stays readable throughout.
+// paid     → Billplz confirmed the payment (the webhook sets this)
+// shipped  → seller dispatched (tracking optional)
+// delivered → buyer confirmed receipt
+// cancelled → either party cancelled before shipment
+export type CompiledOrderStatus =
+  | "pending"
+  | "confirmed"
+  | "paid"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
+
+// "manual" is legacy-only, kept so old order documents still typecheck.
+export type CompiledPaymentMethod = "manual" | "stripe" | "billplz";
+
+export interface CompiledOrderItem {
+  cardId: string;
+  cardName: string;
+  cardSet: string;
+  condition: string;
+  imageUrl: string;
+  price: number;
+  shippingWM: number;
+  shippingEM: number;
+}
+
+export interface CompiledOrder {
+  id: string;
+  buyerUid: string;
+  buyerName: string;
+  buyerEmail: string;
+  sellerUid: string;
+  sellerName: string;
+  items: CompiledOrderItem[];
+  // Sum of item prices.
+  subtotal: number;
+  // Max of items' shipping fees — one combined shipment.
+  shippingWM: number;
+  shippingEM: number;
+  // Derived from the delivery address at payment time.
+  region: "WM" | "EM";
+  shipping: number;
+  total: number;
+  // True once `shipping` came from a live courier quote rather than a
+  // seller-set figure. Cart sets it at checkout; create-bill fills it in for
+  // orders that never went through the cart (auction wins, legacy orders).
+  shippingQuoted?: boolean;
+  /** Ships inside another order's parcel; combined once this one is paid. */
+  joinsOrderId?: string | null;
+  /** Orders folded into this one, once they have been. */
+  joinedOrderIds?: string[];
+  shippingCourier?: string;
+  shippingQuotedRate?: number; // raw courier rate before the buffer
+  shippingServiceId?: string;
+  shippingServiceCode?: string;
+  shippingWeightKg?: number;
+  status: CompiledOrderStatus;
+  paymentMethod: CompiledPaymentMethod;
+  createdAt: number;
+  confirmedAt?: number;
+  paidAt?: number;
+  shippedAt?: number;
+  deliveredAt?: number;
+  cancelledAt?: number;
+  cancelReason?: string;
+  trackingNumber?: string;
+  shippingCarrier?: string;
+  // Reserved for future escrow integration.
+  stripeSessionId?: string;
+  stripePaymentIntentId?: string;
+  payoutStatus?: PayoutStatus;
+  payoutEligibleAt?: number;
+  payoutRequestedAt?: number; // seller requested payout of available funds
+  payoutPaidAt?: number; // Billplz confirmed the transfer
+  payoutId?: string; // ledger doc in `payouts` covering this order
+  payoutFailureReason?: string;
+
+  // ── Online payment (Billplz) ────────────────────────────────────────
+  billplzBillId?: string;
+  billplzPaidAt?: string | null;
+  billplzAmountSen?: number; // what we priced the bill at, for webhook checks
+  // Set when Billplz reported a collected amount that didn't match the bill.
+  // The order is deliberately left unsettled when this is present.
+  paymentAmountMismatch?: { expectedSen: number; paidSen: number; at: number };
+  platformFee?: number;
+  sellerPayout?: number;
+
+  // Buyer's delivery address — required before online payment; feeds the
+  // EasyParcel shipment as the receiver.
+  deliveryAddress?: {
+    name: string;
+    phone: string;
+    address1: string;
+    address2?: string;
+    postcode: string;
+    city: string;
+    state: string; // EasyParcel state code
+  };
+
+  // Invoice email bookkeeping. `invoiceEmailSandbox` records that the message
+  // was captured by Mailtrap's sandbox rather than delivered, so a "sent"
+  // timestamp can't be mistaken for the buyer having received it.
+  invoiceEmailedAt?: number;
+  invoiceEmailedTo?: string;
+  invoiceEmailSandbox?: boolean;
+
+  // Set when this order was created by winning an auction, rather than from
+  // the cart. The single item's cardId is the auction id.
+  auctionId?: string;
+  // Deadline for the winner to pay before the result is voided.
+  paymentDueAt?: number;
+
+  // Shipment bookkeeping. Only set once a platform-booked label exists —
+  // today sellers ship themselves and only trackingNumber/shippingCarrier
+  // are filled in via markShipped.
+  shipmentOrderNo?: string | null;
+  shipmentStatus?: string | null;
+  shipmentClaimedAt?: number | null;
+  // Set when the courier label was bought. This is NOT the same as shipped:
+  // the label exists but the parcel hasn't been handed over yet, so the order
+  // stays in "To ship" with a "Waybill ready" hint until the seller dispatches.
+  shipmentBookedAt?: number | null;
+  // Set when automatic booking failed; the seller can retry from the order.
+  shipmentError?: string | null;
+  // Kept for the audit trail after a shipment is cancelled.
+  cancelledShipmentOrderNo?: string;
+  awbLink?: string;
+  awbLinkFetchedAt?: number;
+
+  // Merge bookkeeping (seller consolidating multiple confirmed orders).
+  mergedFrom?: string[]; // on the surviving order: ids it absorbed
+  mergedAt?: number;
+  mergedInto?: string; // on an absorbed (cancelled) order: surviving id
+  // ── Refund, on a cancelled order ────────────────────────────────────
+  // "pending" means owed and not yet sent. Billplz has no refund API, so
+  // the money is moved by hand from their dashboard and only then does this
+  // become "refunded" — see server/api/orders/cancel.post.ts.
+  refundStatus?: "pending" | "processing" | "refunded" | "failed";
+  refundAmount?: number;
+  refundBillplzBillId?: string | null;
+  refundedAt?: number;
+  cancelledBy?: "buyer" | "seller" | "admin";
+}
+
+// A frozen courier quote, carried from the cart onto the order.
+export interface QuotedShipping {
+  shipping: number;
+  courier: string;
+  serviceId: string;
+  serviceCode: string;
+  quotedRate: number;
+  /**
+   * The already-paid, not-yet-labelled order this one ships with. Set by
+   * /api/shipping/quote when it finds one; shipping is zero in that case
+   * because the buyer already paid postage on that parcel.
+   */
+  joinsOrderId?: string | null;
+}
 
 export interface CompiledOrderInputItem {
   cardId: string;
@@ -36,14 +190,11 @@ export interface CompiledOrderInputItem {
 }
 
 const STATUS_LABEL: Record<CompiledOrderStatus, string> = {
-  pending: "Awaiting Seller",
-  confirmed: "Confirmed",
+  pending: "Awaiting Payment",
+  confirmed: "Confirmed", // legacy manual orders only
   paid: "Paid",
   shipped: "Shipped",
   delivered: "Delivered",
-  completed: "Completed",
-  disputed: "Disputed",
-  refunded: "Refunded",
   cancelled: "Cancelled",
 };
 
@@ -53,9 +204,6 @@ const STATUS_COLOR: Record<CompiledOrderStatus, string> = {
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
   shipped: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
   delivered: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
-  completed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
-  disputed: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
-  refunded: "bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-zinc-400",
   cancelled: "bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-zinc-400",
 };
 
@@ -70,6 +218,18 @@ const loadingBuyer = ref(false);
 const loadingSeller = ref(false);
 let buyerUnsub: Unsubscribe | null = null;
 let sellerUnsub: Unsubscribe | null = null;
+
+// Group input items by sellerUid → one CompiledOrder per seller.
+export const groupItemsBySeller = (
+  items: CompiledOrderInputItem[],
+): Record<string, CompiledOrderInputItem[]> => {
+  const groups: Record<string, CompiledOrderInputItem[]> = {};
+  for (const item of items) {
+    if (!groups[item.sellerUid]) groups[item.sellerUid] = [];
+    groups[item.sellerUid].push(item);
+  }
+  return groups;
+};
 
 export const useCompiledOrders = () => {
   const { firestore } = useFirebase();
@@ -123,67 +283,234 @@ export const useCompiledOrders = () => {
     );
   };
 
-  // All writes go through the server (server/utils/orders.ts), which reads
-  // prices from the listings, reserves cards atomically and checks that the
-  // caller is allowed to make each status change.
-  const { apiFetch } = useApi();
-
-  const setStatus = (orderId: string, to: CompiledOrderStatus, extra: Record<string, unknown> = {}) =>
-    apiFetch<{ order: CompiledOrder }>(`/api/orders/${orderId}/status`, {
-      method: "POST",
-      body: { to, ...extra },
-    }).then((r) => r.order);
-
-  // One order per seller, appended to the buyer's open (pending) order with
-  // that seller when there is one. Only card ids are sent; the server fills
-  // in prices and shipping from the listings.
+  // Create one CompiledOrder per seller — or, if the buyer already has an
+  // open (pending) order with that seller, append new items into it instead
+  // of creating a duplicate. This is the "compile across sessions" behaviour
+  // so a buyer can keep adding cards from the same seller until they're ready
+  // to pay for the lot in one go. Buyer name is captured from the auth profile
+  // so the seller can recognise them.
   const createCompiledOrders = async (
     items: CompiledOrderInputItem[],
     region: "WM" | "EM",
     buyerDisplayName: string,
+    // Live courier quote per seller, from /api/shipping/quote. When present it
+    // replaces the per-listing shipping figures entirely — written to both the
+    // WM and EM fields so the region recompute in create-bill is a no-op and
+    // the buyer is charged exactly what the cart showed.
+    quotedShippingBySeller: Record<string, QuotedShipping> = {},
   ): Promise<CompiledOrder[]> => {
+    if (!user.value || !firestore) throw new Error("Not authenticated");
     if (!items.length) return [];
-    const res = await apiFetch<{ orders: CompiledOrder[] }>("/api/orders", {
-      method: "POST",
-      body: { cardIds: items.map((i) => i.cardId), region, buyerName: buyerDisplayName },
-    });
-    return res.orders;
+
+    const groups = groupItemsBySeller(items);
+    const results: CompiledOrder[] = [];
+
+    for (const sellerUid of Object.keys(groups)) {
+      const group = groups[sellerUid];
+      const newItems: CompiledOrderItem[] = group.map((g) => ({
+        cardId: g.cardId,
+        cardName: g.cardName,
+        cardSet: g.cardSet,
+        condition: g.condition,
+        imageUrl: g.imageUrl,
+        price: g.price,
+        shippingWM: g.shippingWM,
+        shippingEM: g.shippingEM,
+      }));
+
+      // Look for an open (pending) order between this buyer and seller.
+      // Query by buyerUid only (single-field, no composite index needed) and
+      // filter the rest client-side.
+      const existingQ = query(
+        collection(firestore, "compiledOrders"),
+        where("buyerUid", "==", user.value.uid),
+      );
+      const existingSnap = await getDocs(existingQ);
+      const openOrder = existingSnap.docs
+        .map((d) => ({ ...d.data(), id: d.id }) as CompiledOrder)
+        .find((o) => o.sellerUid === sellerUid && o.status === "pending");
+
+      if (openOrder) {
+        // Merge: dedupe by cardId so adding the same card twice is a no-op.
+        const existingCardIds = new Set(openOrder.items.map((i) => i.cardId));
+        const toAdd = newItems.filter((i) => !existingCardIds.has(i.cardId));
+        if (toAdd.length === 0) {
+          results.push(openOrder);
+          continue;
+        }
+        const mergedItems = [...openOrder.items, ...toAdd];
+        const subtotal = mergedItems.reduce((s, i) => s + i.price, 0);
+        const quoted = quotedShippingBySeller[sellerUid];
+        const shippingWM =
+          quoted?.shipping ??
+          mergedItems.reduce((m, i) => Math.max(m, i.shippingWM ?? 0), 0);
+        const shippingEM =
+          quoted?.shipping ??
+          mergedItems.reduce((m, i) => Math.max(m, i.shippingEM ?? 0), 0);
+        // Preserve the region the original order was placed under. It's
+        // recomputed from the delivery address at payment time anyway.
+        const shipping = openOrder.region === "WM" ? shippingWM : shippingEM;
+        const patch = {
+          items: mergedItems,
+          subtotal,
+          shippingWM,
+          shippingEM,
+          shipping,
+          total: subtotal + shipping,
+          // Adding items changes the parcel, so a previously frozen quote no
+          // longer describes it — re-flag unless this merge carried a fresh one.
+          shippingQuoted: quoted != null,
+          ...(quoted
+            ? {
+                shippingCourier: quoted.courier,
+                shippingServiceId: quoted.serviceId,
+                shippingServiceCode: quoted.serviceCode,
+                shippingQuotedRate: quoted.quotedRate,
+              }
+            : {}),
+          // Carried here as well as on the create path below. Adding to an
+          // unpaid order re-quotes it, and if that quote is a join fee the
+          // link has to travel with it — otherwise this order pays RM 1.25
+          // and still gets a label of its own.
+          ...(quoted?.joinsOrderId !== undefined
+            ? { joinsOrderId: quoted.joinsOrderId ?? null }
+            : {}),
+        };
+        await updateDoc(doc(firestore, "compiledOrders", openOrder.id), patch);
+        results.push({ ...openOrder, ...patch });
+        continue;
+      }
+
+      // No open order — create a new one.
+      const ref = doc(collection(firestore, "compiledOrders"));
+      const subtotal = newItems.reduce((s, i) => s + i.price, 0);
+      const quoted = quotedShippingBySeller[sellerUid];
+      const shippingWM =
+        quoted?.shipping ?? newItems.reduce((m, i) => Math.max(m, i.shippingWM ?? 0), 0);
+      const shippingEM =
+        quoted?.shipping ?? newItems.reduce((m, i) => Math.max(m, i.shippingEM ?? 0), 0);
+      const shipping = region === "WM" ? shippingWM : shippingEM;
+      const order: CompiledOrder = {
+        id: ref.id,
+        buyerUid: user.value.uid,
+        buyerName: buyerDisplayName || user.value.displayName || "Buyer",
+        buyerEmail: user.value.email || "",
+        sellerUid,
+        sellerName: group[0].sellerName,
+        items: newItems,
+        subtotal,
+        shippingWM,
+        shippingEM,
+        region,
+        shipping,
+        total: subtotal + shipping,
+        shippingQuoted: quoted != null,
+        ...(quoted
+          ? {
+              shippingCourier: quoted.courier,
+              shippingServiceId: quoted.serviceId,
+              shippingServiceCode: quoted.serviceCode,
+              shippingQuotedRate: quoted.quotedRate,
+            }
+          : {}),
+        // Recorded so the payment webhook knows to fold this into the parcel
+        // the buyer already paid postage on. Without it the zero shipping on
+        // this order would just be a discount nobody accounted for.
+        ...(quoted?.joinsOrderId ? { joinsOrderId: quoted.joinsOrderId } : {}),
+        status: "pending",
+        paymentMethod: "billplz",
+        createdAt: Date.now(),
+      };
+      await setDoc(ref, order);
+      results.push(order);
+    }
+    return results;
   };
 
-  // Confirming reserves every card (sold: true) so it leaves the shop.
-  const markConfirmed = (orderId: string) => setStatus(orderId, "confirmed");
+  // NOTE: there is deliberately no markConfirmed here any more. Sellers used
+  // to confirm a manual payment by hand, which meant the platform
+  // took a seller's word for it that money had changed hands — and let them
+  // book a courier on platform credit for a sale it never saw. Payment is
+  // FPX-only now: the Billplz webhook is the only thing that can mark an order
+  // paid, and cards are locked there.
 
-  // Manual (WhatsApp) orders only: the seller received the money.
-  const markPaid = (orderId: string) => setStatus(orderId, "paid");
+  // Tell the other side (bell and push). The server reads the order itself
+  // and never announces the same status twice. Best-effort: the status change
+  // already happened, and a missed notice mustn't look like it failed.
+  const announceStatus = (orderId: string) => {
+    useAuthedFetch()
+      .authedFetch("/api/orders/status-notify", { method: "POST", body: { orderId } })
+      .catch(() => {});
+  };
 
-  const markShipped = (orderId: string, trackingNumber?: string, carrier?: string) =>
-    setStatus(orderId, "shipped", { trackingNumber, carrier });
+  const markShipped = async (
+    orderId: string,
+    trackingNumber?: string,
+    carrier?: string,
+  ) => {
+    if (!firestore) return;
+    const patch: Record<string, unknown> = {
+      status: "shipped",
+      shippedAt: Date.now(),
+    };
+    if (trackingNumber) patch.trackingNumber = trackingNumber;
+    if (carrier) patch.shippingCarrier = carrier;
+    await updateDoc(doc(firestore, "compiledOrders", orderId), patch);
+    announceStatus(orderId);
+  };
 
-  const markDelivered = (orderId: string) => setStatus(orderId, "delivered");
+  const markDelivered = async (orderId: string) => {
+    if (!firestore) return;
+    await updateDoc(doc(firestore, "compiledOrders", orderId), {
+      status: "delivered",
+      deliveredAt: Date.now(),
+    });
+    announceStatus(orderId);
+  };
 
-  // Cancelling a confirmed order puts its cards back on sale.
-  const cancelOrder = (orderId: string, reason?: string) =>
-    setStatus(orderId, "cancelled", { reason });
+  const cancelOrder = async (orderId: string, reason?: string) => {
+    if (!firestore) return;
+    const orderRef = doc(firestore, "compiledOrders", orderId);
+    const snap = await getDoc(orderRef);
+    if (!snap.exists()) return;
+    const order = snap.data() as CompiledOrder;
+    // Auction wins can't be cancelled — the rules refuse the write anyway,
+    // but say why rather than surface a permission error.
+    if ((order as any).auctionId) {
+      throw new Error("Auction wins can't be cancelled. Contact support if there's a problem with this order.");
+    }
 
-  // Buyer Protection orders: hold the seller's payout while support looks.
-  const raiseDispute = (orderId: string, reason: string) =>
-    setStatus(orderId, "disputed", { reason });
+    const batch = writeBatch(firestore);
+    batch.update(orderRef, {
+      status: "cancelled",
+      cancelledAt: Date.now(),
+      cancelReason: reason || "",
+    });
+    // If cards were marked sold during confirm/paid, list them again.
+    // Pending orders never marked cards; shipped/delivered are past the
+    // point where automatic rollback is safe.
+    if (order.status === "confirmed" || order.status === "paid") {
+      for (const item of order.items) {
+        batch.update(doc(firestore, "cards", item.cardId), {
+          sold: false,
+          soldAt: null,
+        });
+      }
+    }
+    await batch.commit();
+  };
 
-  const updateRegion = (orderId: string, region: "WM" | "EM") =>
-    apiFetch<{ order: CompiledOrder }>(`/api/orders/${orderId}/region`, {
-      method: "POST",
-      body: { region },
-    }).then((r) => r.order);
-
-  // Buyer Protection checkout for a confirmed order. Redirects to Billplz;
-  // the order turns "paid" when Billplz's signed callback reaches the server.
-  const startPayment = async (orderId: string) => {
-    const res = await apiFetch<{ url: string | null; alreadyPaid?: boolean }>(
-      `/api/orders/${orderId}/pay`,
-      { method: "POST" },
-    );
-    if (res.url) window.location.href = res.url;
-    return res;
+  const updateRegion = async (orderId: string, region: "WM" | "EM") => {
+    if (!firestore) return;
+    const snap = await getDoc(doc(firestore, "compiledOrders", orderId));
+    if (!snap.exists()) return;
+    const order = snap.data() as CompiledOrder;
+    const shipping = region === "WM" ? order.shippingWM : order.shippingEM;
+    await updateDoc(doc(firestore, "compiledOrders", orderId), {
+      region,
+      shipping,
+      total: order.subtotal + shipping,
+    });
   };
 
   const getCompiledOrder = async (
@@ -195,16 +522,20 @@ export const useCompiledOrders = () => {
     return { ...snap.data(), id: snap.id } as CompiledOrder;
   };
 
-  // Combine un-shipped orders between one buyer and seller into the oldest.
-  // All pending → stays pending; any confirmed → confirmed and every card is
-  // reserved. See mergeOrders in server/utils/orders.ts.
+  // Combine several un-shipped orders from the same buyer into one shipment.
+  // All the heavy lifting happens in /api/orders/merge: outstanding payment
+  // bills are voided, already-booked waybills are cancelled, the newer orders
+  // fold into the oldest, and ONE new waybill is booked for the combined
+  // parcel. Client-side this is just an authenticated call — merging touches
+  // Billplz and Delyva money, which never belongs in the browser.
   const mergeOrders = async (orderIds: string[]): Promise<string | null> => {
     if (orderIds.length < 2) return null;
-    const res = await apiFetch<{ id: string }>("/api/orders/merge", {
+    const { authedFetch } = useAuthedFetch();
+    const res = await authedFetch<{ mergedInto: string }>("/api/orders/merge", {
       method: "POST",
       body: { orderIds },
     });
-    return res.id;
+    return res.mergedInto ?? null;
   };
 
   return {
@@ -215,14 +546,10 @@ export const useCompiledOrders = () => {
     listenBuyerCompiledOrders,
     listenSellerCompiledOrders,
     createCompiledOrders,
-    markConfirmed,
-    markPaid,
     markShipped,
     markDelivered,
     cancelOrder,
-    raiseDispute,
     updateRegion,
-    startPayment,
     getCompiledOrder,
     mergeOrders,
   };

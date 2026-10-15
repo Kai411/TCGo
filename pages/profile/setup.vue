@@ -1,6 +1,6 @@
 <template>
   <div class="max-w-md mx-auto py-12">
-    <div class="bg-white dark:bg-white/[0.04] rounded-xl p-8 border border-gray-200 dark:border-white/[0.08] shadow-sm">
+    <div class="panel bg-white dark:bg-white/[0.04] rounded-xl p-8 border border-gray-200 dark:border-white/[0.08] shadow-sm">
       <h1 class="text-2xl font-bold text-center mb-2">Welcome to PikaPicks!</h1>
       <p class="text-gray-500 dark:text-zinc-400 text-center text-sm mb-8">
         Set up your profile before you start trading.
@@ -61,7 +61,7 @@
       <!-- Contact Number -->
       <div class="mb-5">
         <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-          Contact Number (WhatsApp)
+          Mobile Number
         </label>
         <input
           v-model="phone"

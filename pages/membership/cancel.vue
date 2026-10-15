@@ -10,7 +10,7 @@
       You were not charged. You can upgrade any time from the pricing page.
     </p>
     <NuxtLink
-      to="/pricing"
+      to="/membership"
       class="inline-block bg-ink dark:bg-white text-white dark:text-ink font-bold px-6 py-3 rounded-xl transition-colors"
     >
       Back to pricing

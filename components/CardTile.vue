@@ -2,10 +2,14 @@
 import type { Card } from "~/composables/useCards";
 import type { Auction } from "~/composables/useAuctions";
 import { cdnUrl } from "~/composables/useStorage";
+import { isAvailable, isReserved } from "~/shared/card-availability";
 
 const props = defineProps<{
   card?: Card;
   auction?: Auction;
+  /** Phones show the set on the grey line instead of the seller; for grids
+   *  where every tile has the same seller (a profile's own listings). */
+  hideSeller?: boolean;
 }>();
 
 const item = computed(() => props.card || props.auction);
@@ -56,9 +60,45 @@ const formatPrice = (price: number): string => {
   });
 };
 
+// Phone tiles: "RM1,250" for whole amounts so big prices fit one line.
+const formatPriceCompact = (price: number): string =>
+  "RM" +
+  price.toLocaleString("en-MY", {
+    minimumFractionDigits: Number.isInteger(price) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+const compactPrice = computed(() =>
+  formatPriceCompact(
+    (isAuction.value ? props.auction?.currentPrice : props.card?.price) || 0,
+  ),
+);
+
+// Phone tiles have one line for the name, so "Manectric ex - 2006 (Jason
+// Klaczynski)" shows "Manectric ex" there and the rest moves to the
+// subtitle with the set.
+const nameParts = computed(() => {
+  const name = item.value?.cardName || "";
+  const i = name.indexOf(" - ");
+  const title = i > 0 ? name.slice(0, i) : name;
+  const variant = i > 0 ? name.slice(i + 3) : "";
+  const set = item.value?.cardSet || "";
+  return {
+    title,
+    subtitle: [variant, set].filter(Boolean).join(" · "),
+  };
+});
+
+const viewCount = computed(() => props.card?.viewCount ?? 0);
+
 // Auction-specific
 const bidCount = computed(() => (props.auction as any)?.bidCount ?? 0);
 
+const isLive = computed(
+  () => !!props.auction && props.auction.endsAt > Date.now(),
+);
+
+// Time left without the "LIVE" prefix, which the template hides on phones
+// so the badge doesn't run into the condition badge on a narrow tile.
 const statusTimeLabel = computed(() => {
   if (!props.auction) return "";
   const diff = props.auction.endsAt - Date.now();
@@ -67,9 +107,9 @@ const statusTimeLabel = computed(() => {
   const minutes = Math.floor((diff % 3600000) / 60000);
   if (hours > 24) {
     const days = Math.floor(hours / 24);
-    return `LIVE ${days}d ${hours % 24}h`;
+    return `${days}d ${hours % 24}h`;
   }
-  return `LIVE ${hours}h ${minutes}m`;
+  return `${hours}h ${minutes}m`;
 });
 
 const timerClasses = computed(() => {
@@ -84,14 +124,17 @@ const timerClasses = computed(() => {
 </script>
 
 <template>
-  <NuxtLink :to="linkTo" class="group block">
+  <NuxtLink
+    :to="linkTo"
+    class="group block rounded-[6px] sm:rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokemon-red focus-visible:ring-offset-2 focus-visible:ring-offset-canvas dark:focus-visible:ring-offset-canvas-inverse"
+  >
     <article
-      class="surface rounded-2xl overflow-hidden hover:shadow-card-hover transition-shadow duration-300 ease-premium h-full flex flex-col"
+      class="surface rounded-[6px] sm:rounded-2xl overflow-hidden group-hover:shadow-card-hover group-hover:-translate-y-0.5 transition duration-300 ease-premium h-full flex flex-col"
     >
       <!-- Image well -->
-      <div class="p-2 sm:p-2.5 bg-white dark:bg-white/[0.04]">
+      <div class="p-1 sm:p-2.5 bg-white dark:bg-white/[0.04]">
         <div
-          class="relative aspect-[3.55/5] rounded-lg overflow-hidden bg-canvas-sunken dark:bg-white/[0.02]"
+          class="relative aspect-[3.55/5] rounded-[3px] sm:rounded-lg overflow-hidden bg-canvas-sunken dark:bg-white/[0.02]"
         >
           <img
             v-if="imageUrl"
@@ -113,6 +156,7 @@ const timerClasses = computed(() => {
             class="absolute left-1.5 top-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide shadow-sm"
             :class="timerClasses"
           >
+            <span v-if="isLive" class="hidden sm:inline">LIVE</span>
             {{ statusTimeLabel }}
           </span>
           <span
@@ -121,6 +165,7 @@ const timerClasses = computed(() => {
           >
             <svg
               class="w-2.5 h-2.5"
+              aria-hidden="true"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -130,6 +175,7 @@ const timerClasses = computed(() => {
               <circle cx="12" cy="13" r="3" />
             </svg>
             {{ imageCount }}
+            <span class="sr-only">photos</span>
           </span>
 
           <!-- Top-right: grade/condition badge -->
@@ -141,13 +187,16 @@ const timerClasses = computed(() => {
             {{ conditionLabel }}
           </span>
 
-          <!-- Sold overlay (cards only — auctions already show ENDED via the timer badge) -->
+          <!-- Unavailable overlay (cards only — auctions already show ENDED via
+               the timer badge). "Reserved" is a card being paid for at a
+               seller's counter right now; it comes back on its own if that
+               payment falls through, so it must not read as Sold. -->
           <div
-            v-if="card?.sold"
+            v-if="card && !isAvailable(card)"
             class="absolute inset-0 bg-black/40 flex items-end p-1.5"
           >
             <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/60 text-white/90 tracking-wide uppercase">
-              Sold
+              {{ isReserved(card) ? "Reserved" : "Sold" }}
             </span>
           </div>
 
@@ -164,6 +213,7 @@ const timerClasses = computed(() => {
           >
             <svg
               class="w-2.5 h-2.5"
+              aria-hidden="true"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -173,20 +223,44 @@ const timerClasses = computed(() => {
               <circle cx="12" cy="13" r="3" />
             </svg>
             {{ imageCount }}
+            <span class="sr-only">photos</span>
           </span>
         </div>
       </div>
 
       <!-- Body -->
-      <div class="px-3.5 sm:px-4 pt-2 pb-3.5 sm:pb-4 flex-1 flex flex-col">
+      <!-- Phones fit three tiles a row: one-line name, a muted variant/set
+           line, then a compact "RM" price, so every tile has the same three
+           rows. No seller, views or favourite button there. From sm up it's
+           the original layout. -->
+      <div class="px-2 sm:px-4 pt-2 pb-2.5 sm:pb-4 flex-1 flex flex-col">
         <h3
-          class="font-semibold text-[15px] leading-tight text-ink dark:text-white truncate"
+          class="font-semibold text-[12px] sm:text-[15px] leading-tight text-ink dark:text-white truncate"
+          :title="item?.cardName"
         >
-          {{ item?.cardName }}
+          <span class="sm:hidden">{{ nameParts.title }}</span>
+          <span class="hidden sm:inline">{{ item?.cardName }}</span>
         </h3>
+        <!-- Phones: a quiet second line with the seller (or, with
+             hideSeller, the variant and set), always present so every tile
+             in a row has the same shape. -->
+        <p
+          class="sm:hidden mt-0.5 text-[8px] leading-tight text-ink-muted dark:text-zinc-400 truncate"
+        >
+          {{
+            (!hideSeller && item?.seller ? `@${item.seller}` : nameParts.subtitle) ||
+            "\u00a0"
+          }}
+        </p>
 
-        <div class="mt-auto pt-3">
-          <div class="flex items-end justify-between">
+        <div class="mt-auto pt-1.5 sm:pt-3">
+          <!-- Phones: one line, one size, so thousands still fit. -->
+          <p
+            class="sm:hidden tabular-price font-bold text-[10px] leading-none text-ink dark:text-white truncate"
+          >
+            {{ compactPrice }}
+          </p>
+          <div class="hidden sm:flex items-end justify-between">
             <div class="min-w-0">
               <!-- Auction: current bid with hammer icon -->
               <template v-if="isAuction">
@@ -229,20 +303,42 @@ const timerClasses = computed(() => {
               </template>
             </div>
           </div>
-          <div class="mt-1.5 flex justify-between items-center">
+          <div
+            class="mt-0.5 sm:mt-1.5 justify-between items-center gap-1"
+            :class="isAuction ? 'flex' : 'hidden sm:flex'"
+          >
             <span
               v-if="isAuction"
-              class="text-[11px] text-ink-muted dark:text-zinc-400"
+              class="text-[8px] sm:text-[11px] text-ink-muted dark:text-zinc-400"
             >
               {{ bidCount }} bid{{ bidCount === 1 ? "" : "s" }}
             </span>
             <span
               v-if="item?.seller"
-              class="text-[11px] text-ink-muted dark:text-zinc-400 truncate"
+              class="hidden sm:inline text-[11px] text-ink-muted dark:text-zinc-400 truncate"
             >
               @{{ item.seller }}
             </span>
-            <div v-if="!isAuction" class="flex items-center gap-1.5 shrink-0">
+            <div v-if="!isAuction" class="flex items-center gap-2 shrink-0">
+              <span
+                v-if="viewCount > 0"
+                class="inline-flex items-center gap-0.5 text-[11px] tabular-nums text-ink-muted dark:text-zinc-400"
+                :title="`${viewCount} view${viewCount === 1 ? '' : 's'}`"
+              >
+                <svg
+                  class="w-3 h-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                {{ viewCount }}
+              </span>
               <FavouriteButton
                 :item-id="item?.id || ''"
                 item-type="card"

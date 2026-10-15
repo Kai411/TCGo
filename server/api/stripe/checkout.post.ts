@@ -2,10 +2,10 @@ import { getStripe } from "~/server/utils/stripe";
 import { requireUser } from "~/server/utils/auth";
 
 // Premium membership checkout. Stripe is only used for the subscription;
-// marketplace orders are paid through Billplz (/api/orders/:id/pay).
+// marketplace orders are paid through Billplz (/api/billplz/create-bill).
 export default defineEventHandler(async (event) => {
-  const token = await requireUser(event);
-  if (!token.email) {
+  const user = await requireUser(event);
+  if (!user.email) {
     throw createError({ statusCode: 400, message: "Your account has no email address" });
   }
 
@@ -18,10 +18,10 @@ export default defineEventHandler(async (event) => {
 
   const session = await getStripe().checkout.sessions.create({
     mode: "subscription",
-    customer_email: token.email,
+    customer_email: user.email,
     line_items: [{ price: pricePremium, quantity: 1 }],
-    metadata: { uid: token.uid, type: "subscription" },
-    subscription_data: { metadata: { uid: token.uid } },
+    metadata: { uid: user.uid, type: "subscription" },
+    subscription_data: { metadata: { uid: user.uid } },
     success_url: `${siteUrl}/membership/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${siteUrl}/membership/cancel`,
     allow_promotion_codes: true,

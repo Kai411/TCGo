@@ -1,3 +1,4 @@
+import { cardImageUrl, isCatalogImage } from "~/shared/card-image";
 const MAX_WIDTH = 2400;
 const MAX_HEIGHT = 2400;
 const QUALITY = 0.88;
@@ -82,6 +83,9 @@ const compressImage = (file: File): Promise<File> => {
 // downloading the full 1600px upload. Pass-through for non-Cloudinary URLs.
 export const cdnUrl = (url: string | undefined, width: number): string => {
   if (!url) return "";
+  // Catalogue art is TCGPlayer's and goes through our own image endpoint;
+  // sellers' uploads are Cloudinary's and are transformed in the URL below.
+  if (isCatalogImage(url)) return cardImageUrl(url, { width });
   if (!url.includes("/image/upload/")) return url;
   return url.replace(
     "/image/upload/",

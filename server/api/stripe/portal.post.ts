@@ -5,8 +5,8 @@ import { getAdminFirestore } from "~/server/utils/firebase-admin";
 // Opens the Stripe Customer Portal for the signed-in user's own customer id,
 // read from their profile (written only by the webhook).
 export default defineEventHandler(async (event) => {
-  const token = await requireUser(event);
-  const snap = await getAdminFirestore().collection("users").doc(token.uid).get();
+  const user = await requireUser(event);
+  const snap = await getAdminFirestore().collection("users").doc(user.uid).get();
   const customerId = snap.get("stripeCustomerId") as string | undefined;
   if (!customerId) {
     throw createError({ statusCode: 404, message: "No subscription on this account" });

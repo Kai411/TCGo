@@ -17,9 +17,11 @@ export type SortKey =
   | "price-asc"
   | "price-desc"
   | "ending-soon"
-  | "most-bids";
+  | "most-bids"
+  | "most-viewed";
 
 export interface FilterableItem {
+  tcgType?: string;
   rarity?: string;
   variant?: string;
   language?: string;
@@ -32,6 +34,7 @@ export interface FilterableItem {
   createdAt?: number;
   endsAt?: number;
   bidCount?: number;
+  viewCount?: number;
 }
 
 const inBucket = (endsAt: number | undefined, bucket: TimeLeftBucket) => {
@@ -59,9 +62,12 @@ export const useListingFilters = (options?: {
   const timeBuckets = ref<TimeLeftBucket[]>([]);
   // Sort.
   const sort = ref<SortKey>(options?.defaultSort ?? "newest");
+  // Which game. "All" means no filter; a listing with no tcgType is Pokemon.
+  const tcg = ref<string>("All");
 
   const activeCount = computed(() => {
     let n = 0;
+    if (tcg.value !== "All") n++;
     if (rarities.value.length) n++;
     if (variants.value.length) n++;
     if (languages.value.length) n++;
@@ -75,6 +81,7 @@ export const useListingFilters = (options?: {
   });
 
   const reset = () => {
+    tcg.value = "All";
     rarities.value = [];
     variants.value = [];
     languages.value = [];
@@ -91,6 +98,8 @@ export const useListingFilters = (options?: {
     item.price ?? item.currentPrice ?? item.startingPrice ?? 0;
 
   const matches = (item: FilterableItem): boolean => {
+    if (tcg.value !== "All" && (item.tcgType || "Pokemon") !== tcg.value)
+      return false;
     if (rarities.value.length && !rarities.value.includes(item.rarity ?? ""))
       return false;
     if (variants.value.length && !variants.value.includes(item.variant ?? ""))
@@ -141,6 +150,12 @@ export const useListingFilters = (options?: {
         return copy.sort((a, b) => (a.endsAt ?? 0) - (b.endsAt ?? 0));
       case "most-bids":
         return copy.sort((a, b) => (b.bidCount ?? 0) - (a.bidCount ?? 0));
+      case "most-viewed":
+        return copy.sort(
+          (a, b) =>
+            (b.viewCount ?? 0) - (a.viewCount ?? 0) ||
+            (b.createdAt ?? 0) - (a.createdAt ?? 0),
+        );
       case "newest":
       default:
         return copy.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
@@ -162,6 +177,7 @@ export const useListingFilters = (options?: {
     statuses,
     timeBuckets,
     sort,
+    tcg,
     activeCount,
     reset,
     matches,

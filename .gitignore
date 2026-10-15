@@ -28,3 +28,8 @@ logs
 .env
 .env.*
 !.env.example
+graphify-out/
+
+# Local Firestore backups written by scripts/clear-order-history.mjs
+order-history-backup-*.json
+firebase-wipe-backup-*.json

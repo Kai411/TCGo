@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
         .limit(1)
         .get();
       if (!snap.empty) {
-        // past_due keeps Premium while Stripe retries the card (see roadmap).
+        // past_due keeps Premium while Stripe retries the card.
         const isActive =
           sub.status === "active" || sub.status === "trialing" || sub.status === "past_due";
         await snap.docs[0].ref.update({

@@ -1,3 +1,15 @@
+import { numberCandidates } from "~/shared/card-number";
+
+// Query parsing lives in shared/ so it can be tested without a Nuxt runtime.
+// Re-exported here because both search surfaces reach it through this module.
+export {
+  parseSmartQuery,
+  parseSearchQuery,
+  setAliases,
+  splitKnownSet,
+  type ParsedQuery,
+  type ParsedSearch,
+} from "~/shared/search-query";
 // Read access to the TCGo catalog hosted in Supabase.
 //
 // Two entry points:
@@ -8,92 +20,6 @@
 //
 // Both return rows that include the joined card_prices.prices JSONB so a
 // single round-trip gives us the current market price too.
-
-// ── Smart query parsing ───────────────────────────────────────────────
-//
-// Buyer-friendly natural input like:
-//   "pikachu 151"           → name="pikachu", set hint="151"
-//   "pikachu ir"            → name="pikachu", rarity="Illustration Rare"
-//   "pikachu obsidian sir"  → name="pikachu", set hint="obsidian",
-//                              rarity="Special Illustration Rare"
-//
-// Strategy: the leftmost token(s) form the name; trailing tokens that
-// match a known rarity abbreviation are lifted out; everything else
-// becomes a free-text set hint (joined with spaces). Filters caught
-// here override the user's explicit dropdown filters so smart-typing
-// always wins — the UI surfaces what got parsed via chips.
-
-// Order matters — multi-char keys are checked before single-char so
-// "SIR" doesn't get consumed as "S" + "IR".
-const RARITY_ABBREVIATIONS: Array<[RegExp, string]> = [
-  [/^sir$/i, "Special Illustration Rare"],
-  [/^ir$/i, "Illustration Rare"],
-  [/^sr$/i, "Secret Rare"],
-  [/^ur$/i, "Ultra Rare"],
-  [/^hr$/i, "Hyper Rare"],
-  [/^dr$/i, "Double Rare"],
-  [/^ar$/i, "Art Rare"],
-  [/^rh$/i, "Reverse Holo"],
-  [/^holo$/i, "Holo Rare"],
-  [/^promo$/i, "Promo"],
-  [/^ace$/i, "ACE SPEC Rare"],
-];
-
-const matchRarity = (token: string): string | null => {
-  for (const [pattern, full] of RARITY_ABBREVIATIONS) {
-    if (pattern.test(token)) return full;
-  }
-  return null;
-};
-
-export interface ParsedQuery {
-  name: string;
-  setHint: string | null;
-  rarityHint: string | null;
-}
-
-export const parseSmartQuery = (input: string): ParsedQuery => {
-  const tokens = input.trim().split(/\s+/).filter(Boolean);
-  if (tokens.length === 0) return { name: "", setHint: null, rarityHint: null };
-
-  // First token is always part of the name. Walk forward consuming further
-  // tokens into the name until we hit a "filter-looking" token (rarity
-  // abbreviation or numeric-only set hint). After that, leftover tokens
-  // populate the set hint.
-  let nameParts: string[] = [tokens[0]];
-  let rarityHint: string | null = null;
-  const setParts: string[] = [];
-
-  let nameClosed = false;
-  for (let i = 1; i < tokens.length; i++) {
-    const token = tokens[i];
-    const rarity = matchRarity(token);
-    if (rarity) {
-      rarityHint = rarity;
-      nameClosed = true;
-      continue;
-    }
-    // Pure numeric token → likely a set hint ("151", "164" etc).
-    if (/^\d+$/.test(token)) {
-      setParts.push(token);
-      nameClosed = true;
-      continue;
-    }
-    if (!nameClosed) {
-      // Could still be a multi-word card name ("charizard ex", "rayquaza vmax")
-      // — only treat as set if we've already seen a filter token.
-      nameParts.push(token);
-    } else {
-      setParts.push(token);
-    }
-  }
-
-  return {
-    name: nameParts.join(" "),
-    setHint: setParts.length ? setParts.join(" ") : null,
-    rarityHint,
-  };
-};
 
 // USD → MYR conversion. TCGPlayer publishes prices in USD; we multiply by a
 // live rate fetched from /api/fx/usd-myr (cached server-side for 12h). Until
@@ -124,6 +50,36 @@ const ensureRate = (): Promise<void> => {
 // Convert a USD figure to MYR, keeping 2 decimal places (cents).
 const toMyr = (usd: number) => Math.round(usd * usdMyrRate * 100) / 100;
 
+// Cardmarket quotes in euros. Converting those at the dollar rate would be
+// wrong by roughly a tenth, on exactly the scarce cards with no other price to
+// check it against.
+const EUR_MYR_FALLBACK = 5.1;
+let eurMyrRate = EUR_MYR_FALLBACK;
+let eurRatePromise: Promise<void> | null = null;
+const ensureEurRate = (): Promise<void> => {
+  if (eurRatePromise) return eurRatePromise;
+  eurRatePromise = (async () => {
+    try {
+      const res = await $fetch<{ rate: number }>("/api/fx/eur-myr");
+      if (res?.rate && res.rate > 0) eurMyrRate = res.rate;
+    } catch {
+      // Keep the fallback rate.
+    }
+  })();
+  return eurRatePromise;
+};
+const eurToMyr = (eur: number) => Math.round(eur * eurMyrRate * 100) / 100;
+
+/** A price from somewhere other than TCGPlayer, converted to MYR. */
+export interface SecondaryPrice {
+  source: string;
+  currency: string;
+  market: number;
+  low: number | null;
+  high: number | null;
+  fetchedAt: string | null;
+}
+
 // TCGPlayer publishes per-subtype prices. We prefer Holofoil → Normal →
 // Reverse Holofoil; for a sealed product the only key is usually "Normal".
 const SUBTYPE_PREFERENCE = [
@@ -145,6 +101,39 @@ export interface CatalogPrice {
   high: number;
 }
 
+/**
+ * One day of the capped 365-entry series kept in card_prices.history, which a
+ * daily cron prepends via the snapshot_prices_today() RPC. `market` is USD as
+ * stored; callers get MYR from getPriceHistory().
+ */
+export interface PricePoint {
+  date: string; // YYYY-MM-DD
+  market: number; // MYR once returned by getPriceHistory
+}
+
+export interface PriceTrend {
+  points: PricePoint[];
+  /** Percentage change across the returned window; null if not computable. */
+  changePct: number | null;
+  first: number;
+  last: number;
+  min: number;
+  max: number;
+  requestedDays: number;
+  oldestAvailableDate: string;
+  latestAvailableDate: string;
+  availableSpanDays: number;
+  snapshotCount: number;
+  hasFullCoverage: boolean;
+}
+
+export interface CollectionPriceTrend {
+  trend: PriceTrend | null;
+  trackedCards: number;
+  historyCards: number;
+  totalCards: number;
+}
+
 export type CatalogSort = "best" | "name" | "price_asc" | "price_desc";
 
 // What we return to callers: the catalog row + a derived MYR price.
@@ -158,6 +147,80 @@ export interface CatalogMatch {
   language: string;
   price: CatalogPrice | null;
 }
+
+const DAY_MS = 86_400_000;
+
+const dayTime = (date: string) => Date.parse(`${date}T00:00:00Z`);
+
+const historyPoints = (raw: unknown): PricePoint[] => {
+  if (!Array.isArray(raw)) return [];
+  const byDate = new Map<string, number>();
+  for (const point of raw) {
+    if (!point || typeof point !== "object") continue;
+    const date = String((point as any).date ?? "");
+    const rawMarket = (point as any).market;
+    const market = rawMarket == null ? Number.NaN : toMyr(Number(rawMarket));
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+      !Number.isFinite(dayTime(date)) ||
+      !Number.isFinite(market)
+    ) {
+      continue;
+    }
+    byDate.set(date, market);
+  }
+  return [...byDate.entries()]
+    .map(([date, market]) => ({ date, market }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+};
+
+/** Build chart statistics using a real calendar window, not a point count. */
+export const buildPriceTrend = (
+  sourcePoints: PricePoint[],
+  requestedDays = 90,
+): PriceTrend | null => {
+  const byDate = new Map<string, number>();
+  for (const point of sourcePoints) {
+    if (
+      /^\d{4}-\d{2}-\d{2}$/.test(point.date) &&
+      Number.isFinite(dayTime(point.date)) &&
+      Number.isFinite(point.market)
+    ) {
+      byDate.set(point.date, point.market);
+    }
+  }
+  const allPoints = [...byDate.entries()]
+    .map(([date, market]) => ({ date, market }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (!allPoints.length) return null;
+  const oldestAvailableDate = allPoints[0]!.date;
+  const latestAvailableDate = allPoints[allPoints.length - 1]!.date;
+  const oldestTime = dayTime(oldestAvailableDate);
+  const latestTime = dayTime(latestAvailableDate);
+  const safeDays = Math.max(1, Math.floor(requestedDays));
+  const cutoff = latestTime - (safeDays - 1) * DAY_MS;
+  const points = allPoints.filter((point) => dayTime(point.date) >= cutoff);
+  if (!points.length) return null;
+
+  const first = points[0]!.market;
+  const last = points[points.length - 1]!.market;
+  const values = points.map((point) => point.market);
+
+  return {
+    points,
+    changePct: first > 0 ? ((last - first) / first) * 100 : null,
+    first,
+    last,
+    min: Math.min(...values),
+    max: Math.max(...values),
+    requestedDays: safeDays,
+    oldestAvailableDate,
+    latestAvailableDate,
+    availableSpanDays: Math.max(1, Math.floor((latestTime - oldestTime) / DAY_MS) + 1),
+    snapshotCount: allPoints.length,
+    hasFullCoverage: oldestTime <= cutoff,
+  };
+};
 
 // Pull the best market price out of the card_prices.prices JSONB and
 // convert to MYR. Returns null if nothing usable was published.
@@ -246,8 +309,22 @@ export const useCardCatalog = () => {
       limit?: number;
       page?: number;
       language?: "EN" | "JP" | "ALL";
+      /** A card number like "012", "gg44" or "065/202". Bypasses the RPC. */
+      numberMatch?: string | null;
       setMatch?: string | null;
+      /**
+       * Treat setMatch and numberMatch as alternatives rather than filters to
+       * combine. See ParsedSearch.setOrNumber — "pikachu 151" means a Pikachu
+       * in the 151 set OR one numbered 151, and combining them finds neither.
+       */
+      setOrNumber?: boolean;
       rarityMatch?: string | null;
+      /**
+       * Every rarity an ambiguous code could mean, ORed together. "sr" is
+       * Secret, Shiny and Super Rare across the two languages; one of them is
+       * the wrong answer for most searchers.
+       */
+      rarityMatches?: string[] | null;
       sort?: CatalogSort;
     } = {},
   ): Promise<{ results: CatalogMatch[]; total: number }> => {
@@ -255,13 +332,83 @@ export const useCardCatalog = () => {
     const trimmed = query.trim();
     const setMatch = opts.setMatch?.trim() || null;
     const rarityMatch = opts.rarityMatch?.trim() || null;
-    // RPC requires either a usable name OR at least one filter.
-    if (trimmed.length < 2 && !setMatch && !rarityMatch) {
+    // Either a usable name, or something to filter on. A number counts —
+    // "gg44" alone is a perfectly good search.
+    if (
+      trimmed.length < 2 &&
+      !setMatch &&
+      !rarityMatch &&
+      !(opts.rarityMatches ?? []).length &&
+      !opts.numberMatch
+    ) {
       return { results: [], total: 0 };
     }
 
     // Fetch the FX rate concurrently with the query.
     const fxReady = ensureRate();
+
+    // ── A number search cannot go through the RPC ─────────────────────
+    //
+    // search_catalog matches `q` against the card NAME only. Numbers live in
+    // their own column and take several shapes — 065/202, GG61/GG70, SWSH020
+    // — so "pikachu 012", "gg44" and "tg05" all came back empty: they were
+    // being asked for as names.
+    //
+    // PostgREST can filter the column directly, which needs no migration.
+    // Ranking is simpler than the RPC's, but a number search is already
+    // precise enough not to need ranking.
+    // Several rarities cannot go through the ranked RPC, which takes one.
+    // PostgREST can OR them without a migration — the same escape hatch the
+    // number search uses, and a rarity search is precise enough not to need
+    // the ranking.
+    const rarities = (opts.rarityMatches ?? []).filter(Boolean);
+    if (opts.numberMatch || rarities.length > 1) {
+      const forms = opts.numberMatch ? numberCandidates(opts.numberMatch) : [];
+      let q = supabase
+        .from("cards_catalog")
+        .select(SELECT_COLUMNS, { count: "exact" });
+
+      // The whole number, or the printed part before the slash — 012 finds
+      // 012/202 without the searcher knowing the set size, gg44 finds
+      // GG44/GG70, swsh020 matches outright.
+      //
+      // NOT a bare prefix match. numberCandidates also yields the unpadded
+      // form, and `12%` pulls in 122/106 and every other number that merely
+      // starts with those digits.
+      const numberOr = [
+        ...forms.flatMap((f) => [`number.ilike.${f}`, `number.ilike.${f}/*`]),
+        // The same token read as a set name, when it is both. This joins the
+        // OR group rather than narrowing it, so "pikachu 151" returns the
+        // 151-set Pikachus alongside any numbered 151.
+        ...(opts.setOrNumber && setMatch ? [`group_name.ilike.*${setMatch}*`] : []),
+      ];
+      if (numberOr.length) q = q.or(numberOr.join(","));
+
+      // A second .or() is ANDed against the first, which is what we want:
+      // (this number or set) AND (any of these rarities).
+      if (rarities.length > 1) {
+        q = q.or(rarities.map((r) => `rarity.ilike.${r}`).join(","));
+      } else if (rarityMatch) {
+        q = q.ilike("rarity", `%${rarityMatch}%`);
+      }
+
+      if (trimmed.length >= 2) q = q.ilike("name", `%${trimmed}%`);
+      if (setMatch && !opts.setOrNumber) q = q.ilike("group_name", `%${setMatch}%`);
+      if (opts.language && opts.language !== "ALL") q = q.eq("language", opts.language);
+
+      const size = opts.limit ?? 28;
+      const from = (opts.page ?? 0) * size;
+      const { data, error, count } = await q
+        .order("number", { ascending: true })
+        .range(from, from + size - 1);
+
+      if (error) {
+        console.error("[useCardCatalog] number search error:", error.message);
+        return { results: [], total: 0 };
+      }
+      await fxReady;
+      return { results: (data ?? []).map(rowToMatch), total: count ?? 0 };
+    }
 
     const { data, error } = await supabase.rpc("search_catalog", {
       q: trimmed,
@@ -296,9 +443,78 @@ export const useCardCatalog = () => {
 
   // Dropdown helpers — cached at composable level so we only hit Supabase
   // once per session per language.
+  /**
+   * A second opinion on a card's price.
+   *
+   * Exists for the cards TCGPlayer does not price at all — a market price is
+   * derived from recent sales, and a card that barely trades has none. Kept in
+   * its own table because it is a different market in a different currency;
+   * see the schema comment on card_price_sources.
+   *
+   * Returns null, never throws, when the table has not been created yet: the
+   * schema is applied by hand, so a deploy can legitimately run ahead of it,
+   * and a missing second opinion is not a broken page.
+   */
+  const getSecondaryPrice = async (
+    productId: number,
+  ): Promise<SecondaryPrice | null> => {
+    if (!supabase || !Number.isFinite(productId)) return null;
+    const { data, error } = await supabase
+      .from("card_price_sources")
+      .select("source, currency, market, low, high, fetched_at")
+      .eq("product_id", productId)
+      .order("market", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      if (!/does not exist|schema cache/i.test(error.message)) {
+        console.error("[useCardCatalog] getSecondaryPrice:", error.message);
+      }
+      return null;
+    }
+    const row = data?.[0];
+    if (!row || row.market == null) return null;
+
+    const convert = row.currency === "EUR" ? eurToMyr : toMyr;
+    // ensureRate/ensureEurRate memoise, so this is one fetch per session.
+    await (row.currency === "EUR" ? ensureEurRate() : ensureRate());
+
+    return {
+      source: row.source,
+      currency: row.currency,
+      market: convert(Number(row.market)),
+      low: row.low == null ? null : convert(Number(row.low)),
+      high: row.high == null ? null : convert(Number(row.high)),
+      fetchedAt: row.fetched_at ?? null,
+    };
+  };
+
+  // Set and rarity lists come from our server, which calls Supabase with the
+  // service role and caches the result — see server/api/catalog/facets.get.ts.
+  // Called directly with the anon key these time out, and search parsing then
+  // silently stops recognising sets like "151". The direct RPC stays only as a
+  // fallback if the server route itself is unreachable.
+  const facetsFromServer = async (
+    kind: "sets" | "rarities",
+    language: "EN" | "JP" | "ALL",
+  ): Promise<Array<{ name: string; count: number }> | null> => {
+    try {
+      const data = await $fetch<Array<{ name: string; count: number }>>(
+        "/api/catalog/facets",
+        { query: { kind, lang: language } },
+      );
+      return Array.isArray(data) && data.length ? data : null;
+    } catch (e: any) {
+      console.warn(`[useCardCatalog] facets ${kind} via server failed:`, e?.message || e);
+      return null;
+    }
+  };
+
   const listSets = async (
     language: "EN" | "JP" | "ALL" = "EN",
   ): Promise<Array<{ name: string; count: number }>> => {
+    const viaServer = await facetsFromServer("sets", language);
+    if (viaServer) return viaServer;
     if (!supabase) return [];
     const { data, error } = await supabase.rpc("list_sets", { lang: language });
     if (error) {
@@ -314,6 +530,8 @@ export const useCardCatalog = () => {
   const listRarities = async (
     language: "EN" | "JP" | "ALL" = "EN",
   ): Promise<Array<{ name: string; count: number }>> => {
+    const viaServer = await facetsFromServer("rarities", language);
+    if (viaServer) return viaServer;
     if (!supabase) return [];
     const { data, error } = await supabase.rpc("list_rarities", { lang: language });
     if (error) {
@@ -425,12 +643,248 @@ export const useCardCatalog = () => {
     return productIds.map((id) => byId.get(id)).filter(Boolean) as CatalogMatch[];
   };
 
+  /**
+   * Suggestions for a catalogue detail page. Same-name printings come first,
+   * followed by cards from the same exact set, with rarity and live pricing as
+   * secondary signals. This stays entirely within the existing catalogue.
+   */
+  const getRelatedCards = async (
+    card: CatalogMatch,
+    limit = 5,
+  ): Promise<CatalogMatch[]> => {
+    if (!supabase || limit <= 0) return [];
+
+    const [sameName, sameSet] = await Promise.all([
+      searchCatalog(card.name, {
+        limit: Math.max(12, limit * 2),
+        language: card.language === "JP" ? "JP" : "EN",
+        sort: "best",
+      }),
+      searchCatalog("", {
+        limit: Math.max(24, limit * 4),
+        language: card.language === "JP" ? "JP" : "EN",
+        setMatch: card.setName,
+        sort: "price_desc",
+      }),
+    ]);
+
+    const candidates = new Map<number, CatalogMatch>();
+    for (const candidate of [...sameName.results, ...sameSet.results]) {
+      if (candidate.productId === card.productId) continue;
+      // The RPC's set filter is a substring match. Keep only exact-set rows so
+      // similarly named sets never leak into the recommendation rail.
+      const isSameName = candidate.name.toLowerCase() === card.name.toLowerCase();
+      const isSameSet = candidate.setName === card.setName;
+      if (!isSameName && !isSameSet) continue;
+      candidates.set(candidate.productId, candidate);
+    }
+
+    return [...candidates.values()]
+      .sort((a, b) => {
+        const aName = a.name.toLowerCase() === card.name.toLowerCase() ? 1 : 0;
+        const bName = b.name.toLowerCase() === card.name.toLowerCase() ? 1 : 0;
+        if (aName !== bName) return bName - aName;
+        const aRarity = a.rarity && a.rarity === card.rarity ? 1 : 0;
+        const bRarity = b.rarity && b.rarity === card.rarity ? 1 : 0;
+        if (aRarity !== bRarity) return bRarity - aRarity;
+        return (b.price?.market ?? 0) - (a.price?.market ?? 0);
+      })
+      .slice(0, limit);
+  };
+
+  /** Fetch oldest-first history series for many products, converted to MYR. */
+  const getPriceHistories = async (
+    productIds: number[],
+  ): Promise<Map<number, PricePoint[]>> => {
+    const histories = new Map<number, PricePoint[]>();
+    if (!supabase || productIds.length === 0) return histories;
+    await ensureRate();
+
+    const uniqueIds = [...new Set(productIds)];
+    const CHUNK = 200;
+    for (let i = 0; i < uniqueIds.length; i += CHUNK) {
+      const chunk = uniqueIds.slice(i, i + CHUNK);
+      const { data, error } = await supabase
+        .from("card_prices")
+        .select("product_id, history")
+        .in("product_id", chunk);
+      if (error) {
+        console.error("[useCardCatalog] getPriceHistories error:", error.message);
+        continue;
+      }
+      for (const row of data ?? []) {
+        histories.set(Number((row as any).product_id), historyPoints((row as any).history));
+      }
+    }
+    return histories;
+  };
+
+  /**
+   * Historical raw-market value of the current basket. The same set of cards
+   * is used for every point, so cards with shorter histories cannot create a
+   * fake jump merely by entering the dataset midway through the chart.
+   */
+  const getCollectionPriceTrend = async (
+    productIds: number[],
+    days = 30,
+    /**
+     * Copies held per product. A collection can hold four of the same card,
+     * and valuing that basket once would understate it by 3x. Omitted or
+     * missing entries count as one, so existing callers are unaffected.
+     */
+    quantities?: Map<number, number> | Record<number, number>,
+  ): Promise<CollectionPriceTrend> => {
+    const uniqueIds = [...new Set(productIds)];
+    const copiesOf = (id: number): number => {
+      if (!quantities) return 1;
+      const q =
+        quantities instanceof Map ? quantities.get(id) : (quantities as any)[id];
+      return Math.max(1, Number(q ?? 1));
+    };
+    const histories = await getPriceHistories(uniqueIds);
+    const usable = uniqueIds
+      .map((productId) => ({ productId, points: histories.get(productId) ?? [] }))
+      .filter((item) => item.points.length >= 2);
+
+    if (!usable.length) {
+      return {
+        trend: null,
+        trackedCards: 0,
+        historyCards: 0,
+        totalCards: uniqueIds.length,
+      };
+    }
+
+    const latestTime = Math.max(
+      ...usable.map((item) => dayTime(item.points[item.points.length - 1]!.date)),
+    );
+    const cutoff = latestTime - (Math.max(1, days) - 1) * DAY_MS;
+    let tracked = usable.filter((item) => dayTime(item.points[0]!.date) <= cutoff);
+
+    // If no card has a complete requested window yet, still show the honest
+    // shared partial history instead of inventing earlier values.
+    let startTime = cutoff;
+    if (!tracked.length) {
+      tracked = usable;
+      startTime = Math.max(...tracked.map((item) => dayTime(item.points[0]!.date)));
+    }
+
+    // Aggregate only dates actually observed for every tracked card. Carrying
+    // an old value forward would disguise stale or missing snapshots as fresh
+    // market data and can create a misleading collection total.
+    const valuesByCard = tracked.map(
+      (item) => new Map(item.points.map((point) => [point.date, point.market])),
+    );
+    const eventDates = [...valuesByCard[0]!.keys()]
+      .filter((date) => {
+        const time = dayTime(date);
+        return (
+          time >= startTime &&
+          time <= latestTime &&
+          valuesByCard.every((values) => values.has(date))
+        );
+      })
+      .sort();
+
+    const aggregatePoints: PricePoint[] = eventDates.map((date) => ({
+      date,
+      // Weighted by copies so the series matches the headline basket value.
+      market: tracked.reduce(
+        (sum, item, i) => sum + valuesByCard[i]!.get(date)! * copiesOf(item.productId),
+        0,
+      ),
+    }));
+
+    return {
+      trend: buildPriceTrend(aggregatePoints, days),
+      trackedCards: tracked.length,
+      historyCards: usable.length,
+      totalCards: uniqueIds.length,
+    };
+  };
+
+  // Reconcile a single row (name + optional number + optional set hint) to
+  // the best catalog match. Used by the import flows. Strategy:
+  //   1. If a number is given, try exact name+number; bias suggestions by set.
+  //   2. Otherwise (or no match) fall back to name (+ set) fuzzy search.
+  // `language` narrows to a print language (the JP catalog uses English
+  // product names, so translated names from the scanner match it directly).
+  // Returns null when nothing usable matches.
+  const matchRow = async (
+    name: string,
+    number?: string | null,
+    setHint?: string | null,
+    language?: "EN" | "JP",
+  ): Promise<CatalogMatch | null> => {
+    const trimmed = (name || "").trim();
+    if (trimmed.length < 2) return null;
+    const set = setHint?.trim() || null;
+
+    if (number && number.trim()) {
+      const { exact, suggestions } = await lookupByNameAndNumber(trimmed, number, {
+        language,
+      });
+      if (exact.length) return exact[0];
+      if (suggestions.length) {
+        if (set) {
+          const biased = suggestions.find((m) =>
+            m.setName.toLowerCase().includes(set.toLowerCase()),
+          );
+          if (biased) return biased;
+        }
+        return suggestions[0];
+      }
+    }
+
+    const { results } = await searchCatalog(trimmed, {
+      limit: 5,
+      setMatch: set,
+      sort: "best",
+      ...(language ? { language } : {}),
+    });
+    return results[0] ?? null;
+  };
+
+  /**
+   * Real price history for one product, newest-first in the DB and returned
+   * oldest-first for charting. Nothing is synthesised: if the daily snapshot
+   * hasn't run for this card yet the series is short or empty, and callers
+   * must render that honestly rather than draw a flat line.
+   */
+  const getPriceHistory = async (
+    productId: number,
+    days = 90,
+  ): Promise<PriceTrend | null> => {
+    if (!supabase) return null;
+
+    const fxReady = ensureRate();
+    const { data, error } = await supabase
+      .from("card_prices")
+      .select("history")
+      .eq("product_id", productId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[useCardCatalog] getPriceHistory error:", error.message);
+      return null;
+    }
+    await fxReady;
+
+    return buildPriceTrend(historyPoints((data as any)?.history), days);
+  };
+
   return {
     searchCatalog,
+    getPriceHistory,
+    getPriceHistories,
+    getCollectionPriceTrend,
+    getRelatedCards,
     lookupByNameAndNumber,
     getCardWithPrice,
     getCardsByIds,
+    getSecondaryPrice,
     listSets,
     listRarities,
+    matchRow,
   };
 };

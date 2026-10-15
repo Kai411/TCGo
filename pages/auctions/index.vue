@@ -3,7 +3,7 @@
     <!-- ── Filter sidebar (desktop only) ─────────────────────────────── -->
     <aside
       v-if="!loading"
-      class="hidden lg:block w-48 shrink-0 sticky top-[5.5rem] self-start"
+      class="hidden lg:block w-48 shrink-0 sticky top-[8.75rem] self-start"
     >
       <ListingFilters :filters="filters" :sidebar="true" :show-auction-sort="true" />
     </aside>
@@ -38,7 +38,7 @@
       <!-- Grid -->
       <div
         v-else
-        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5"
+        class="-mx-1.5 lg:mx-0 grid grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-5"
       >
         <CardTile
           v-for="auction in publicAuctions"

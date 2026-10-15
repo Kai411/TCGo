@@ -6,31 +6,20 @@
       leave-active-class="transition duration-150"
       leave-to-class="opacity-0"
     >
+      <!-- Mobile: full-screen takeover. Desktop (lg+): dimmed backdrop with a
+           floating panel just under the top bar, so the page stays visible. -->
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-[60] bg-canvas dark:bg-canvas-inverse flex flex-col"
+        class="fixed inset-0 z-[60] bg-canvas dark:bg-canvas-inverse lg:bg-black/40 lg:dark:bg-black/60 flex flex-col lg:items-center lg:pt-20 lg:px-4"
+        @click.self="close"
       >
+       <div
+        class="flex flex-col flex-1 min-h-0 w-full lg:flex-none lg:max-w-3xl lg:max-h-[70vh] lg:rounded-2xl lg:surface lg:overflow-hidden"
+       >
         <!-- Header -->
         <div
           class="flex items-center gap-3 px-3 sm:px-6 h-16 border-b border-black/[0.06] dark:border-white/[0.08] shrink-0"
         >
-          <button
-            @click="close"
-            class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white"
-            aria-label="Close search"
-          >
-            <svg
-              class="w-5 h-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </button>
           <div
             class="flex-1 flex items-center gap-2 px-4 h-11 rounded-full bg-black/[0.04] dark:bg-white/[0.06]"
           >
@@ -51,7 +40,7 @@
               v-model="query"
               type="search"
               placeholder="Search cards, auctions, sets, sellers…"
-              class="flex-1 bg-transparent outline-none text-sm sm:text-base text-ink dark:text-white placeholder-ink-soft"
+              class="flex-1 bg-transparent outline-none text-sm sm:text-base text-ink dark:text-white placeholder-ink-soft [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
               @keydown.enter="onEnter"
             />
             <button
@@ -66,6 +55,23 @@
               </svg>
             </button>
           </div>
+          <button
+            @click="close"
+            class="w-9 h-9 shrink-0 rounded-full flex items-center justify-center hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white"
+            aria-label="Close search"
+          >
+            <svg
+              class="w-5 h-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         <!-- Body -->
@@ -209,6 +215,7 @@
             </template>
           </div>
         </div>
+       </div>
       </div>
     </Transition>
   </Teleport>
@@ -218,8 +225,13 @@
 import { cdnUrl } from "~/composables/useStorage";
 import type { Card } from "~/composables/useCards";
 import type { Auction } from "~/composables/useAuctions";
+import { isAvailable } from "~/shared/card-availability";
 
-const props = defineProps<{ modelValue: boolean }>();
+const props = defineProps<{
+  modelValue: boolean;
+  /** Seed the query on open (used by the inline navbar search field). */
+  initialQuery?: string;
+}>();
 const emit = defineEmits<{ (e: "update:modelValue", v: boolean): void }>();
 
 const { cards } = useCards();
@@ -233,7 +245,7 @@ watch(
   () => props.modelValue,
   async (open) => {
     if (open) {
-      query.value = "";
+      query.value = props.initialQuery ?? "";
       await nextTick();
       inputEl.value?.focus();
     }
@@ -249,7 +261,7 @@ const cardResults = computed<Card[]>(() => {
   const term = query.value.trim();
   if (!term) return [];
   return cards.value
-    .filter((c: Card) => !c.sold)
+    .filter(isAvailable)
     .filter((c: Card) =>
       matches(
         `${c.cardName} ${c.cardSet ?? ""} ${c.seller ?? ""}`,
@@ -282,7 +294,7 @@ const totalResults = computed(
 const topSets = computed(() => {
   const counts = new Map<string, number>();
   for (const c of cards.value) {
-    if (c.sold || !c.cardSet) continue;
+    if (!isAvailable(c) || !c.cardSet) continue;
     counts.set(c.cardSet, (counts.get(c.cardSet) ?? 0) + 1);
   }
   return [...counts.entries()]
@@ -294,7 +306,7 @@ const topSets = computed(() => {
 const topSellers = computed(() => {
   const counts = new Map<string, number>();
   for (const c of cards.value) {
-    if (c.sold || !c.seller) continue;
+    if (!isAvailable(c) || !c.seller) continue;
     counts.set(c.seller, (counts.get(c.seller) ?? 0) + 1);
   }
   return [...counts.entries()]
@@ -303,12 +315,17 @@ const topSellers = computed(() => {
     .map(([name, count]) => ({ name, count }));
 });
 
+const { dismissKeyboard } = useDismissKeyboard();
+
 const commit = () => {
   if (query.value.trim()) remember(query.value);
   close();
 };
 
 const onEnter = () => {
+  // Blurred, not closed: the modal shows results in place, and the keyboard
+  // sitting over them is the whole complaint.
+  dismissKeyboard(inputEl.value);
   if (query.value.trim()) remember(query.value);
 };
 

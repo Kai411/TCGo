@@ -1,44 +1,37 @@
-import type { H3Event } from "h3";
-import type { DecodedIdToken } from "firebase-admin/auth";
-import { getAdminAuth } from "~/server/utils/firebase-admin";
+// Server-side identity for routes that move money or mutate other people's
+// documents. The client sends its Firebase ID token as `Authorization: Bearer
+// <token>`; we verify it with the Admin SDK.
+//
+// Use `useAuthedFetch()` on the client — it attaches the header for you.
 
-// Every server route that acts for a user takes the user from a verified
-// Firebase ID token (Authorization: Bearer <token>), never from the request
-// body. The browser attaches the token through composables/useApi.ts.
-export const requireUser = async (event: H3Event): Promise<DecodedIdToken> => {
+import type { H3Event } from "h3";
+import { getAdminAuth } from "~/server/utils/firebase-admin";
+import { isAdminUid } from "~/shared/admins";
+
+export interface AuthedUser {
+  uid: string;
+  email?: string;
+  name?: string;
+}
+
+export const requireUser = async (event: H3Event): Promise<AuthedUser> => {
   const header = getHeader(event, "authorization") || "";
-  const match = header.match(/^Bearer (.+)$/i);
-  if (!match) {
+  const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  if (!token) {
     throw createError({ statusCode: 401, message: "Sign in required" });
   }
   try {
-    return await getAdminAuth().verifyIdToken(match[1]);
+    const decoded = await getAdminAuth().verifyIdToken(token);
+    return { uid: decoded.uid, email: decoded.email, name: decoded.name };
   } catch {
-    throw createError({ statusCode: 401, message: "Session expired, sign in again" });
+    throw createError({ statusCode: 401, message: "Invalid or expired session" });
   }
 };
 
-// Admins are named by uid in NUXT_ADMIN_UIDS (comma-separated) or carry an
-// `admin: true` custom claim.
-export const isAdminToken = (token: DecodedIdToken): boolean => {
-  if (token.admin === true) return true;
-  const list = String(useRuntimeConfig().adminUids || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return list.includes(token.uid);
-};
-
-export const requireAdmin = async (event: H3Event): Promise<DecodedIdToken> => {
-  const token = await requireUser(event);
-  if (!isAdminToken(token)) {
-    throw createError({ statusCode: 403, message: "Admins only" });
+export const requireAdmin = async (event: H3Event): Promise<AuthedUser> => {
+  const user = await requireUser(event);
+  if (!isAdminUid(user.uid)) {
+    throw createError({ statusCode: 403, message: "Admin only" });
   }
-  return token;
-};
-
-// The caller shape the order service expects.
-export const requireCaller = async (event: H3Event) => {
-  const token = await requireUser(event);
-  return { token, uid: token.uid, isAdmin: isAdminToken(token) };
+  return user;
 };

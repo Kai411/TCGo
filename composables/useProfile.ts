@@ -1,4 +1,10 @@
 import {
+  defaultAddress,
+  fromFlatFields,
+  toFlatFields,
+  type Address,
+} from "~/shared/addresses";
+import {
   doc,
   onSnapshot,
   setDoc,
@@ -6,6 +12,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { effectScope, ref, onUnmounted, watch } from "vue";
+import type { KycStatus } from "~/shared/didit";
 
 export type MembershipTier = "free" | "premium";
 
@@ -22,11 +29,20 @@ export interface UserProfile {
   photoURL: string;
   customName: string;
   phone: string;
-  whatsappNumber: string;
+  /**
+   * Contact number, kept as-is when the beta programme was removed.
+   *
+   * It is a phone number and nothing more — the WhatsApp *verification* it
+   * used to gate on is gone, because there is no SMS provider on this
+   * project and the check could never actually be performed.
+   */
+  whatsappNumber?: string;
   usePhoneAsWhatsapp: boolean;
-  whatsappVerified: boolean;
-  shippingWM: number;
-  shippingEM: number;
+  // Legacy: per-seller default shipping prices, seeded onto new listings.
+  // Superseded by live quoting at checkout — kept so old listings and orders
+  // still read correctly, but no longer editable and not used for new orders.
+  shippingWM?: number;
+  shippingEM?: number;
   favouritesPublic: boolean;
   trustScore: number;
   createdAt: number;
@@ -43,6 +59,64 @@ export interface UserProfile {
   // Card-free preview — set when user claims the +5 bonus scans.
   bonusScansRemaining?: number;
   bonusScansClaimedAt?: number;
+
+  /**
+   * The address book. Source of truth for where things ship.
+   *
+   * The `delivery*` fields below are a MIRROR of whichever entry is default —
+   * kept because the cart, order page and onboarding gate still read them.
+   * Write through saveAddresses() so the two can never disagree.
+   */
+  addresses?: Address[];
+
+  // ── Buyer delivery address (mirror of the default address) ──────────
+  // Where this user's purchases get shipped. Saved here so the cart can quote
+  // live shipping before checkout — without a destination there's nothing to
+  // quote against. Still editable per-order at payment time.
+  deliveryName?: string;
+  deliveryPhone?: string;
+  deliveryAddress1?: string;
+  deliveryAddress2?: string;
+  deliveryPostcode?: string;
+  deliveryCity?: string;
+  deliveryState?: string; // state code, e.g. "sgr"
+
+  // ── Seller KYC ──────────────────────────────────────────────────────
+  // Bank account for payouts (Billplz Payment Orders / manual transfer).
+  bankCode?: string; // Billplz bank_code (SWIFT) — see shared/banks.ts
+  bankName?: string; // display only, denormalised from bankCode
+  bankAccountNumber?: string;
+  bankAccountHolder?: string;
+  identityNumber?: string; // IC — required by Billplz Mass Payment
+  // Pickup address for shipments — the origin we quote shipping from.
+  pickupAddress1?: string;
+  pickupAddress2?: string;
+  pickupPostcode?: string;
+  pickupCity?: string;
+  pickupState?: string; // state code, e.g. "sgr"
+  // How this seller hands parcels to the courier. Decides which services we're
+  // allowed to quote — the cheapest rate is usually drop-off only, and quoting
+  // it to a seller who expects collection gives a price they can't book at.
+  handoverPreference?: "dropoff" | "pickup";
+
+  // ── Identity verification (Didit) ───────────────────────────────────
+  // Written ONLY by the Didit webhook, never by the client. Firestore rules
+  // must keep these read-only to the owner, or the gate is decorative.
+  kycStatus?: KycStatus;
+  kycStatusAt?: number;
+  kycSessionId?: string;
+  kycStartedAt?: number;
+  kycVerifiedAt?: number;
+  /** Name as it appeared on the verified document — match payouts against it. */
+  kycVerifiedName?: string;
+  kycDocumentType?: string;
+  kycIssuingState?: string;
+  kycDeclineReason?: string | null;
+  // Courier brands this seller would rather ship with, e.g. ["J&T Express"].
+  // Best-effort: if none serve a given route, quoting falls back to the
+  // cheapest available rather than blocking the sale.
+  preferredCouriers?: string[];
+  sellerKycCompletedAt?: number;
 }
 
 export const useProfile = (uid?: string) => {
@@ -124,6 +198,38 @@ export const useMyProfile = () => {
                   uid: u.uid,
                 } as UserProfile;
                 isNewUser.value = false;
+
+                // Turn a pre-address-book profile into its first card.
+                //
+                // Runs once: the condition stops matching as soon as the list
+                // exists. Migrating here rather than in a script means every
+                // profile converts on the owner's next visit, including ones
+                // created between the deploy and any migration run.
+                if (!Array.isArray(data.addresses) && data.deliveryAddress1) {
+                  const first = fromFlatFields(data);
+                  if (first) {
+                    updateDoc(profileDoc, { addresses: [first] }).catch(() => {
+                      // The flat fields still work on their own, so a failure
+                      // here degrades to the old behaviour rather than
+                      // breaking checkout.
+                    });
+                  }
+                }
+
+                // Adopt the Auth display name for accounts that were created
+                // before registration wrote it here. Those profiles carry an
+                // empty customName, so the settings field showed "Anonymous"
+                // while the header — which reads the Auth token — showed the
+                // real name. Writes once, then the condition stops matching.
+                if (!data.customName && u.displayName) {
+                  updateDoc(profileDoc, {
+                    customName: u.displayName,
+                    displayName: u.displayName,
+                  }).catch(() => {
+                    // Not worth surfacing: the name is cosmetic and the user
+                    // can set it on the settings page regardless.
+                  });
+                }
               } else {
                 // New user — create a minimal profile and flag them
                 const now = new Date();
@@ -136,13 +242,15 @@ export const useMyProfile = () => {
                   uid: u.uid,
                   displayName: u.displayName || "Anonymous",
                   photoURL: u.photoURL || "",
-                  customName: "",
+                  // Seeded from the Auth profile so a Google sign-in arrives
+                  // already named. Email signups race this — the listener
+                  // fires the moment the account exists, before the display
+                  // name has been written to it — so registerWithEmail also
+                  // writes customName itself once it knows the value.
+                  customName: u.displayName || "",
                   phone: "",
                   whatsappNumber: "",
                   usePhoneAsWhatsapp: true,
-                  whatsappVerified: false,
-                  shippingWM: 8,
-                  shippingEM: 12,
                   favouritesPublic: true,
                   trustScore: 100,
                   createdAt: Date.now(),
@@ -150,7 +258,10 @@ export const useMyProfile = () => {
                   scansUsed: 0,
                   scansResetAt: firstOfNextMonth,
                 };
-                setDoc(profileDoc, newProfile);
+                // Merged, not overwritten: registration may already have
+                // written the display name into this document a moment ago,
+                // and a bare setDoc would erase it.
+                setDoc(profileDoc, newProfile, { merge: true });
                 profile.value = newProfile;
                 isNewUser.value = true;
               }
@@ -187,5 +298,20 @@ export const useMyProfile = () => {
     await updateProfile({ customName: newName });
   };
 
-  return { profile, loading, isNewUser, updateProfile, updateCustomName };
+  /**
+   * Write the address book, and the mirror, in one go.
+   *
+   * The ONLY thing that should write `addresses` or the `delivery*` fields.
+   * Two writes that could be made separately are two writes that will
+   * eventually disagree — and the disagreement would show up as a cart
+   * shipping to an address the user had already deleted.
+   */
+  const saveAddresses = async (list: Address[]) => {
+    await updateProfile({
+      addresses: list,
+      ...toFlatFields(defaultAddress(list)),
+    });
+  };
+
+  return { profile, loading, isNewUser, updateProfile, updateCustomName, saveAddresses };
 };

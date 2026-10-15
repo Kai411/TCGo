@@ -1,10 +1,18 @@
 <template>
-  <!-- Landing layout is intentionally LIGHT-ONLY (marketing surface).
-       text-ink on the root pins child color to the light-mode value so
-       the body's `dark:text-zinc-100` rule can't bleed in when the user
-       has dark mode enabled app-wide. -->
+  <!-- Landing layout is intentionally LIGHT-ONLY (marketing surface). -->
   <div class="min-h-screen bg-white text-ink">
     <LandingNavbar class="sticky top-0" style="z-index: 2" />
     <slot />
   </div>
 </template>
+
+<script setup lang="ts">
+// Pins the document to light while any landing route is mounted, and restores
+// the visitor's own theme when they leave.
+//
+// The pre-paint script in nuxt.config.ts already covers a direct load or
+// refresh; this covers client-side navigation *into* these routes from the
+// marketplace, where the `dark` class is already on <html> and would otherwise
+// bleed through every `.dark .surface` rule in assets/css/tailwind.css.
+useLightOnlySurface();
+</script>

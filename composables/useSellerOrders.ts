@@ -1,0 +1,202 @@
+import type { CompiledOrder } from "~/composables/useCompiledOrders";
+import { withoutMergedChildren } from "~/shared/delivery-stage";
+
+
+/**
+ * Seller-side order queues, merge detection and the ship dialog.
+ *
+ * Extracted out of pages/seller/index.vue so the dashboard and the
+ * dedicated Orders page read from ONE definition of "to ship". They used to
+ * each carry their own filter, which is how a booked waybill could count as
+ * shipped in one place and not the other.
+ */
+export type OrderQueue =
+  | "toship"
+  | "awaiting"
+  | "shipped"
+  | "delivered"
+  | "cancelled"
+  | "all";
+
+export const ORDER_QUEUE_LABELS: Record<OrderQueue, string> = {
+  toship: "To ship",
+  awaiting: "Awaiting payment",
+  shipped: "In transit",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+  all: "All orders",
+};
+
+/**
+ * A paid order still sitting with the seller. "confirmed" is the legacy manual
+ * -payment state and belongs here too — both mean money is in and the parcel
+ * hasn't gone yet.
+ */
+export const isAwaitingShipment = (o: CompiledOrder) =>
+  o.status === "paid" || o.status === "confirmed";
+
+/** The courier label has been bought — seller just has to hand the parcel over. */
+export const hasWaybill = (o: CompiledOrder) => !!o.shipmentOrderNo;
+
+// Module-level: the defensive auto-merge must run once per session, not once
+// per component that happens to call this composable.
+let autoMergeStarted = false;
+
+// Tracking poll bookkeeping, module-level so navigating between the dashboard
+// and the Orders page doesn't re-poll the same consignments.
+const TRACK_TTL_MS = 5 * 60 * 1000;
+const TRACK_BATCH = 12;
+const lastTracked = new Map<string, number>();
+let syncingTracking = false;
+
+export const useSellerOrders = () => {
+  const { sellerCompiledOrders, mergeOrders } = useCompiledOrders();
+
+  /**
+   * Every queue reads through here, so a merged child is filtered once.
+   *
+   * A child that was folded into another parcel is a cancelled stub. Left in,
+   * it appeared as an order of its own WITH a "book courier" button — which is
+   * how a combined parcel gets a second label that the platform pays for.
+   */
+  const live = computed(() => withoutMergedChildren(sellerCompiledOrders.value));
+
+  const byStatus = (...s: CompiledOrder["status"][]) =>
+    computed(() => live.value.filter((o) => s.includes(o.status)));
+
+  const awaitingPayment = byStatus("pending");
+  const shipped = byStatus("shipped");
+  const delivered = byStatus("delivered");
+  const cancelled = byStatus("cancelled");
+
+  const toShip = computed(() =>
+    live.value.filter(isAwaitingShipment),
+  );
+
+  /** Subset of `toShip` whose label is already paid for — the fastest wins. */
+  const readyToHandOver = computed(() => toShip.value.filter(hasWaybill));
+
+  /** Subset of `toShip` with no label yet. */
+  const needsWaybill = computed(() => toShip.value.filter((o) => !hasWaybill(o)));
+
+  const queue = (q: OrderQueue): CompiledOrder[] => {
+    switch (q) {
+      case "toship":
+        return toShip.value;
+      case "awaiting":
+        return awaitingPayment.value;
+      case "shipped":
+        return shipped.value;
+      case "delivered":
+        return delivered.value;
+      case "cancelled":
+        return cancelled.value;
+      default:
+        return live.value;
+    }
+  };
+
+  const queueCount = (q: OrderQueue) => queue(q).length;
+
+  // ── Courier-driven status ───────────────────────────────────────────
+  // The manual "Mark shipped" dialog is gone: order status now follows the
+  // courier's own scans via /api/shipping/track, so a seller can't tell the
+  // buyer a parcel is on its way before the courier has actually collected it.
+  // markShipped() remains on useCompiledOrders as a deliberate escape hatch
+  // for a shipment that never got a Delyva booking.
+  //
+  // Which leaves the question of who asks the courier. The order page only
+  // polls for the *buyer*, so without this an order would advance only if the
+  // buyer happened to open it — and since payout eligibility keys off
+  // deliveredAt, a quiet buyer would leave the seller's money locked up. The
+  // seller's own Orders page now polls too.
+  const trackable = (o: CompiledOrder) =>
+    !!o.trackingNumber && o.status !== "delivered" && o.status !== "cancelled";
+
+  const syncTracking = async () => {
+    if (syncingTracking) return;
+    syncingTracking = true;
+    try {
+      const { authedFetch } = useAuthedFetch();
+      const now = Date.now();
+      const due = sellerCompiledOrders.value
+        .filter(trackable)
+        .filter((o) => now - (lastTracked.get(o.id) ?? 0) > TRACK_TTL_MS)
+        // One shop can have a long tail of open orders; cap the burst so a
+        // page load never fires dozens of courier calls at once.
+        .slice(0, TRACK_BATCH);
+
+      for (const o of due) {
+        lastTracked.set(o.id, now);
+        try {
+          await authedFetch("/api/shipping/track", {
+            method: "POST",
+            body: { orderId: o.id },
+          });
+        } catch (e) {
+          // A parcel the courier hasn't scanned yet is the normal case, and
+          // one failure must not stop the rest of the batch.
+          console.debug("[useSellerOrders] tracking sync skipped", o.id, e);
+        }
+      }
+    } finally {
+      syncingTracking = false;
+    }
+  };
+
+  // Sellers can no longer merge orders by hand, and the button is gone.
+  //
+  // Anything still combinable is a pair the buyer paid two shipping fees for,
+  // so combining them and keeping the difference is precisely the unfairness
+  // that shared/order-joining.ts exists to prevent. Two parcels is the honest
+  // outcome: it is what was paid for. Orders that CAN be combined for free are
+  // now joined automatically at payment and the seller never sees a prompt.
+  //
+  // /api/orders/merge survives for recovery, and refuses labelled orders.
+
+  /**
+   * Defensive auto-merge of duplicate *pending* orders from one buyer — they
+   * are the same checkout hitting Firestore twice. Registered once per session.
+   */
+  const startAutoMerge = () => {
+    if (autoMergeStarted) return;
+    autoMergeStarted = true;
+    let running = false;
+    watch(sellerCompiledOrders, async (orders) => {
+      if (running) return;
+      const byBuyer = new Map<string, CompiledOrder[]>();
+      for (const o of orders) {
+        if (o.status !== "pending") continue;
+        // Auction wins are one-order-per-auction with a payment deadline —
+        // never fold them into a marketplace checkout.
+        if (o.auctionId || o.mergedInto) continue;
+        if (!byBuyer.has(o.buyerUid)) byBuyer.set(o.buyerUid, []);
+        byBuyer.get(o.buyerUid)!.push(o);
+      }
+      const dupe = [...byBuyer.values()].find((g) => g.length >= 2);
+      if (!dupe) return;
+      running = true;
+      try {
+        await mergeOrders(dupe.map((o) => o.id));
+      } catch (e) {
+        console.error("[useSellerOrders] pending auto-merge failed:", e);
+      } finally {
+        running = false;
+      }
+    });
+  };
+
+  return {
+    awaitingPayment,
+    toShip,
+    readyToHandOver,
+    needsWaybill,
+    shipped,
+    delivered,
+    cancelled,
+    queue,
+    queueCount,
+    syncTracking,
+    startAutoMerge,
+  };
+};

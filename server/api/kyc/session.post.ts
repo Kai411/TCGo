@@ -1,0 +1,123 @@
+// Start a Didit identity verification for the signed-in user.
+//
+// Server-side because the API key must never reach the browser. The caller is
+// identified from their Firebase ID token, never from anything the client
+// sends: `vendor_data` is what the webhook uses to decide whose profile to
+// mark verified, so letting the browser choose it would let anyone claim
+// someone else's verification.
+
+import { getAdminFirestore } from "~/server/utils/firebase-admin";
+import { noteError } from "~/server/utils/oplog";
+import { requireUser } from "~/server/utils/auth";
+import { DIDIT_BASE, DIDIT_KYC_WORKFLOW_ID } from "~/shared/didit";
+
+export default defineEventHandler(async (event) => {
+  const caller = await requireUser(event);
+
+  const config = useRuntimeConfig();
+  const apiKey = config.diditApiKey as string;
+  if (!apiKey) {
+    throw createError({ statusCode: 500, message: "Identity verification is not configured" });
+  }
+
+  const db = getAdminFirestore();
+  const userRef = db.collection("users").doc(caller.uid);
+  const snap = await userRef.get();
+  const profile = (snap.data() ?? {}) as Record<string, any>;
+
+  // Already through — don't burn a verification (and a fee) re-running it.
+  if (profile.kycStatus === "verified") {
+    return { alreadyVerified: true, url: null, sessionId: profile.kycSessionId ?? null };
+  }
+
+  // Where Didit sends the user back.
+  //
+  // Prefers the request's own origin over the configured siteUrl, because a
+  // stale siteUrl sends people to a host that no longer resolves — which is
+  // exactly what a dead Cloudflare quick-tunnel URL left in .env did. The
+  // origin is always the host they are actually on.
+  //
+  // The webhook is a separate thing entirely: it is configured in the Didit
+  // dashboard, not here, and it is what writes kycStatus. Verification still
+  // completes even if the user never follows this callback home.
+  const siteUrl = getRequestURL(event).origin || (config.public.siteUrl as string);
+
+  // Return them where they started. Onboarding sends people here mid-signup,
+  // and dumping a buyer on the seller verification page is disorienting.
+  //
+  // Only a same-site path is ever accepted: taking a full URL from the client
+  // and handing it to a third party to redirect through is an open redirect,
+  // and a verified-identity flow is a high-trust place to have one.
+  const body = (await readBody(event).catch(() => ({}))) as { returnTo?: string };
+  const requested = typeof body?.returnTo === "string" ? body.returnTo : "";
+  const returnTo =
+    requested.startsWith("/") && !requested.startsWith("//")
+      ? requested
+      : "/seller/verify";
+
+  const res = await fetch(`${DIDIT_BASE}/v3/session/`, {
+    method: "POST",
+    headers: { "x-api-key": apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      workflow_id: DIDIT_KYC_WORKFLOW_ID,
+      // Our Firebase uid. The webhook reads this back to find the profile.
+      vendor_data: caller.uid,
+      callback: `${siteUrl}${returnTo}${returnTo.includes("?") ? "&" : "?"}kyc=done`,
+      // Echoed on every webhook for this session — useful when reading
+      // deliveries in the console months later.
+      metadata: { app: "tcgo", email: caller.email ?? null },
+    }),
+  });
+
+  if (!res.ok) {
+    // 403 means the key is missing, wrong, or revoked.
+    const detail = await res.text().catch(() => "");
+    console.error("[didit] session create failed", res.status, detail.slice(0, 300));
+
+    // "Try again shortly" is a lie for the two failures that never clear on
+    // their own. An exhausted balance in particular reads as a transient
+    // outage, and the person retrying is the only one who cannot fix it.
+    const outOfCredits = /credit/i.test(detail);
+    noteError({
+      area: "kyc",
+      severity: "error",
+      code: outOfCredits ? "didit.no_credits" : "didit.session_failed",
+      message: outOfCredits
+        ? "Didit rejected a session: the account is out of credits."
+        : `Didit rejected a session (HTTP ${res.status}).`,
+      userUid: caller.uid,
+      context: { status: res.status, detail: detail.slice(0, 300) },
+      hint: outOfCredits
+        ? "Top up at business.didit.me, or point DIDIT_KYC_WORKFLOW_ID at a zero-cost workflow."
+        : "Check the API key and that the workflow id belongs to the same Didit application.",
+    });
+
+    throw createError({
+      statusCode: 502,
+      message: outOfCredits
+        ? "Identity verification is briefly unavailable. We've been alerted — please try again later."
+        : "Couldn't start identity verification. Please try again shortly.",
+    });
+  }
+
+  const session = (await res.json()) as {
+    session_id: string;
+    url: string;
+    status: string;
+  };
+
+  // Record that a session is open BEFORE the user starts, so an abandoned
+  // flow is still visible to us rather than looking like they never tried.
+  await userRef.set(
+    {
+      kycStatus: profile.kycStatus === "declined" ? "declined" : "in_progress",
+      kycSessionId: session.session_id,
+      kycStartedAt: Date.now(),
+    },
+    { merge: true },
+  );
+
+  // Only what the client needs. session_token is for native SDKs and is
+  // deliberately not returned to a web caller.
+  return { url: session.url, sessionId: session.session_id };
+});
