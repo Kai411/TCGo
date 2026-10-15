@@ -117,6 +117,8 @@ service cloud.firestore {
       // document legitimately carries tier and trustScore — so pin their
       // values rather than forbidding the keys, and forbid the rest outright.
       // Nobody self-issues a verified, premium, high-trust account.
+      // keys() is a List, and List.hasAny takes a list: passing a set
+      // (`.toSet()`) errors, which denied every new profile.
       allow create: if isOwner(uid)
         && request.resource.data.get('tier', 'free') == 'free'
         && request.resource.data.get('trustScore', 100) == 100
@@ -126,7 +128,7 @@ service cloud.firestore {
              'kycIssuingState', 'kycDeclineReason',
              'subscriptionStatus', 'stripeCustomerId', 'stripeSubscriptionId',
              'currentPeriodEnd', 'cancelAtPeriodEnd'
-           ].toSet());
+           ]);
 
       allow update: if isOwner(uid) && !touchesProtectedProfileFields();
       allow delete: if false;

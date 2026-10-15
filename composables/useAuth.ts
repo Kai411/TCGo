@@ -103,11 +103,14 @@ export const useAuth = () => {
       // name entered at signup the name on the settings page.
       await updateProfile(cred.user, { displayName: name });
       const { firestore } = useFirebase();
+      // Not fatal: if the profile write is refused, the code still has to go
+      // out, or the new account is stuck unverified. useProfile adopts the
+      // Auth name on the next visit.
       await setDoc(
         doc(firestore!, "users", cred.user.uid),
         { displayName: name, customName: name },
         { merge: true },
-      );
+      ).catch((e) => console.error("[registerWithEmail] profile name:", e));
     }
     await requestCode(email, "verify_email");
   };
