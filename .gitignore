@@ -33,3 +33,6 @@ graphify-out/
 # Local Firestore backups written by scripts/clear-order-history.mjs
 order-history-backup-*.json
 firebase-wipe-backup-*.json
+
+# Local reports written by scripts/survey-firebase-data.mjs (account emails)
+firebase-survey-*.md
