@@ -31,13 +31,14 @@ export default defineEventHandler(async (event) => {
 
   const config = useRuntimeConfig();
   const xSignatureKey = config.billplzXSignatureKey as string;
-  if (xSignatureKey) {
-    if (!verifyBillplzSignature(body, xSignatureKey)) {
-      console.error("[billplz webhook] bad signature");
-      throw createError({ statusCode: 403, message: "Invalid signature" });
-    }
-  } else {
-    console.warn("[billplz webhook] NUXT_BILLPLZ_X_SIGNATURE_KEY not set — skipping verification");
+  // Fail closed: without the key anyone could post "paid" for any bill.
+  if (!xSignatureKey) {
+    console.error("[billplz webhook] NUXT_BILLPLZ_X_SIGNATURE_KEY not set — refusing callback");
+    throw createError({ statusCode: 500, message: "Payment callback not configured" });
+  }
+  if (!verifyBillplzSignature(body, xSignatureKey)) {
+    console.error("[billplz webhook] bad signature");
+    throw createError({ statusCode: 403, message: "Invalid signature" });
   }
 
   const billId = get("id");
