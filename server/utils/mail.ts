@@ -63,7 +63,7 @@ export const sendMail = async (
     headers: { "Api-Token": token, "Content-Type": "application/json" },
     body: JSON.stringify({
       from: {
-        email: (config.mailFrom as string) || "invoices@tcgo.shop",
+        email: (config.mailFrom as string) || "no-reply@tcgo.shop",
         name: (config.mailFromName as string) || "TCGo",
       },
       to: recipients,
