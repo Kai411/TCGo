@@ -13,7 +13,38 @@
     </div>
 
     <template v-else>
-      <div class="flex items-center justify-between mb-6 gap-3 flex-wrap">
+      <!-- Phones: back to Account (where these screens are opened from), the
+           title, then full-width tabs with a sliding underline. -->
+      <div class="lg:hidden">
+        <SubpageHeader :title="activeTab === 'purchases' ? 'My Orders' : 'My Activity'" />
+        <div
+          class="relative -mx-4 px-4 flex border-b border-black/[0.06] dark:border-white/[0.08] mb-4 select-none"
+          role="tablist"
+        >
+          <button
+            v-for="t in tabs"
+            :key="t.id"
+            type="button"
+            role="tab"
+            :aria-selected="activeTab === t.id"
+            @click="activeTab = t.id as TabId"
+            class="flex-1 min-h-[44px] text-sm font-semibold transition-colors duration-150"
+            :class="activeTab === t.id ? 'text-ink dark:text-white' : 'text-ink-soft dark:text-zinc-500'"
+          >
+            {{ t.label }}
+            <span v-if="t.count" class="ml-0.5 text-xs font-medium tabular-nums opacity-70">{{ t.count }}</span>
+          </button>
+          <span
+            class="absolute bottom-0 h-0.5 transition-transform duration-200 ease-out motion-reduce:transition-none"
+            :style="{ left: '1rem', width: `calc((100% - 2rem) / ${tabs.length})`, transform: `translateX(${activeTabIndex * 100}%)` }"
+            aria-hidden="true"
+          >
+            <span class="block mx-auto w-10 h-full rounded-full bg-pokemon-red" />
+          </span>
+        </div>
+      </div>
+
+      <div class="hidden lg:flex items-center justify-between mb-6 gap-3 flex-wrap">
         <h1 class="text-2xl font-bold text-ink dark:text-white">{{ activeTab === "purchases" ? "My Orders" : "My Activity" }}</h1>
         <TabStrip v-model="activeTab" :tabs="tabs" />
       </div>
@@ -57,15 +88,15 @@
 
           <template v-else>
             <!-- Filter by the states buyers actually think in -->
-            <div class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            <div class="flex gap-2 overflow-x-auto max-lg:[scrollbar-width:none] max-lg:[&::-webkit-scrollbar]:hidden -mx-4 px-4 lg:pb-1 lg:-mx-1 lg:px-1">
               <button
                 v-for="f in orderFilters"
                 :key="f.id"
                 @click="orderFilter = f.id"
-                class="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors"
+                class="shrink-0 inline-flex items-center min-h-[36px] px-4 text-[13px] lg:min-h-0 lg:px-3 lg:py-1.5 lg:text-xs rounded-full font-semibold border transition-colors"
                 :class="orderFilter === f.id
                   ? 'bg-ink text-white border-ink dark:bg-white dark:text-ink dark:border-white'
-                  : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 hover:border-gray-300'"
+                  : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 lg:hover:border-gray-300'"
               >
                 {{ f.label }}
                 <span v-if="f.count" class="ml-1 opacity-60">{{ f.count }}</span>
@@ -75,9 +106,10 @@
             <!-- Anything needing the buyer's action, pulled to the top -->
             <div
               v-if="orderFilter === 'all' && needsAction.length"
-              class="surface rounded-2xl border border-amber-200 dark:border-amber-500/20 overflow-hidden"
+              class="panel surface rounded-2xl border border-amber-200 dark:border-amber-500/20 overflow-hidden"
             >
-              <p class="px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10">
+              <p class="flex items-center gap-1.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300 lg:px-4 lg:py-2 lg:bg-amber-50 lg:dark:bg-amber-500/10">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 lg:hidden" aria-hidden="true" />
                 Needs your action
               </p>
               <div class="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
@@ -91,7 +123,13 @@
               </div>
             </div>
 
-            <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] overflow-hidden">
+            <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] overflow-hidden">
+              <p
+                v-if="orderFilter === 'all' && needsAction.length && visibleOrders.length"
+                class="lg:hidden pb-1 text-[11px] font-bold uppercase tracking-wide text-ink-muted dark:text-zinc-400"
+              >
+                All orders
+              </p>
               <p v-if="!visibleOrders.length" class="px-4 py-8 text-center text-sm text-gray-400 dark:text-zinc-500">
                 No {{ activeFilterLabel.toLowerCase() }} orders.
               </p>
@@ -114,7 +152,7 @@
             No active bids.
             <NuxtLink to="/auctions" class="text-pokemon-red hover:underline ml-1">Browse auctions →</NuxtLink>
           </p>
-          <div v-else class="grid grid-cols-2 gap-2 sm:gap-3 items-start">
+          <div v-else class="grid lg:grid-cols-2 lg:gap-3 items-start">
             <ActivityRow
               v-for="item in activeBids"
               :key="item.auction.id"
@@ -125,13 +163,28 @@
             >
               <template #meta>
                 <span class="text-pokemon-red font-semibold">Current RM {{ item.auction.currentPrice.toFixed(2) }}</span>
-                <span class="text-gray-500 dark:text-zinc-400 ml-2">Your max RM {{ item.myHighestBid.toFixed(2) }}</span>
-                <span class="ml-2 font-medium" :class="item.isLeading ? 'text-green-600' : 'text-red-500'">
+                <span class="text-gray-500 dark:text-zinc-400 lg:ml-2">Your max RM {{ item.myHighestBid.toFixed(2) }}</span>
+                <span class="hidden lg:inline ml-2 font-medium" :class="item.isLeading ? 'text-green-600' : 'text-red-500'">
                   {{ item.isLeading ? "Leading" : "Outbid" }}
                 </span>
               </template>
               <template #actions>
-                <span class="text-xs text-gray-400 dark:text-zinc-500">{{ formatTimeLeft(item.auction.endsAt) }}</span>
+                <!-- Phones: where you stand and how long is left, as one line
+                     under the price. -->
+                <span
+                  class="lg:hidden text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                  :class="item.isLeading
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                    : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'"
+                >
+                  {{ item.isLeading ? "Leading" : "Outbid" }}
+                </span>
+                <span
+                  class="text-xs lg:font-normal lg:text-gray-400 lg:dark:text-zinc-500"
+                  :class="endsSoon(item.auction.endsAt) ? 'text-pokemon-red font-semibold' : 'text-ink-muted dark:text-zinc-400'"
+                >
+                  <span class="lg:hidden">Ends in </span>{{ formatTimeLeft(item.auction.endsAt) }}
+                </span>
               </template>
             </ActivityRow>
           </div>
@@ -142,7 +195,7 @@
           <p v-if="!wonBids.length" class="text-sm text-gray-400 dark:text-zinc-500 py-3">
             No wins yet.
           </p>
-          <div v-else class="grid grid-cols-2 gap-2 sm:gap-3 items-start">
+          <div v-else class="grid lg:grid-cols-2 lg:gap-3 items-start">
             <ActivityRow
               v-for="item in wonBids"
               :key="item.auction.id"
@@ -155,7 +208,8 @@
                 <span class="text-pokemon-red font-semibold">Final RM {{ item.auction.currentPrice.toFixed(2) }}</span>
               </template>
               <template #actions>
-                <span class="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-medium">Won</span>
+                <span class="lg:hidden text-xs text-ink-muted dark:text-zinc-400">Ended {{ endedDate(item.auction.endsAt) }}</span>
+                <span class="hidden lg:inline text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-medium">Won</span>
               </template>
             </ActivityRow>
           </div>
@@ -333,6 +387,16 @@ const tabs = computed<TabItem[]>(() => [
   { id: "bidding", label: "Bidding", count: activeBids.value.length },
   { id: "won", label: "Won", count: wonBids.value.length },
 ]);
+
+const activeTabIndex = computed(() =>
+  Math.max(0, tabs.value.findIndex((t) => t.id === activeTab.value)),
+);
+
+// Under an hour left: the phone row turns the countdown red.
+const endsSoon = (endsAt: number) => endsAt - Date.now() < 3600000;
+
+const endedDate = (endsAt: number) =>
+  new Date(endsAt).toLocaleDateString("en-MY", { day: "numeric", month: "short" });
 
 const formatTimeLeft = (endsAt: number) => {
   const diff = endsAt - Date.now();

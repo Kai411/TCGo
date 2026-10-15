@@ -3,12 +3,16 @@
     :to="to"
     class="block group min-w-0"
   >
+    <!-- Phones: a flat row split by hairlines, with a card-shaped thumbnail
+         and any actions under the text so they never squeeze the title.
+         From lg up it's the bordered card it always was. -->
     <div
-      class="flex gap-3 sm:gap-4 items-center bg-white dark:bg-white/[0.04] rounded-xl p-3 sm:p-4 border border-gray-200 dark:border-white/[0.08] hover:border-pokemon-red/40 transition-colors"
+      class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2.5 items-center py-3 border-b border-black/[0.06] dark:border-white/[0.08] transition-opacity duration-150 active:opacity-60 lg:flex lg:gap-4 lg:items-center lg:p-4 lg:bg-white lg:dark:bg-white/[0.04] lg:rounded-xl lg:border lg:border-gray-200 lg:dark:border-white/[0.08] lg:hover:border-pokemon-red/40 lg:transition-colors lg:active:opacity-100"
       :class="{ 'opacity-60': dim }"
     >
       <div
-        class="w-14 h-14 sm:w-16 sm:h-16 shrink-0 bg-gray-100 dark:bg-white/[0.04] rounded-lg overflow-hidden"
+        class="w-14 aspect-[5/7] shrink-0 self-start bg-gray-100 dark:bg-white/[0.04] rounded-md overflow-hidden lg:w-16 lg:h-16 lg:aspect-auto lg:self-auto lg:rounded-lg"
+        :class="{ 'row-span-2': $slots.actions }"
       >
         <img
           v-if="image"
@@ -20,24 +24,24 @@
       </div>
       <div class="flex-1 min-w-0">
         <p
-          class="font-semibold text-sm text-ink dark:text-white truncate group-hover:text-pokemon-red transition-colors"
+          class="font-medium lg:font-semibold text-sm leading-snug lg:leading-5 text-ink dark:text-white line-clamp-2 lg:line-clamp-1 lg:group-hover:text-pokemon-red transition-colors"
         >
           {{ title }}
         </p>
         <p
           v-if="subtitle"
-          class="text-xs text-ink-muted dark:text-zinc-400 truncate"
+          class="mt-0.5 lg:mt-0 text-xs text-ink-muted dark:text-zinc-400 truncate"
         >
           {{ subtitle }}
         </p>
         <div
           v-if="$slots.meta"
-          class="mt-1 flex flex-wrap items-center text-xs gap-x-2 gap-y-0.5"
+          class="mt-1.5 lg:mt-1 flex flex-wrap items-center text-xs gap-x-2 gap-y-0.5"
         >
           <slot name="meta" />
         </div>
       </div>
-      <div v-if="$slots.actions" class="shrink-0 flex items-center gap-2">
+      <div v-if="$slots.actions" class="col-start-2 flex items-center gap-2 lg:shrink-0">
         <slot name="actions" />
       </div>
     </div>
