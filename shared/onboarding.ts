@@ -4,9 +4,15 @@
 // and any screen that wants to show progress — so "you still need X" and the
 // thing that actually stops you can never disagree.
 //
-// BUYING ASKS FOR TWO THINGS
-//   1. Confirm the email      — proves the address can receive the code
-//   2. Delivery address       — nothing can be quoted or shipped without one
+// BUYING ASKS FOR THREE THINGS
+//   1. Personal data consent  — PDPA: no collecting before they agree
+//   2. Confirm the email      — proves the address can receive the code
+//   3. Delivery address       — nothing can be quoted or shipped without one
+//
+// Consent is tied to LEGAL_VERSION, so bumping it asks every member again —
+// existing accounts included, which is how members who joined before this
+// step existed get asked at all. Email sign-up ticks it on the form; Google
+// sign-up has no form, so this step is where those accounts are asked.
 //
 // Identity verification is NOT here. Buying is the low-risk direction: money
 // leaves the buyer and cards come back, and demanding a document scan to spend
@@ -19,8 +25,9 @@
 // on a WhatsApp check that could not actually be performed.
 
 import { isKycVerified, type KycStatus } from "~/shared/didit";
+import { LEGAL_VERSION } from "~/shared/legal";
 
-export type OnboardingStepId = "email" | "address";
+export type OnboardingStepId = "consent" | "email" | "address";
 
 export interface OnboardingStep {
   id: OnboardingStepId;
@@ -30,6 +37,11 @@ export interface OnboardingStep {
 }
 
 export const ONBOARDING_STEPS: OnboardingStep[] = [
+  {
+    id: "consent",
+    title: "Your personal data",
+    blurb: "What we collect, why, and your OK to go ahead.",
+  },
   {
     id: "email",
     title: "Confirm your email",
@@ -44,6 +56,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
 
 /** The subset of a profile these checks read. Shape-tolerant like the rest. */
 export interface OnboardingView {
+  /** LEGAL_VERSION the member last consented to. Written by composables/useConsent.ts. */
+  consentVersion?: string | null;
   deliveryName?: string | null;
   deliveryPhone?: string | null;
   deliveryAddress1?: string | null;
@@ -68,6 +82,10 @@ export const hasDeliveryAddress = (p: OnboardingView | null | undefined): boolea
     p?.deliveryCity?.trim() &&
     p?.deliveryState?.trim()
   );
+
+/** Consented to the policies as they stand now, not an older wording. */
+export const hasCurrentConsent = (p: OnboardingView | null | undefined): boolean =>
+  p?.consentVersion === LEGAL_VERSION;
 
 /**
  * Reads through isKycVerified rather than comparing a string here.
@@ -99,6 +117,7 @@ export const onboardingState = (
   emailVerified: boolean,
 ): OnboardingState => {
   const done: Record<OnboardingStepId, boolean> = {
+    consent: hasCurrentConsent(p),
     email: emailVerified,
     address: hasDeliveryAddress(p),
   };

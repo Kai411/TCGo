@@ -97,15 +97,26 @@
             </p>
           </div>
 
-          <label v-if="mode === 'register'" class="mt-4 flex items-start gap-2.5 text-[12px] leading-relaxed text-ink-muted dark:text-zinc-400">
-            <input v-model="acceptedTerms" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-pokemon-red" />
-            <span>
-              I agree to the
-              <NuxtLink to="/terms" target="_blank" class="font-semibold text-pokemon-red hover:underline">Terms of Use</NuxtLink>
-              and have read the
-              <NuxtLink to="/privacy-policy" target="_blank" class="font-semibold text-pokemon-red hover:underline">Privacy Policy</NuxtLink>.
-            </span>
-          </label>
+          <template v-if="mode === 'register'">
+            <label class="mt-4 flex items-start gap-2.5 text-[12px] leading-relaxed text-ink-muted dark:text-zinc-400">
+              <input v-model="acceptedTerms" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-pokemon-red" />
+              <span>
+                I agree to the
+                <NuxtLink to="/terms" target="_blank" class="font-semibold text-pokemon-red hover:underline">Terms of Use</NuxtLink>.
+              </span>
+            </label>
+            <!-- PDPA consent. Its own box, set apart from the Terms line: the
+                 PDPA Regulations 2013 (reg. 3) want a consent request that
+                 sits beside another matter to look distinct from it. -->
+            <label class="mt-3 flex items-start gap-2.5 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.02] dark:bg-white/[0.03] p-3 text-[12px] leading-relaxed text-ink dark:text-zinc-200">
+              <input v-model="acceptedPrivacy" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-pokemon-red" />
+              <span>
+                <span class="font-semibold">Personal data consent.</span>
+                I consent to TCGo collecting, using and sharing my personal data as described in the
+                <NuxtLink to="/privacy-policy" target="_blank" class="font-semibold text-pokemon-red hover:underline">Privacy Policy</NuxtLink>.
+              </span>
+            </label>
+          </template>
 
           <p v-if="error" class="mt-3 text-[13px] text-rose-600 dark:text-rose-400">{{ error }}</p>
 
@@ -211,10 +222,10 @@
 
       <p class="mt-5 text-center text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500">
         By continuing, including with Google, you agree to TCGo's
-        <NuxtLink to="/terms" target="_blank" class="underline hover:text-pokemon-red">Terms of Use</NuxtLink>
-        and acknowledge the
-        <NuxtLink to="/privacy-policy" target="_blank" class="underline hover:text-pokemon-red">Privacy Policy</NuxtLink>.
-        We never post anything on your behalf.
+        <NuxtLink to="/terms" target="_blank" class="underline hover:text-pokemon-red">Terms of Use</NuxtLink>.
+        New Google accounts are asked to consent to the
+        <NuxtLink to="/privacy-policy" target="_blank" class="underline hover:text-pokemon-red">Privacy Policy</NuxtLink>
+        before going further. We never post anything on your behalf.
       </p>
     </div>
   </div>
@@ -255,9 +266,11 @@ const purpose = ref<Purpose>("verify_email");
 const email = ref("");
 const password = ref("");
 const displayName = ref("");
-// Email sign-up asks for an explicit tick. Google sign-in can create an
-// account too, so the line under the card states the same terms for it.
+// Email sign-up asks for explicit ticks. Google sign-in can create an
+// account too: the line under the card states the Terms for it, and
+// onboarding asks for the PDPA consent there is no form to tick here.
 const acceptedTerms = ref(false);
+const acceptedPrivacy = ref(false);
 const code = ref("");
 const showPassword = ref(false);
 
@@ -339,6 +352,10 @@ const submitCredentials = () =>
     if (mode.value === "register") {
       if (!acceptedTerms.value) {
         error.value = "Please agree to the Terms of Use to create an account.";
+        return;
+      }
+      if (!acceptedPrivacy.value) {
+        error.value = "Please give your personal data consent to create an account.";
         return;
       }
       if (password.value.length < MIN_PASSWORD) {
