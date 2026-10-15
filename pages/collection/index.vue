@@ -348,8 +348,9 @@
             }}
           </span>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div class="-mx-1.5 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
           <CollectionItemCard
+            dense
             v-for="card in collectionCards"
             :key="card.productId"
             :card="card"
@@ -427,8 +428,9 @@
             </button>
           </div>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div class="-mx-1.5 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
           <CollectionItemCard
+            dense
             v-for="card in searchResults"
             :key="card.productId"
             :card="card"
@@ -478,7 +480,7 @@ import { parseSearchQuery } from "~/shared/search-query";
 
 useHead({ title: "Add Cards | TCGo Marketplace" });
 
-// Divisible by 2, 3 and 5 — the three grid widths — so the last row is never
+// Divisible by 3 and 5 — the grid widths — so the last row is never
 // left with empty slots at any breakpoint.
 const SEARCH_PAGE_SIZE = 30;
 
