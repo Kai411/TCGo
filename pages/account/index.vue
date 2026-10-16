@@ -126,22 +126,31 @@
       <!-- Selling. New sellers get the invitation; set-up sellers get their
            dashboard, with the same unread dot the nav used to carry. -->
       <NuxtLink
-        v-if="!isSeller"
+        v-if="!sellerLoading && !isSeller"
         to="/seller/onboarding"
         class="press block rounded-2xl p-5 bg-pokemon-red text-white shadow-glow"
       >
-        <p class="text-lg font-bold">Start selling on TCGo</p>
-        <p class="text-sm text-white/85 mt-1">
-          List your cards or start an auction. Setting up takes a few minutes.
-        </p>
+        <template v-if="sellerSetup.percent === 0">
+          <p class="text-lg font-bold">Start selling on TCGo</p>
+          <p class="text-sm text-white/85 mt-1">
+            List your cards or start an auction. Setting up takes a few minutes.
+          </p>
+        </template>
+        <template v-else>
+          <p class="text-lg font-bold">Finish setting up your shop</p>
+          <p class="text-sm text-white/85 mt-1">
+            {{ SELLER_STEPS.length - sellerSetup.remaining.length }} of {{ SELLER_STEPS.length }} done.
+            Next: {{ nextSellerStep }}.
+          </p>
+        </template>
         <span
           class="mt-4 inline-flex items-center min-h-[40px] px-4 rounded-full bg-white text-pokemon-red text-sm font-semibold"
         >
-          Set up selling
+          {{ sellerSetup.percent === 0 ? "Set up selling" : "Continue setup" }}
         </span>
       </NuxtLink>
       <NuxtLink
-        v-else
+        v-else-if="!sellerLoading"
         to="/seller"
         class="press surface flex items-center gap-4 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4 min-h-[64px]"
       >
@@ -268,6 +277,7 @@
 <script setup lang="ts">
 import { h, computed, ref, watch } from "vue";
 import { LEGAL_LINKS } from "~/shared/legal";
+import { SELLER_STEPS } from "~/shared/onboarding";
 import { badgeLabel } from "~/shared/notifications";
 import { withoutMergedChildren } from "~/shared/delivery-stage";
 import {
@@ -303,8 +313,12 @@ const showBuyerQr = ref(false);
 
 const avatarUrl = computed(() => profile.value?.photoURL || user.value?.photoURL || "");
 
-// Set when the seller finishes onboarding (pages/seller/verify.vue).
-const isSeller = computed(() => !!profile.value?.sellerKycCompletedAt);
+// The same four-step setup the seller area is gated on (useSellerKyc).
+const { sellerReady: isSeller, setup: sellerSetup, kycLoading: sellerLoading } = useSellerKyc();
+const nextSellerStep = computed(() => {
+  const id = sellerSetup.value.current;
+  return (SELLER_STEPS.find((s) => s.id === id)?.title ?? "").toLowerCase();
+});
 
 // ── Icons ────────────────────────────────────────────────────────────
 const stroke = {

@@ -16,7 +16,7 @@
       <div class="mb-5">
         <h1 class="text-2xl font-bold text-ink dark:text-white">Seller settings</h1>
         <p class="mt-1 text-sm text-ink-muted dark:text-zinc-400">
-          How your shop ships and gets paid. Your buyer profile lives under
+          Your seller details, and how your shop ships and gets paid. Your buyer profile lives under
           <NuxtLink :to="`/profile/${user.uid}`" class="font-semibold text-pokemon-red hover:underline">
             your profile
           </NuxtLink>.
@@ -24,37 +24,95 @@
       </div>
 
       <div class="panel surface rounded-2xl p-5 sm:p-6 space-y-7">
-        <!-- Verification -->
+        <!-- Setup status: the same four steps the seller area is gated on -->
         <div class="flex items-center justify-between gap-3">
           <div>
-            <p class="text-sm font-semibold text-ink dark:text-zinc-100">Verification</p>
+            <p class="text-sm font-semibold text-ink dark:text-zinc-100">Selling</p>
             <p class="text-xs text-ink-muted dark:text-zinc-400 mt-0.5">
-              Required before you can receive payouts.
+              {{ sellerReady ? "Your shop is set up." : `Still to do: ${missing.join(", ")}.` }}
             </p>
           </div>
-          <span
-            class="chip shrink-0"
-            :class="sellerReady
-              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
-              : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'"
+          <NuxtLink
+            v-if="!sellerReady"
+            to="/seller/onboarding"
+            class="chip shrink-0 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
           >
-            {{ sellerReady ? "Verified" : "Not verified" }}
+            Finish setup
+          </NuxtLink>
+          <span
+            v-else
+            class="chip shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+          >
+            Ready to sell
           </span>
         </div>
 
-        <!-- Pickup address -->
+        <!-- Identity -->
         <div class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08]">
-          <p class="text-sm font-semibold text-ink dark:text-zinc-100 mb-1">Pickup address</p>
-          <p class="text-sm text-ink-muted dark:text-zinc-400 mb-2">
-            Where couriers collect your parcels. Also used to quote shipping.
+          <p class="text-sm font-semibold text-ink dark:text-zinc-100 mb-1">Identity</p>
+          <p v-if="identityVerified" class="text-sm text-ink-muted dark:text-zinc-400">
+            Verified with your MyKad<span v-if="profile?.kycVerifiedName"> as {{ profile.kycVerifiedName }}</span>.
           </p>
-          <p v-if="pickupLine" class="text-sm text-ink-subtle dark:text-zinc-200">{{ pickupLine }}</p>
-          <NuxtLink
-            to="/seller/verify"
-            class="inline-block mt-2 text-sm font-semibold text-pokemon-red hover:underline"
-          >
-            {{ pickupLine ? "Edit in seller verification →" : "Add pickup address →" }}
-          </NuxtLink>
+          <KycVerifyCard v-else class="mt-2" />
+        </div>
+
+        <!-- Contact and pickup -->
+        <div id="pickup" class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08]">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-ink dark:text-zinc-100 mb-1">Contact and pickup</p>
+              <p class="text-sm text-ink-muted dark:text-zinc-400">
+                Where couriers collect your parcels. Also used to quote shipping.
+              </p>
+            </div>
+            <button
+              v-if="editing !== 'contact'"
+              class="shrink-0 text-sm font-semibold text-pokemon-red hover:underline"
+              @click="editing = 'contact'"
+            >
+              {{ pickupLine ? "Edit" : "Add" }}
+            </button>
+          </div>
+          <SellerContactForm
+            v-if="editing === 'contact'"
+            class="mt-4"
+            submit-label="Save"
+            cancellable
+            @saved="editing = null"
+            @cancel="editing = null"
+          />
+          <div v-else-if="pickupLine" class="mt-2 text-sm text-ink-subtle dark:text-zinc-200">
+            <p>{{ pickupLine }}</p>
+            <p v-if="contactNumber" class="text-ink-muted dark:text-zinc-400 tabular-nums">{{ contactNumber }}</p>
+          </div>
+        </div>
+
+        <!-- Bank account -->
+        <div id="bank" class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08]">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-ink dark:text-zinc-100 mb-1">Bank account</p>
+              <p class="text-sm text-ink-muted dark:text-zinc-400">
+                Where your sales are paid out.
+              </p>
+            </div>
+            <button
+              v-if="editing !== 'bank'"
+              class="shrink-0 text-sm font-semibold text-pokemon-red hover:underline"
+              @click="editing = 'bank'"
+            >
+              {{ bankLine ? "Edit" : "Add" }}
+            </button>
+          </div>
+          <SellerBankForm
+            v-if="editing === 'bank'"
+            class="mt-4"
+            submit-label="Save"
+            cancellable
+            @saved="editing = null"
+            @cancel="editing = null"
+          />
+          <p v-else-if="bankLine" class="mt-2 text-sm text-ink-subtle dark:text-zinc-200 tabular-nums">{{ bankLine }}</p>
         </div>
 
         <!-- Handover preference -->
@@ -139,6 +197,8 @@
 
 <script setup lang="ts">
 import { stateName } from "~/shared/my-states";
+import { isKycVerified } from "~/shared/didit";
+import { bankName, resolveBankCode } from "~/shared/banks";
 
 definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Settings | TCGo" });
@@ -146,7 +206,29 @@ useHead({ title: "Seller · Settings | TCGo" });
 const {user} = useAuth();
 const { goToLogin } = useSignInGate();
 const { profile, updateProfile } = useMyProfile();
-const { sellerReady } = useSellerKyc();
+const { sellerReady, missing } = useSellerKyc();
+const route = useRoute();
+
+// One section open at a time. A link to #bank or #pickup (Funds, the listing
+// pages) opens that section straight away.
+const editing = ref<"contact" | "bank" | null>(null);
+watch(
+  () => route.hash,
+  (hash) => {
+    if (hash === "#bank") editing.value = "bank";
+    if (hash === "#pickup") editing.value = "contact";
+  },
+  { immediate: true },
+);
+
+const identityVerified = computed(() => isKycVerified(profile.value?.kycStatus as any));
+const contactNumber = computed(() => profile.value?.phone || profile.value?.whatsappNumber || "");
+const bankLine = computed(() => {
+  const p = profile.value;
+  if (!p?.bankAccountNumber) return "";
+  const name = bankName(resolveBankCode(p.bankCode, p.bankName)) || p.bankName || "";
+  return `${name} ••••${p.bankAccountNumber.slice(-4)}${p.bankAccountHolder ? ` · ${p.bankAccountHolder}` : ""}`;
+});
 const { authedFetch } = useAuthedFetch();
 
 // ── Handover preference ───────────────────────────────────────────────

@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
   const returnTo =
     requested.startsWith("/") && !requested.startsWith("//")
       ? requested
-      : "/seller/verify";
+      : "/seller/onboarding";
 
   const res = await fetch(`${DIDIT_BASE}/v3/session/`, {
     method: "POST",

@@ -106,3 +106,24 @@ export const isKycVerified = (s: KycStatus | undefined | null): boolean =>
  */
 export const kycGatePassed = (s: KycStatus | undefined | null): boolean =>
   !KYC_REQUIRED || isKycVerified(s);
+
+/**
+ * The MyKad number from a Didit ID verification, or null.
+ *
+ * Payouts through Billplz need the seller's IC number, so seller setup used
+ * to ask for it by hand a minute after Didit had read it off the card. We
+ * keep this one field (in the owner-only private record), never the images.
+ * MyKad carries the 12-digit number as the document number; some readers
+ * report it as the personal number instead, so both are tried, and anything
+ * that isn't exactly 12 digits (a passport, a misread) is ignored.
+ */
+export const myKadNumberFrom = (
+  idv: { document_number?: unknown; personal_number?: unknown } | null | undefined,
+): string | null => {
+  for (const raw of [idv?.personal_number, idv?.document_number]) {
+    if (typeof raw !== "string") continue;
+    const digits = raw.replace(/[\s-]/g, "");
+    if (/^\d{12}$/.test(digits)) return digits;
+  }
+  return null;
+};

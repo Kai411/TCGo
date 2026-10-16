@@ -62,7 +62,7 @@
             <p v-if="bankLine" class="text-xs text-white/70 min-w-0 truncate">to {{ bankLine }}</p>
           </div>
           <p v-if="!bankLine" class="text-xs text-white/70 mt-2">
-            <NuxtLink to="/seller/verify" class="underline font-semibold text-white">Add your bank account</NuxtLink>
+            <NuxtLink to="/seller/settings#bank" class="underline font-semibold text-white">Add your bank account</NuxtLink>
             to receive payouts.
           </p>
           <!-- A failed transfer IS a problem, so this one keeps a warning tone. -->
@@ -266,8 +266,8 @@ const requesting = ref(false);
 const doRequestPayout = async () => {
   if (requesting.value || !canWithdraw.value) return;
   if (!bankLine.value) {
-    if (confirm("Add your bank account and IC number first to receive payouts. Go to verification?")) {
-      navigateTo("/seller/verify");
+    if (confirm("Add your bank account and IC number first to receive payouts. Go to Seller settings?")) {
+      navigateTo("/seller/settings#bank");
     }
     return;
   }

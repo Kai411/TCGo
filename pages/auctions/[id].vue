@@ -493,7 +493,7 @@
 
 <script setup lang="ts">
 import { AUCTION_PAYMENT_WINDOW_HOURS } from "~/shared/auctions";
-import { hasDeliveryAddress } from "~/shared/onboarding";
+import { readyToBuy } from "~/shared/onboarding";
 
 const route = useRoute();
 const auctionId = route.params.id as string;
@@ -696,7 +696,9 @@ const bidIntroSeen = () => {
 };
 
 const beforeBid = (label: string, action: () => Promise<void>) => {
-  if (!hasDeliveryAddress(myProfile.value)) {
+  // A bid is a promise to pay, so it needs a confirmed email and somewhere
+  // to ship. Onboarding asks for whichever is missing and comes back here.
+  if (!readyToBuy(myProfile.value, !!user.value?.emailVerified)) {
     navigateTo({ path: "/onboarding", query: { next: route.fullPath } });
     return;
   }

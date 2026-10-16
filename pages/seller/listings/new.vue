@@ -542,7 +542,7 @@
             <p class="text-xs text-gray-500 dark:text-zinc-400">
               Buyers are quoted a live courier rate from your pickup address to
               theirs at checkout — you don't set a price here.
-              <NuxtLink to="/seller/verify" class="text-pokemon-red hover:underline">
+              <NuxtLink to="/seller/settings#pickup" class="text-pokemon-red hover:underline">
                 Check your pickup address →
               </NuxtLink>
             </p>
@@ -613,21 +613,6 @@ const { createCard } = useCards();
 const { createListedFromCard } = useInventory();
 const { uploadAuctionImages } = useStorage();
 
-// Selling requires seller verification (contact + bank + pickup address).
-const { sellerReady, kycLoading } = useSellerKyc();
-watch(
-  [kycLoading, sellerReady],
-  ([loading, ready]) => {
-    if (!loading && !ready && useAuth().user.value) {
-      // The same stepped setup the seller middleware uses. This page-level
-      // check catches a direct link or refresh, where the middleware ran
-      // before the profile had loaded; it used to send people to a second,
-      // different setup form at /seller/verify.
-      navigateTo({ path: "/seller/onboarding", query: { next: "/seller/listings/new" } });
-    }
-  },
-  { immediate: true },
-);
 const {user} = useAuth();
 const { goToLogin } = useSignInGate();
 const { profile } = useMyProfile();

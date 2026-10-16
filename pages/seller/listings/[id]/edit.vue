@@ -88,7 +88,7 @@
             <p class="text-xs text-gray-500 dark:text-zinc-400">
               Buyers are quoted a live courier rate from your pickup address to
               theirs at checkout — there's no price to set per listing.
-              <NuxtLink to="/seller/verify" class="text-pokemon-red hover:underline">
+              <NuxtLink to="/seller/settings#pickup" class="text-pokemon-red hover:underline">
                 Check your pickup address →
               </NuxtLink>
             </p>
