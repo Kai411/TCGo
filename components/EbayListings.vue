@@ -195,7 +195,12 @@ const results = ref<Record<EbayMode, EbayListingsResponse | null>>({
   sold: null,
   active: null,
 });
-const mode = ref<EbayMode>("sold");
+// Off until kai's keyset is approved for Marketplace Insights (2026-10-16:
+// he asked for active listings only until then). Flip to true to bring back
+// Sold by default with the Sold/Active switch.
+const SOLD_ENABLED = false;
+
+const mode = ref<EbayMode>(SOLD_ENABLED ? "sold" : "active");
 const usable = (res: EbayListingsResponse | null) =>
   !!res && res.enabled && res.ok;
 const canSwitch = computed(
@@ -232,7 +237,7 @@ const load = async () => {
   loading.value = true;
   try {
     const [sold, active] = await Promise.all([
-      fetchMode("sold"),
+      SOLD_ENABLED ? fetchMode("sold") : Promise.resolve(null),
       fetchMode("active"),
     ]);
     if (current !== request) return;
