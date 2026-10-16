@@ -99,15 +99,32 @@ export const hasIdentity = (p: OnboardingView | null | undefined): boolean =>
   isKycVerified(p?.kycStatus as KycStatus | undefined);
 
 /**
- * Steps that only matter once someone buys, so they never block browsing.
+ * Steps that only matter once someone buys, sells or messages, so they never
+ * block browsing.
  *
  * The delivery address used to gate every page, which made signing up lock
- * the app tighter than staying signed out: a Google sign-up landed on the
- * card they came for, then their next tap anywhere was swapped for an
- * address form. It is asked for where it is needed instead — checkout and
- * the first bid send people to /onboarding with `next` set.
+ * the app tighter than staying signed out. The email code did the same: a
+ * code that was late or in spam left a new member unable to open any shop
+ * page. Both are asked for where they are needed instead — checkout, a bid,
+ * the seller area and messages (see needsConfirmedEmail and readyToBuy).
+ * Consent still blocks: the PDPA wants it before anything else is collected.
  */
-const NEEDED_TO_BUY: readonly OnboardingStepId[] = ["address"];
+const NEEDED_TO_BUY: readonly OnboardingStepId[] = ["email", "address"];
+
+/** What a purchase or a bid needs: a confirmed email and somewhere to ship. */
+export const readyToBuy = (
+  p: OnboardingView | null | undefined,
+  emailVerified: boolean,
+): boolean => emailVerified && hasDeliveryAddress(p);
+
+/**
+ * Routes that act in someone's name, so the email behind it must be real:
+ * paying, selling and messaging other members. Bids are checked in the page.
+ */
+const CONFIRMED_EMAIL_PREFIXES = ["/checkout", "/seller", "/messages"];
+
+export const needsConfirmedEmail = (path: string): boolean =>
+  CONFIRMED_EMAIL_PREFIXES.some((p) => path === p || path.startsWith(p + "/"));
 
 export interface OnboardingState {
   /** Steps still outstanding, in the order they should be done. */
@@ -291,7 +308,7 @@ export const sellerOnboardingState = (
  * correct something they already entered should not have to finish a flow to
  * reach the form that fixes it.
  */
-const SELLER_OPEN = ["/seller/onboarding", "/seller/settings", "/seller/verify"];
+const SELLER_OPEN = ["/seller/onboarding", "/seller/settings"];
 
 /**
  * Whether a path is inside the seller dashboard.
