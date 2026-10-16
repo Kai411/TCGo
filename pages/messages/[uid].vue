@@ -241,14 +241,8 @@ const replyLabel = computed(() => replyTimeLabel(otherStats.value));
 let unsubs: Unsubscribe[] = [];
 let unsubMessages: Unsubscribe | null = null;
 
-// Back returns to whatever page opened this chat. Vue Router records the
-// previous in-app entry in history.state.back; when there is none (opened
-// from a push, a refresh or a direct link) fall back to the inbox.
-const router = useRouter();
-const goBack = () => {
-  if (window.history.state?.back) router.back();
-  else navigateTo("/messages", { replace: true });
-};
+// Back returns to whatever page opened this chat, else the inbox.
+const goBack = useGoBack("/messages");
 
 const listenMessages = () => {
   unsubMessages?.();
