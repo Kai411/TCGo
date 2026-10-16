@@ -324,12 +324,6 @@ onBeforeUnmount(() => {
   document.removeEventListener("visibilitychange", onVisible);
 });
 
-watch([() => user.value?.uid, otherUid], () => {
-  listenInbox();
-  start();
-  void preAttach();
-}, { immediate: true });
-
 // ── Scrolling ─────────────────────────────────────────────────────────
 
 const scroller = ref<HTMLElement | null>(null);
@@ -565,6 +559,14 @@ const preAttach = async () => {
     console.warn("[chat] couldn't pre-attach", e);
   }
 };
+
+// Runs immediately, so it must come after every const it calls (calling
+// preAttach before its definition threw and 500'd every conversation).
+watch([() => user.value?.uid, otherUid], () => {
+  listenInbox();
+  start();
+  void preAttach();
+}, { immediate: true });
 </script>
 
 <style scoped>
