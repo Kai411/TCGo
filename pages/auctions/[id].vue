@@ -439,10 +439,62 @@
         </div>
       </div>
     </div>
+
+    <!-- First bid: what a bid commits you to, said once before it happens.
+         A bottom sheet on phones, a floating card from sm up. -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-opacity duration-200 ease-out"
+        enter-from-class="opacity-0"
+        leave-active-class="transition-opacity duration-150 ease-out"
+        leave-to-class="opacity-0"
+      >
+        <div v-if="bidIntroOpen" class="fixed inset-0 z-[70] bg-black/40" @click="bidIntroOpen = false" />
+      </Transition>
+      <Transition
+        enter-active-class="transition-transform duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)]"
+        enter-from-class="translate-y-full"
+        leave-active-class="transition-transform duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
+        leave-to-class="translate-y-full"
+      >
+        <div
+          v-if="bidIntroOpen"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bid-intro-title"
+          class="fixed inset-x-0 bottom-0 z-[71] surface rounded-t-3xl border-t border-black/[0.06] dark:border-white/[0.08] px-5 pt-3 pb-[max(20px,env(safe-area-inset-bottom))] sm:inset-x-auto sm:left-1/2 sm:bottom-6 sm:w-[420px] sm:-translate-x-1/2 sm:rounded-2xl sm:border"
+        >
+          <div class="mx-auto mb-4 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15 sm:hidden" aria-hidden="true" />
+          <h2 id="bid-intro-title" class="text-lg font-bold text-ink dark:text-white">Before your first bid</h2>
+          <ul class="mt-3 space-y-2.5 text-[14px] leading-relaxed text-ink-muted dark:text-zinc-300">
+            <li>A bid is a promise to buy at that price if you win.</li>
+            <li>If you win, you have {{ AUCTION_PAYMENT_WINDOW_HOURS }} hours to pay. Not paying cancels the win and can get your bidding restricted.</li>
+            <li>The seller's shipping fee is added to the winning price when you pay.</li>
+          </ul>
+          <button
+            type="button"
+            @click="confirmBidIntro"
+            class="mt-5 w-full rounded-xl bg-pokemon-red py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          >
+            {{ pendingBidLabel }}
+          </button>
+          <button
+            type="button"
+            @click="bidIntroOpen = false"
+            class="mt-2 w-full py-2 text-sm font-semibold text-ink-soft hover:text-ink dark:hover:text-white"
+          >
+            Not now
+          </button>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
+import { AUCTION_PAYMENT_WINDOW_HOURS } from "~/shared/auctions";
+import { hasDeliveryAddress } from "~/shared/onboarding";
+
 const route = useRoute();
 const auctionId = route.params.id as string;
 
@@ -522,6 +574,11 @@ const settle = async () => {
   }
 };
 
+// Declared above the watch below: an immediate watch reads it during setup,
+// and reading a const before its declaration throws, which took the whole
+// page down with a 500 on any direct link or refresh.
+const isEnded = ref(false);
+
 // Fires once the clock runs out (and on load for an already-ended auction).
 watch(
   () => isEnded.value && bids.value.length > 0 && !!user.value,
@@ -553,7 +610,6 @@ const minBidAmount = computed(() => {
 });
 
 const timeLeft = ref("");
-const isEnded = ref(false);
 let timer: ReturnType<typeof setInterval>;
 
 const updateTimer = () => {
@@ -619,7 +675,56 @@ watch(
   { immediate: true },
 );
 
-const handleQuickBid = async () => {
+// ── First bid ───────────────────────────────────────────────────────
+//
+// Two things are checked before the first bid instead of at sign-up:
+// a delivery address (a win becomes an order that has to be quoted and
+// shipped), and that the bidder has seen once what a bid commits them to.
+// Seen is remembered on this device only — losing it shows the note again,
+// which costs one tap.
+const BID_INTRO_KEY = "tcgo:bid-intro-seen";
+const bidIntroOpen = ref(false);
+const pendingBidLabel = ref("");
+let pendingBid: (() => Promise<void>) | null = null;
+
+const bidIntroSeen = () => {
+  try {
+    return localStorage.getItem(BID_INTRO_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
+const beforeBid = (label: string, action: () => Promise<void>) => {
+  if (!hasDeliveryAddress(myProfile.value)) {
+    navigateTo({ path: "/onboarding", query: { next: route.fullPath } });
+    return;
+  }
+  if (bidIntroSeen()) {
+    void action();
+    return;
+  }
+  pendingBid = action;
+  pendingBidLabel.value = label;
+  bidIntroOpen.value = true;
+};
+
+const confirmBidIntro = () => {
+  try {
+    localStorage.setItem(BID_INTRO_KEY, "1");
+  } catch {
+    // Private mode: the note shows again next time, nothing worse.
+  }
+  bidIntroOpen.value = false;
+  const action = pendingBid;
+  pendingBid = null;
+  if (action) void action();
+};
+
+const handleQuickBid = () =>
+  beforeBid(`Place bid RM ${minBidAmount.value.toFixed(2)}`, placeQuickBid);
+
+const placeQuickBid = async () => {
   bidError.value = "";
   bidSuccess.value = "";
   bidding.value = true;
@@ -637,13 +742,18 @@ const handleQuickBid = async () => {
   }
 };
 
-const handleAutoBid = async () => {
+const handleAutoBid = () => {
   bidError.value = "";
   bidSuccess.value = "";
   if (!autoBidMax.value || autoBidMax.value < minBidAmount.value) {
     bidError.value = `Max bid must be at least RM ${minBidAmount.value.toFixed(2)}`;
     return;
   }
+  beforeBid(`Set auto bid up to RM ${autoBidMax.value.toFixed(2)}`, placeAutoBid);
+};
+
+const placeAutoBid = async () => {
+  if (!autoBidMax.value) return;
   bidding.value = true;
   try {
     await setAutoBid(

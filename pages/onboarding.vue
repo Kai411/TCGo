@@ -6,9 +6,9 @@
         <img src="/tcgo_sprites_white.png" alt="TCGo" class="h-full w-[96px] object-cover hidden dark:block" />
       </NuxtLink>
 
-      <!-- Progress. Three steps is few enough to show all of them, which is
-           better than "step 2 of 3" — someone can see what's still coming and
-           decide to finish now rather than being surprised twice. -->
+      <!-- Progress. Few enough steps to show all of them, which is better
+           than "step 2 of 3" — someone can see what's still coming and decide
+           to finish now rather than being surprised twice. -->
       <ol class="mb-7 space-y-1">
         <li
           v-for="(s, i) in ONBOARDING_STEPS"
@@ -129,19 +129,21 @@
           </p>
 
           <div class="mt-5 space-y-3">
-            <div class="grid grid-cols-2 gap-3">
+            <!-- One column on phones: side by side at 360px left the phone
+                 number about ten digits wide. -->
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label class="block">
                 <span class="lbl">Full name</span>
-                <input v-model="addr.deliveryName" autocomplete="name" class="field" />
+                <input v-model="addr.deliveryName" autocomplete="name" class="field" :class="missingClass('deliveryName')" />
               </label>
               <label class="block">
                 <span class="lbl">Phone</span>
-                <input v-model="addr.deliveryPhone" inputmode="tel" autocomplete="tel" placeholder="01x-xxx xxxx" class="field" />
+                <input v-model="addr.deliveryPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="01x-xxx xxxx" class="field" :class="missingClass('deliveryPhone')" />
               </label>
             </div>
             <label class="block">
               <span class="lbl">Address</span>
-              <input v-model="addr.deliveryAddress1" autocomplete="address-line1" class="field" />
+              <input v-model="addr.deliveryAddress1" autocomplete="address-line1" class="field" :class="missingClass('deliveryAddress1')" />
             </label>
             <label class="block">
               <span class="lbl">Unit, floor <span class="font-normal text-ink-soft">— optional</span></span>
@@ -150,16 +152,16 @@
             <div class="grid grid-cols-3 gap-3">
               <label class="block">
                 <span class="lbl">Postcode</span>
-                <input v-model="addr.deliveryPostcode" inputmode="numeric" maxlength="5" autocomplete="postal-code" class="field" />
+                <input v-model="addr.deliveryPostcode" inputmode="numeric" maxlength="5" autocomplete="postal-code" class="field" :class="missingClass('deliveryPostcode')" />
               </label>
               <label class="block col-span-2">
                 <span class="lbl">City</span>
-                <input v-model="addr.deliveryCity" autocomplete="address-level2" class="field" />
+                <input v-model="addr.deliveryCity" autocomplete="address-level2" class="field" :class="missingClass('deliveryCity')" />
               </label>
             </div>
             <label class="block">
               <span class="lbl">State</span>
-              <select v-model="addr.deliveryState" class="field">
+              <select v-model="addr.deliveryState" autocomplete="address-level1" class="field" :class="missingClass('deliveryState')">
                 <option value="" disabled>Choose a state</option>
                 <option v-for="s in MY_STATES" :key="s.code" :value="s.code">{{ s.name }}</option>
               </select>
@@ -172,18 +174,6 @@
           </button>
         </template>
 
-        <!-- ── Identity ─────────────────────────────────────────────── -->
-        <template v-else-if="state.current === 'identity'">
-          <h1 class="text-lg font-bold text-ink dark:text-white">Verify your identity</h1>
-          <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
-            A photo of your MyKad and a selfie. Takes about a minute, and it's
-            what keeps fake accounts off the marketplace.
-          </p>
-          <div class="mt-5">
-            <KycVerifyCard />
-          </div>
-        </template>
-
         <!-- ── Done ─────────────────────────────────────────────────── -->
         <template v-else>
           <div class="text-center py-4">
@@ -192,15 +182,25 @@
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h1 class="text-lg font-bold text-ink dark:text-white">You're all set</h1>
+            <h1 class="text-lg font-bold text-ink dark:text-white">You're ready to buy</h1>
             <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
-              Your account is ready to buy and sell.
+              Taking you back to where you were.
             </p>
-            <button @click="finish" class="btn-primary mt-5">Start browsing</button>
+            <button @click="finish" class="btn-primary mt-5">Continue</button>
           </div>
         </template>
       </div>
 
+      <!-- Only the address is left: it is asked for at checkout or a bid,
+           so stepping back out is allowed. An unconfirmed email still
+           offers only Sign out. -->
+      <button
+        v-if="!state.complete && !state.blocking"
+        @click="finish"
+        class="mx-auto mt-6 block text-[13px] font-semibold text-ink-muted dark:text-zinc-400 hover:underline"
+      >
+        Not now
+      </button>
       <button @click="signOutAndLeave" class="mx-auto mt-6 block text-[12px] text-ink-soft dark:text-zinc-500 hover:underline">
         Sign out
       </button>
@@ -210,7 +210,7 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted, reactive, ref, watch } from "vue";
-import { MY_STATES } from "~/shared/my-states";
+import { MY_STATES, stateForPostcode } from "~/shared/my-states";
 import { newAddressId } from "~/shared/addresses";
 import {
   ONBOARDING_STEPS,
@@ -283,6 +283,8 @@ onUnmounted(() => timer && clearInterval(timer));
 watch(code, (v) => {
   const digits = v.replace(/\D/g, "").slice(0, 6);
   if (digits !== v) code.value = digits;
+  // The sixth digit is the submit: no reaching past the keyboard for a button.
+  else if (digits.length === 6) submitCode();
 });
 
 const run = async (fn: () => Promise<void>) => {
@@ -331,17 +333,34 @@ const giveConsent = () =>
   });
 
 // ── Address step ──────────────────────────────────────────────────────
+
+// A full postcode fills an empty State. Only empty: a choice the member made
+// is never overwritten, since a few border postcodes are shared.
+watch(
+  () => addr.deliveryPostcode,
+  (pc) => {
+    const code = stateForPostcode(pc);
+    if (code && !addr.deliveryState) addr.deliveryState = code;
+  },
+);
+
+const REQUIRED = [
+  "deliveryName",
+  "deliveryPhone",
+  "deliveryAddress1",
+  "deliveryPostcode",
+  "deliveryCity",
+  "deliveryState",
+] as const;
+const triedSave = ref(false);
+const missingClass = (k: (typeof REQUIRED)[number]) =>
+  triedSave.value && !addr[k].trim() ? "!border-rose-500 dark:!border-rose-400" : "";
+
 const saveAddress = () =>
   run(async () => {
-    if (
-      !addr.deliveryName.trim() ||
-      !addr.deliveryPhone.trim() ||
-      !addr.deliveryAddress1.trim() ||
-      !addr.deliveryPostcode.trim() ||
-      !addr.deliveryCity.trim() ||
-      !addr.deliveryState
-    ) {
-      error.value = "Fill in everything except the unit line.";
+    triedSave.value = true;
+    if (REQUIRED.some((k) => !addr[k].trim())) {
+      error.value = "Fill in the fields marked in red. Only the unit line is optional.";
       return;
     }
     // Written as the first card in the address book, which marks it default

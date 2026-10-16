@@ -10,6 +10,19 @@
 // exactly where they were, which is the difference between an interruption
 // and a dead end.
 
+// Set once any account signs in on this device. Without it, the login page
+// opens on "Create your account": a first-time visitor tapping "Sign in to
+// buy" was greeted with "Welcome back" and had to find the sign-up link.
+export const SIGNED_IN_BEFORE_KEY = "tcgo:signed-in-before";
+
+const loginMode = (): "signin" | "register" => {
+  try {
+    return localStorage.getItem(SIGNED_IN_BEFORE_KEY) ? "signin" : "register";
+  } catch {
+    return "signin";
+  }
+};
+
 export const useSignInGate = () => {
   const { user } = useAuth();
   const route = useRoute();
@@ -20,7 +33,7 @@ export const useSignInGate = () => {
    */
   const requireSignIn = (): boolean => {
     if (user.value) return true;
-    navigateTo({ path: "/login", query: { next: route.fullPath } });
+    navigateTo({ path: "/login", query: { next: route.fullPath, mode: loginMode() } });
     return false;
   };
 
@@ -31,8 +44,11 @@ export const useSignInGate = () => {
    * signInWithGoogle() directly, which made Google the only way in and threw
    * away the page the visitor was on.
    */
-  const goToLogin = () => {
-    navigateTo({ path: "/login", query: { next: route.fullPath } });
+  // Most callers bind this straight to @click, so the argument is often the
+  // click event: only an explicit mode string overrides the default.
+  const goToLogin = (mode?: unknown) => {
+    const m = mode === "signin" || mode === "register" ? mode : loginMode();
+    navigateTo({ path: "/login", query: { next: route.fullPath, mode: m } });
   };
 
   return { requireSignIn, goToLogin };

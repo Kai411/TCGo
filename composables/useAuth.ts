@@ -12,6 +12,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { computed, ref } from "vue";
+import { SIGNED_IN_BEFORE_KEY } from "~/composables/useSignInGate";
 
 const user = ref<User | null>(null);
 const authLoading = ref(true);
@@ -57,6 +58,13 @@ export const useAuth = () => {
     onAuthStateChanged(auth, (u) => {
       user.value = u;
       authLoading.value = false;
+      if (u) {
+        try {
+          localStorage.setItem(SIGNED_IN_BEFORE_KEY, "1");
+        } catch {
+          // Storage blocked: the login page just opens on sign-up next time.
+        }
+      }
     });
   }
 
@@ -103,11 +111,14 @@ export const useAuth = () => {
       // name entered at signup the name on the settings page.
       await updateProfile(cred.user, { displayName: name });
       const { firestore } = useFirebase();
+      // Not fatal: if the profile write is refused, the code still has to go
+      // out, or the new account is stuck unverified. useProfile adopts the
+      // Auth name on the next visit.
       await setDoc(
         doc(firestore!, "users", cred.user.uid),
         { displayName: name, customName: name },
         { merge: true },
-      );
+      ).catch((e) => console.error("[registerWithEmail] profile name:", e));
     }
     await requestCode(email, "verify_email");
   };

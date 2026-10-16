@@ -30,6 +30,24 @@
       <div class="panel surface rounded-2xl p-6 sm:p-7">
         <!-- ── Sign in / register ─────────────────────────────────── -->
         <form v-if="step === 'credentials'" @submit.prevent="submitCredentials" novalidate>
+          <!-- Google first: on a phone it is one tap against a form, and it
+               skips the email code. -->
+          <button type="button" @click="withGoogle" :disabled="busy" class="btn-secondary">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z"/>
+              <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24z"/>
+              <path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.6V6.7H1.4a12 12 0 0 0 0 10.8l4-3.1z"/>
+              <path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.5 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0A12 12 0 0 0 1.4 6.7l4 3.1C6.3 6.9 8.9 4.8 12 4.8z"/>
+            </svg>
+            Continue with Google
+          </button>
+
+          <div class="flex items-center gap-3 my-5">
+            <span class="h-px flex-1 bg-black/[0.08] dark:bg-white/[0.10]" />
+            <span class="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">or</span>
+            <span class="h-px flex-1 bg-black/[0.08] dark:bg-white/[0.10]" />
+          </div>
+
           <div v-if="mode === 'register'" class="mb-4">
             <label for="name" class="block text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-1.5">
               Display name
@@ -39,7 +57,7 @@
               v-model="displayName"
               type="text"
               autocomplete="name"
-              placeholder="What buyers will see"
+              placeholder="Shown on your profile and in messages"
               class="field"
             />
           </div>
@@ -57,6 +75,7 @@
               autocapitalize="none"
               spellcheck="false"
               class="field"
+              :class="tried && !email.trim() ? 'field-missing' : ''"
             />
           </div>
 
@@ -82,6 +101,7 @@
                 required
                 :autocomplete="mode === 'register' ? 'new-password' : 'current-password'"
                 class="field pr-16"
+                :class="tried && !password ? 'field-missing' : ''"
               />
               <button
                 type="button"
@@ -123,22 +143,6 @@
           <button type="submit" :disabled="busy" class="btn-primary mt-5">
             <span v-if="busy" class="spinner" />
             {{ mode === "register" ? "Create account" : "Sign in" }}
-          </button>
-
-          <div class="flex items-center gap-3 my-5">
-            <span class="h-px flex-1 bg-black/[0.08] dark:bg-white/[0.10]" />
-            <span class="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">or</span>
-            <span class="h-px flex-1 bg-black/[0.08] dark:bg-white/[0.10]" />
-          </div>
-
-          <button type="button" @click="withGoogle" :disabled="busy" class="btn-secondary">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z"/>
-              <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24z"/>
-              <path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.6V6.7H1.4a12 12 0 0 0 0 10.8l4-3.1z"/>
-              <path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.5 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0A12 12 0 0 0 1.4 6.7l4 3.1C6.3 6.9 8.9 4.8 12 4.8z"/>
-            </svg>
-            Continue with Google
           </button>
 
           <p class="mt-6 text-center text-[13px] text-ink-muted dark:text-zinc-400">
@@ -270,6 +274,9 @@ const displayName = ref("");
 // account too: the line under the card states the Terms for it, and
 // onboarding asks for the PDPA consent there is no form to tick here.
 const acceptedTerms = ref(false);
+// Set on the first submit, so empty fields are outlined only after someone
+// has tried, not while they are still filling the form in.
+const tried = ref(false);
 const acceptedPrivacy = ref(false);
 const code = ref("");
 const showPassword = ref(false);
@@ -313,6 +320,9 @@ onUnmounted(() => timer && clearInterval(timer));
 watch(code, (v) => {
   const digits = v.replace(/\D/g, "").slice(0, 6);
   if (digits !== v) code.value = digits;
+  // The sixth digit submits, except for a reset, which still needs the new
+  // password typed below it.
+  else if (digits.length === 6 && purpose.value === "verify_email") submitCode();
 });
 
 const clear = () => {
@@ -345,6 +355,7 @@ const destination = () => (route.query.next as string) || "/";
 
 const submitCredentials = () =>
   run(async () => {
+    tried.value = true;
     if (!email.value.trim() || !password.value) {
       error.value = "Enter your email and password.";
       return;
@@ -367,7 +378,16 @@ const submitCredentials = () =>
       // on the credentials step.
       purpose.value = "verify_email";
       step.value = "code";
-      await registerWithEmail(email.value, password.value, displayName.value);
+      try {
+        await registerWithEmail(email.value, password.value, displayName.value);
+      } catch (e: any) {
+        // No account was made, so there is no code coming: back to the form
+        // the error is about. (If the account exists and only the email
+        // failed, stay on the code step, where Resend is.)
+        if (!user.value) step.value = "credentials";
+        if (e?.code === "auth/email-already-in-use") mode.value = "signin";
+        throw e;
+      }
       startCooldown();
       return;
     }
@@ -390,11 +410,10 @@ const submitCode = () =>
       return;
     }
     await confirmEmail(email.value, code.value);
-    // Onboarding knows what else is outstanding; it sends them on when done.
-    await navigateTo({
-      path: "/onboarding",
-      query: route.query.next ? { next: route.query.next as string } : undefined,
-    });
+    // Straight back to what they came for. The address is asked for at
+    // checkout or the first bid; anything that does guard the marketplace
+    // is caught by the onboarding middleware on the way.
+    await navigateTo(destination());
   });
 
 const submitForgot = () =>
@@ -470,6 +489,9 @@ watch(
          bg-white dark:bg-white/[0.04] px-3.5 py-2.5 text-[15px] text-ink dark:text-white
          placeholder:text-ink-soft outline-none transition-colors
          focus:border-pokemon-red focus:ring-2 focus:ring-pokemon-red/20;
+}
+.field-missing {
+  @apply border-rose-500 dark:border-rose-400;
 }
 .btn-primary {
   @apply w-full inline-flex items-center justify-center gap-2 rounded-xl bg-pokemon-red

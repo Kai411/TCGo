@@ -619,7 +619,11 @@ watch(
   [kycLoading, sellerReady],
   ([loading, ready]) => {
     if (!loading && !ready && useAuth().user.value) {
-      navigateTo("/seller/verify");
+      // The same stepped setup the seller middleware uses. This page-level
+      // check catches a direct link or refresh, where the middleware ran
+      // before the profile had loaded; it used to send people to a second,
+      // different setup form at /seller/verify.
+      navigateTo({ path: "/seller/onboarding", query: { next: "/seller/listings/new" } });
     }
   },
   { immediate: true },

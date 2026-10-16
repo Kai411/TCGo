@@ -148,6 +148,21 @@ describe("buyer onboarding state", () => {
     assert.equal(s.complete, false);
   });
 
+  it("lets someone browse before giving an address", () => {
+    const s = onboardingState(consented, true);
+    assert.equal(s.complete, false);
+    assert.equal(s.blocking, null);
+  });
+
+  it("keeps an unconfirmed email out of the marketplace", () => {
+    assert.equal(onboardingState(consented, false).blocking, "email");
+    assert.equal(onboardingState({ ...consented, ...address }, false).blocking, "email");
+  });
+
+  it("keeps the personal data consent ahead of everything", () => {
+    assert.equal(onboardingState({}, true).blocking, "consent");
+  });
+
   it("never trusts a profile flag for email — only the token", () => {
     // Passing emailVerified: false must win even if the document claims it.
     const s = onboardingState({ ...consented, ...address, emailVerified: true } as never, false);

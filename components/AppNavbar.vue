@@ -328,6 +328,10 @@
       >
         <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15" aria-hidden="true" />
         <p class="px-2 pb-2 text-base font-bold text-ink dark:text-white">What are you selling?</p>
+        <p v-if="needsSellerSetup" class="px-2 pb-3 -mt-1 text-[13px] leading-relaxed text-ink-muted dark:text-zinc-400">
+          First time? Setup comes first and takes a few minutes: your MyKad,
+          a bank account and a pickup address.
+        </p>
         <NuxtLink
           v-for="item in sellItems"
           :key="item.to"
@@ -359,6 +363,7 @@
 
 <script setup lang="ts">
 import { h, computed } from "vue";
+import { sellerOnboardingState } from "~/shared/onboarding";
 
 const {user, authLoading} = useAuth();
 const { goToLogin } = useSignInGate();
@@ -466,6 +471,10 @@ const isTabActive = (to: string) => {
 };
 
 const sellSheetOpen = ref(false);
+// Said up front, so the setup screens after a tap aren't a surprise.
+const needsSellerSetup = computed(
+  () => !!profile.value && !sellerOnboardingState(profile.value).complete,
+);
 const onSellTap = () => {
   if (!user.value) {
     goToLogin();

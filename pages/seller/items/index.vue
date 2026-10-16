@@ -848,7 +848,7 @@ const bulkList = async () => {
   }
   if (!sellerReady.value) {
     alert("Complete seller verification before listing.");
-    router.push("/seller/verify");
+    router.push("/seller/onboarding?next=/seller/items");
     return;
   }
   // Bulk is where this matters most: CSV and scanner rows arrive with no
@@ -1224,7 +1224,7 @@ const confirmList = async () => {
   if (!listing.value || !user.value || listingBusy.value) return;
   if (!sellerReady.value) {
     alert("Complete seller verification before listing.");
-    router.push("/seller/verify");
+    router.push("/seller/onboarding?next=/seller/items");
     return;
   }
   if (!listPhotoOk.value) {
