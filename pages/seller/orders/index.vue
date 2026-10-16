@@ -83,14 +83,10 @@
 
         <div>
           <EmptyState v-if="!visible.length" :headline="emptyLabel" :caption="emptyCaption" />
-          <!-- Phones: flat orders split by hairlines, the waybill hint sitting
-               above each one instead of overlapping its corner. -->
-          <div v-else class="grid lg:grid-cols-2 lg:gap-3 items-start">
-            <div
-              v-for="order in visible"
-              :key="order.id"
-              class="relative py-4 border-b border-black/[0.06] dark:border-white/[0.08] lg:py-0 lg:border-0"
-            >
+          <!-- Phones: one card per order, the waybill hint sitting above each
+               card instead of overlapping its corner. -->
+          <div v-else class="grid lg:grid-cols-2 gap-3 items-start">
+            <div v-for="order in visible" :key="order.id" class="relative">
               <!-- Waybill hint: distinguishes "label bought, go hand it over"
                    from "still needs a label" inside the same To-ship queue. -->
               <span

@@ -3,10 +3,10 @@
     :to="`/orders/${order.id}`"
     class="group block lg:hover:bg-black/[0.02] lg:dark:hover:bg-white/[0.03] transition-colors"
   >
-    <!-- Phones: a small order card. Seller and stage on top, the card and
-         total in the middle, and the one next step as a full button below,
-         so nothing has to squeeze into a single 360px line. -->
-    <div class="lg:hidden py-4 transition-opacity duration-150 active:opacity-60">
+    <!-- Phones: an order card. Seller and stage on top, the card and total
+         in the middle, and the one next step as a full button below, so
+         nothing has to squeeze into a single 360px line. -->
+    <div class="lg:hidden surface rounded-2xl p-4 transition-transform duration-150 active:scale-[0.98]">
       <div class="flex items-center justify-between gap-3 mb-3">
         <p class="min-w-0 flex items-center gap-1.5 text-[13px] font-semibold text-ink dark:text-white">
           <svg class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -52,7 +52,7 @@
 
       <div
         v-if="order.status === 'pending' || order.status === 'shipped'"
-        class="mt-3 flex items-center justify-end gap-3"
+        class="mt-3 pt-3 border-t border-black/[0.05] dark:border-white/[0.06] flex items-center justify-end gap-3"
         @click.prevent.stop
       >
         <p class="mr-auto text-xs text-ink-muted dark:text-zinc-400">

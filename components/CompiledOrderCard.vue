@@ -1,5 +1,5 @@
 <template>
-  <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4 min-w-0">
+  <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4 min-w-0">
     <!-- Header: counterparty + status -->
     <div class="flex items-center justify-between gap-3 mb-3">
       <div class="min-w-0">

@@ -106,13 +106,15 @@
             <!-- Anything needing the buyer's action, pulled to the top -->
             <div
               v-if="orderFilter === 'all' && needsAction.length"
-              class="panel surface rounded-2xl border border-amber-200 dark:border-amber-500/20 overflow-hidden"
+              class="panel surface rounded-2xl border border-amber-200 dark:border-amber-500/20 lg:overflow-hidden"
             >
               <p class="flex items-center gap-1.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300 lg:px-4 lg:py-2 lg:bg-amber-50 lg:dark:bg-amber-500/10">
                 <span class="w-1.5 h-1.5 rounded-full bg-amber-500 lg:hidden" aria-hidden="true" />
                 Needs your action
               </p>
-              <div class="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+              <!-- Phones: one card per order with a gap; desktop: one box
+                   split by hairlines. -->
+              <div class="mt-2 space-y-3 lg:mt-0 lg:space-y-0 lg:divide-y divide-black/[0.05] dark:divide-white/[0.06]">
                 <OrderListRow
                   v-for="order in needsAction"
                   :key="order.id"
@@ -123,17 +125,17 @@
               </div>
             </div>
 
-            <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] overflow-hidden">
+            <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] lg:overflow-hidden">
               <p
                 v-if="orderFilter === 'all' && needsAction.length && visibleOrders.length"
-                class="lg:hidden pb-1 text-[11px] font-bold uppercase tracking-wide text-ink-muted dark:text-zinc-400"
+                class="lg:hidden pb-3 text-[11px] font-bold uppercase tracking-wide text-ink-muted dark:text-zinc-400"
               >
                 All orders
               </p>
               <p v-if="!visibleOrders.length" class="px-4 py-8 text-center text-sm text-gray-400 dark:text-zinc-500">
                 No {{ activeFilterLabel.toLowerCase() }} orders.
               </p>
-              <div v-else class="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+              <div v-else class="space-y-3 lg:space-y-0 lg:divide-y divide-black/[0.05] dark:divide-white/[0.06]">
                 <OrderListRow
                   v-for="order in visibleOrders"
                   :key="order.id"
