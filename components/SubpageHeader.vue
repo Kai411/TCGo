@@ -11,6 +11,7 @@
       <NuxtLink
         :to="back"
         :aria-label="`Back to ${backLabel}`"
+        @click.prevent="goBack"
         class="-ml-3 w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-full text-ink dark:text-white transition-transform duration-150 active:scale-90"
       >
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -39,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(
+const props = withDefaults(
   defineProps<{
     title: string;
     back?: string;
@@ -53,4 +54,13 @@ withDefaults(
   }>(),
   { back: "/account", backLabel: "Account", desktopTitle: false, inline: false, tag: "h1" },
 );
+
+// Same rule as the chat's back arrow: return to the page the person came
+// from when there is an in-app one, otherwise (opened from a push, a refresh
+// or a direct link) go to `back`.
+const router = useRouter();
+const goBack = () => {
+  if (import.meta.client && window.history.state?.back) router.back();
+  else navigateTo(props.back);
+};
 </script>
