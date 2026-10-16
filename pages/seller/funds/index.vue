@@ -6,13 +6,15 @@
     </div>
 
     <template v-else>
-      <div class="flex items-center gap-2 mb-1">
-        <NuxtLink to="/seller" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          Dashboard
-        </NuxtLink>
-      </div>
-      <h1 class="text-2xl font-bold text-ink dark:text-white mb-1">Your funds</h1>
+      <SubpageHeader title="Your funds" back="/seller" back-label="Dashboard">
+        <div class="flex items-center gap-2 mb-1">
+          <NuxtLink to="/seller" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Dashboard
+          </NuxtLink>
+        </div>
+      </SubpageHeader>
+      <h1 class="hidden lg:block text-2xl font-bold text-ink dark:text-white mb-1">Your funds</h1>
       <p class="text-sm text-gray-500 dark:text-zinc-400 mb-6">
         Money collected from your online (FPX) sales, held by TCGo until payout. In-person (POS) sales aren't shown here — you receive those directly.
       </p>

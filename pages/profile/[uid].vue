@@ -60,7 +60,7 @@
                   v-if="profile.kycStatus === 'verified'"
                   :verified-at="profile.kycVerifiedAt ?? profile.kycStatusAt"
                 />
-                <span v-else-if="profile.whatsappNumber" class="chip">
+                <span v-else-if="profile.hasContact || profile.whatsappNumber" class="chip">
                   Contact added
                 </span>
                 <span

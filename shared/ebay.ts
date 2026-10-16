@@ -8,6 +8,12 @@
 // is limited release, and the old Finding API is gone. So these are asking
 // prices, and the page has to say so.
 //
+// Sold mode (2026-10-16): the page asks for Marketplace Insights sales first
+// and falls back to active listings when the keyset isn't approved for it
+// (eBay refuses the token with invalid_scope). The sales are shown, never
+// averaged into TCGo's market price: the licence (§8.5, §8.1) needs eBay's
+// written consent to build pricing tools or average selling prices from them.
+//
 // eBay's API License Agreement shapes the rest: listing data shown may be at
 // most 6 hours behind eBay (we keep it about an hour and show when it was
 // checked), it must stay visually apart from non-eBay content (its own
@@ -18,6 +24,10 @@
 export const EBAY_CARD_CATEGORY = "183454";
 export const EBAY_MARKETPLACE = "EBAY_US";
 export const EBAY_LISTING_LIMIT = 6;
+
+export type EbayMode = "sold" | "active";
+export const ebayMode = (value: unknown): EbayMode =>
+  value === "active" ? "active" : "sold";
 
 export interface EbayCardQueryInput {
   name: string;
@@ -36,12 +46,15 @@ export interface EbayListing {
   // Null when eBay quotes something other than USD; the page then shows the
   // original price only.
   myr: number | null;
+  // Sold mode only: when it last sold (ISO date).
+  soldAt?: string | null;
 }
 
 export type EbayListingsResponse =
   | { enabled: false }
   | {
       enabled: true;
+      mode: EbayMode;
       ok: boolean;
       query: string;
       searchUrl: string;
@@ -76,11 +89,37 @@ export const ebayQuery = ({ name, number, language }: EbayCardQueryInput) => {
   return parts.filter(Boolean).join(" ").slice(0, MAX_QUERY).trim();
 };
 
-export const ebaySearchUrl = (query: string) =>
+export const ebaySearchUrl = (query: string, mode: EbayMode = "active") =>
   `https://www.ebay.com/sch/i.html?${new URLSearchParams({
     _nkw: query,
     _sacat: EBAY_CARD_CATEGORY,
+    ...(mode === "sold" ? { LH_Sold: "1", LH_Complete: "1" } : {}),
   })}`;
+
+// eBay listing photos, served through Netlify's Image CDN like card art
+// (see shared/card-image.ts). Linked straight from i.ebayimg.com every photo
+// showed as a broken image on staging; fetched by our own edge, eBay's
+// cross-site and hotlink rules don't come into it. The host
+// must stay in netlify.toml's [images] remote_images allowlist.
+export const EBAY_IMAGE_HOST = "i.ebayimg.com";
+
+export const ebayImageUrl = (src: string | null, width: number) => {
+  if (!src) return null;
+  let host = "";
+  try {
+    host = new URL(src).hostname;
+  } catch {
+    return null;
+  }
+  if (host !== EBAY_IMAGE_HOST || import.meta.dev) return src;
+  const params = new URLSearchParams({
+    url: src,
+    w: String(Math.round(width * 2)),
+    fm: "webp",
+    q: "78",
+  });
+  return `/.netlify/images?${params.toString()}`;
+};
 
 const text = (value: unknown) =>
   typeof value === "string" && value.trim() ? value.trim() : null;
@@ -118,5 +157,33 @@ export const toEbayListing = (
       currency === "USD" && usdMyr > 0
         ? Math.round(value * usdMyr * 100) / 100
         : null,
+  };
+};
+
+// eBay item ids look like "v1|123456789012|0"; the middle part is the listing
+// number eBay's own pages use.
+const itemPageUrl = (itemId: string) => {
+  const legacy = itemId.split("|")[1] ?? "";
+  return /^\d+$/.test(legacy) ? `https://www.ebay.com/itm/${legacy}` : null;
+};
+
+// Shapes one Marketplace Insights `itemSale`. Same rules as toEbayListing,
+// with the last sold price and date in place of the asking price.
+export const toEbaySale = (raw: any, usdMyr: number): EbayListing | null => {
+  if (!raw || typeof raw !== "object") return null;
+  const id = text(raw.itemId);
+  const listing = toEbayListing(
+    {
+      ...raw,
+      price: raw.lastSoldPrice,
+      itemWebUrl: raw.itemWebUrl ?? (id ? itemPageUrl(id) : null),
+    },
+    usdMyr,
+  );
+  if (!listing) return null;
+  const soldAt = text(raw.lastSoldDate);
+  return {
+    ...listing,
+    soldAt: soldAt && Number.isFinite(Date.parse(soldAt)) ? soldAt : null,
   };
 };

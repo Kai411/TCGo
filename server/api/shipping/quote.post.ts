@@ -17,6 +17,7 @@ import { quoteForOrder, type HandoverPreference } from "~/shared/shipping-quote"
 import { noteError } from "~/server/utils/oplog";
 import { findOpenParcelFor } from "~/server/utils/open-parcel";
 import { JOIN_FEE_MYR } from "~/shared/order-joining";
+import { getUserProfile } from "~/server/utils/user-profile";
 
 export default defineEventHandler(async (event) => {
   const caller = await requireUser(event);
@@ -59,8 +60,7 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  const sellerSnap = await db.collection("users").doc(sellerUid).get();
-  const seller = sellerSnap.data() as any;
+  const seller = (await getUserProfile(db, sellerUid)) as any;
   if (!seller?.pickupPostcode || !seller?.pickupState) {
     throw createError({
       statusCode: 400,

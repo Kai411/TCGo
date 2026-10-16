@@ -23,6 +23,7 @@ import {
   recordedPayout,
   isPayoutTrackable,
   payoutEligibleAt,
+  problemHoldsPayout,
 } from "~/shared/payouts";
 
 export { PAYOUT_HOLD_DAYS };
@@ -55,13 +56,18 @@ export const categorizeFunds = (
       out.push({ order: o, amount, state: "paid", eligibleAt: null });
     } else if (ps === "queued" || ps === "processing") {
       out.push({ order: o, amount, state: "queued", eligibleAt: null });
+    } else if (String(ps) === "cancelled" || o.refundStatus) {
+      // Refunded to the buyer after a problem: never the seller's money.
+      continue;
     } else {
       const eligibleAt = payoutEligibleAt(o);
+      // A problem the buyer reported keeps the money locked until it's settled.
+      const held = problemHoldsPayout(o as any);
       out.push({
         order: o,
         amount,
-        state: eligibleAt !== null && now >= eligibleAt ? "available" : "locked",
-        eligibleAt,
+        state: !held && eligibleAt !== null && now >= eligibleAt ? "available" : "locked",
+        eligibleAt: held ? null : eligibleAt,
       });
     }
   }

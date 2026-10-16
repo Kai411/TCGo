@@ -6,13 +6,15 @@
     </div>
 
     <template v-else>
-      <div class="flex items-center gap-2 mb-1">
-        <NuxtLink to="/seller/items" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          Items
-        </NuxtLink>
-      </div>
-      <h1 class="text-2xl font-bold text-ink dark:text-white mb-1">Bulk add</h1>
+      <SubpageHeader title="Bulk add" back="/seller/items" back-label="Items">
+        <div class="flex items-center gap-2 mb-1">
+          <NuxtLink to="/seller/items" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Items
+          </NuxtLink>
+        </div>
+      </SubpageHeader>
+      <h1 class="hidden lg:block text-2xl font-bold text-ink dark:text-white mb-1">Bulk add</h1>
       <p class="text-sm text-gray-500 dark:text-zinc-400 mb-6">
         Upload a file or paste rows — we'll match each card to the catalog and attach images automatically.
       </p>

@@ -13,9 +13,11 @@
     <template v-else>
       <!-- Print controls — hidden on paper -->
       <div class="no-print flex items-center justify-between gap-3 mb-6">
-        <NuxtLink :to="`/orders/${order.id}`" class="text-sm text-gray-500 hover:text-ink">
-          ← Back to order
-        </NuxtLink>
+        <SubpageHeader inline title="Invoice" :back="`/orders/${order.id}`" back-label="order">
+          <NuxtLink :to="`/orders/${order.id}`" class="text-sm text-gray-500 hover:text-ink">
+            ← Back to order
+          </NuxtLink>
+        </SubpageHeader>
         <button
           @click="print"
           class="px-4 py-2 rounded-lg text-sm font-bold bg-ink text-white hover:bg-gray-700 transition-colors"

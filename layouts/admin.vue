@@ -189,6 +189,7 @@ const allNav = [
   { to: "/mintcondition", label: "Overview", icon: IconDashboard, exact: true, perm: "overview.view" },
   { to: "/mintcondition/payouts", label: "Payouts", icon: IconWallet, perm: "payouts.view" },
   { to: "/mintcondition/refunds", label: "Refunds", icon: IconWallet, perm: "payouts.view" },
+  { to: "/mintcondition/problems", label: "Order problems", icon: IconFlag, perm: "reports.view" },
   { to: "/mintcondition/reports", label: "Reports", icon: IconFlag, perm: "reports.view" },
   { to: "/mintcondition/logs", label: "Logs", icon: IconList, perm: "logs.view" },
   { to: "/mintcondition/staff", label: "Staff", icon: IconUsers, perm: "staff.view" },

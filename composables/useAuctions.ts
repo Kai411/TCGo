@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { ref, computed, onUnmounted } from "vue";
 import type { AuctionStatus } from "~/shared/auctions";
+import { mergeProfile, PRIVATE_PROFILE_DOC } from "~/shared/private-profile";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -268,6 +269,15 @@ export const useAuctionDetail = (auctionId: string) => {
     });
   };
 
+  // The contact number lives in the private half of the profile.
+  const readOwnProfile = async (uid: string): Promise<Record<string, any> | null> => {
+    const [pub, priv] = await Promise.all([
+      getDoc(doc(firestore!, "users", uid)),
+      getDoc(doc(firestore!, "users", uid, "private", PRIVATE_PROFILE_DOC)).catch(() => null),
+    ]);
+    return mergeProfile(pub.exists() ? pub.data() : null, priv?.exists() ? priv.data() : null);
+  };
+
   // ── tellOutbid ───────────────────────────────────────────────────────────────
   // Bids land in RTDB straight from this browser, so the server learns about
   // them here. It works out who was beaten from RTDB itself; this only says
@@ -283,8 +293,7 @@ export const useAuctionDetail = (auctionId: string) => {
   const placeBid = async (bidderUid: string, bidder: string, amount: number) => {
     if (!auction.value) return;
 
-    const userSnap = await getDoc(doc(firestore!, "users", bidderUid));
-    const userData = userSnap.exists() ? userSnap.data() : null;
+    const userData = await readOwnProfile(bidderUid);
     // The delivery phone counts: it is the number new members give, and
     // without it they were told to add a phone they had just typed in.
     if (!userData?.phone && !userData?.whatsappNumber && !userData?.deliveryPhone) {
@@ -324,8 +333,7 @@ export const useAuctionDetail = (auctionId: string) => {
   const setAutoBid = async (bidderUid: string, bidder: string, maxAmount: number) => {
     if (!auction.value) return;
 
-    const userSnap = await getDoc(doc(firestore!, "users", bidderUid));
-    const userData = userSnap.exists() ? userSnap.data() : null;
+    const userData = await readOwnProfile(bidderUid);
     // The delivery phone counts: it is the number new members give, and
     // without it they were told to add a phone they had just typed in.
     if (!userData?.phone && !userData?.whatsappNumber && !userData?.deliveryPhone) {

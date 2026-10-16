@@ -579,7 +579,7 @@ onBeforeUnmount(() => {
 // Close transient menus on route change.
 const route = useRoute();
 const showMobileSearch = computed(
-  () => !["/account", "/collection"].some((p) => route.path === p || route.path.startsWith(p + "/")),
+  () => !["/account", "/collection", "/messages"].some((p) => route.path === p || route.path.startsWith(p + "/")),
 );
 watch(
   () => route.fullPath,

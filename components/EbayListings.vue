@@ -13,12 +13,42 @@
           id="ebay-listings-title"
           class="mt-1 text-xl font-bold tracking-tight text-ink dark:text-white"
         >
-          Listed on eBay
+          {{ mode === "sold" ? "Sold on eBay" : "Listed on eBay" }}
         </h2>
         <p class="mt-1 max-w-xl text-sm text-ink-muted dark:text-zinc-400">
-          Current asking prices on eBay.com, not sold prices. Ringgit is
-          converted from USD and leaves out shipping and import costs.
+          <template v-if="mode === 'sold'">
+            Recent sales on eBay.com from the last 90 days.
+          </template>
+          <template v-else>
+            Current asking prices on eBay.com, not sold prices.
+          </template>
+          Ringgit is converted from USD and leaves out shipping and import
+          costs.
         </p>
+      </div>
+      <!-- Only offered when eBay gives us sold data; without it there is
+           nothing to switch to. -->
+      <div
+        v-if="canSwitch"
+        class="inline-flex rounded-full bg-canvas-sunken p-1 dark:bg-white/[0.05]"
+        role="group"
+        aria-label="eBay listings to show"
+      >
+        <button
+          v-for="option in MODE_OPTIONS"
+          :key="option.mode"
+          type="button"
+          class="inline-flex min-w-11 items-center justify-center rounded-full px-3 py-1.5 text-xs font-bold transition-colors"
+          :class="
+            mode === option.mode
+              ? 'bg-white text-ink shadow-pill dark:bg-zinc-700 dark:text-white'
+              : 'text-ink-muted hover:text-ink dark:text-zinc-400 dark:hover:text-white'
+          "
+          :aria-pressed="mode === option.mode"
+          @click="mode = option.mode"
+        >
+          {{ option.label }}
+        </button>
       </div>
     </div>
 
@@ -57,13 +87,14 @@
           class="flex min-h-11 items-center gap-3 rounded-lg px-2 py-3 transition-colors duration-150 hover:bg-black/[0.03] active:bg-black/[0.05] dark:hover:bg-white/[0.04] dark:active:bg-white/[0.06]"
         >
           <img
-            v-if="item.imageUrl"
-            :src="item.imageUrl"
+            v-if="item.imageUrl && !brokenImages.has(item.id)"
+            :src="ebayImageUrl(item.imageUrl, 48) ?? undefined"
             alt=""
             loading="lazy"
             decoding="async"
             referrerpolicy="no-referrer"
             class="h-16 w-12 shrink-0 rounded-md bg-black/[0.04] object-cover dark:bg-white/[0.06]"
+            @error="brokenImages.add(item.id)"
           />
           <div
             v-else
@@ -77,9 +108,7 @@
               {{ item.title }}
             </p>
             <p class="mt-1 truncate text-xs text-ink-muted dark:text-zinc-400">
-              <span v-if="item.condition">{{ item.condition }}</span>
-              <span v-if="item.condition && item.seller"> · </span>
-              <span v-if="item.seller">{{ item.seller }}</span>
+              {{ rowMeta(item) }}
             </p>
           </div>
           <div class="shrink-0 text-right">
@@ -104,7 +133,11 @@
       v-else-if="data && data.enabled"
       class="mt-5 text-sm text-ink-muted dark:text-zinc-400"
     >
-      No eBay listings match this card right now.
+      {{
+        mode === "sold"
+          ? "No eBay sales of this card in the last 90 days."
+          : "No eBay listings match this card right now."
+      }}
     </p>
 
     <div
@@ -118,7 +151,7 @@
         rel="noopener noreferrer nofollow"
         class="inline-flex min-h-11 items-center gap-1 text-xs font-bold text-ink hover:text-pokemon-red dark:text-white"
       >
-        See all on eBay
+        {{ mode === "sold" ? "See sold on eBay" : "See all on eBay" }}
         <svg
           class="h-3 w-3"
           viewBox="0 0 24 24"
@@ -137,7 +170,12 @@
 </template>
 
 <script setup lang="ts">
-import type { EbayListingsResponse } from "~/shared/ebay";
+import {
+  ebayImageUrl,
+  type EbayListing,
+  type EbayListingsResponse,
+  type EbayMode,
+} from "~/shared/ebay";
 
 const props = defineProps<{
   name: string;
@@ -145,8 +183,33 @@ const props = defineProps<{
   language?: string | null;
 }>();
 
-const data = ref<EbayListingsResponse | null>(null);
+const MODE_OPTIONS: { mode: EbayMode; label: string }[] = [
+  { mode: "sold", label: "Sold" },
+  { mode: "active", label: "Active" },
+];
+
+// Both are asked for at once. Sold is the default whenever eBay gives us
+// sold data (it needs eBay's approval for Marketplace Insights); otherwise
+// the section shows active listings and no switch.
+const results = ref<Record<EbayMode, EbayListingsResponse | null>>({
+  sold: null,
+  active: null,
+});
+// Off until kai's keyset is approved for Marketplace Insights (2026-10-16:
+// he asked for active listings only until then). Flip to true to bring back
+// Sold by default with the Sold/Active switch.
+const SOLD_ENABLED = false;
+
+const mode = ref<EbayMode>(SOLD_ENABLED ? "sold" : "active");
+const usable = (res: EbayListingsResponse | null) =>
+  !!res && res.enabled && res.ok;
+const canSwitch = computed(
+  () => usable(results.value.sold) && usable(results.value.active),
+);
+const data = computed(() => results.value[mode.value]);
 const loading = ref(false);
+// A photo that still fails falls back to the plain tile, not a broken icon.
+const brokenImages = reactive(new Set<string>());
 let request = 0;
 
 // Hidden while the keyset isn't configured and when eBay errors: an eBay
@@ -157,26 +220,48 @@ const state = computed(() => {
   return "ready";
 });
 
+const fetchMode = (which: EbayMode) =>
+  $fetch<EbayListingsResponse>("/api/ebay/listings", {
+    query: {
+      name: props.name,
+      number: props.number ?? "",
+      language: props.language ?? "",
+      mode: which,
+    },
+  }).catch(() => null);
+
 const load = async () => {
   const current = ++request;
-  data.value = null;
+  results.value = { sold: null, active: null };
   if (!props.name) return;
   loading.value = true;
   try {
-    const res = await $fetch<EbayListingsResponse>("/api/ebay/listings", {
-      query: {
-        name: props.name,
-        number: props.number ?? "",
-        language: props.language ?? "",
-      },
-    });
-    if (current === request) data.value = res;
-  } catch {
-    if (current === request) data.value = null;
+    const [sold, active] = await Promise.all([
+      SOLD_ENABLED ? fetchMode("sold") : Promise.resolve(null),
+      fetchMode("active"),
+    ]);
+    if (current !== request) return;
+    results.value = { sold, active };
+    mode.value = usable(sold) ? "sold" : "active";
   } finally {
     if (current === request) loading.value = false;
   }
 };
+
+const soldDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-MY", { day: "numeric", month: "short" });
+
+const rowMeta = (item: EbayListing) =>
+  [
+    item.condition,
+    mode.value === "sold"
+      ? item.soldAt
+        ? `Sold ${soldDate(item.soldAt)}`
+        : "Sold"
+      : item.seller,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
 onMounted(() => {
   watch(
@@ -199,7 +284,9 @@ const checkedLabel = computed(() => {
       : minutes < 60
         ? `${minutes} min ago`
         : `${Math.round(minutes / 60)} h ago`;
-  return `Checked on eBay ${ago}. Prices may have changed since.`;
+  return mode.value === "sold"
+    ? `Checked on eBay ${ago}.`
+    : `Checked on eBay ${ago}. Prices may have changed since.`;
 });
 
 const formatMyr = (value: number) =>

@@ -11,13 +11,13 @@ import { WITHDRAWAL_FEE } from "~/shared/pricing";
 import { toPayoutRecipient } from "~/shared/payout-details";
 import { bankName } from "~/shared/banks";
 import type { PayoutBatch } from "~/shared/payout-ledger";
+import { getUserProfile } from "~/server/utils/user-profile";
 
 export default defineEventHandler(async (event) => {
   const caller = await requireUser(event);
   const db = getAdminFirestore();
 
-  const profileSnap = await db.collection("users").doc(caller.uid).get();
-  const profile = profileSnap.data() as any;
+  const profile = (await getUserProfile(db, caller.uid)) as any;
   const recipient = toPayoutRecipient(profile);
   if (!recipient) {
     throw createError({
