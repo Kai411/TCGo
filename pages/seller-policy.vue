@@ -165,14 +165,28 @@ useHead({ title: "Seller Policy · TCGo" });
       <li>Off-platform, cash and POS sales are paid to you directly and never go through TCGo payouts.</li>
     </ul>
 
-    <h2>8. Claims and returns</h2>
-    <p>
-      When a buyer makes a claim under the
-      <NuxtLink to="/refund-policy">Refund Policy</NuxtLink>, reply within 2
-      business days with any evidence you have, such as photos taken before
-      packing. TCGo decides the claim. If you are at fault you pay any return
-      postage and the refund comes out of that order's payout.
-    </p>
+    <h2>8. When a buyer reports a problem</h2>
+    <ul>
+      <li>
+        You'll be notified and the payment for that order is held until the
+        problem is settled.
+      </li>
+      <li>
+        Reply on the order page within {{ N.sellerReplyBusinessDays }} business
+        days. Try to sort it out with the buyer directly: explain, share photos
+        taken before packing, or agree to a full refund.
+      </li>
+      <li>
+        If you can't agree, either of you can ask TCGo to step in. We only
+        decide whether the held payment goes back to the buyer or on to you,
+        under the <NuxtLink to="/refund-policy">Refund Policy</NuxtLink>. If
+        you are at fault you pay any return postage.
+      </li>
+      <li>
+        Not replying doesn't stop a claim: if you don't respond, we decide on
+        what the buyer has shown us.
+      </li>
+    </ul>
 
     <h2>9. Buyer data</h2>
     <p>

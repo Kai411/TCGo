@@ -11,6 +11,7 @@ import { requireUser } from "~/server/utils/auth";
 import { delyvaQuote } from "~/server/utils/delyva";
 import { stateName } from "~/shared/my-states";
 import { courierBrands } from "~/shared/shipping-quote";
+import { getUserProfile } from "~/server/utils/user-profile";
 
 // Two probe destinations — a peninsular city and an East Malaysian one.
 const PROBES = [
@@ -21,7 +22,7 @@ const PROBES = [
 export default defineEventHandler(async (event) => {
   const caller = await requireUser(event);
   const db = getAdminFirestore();
-  const seller = (await db.collection("users").doc(caller.uid).get()).data() as any;
+  const seller = (await getUserProfile(db, caller.uid)) as any;
 
   if (!seller?.pickupPostcode || !seller?.pickupState) {
     return { available: [], reason: "Add your pickup address first" };

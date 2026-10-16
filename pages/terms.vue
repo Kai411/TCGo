@@ -8,7 +8,7 @@ useHead({ title: "Terms of Use · TCGo" });
 <template>
   <LegalDoc
     title="Terms of Use"
-    summary="TCGo is a marketplace where independent sellers sell trading cards to buyers. TCGo is not the seller. Buyers pay through TCGo, we hold the money under Buyer Protection until the order is delivered, then pay the seller. Don't sell fakes, don't take deals off the platform, and treat other members fairly."
+    summary="TCGo is a marketplace where independent sellers sell trading cards to buyers. TCGo is not the seller. Buyers pay through TCGo, we hold the money under Buyer Protection until the order is delivered, then pay the seller. Buyers and sellers settle problems between themselves first; TCGo only decides where held money goes if they can't agree. Don't sell fakes, don't take deals off the platform, and treat other members fairly."
   >
     <h2>1. Who we are and what these terms cover</h2>
     <p>
@@ -58,9 +58,9 @@ useHead({ title: "Terms of Use · TCGo" });
     <p>We do, however:</p>
     <ul>
       <li>require sellers to verify their identity and to disclose the information Malaysian law requires;</li>
-      <li>collect payment for orders placed on TCGo and release it to the seller under Buyer Protection (section 6);</li>
+      <li>collect payment for orders placed on TCGo and release it to the seller under Buyer Protection (section 7);</li>
       <li>monitor listings and remove those that break our rules;</li>
-      <li>provide a channel for complaints and decide Buyer Protection claims.</li>
+      <li>provide a way to report problems with an order, and decide where held payments go when buyer and seller can't agree.</li>
     </ul>
 
     <h2>4. Buying</h2>
@@ -75,12 +75,7 @@ useHead({ title: "Terms of Use · TCGo" });
         checkout shows the item price, shipping and any other charge before you
         pay.
       </li>
-      <li>
-        You may cancel a paid order within {{ N.cancelMinutes }} minutes of
-        payment, as long as shipping has not been booked. See the
-        <NuxtLink to="/refund-policy">Refund Policy</NuxtLink> for the fee
-        that applies.
-      </li>
+      <li>You can cancel an order in the cases set out in section 5.</li>
       <li>
         If you win an auction, you must pay within {{ N.auctionPayHours }}
         hours. If you do not, the result is cancelled and we may restrict your
@@ -89,7 +84,70 @@ useHead({ title: "Terms of Use · TCGo" });
       <li>Bids are binding. Only bid what you intend to pay.</li>
     </ul>
 
-    <h2>5. Selling</h2>
+    <h2>5. Cancelling an order</h2>
+    <table>
+      <thead>
+        <tr><th>When</th><th>What happens</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Before you pay</td>
+          <td>You can cancel the order from the order page at no cost.</td>
+        </tr>
+        <tr>
+          <td>Within {{ N.cancelMinutes }} minutes of paying, before shipping is booked</td>
+          <td>
+            You can cancel from the order page. Sellers can't book shipping
+            during these {{ N.cancelMinutes }} minutes. You get the order total
+            back, less a processing fee of {{ N.cancelFeePercent }} (maximum
+            {{ N.cancelFeeCap }}), and the items go back on sale. You'll need to
+            give the bank account and IC number of the account holder so the
+            refund can be sent.
+          </td>
+        </tr>
+        <tr>
+          <td>After {{ N.cancelMinutes }} minutes, or once shipping is booked</td>
+          <td>
+            You can no longer cancel yourself. Contact us; we will cancel only
+            if the courier hasn't collected the parcel and the seller agrees,
+            or if the seller hasn't shipped within
+            {{ D.shipWithinBusinessDays }} business days (then with a full
+            refund and no fee).
+          </td>
+        </tr>
+        <tr>
+          <td>Once the parcel is with the courier</td>
+          <td>
+            The order can't be cancelled. If something is wrong when it
+            arrives, use Report a problem (see the
+            <NuxtLink to="/refund-policy">Refund Policy</NuxtLink>).
+          </td>
+        </tr>
+        <tr>
+          <td>Auction wins</td>
+          <td>
+            Can't be cancelled by either side, paid or not, because a bid is a
+            commitment. If the winner doesn't pay within
+            {{ N.auctionPayHours }} hours, the result is cancelled
+            automatically.
+          </td>
+        </tr>
+        <tr>
+          <td>Sellers</td>
+          <td>
+            A seller can cancel an order that hasn't been paid. A seller who
+            can't fulfil a paid order must contact us, and the buyer gets a
+            full refund with no fee.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Refunds are sent by bank transfer through Billplz, usually within
+      {{ D.refundWithinBusinessDays }} business days of the cancellation.
+    </p>
+
+    <h2>6. Selling</h2>
     <p>
       Anyone selling on TCGo must follow the
       <NuxtLink to="/seller-policy">Seller Policy</NuxtLink>, including
@@ -97,7 +155,7 @@ useHead({ title: "Terms of Use · TCGo" });
       described there.
     </p>
 
-    <h2>6. Payments and Buyer Protection</h2>
+    <h2>7. Payments and Buyer Protection</h2>
     <ul>
       <li>
         Online payments are processed by Billplz (FPX online banking and other
@@ -129,7 +187,7 @@ useHead({ title: "Terms of Use · TCGo" });
       </li>
     </ul>
 
-    <h2>7. Premium subscriptions</h2>
+    <h2>8. Premium subscriptions</h2>
     <p>
       Premium is an optional monthly subscription (currently
       {{ N.premiumMonthly }} a month) billed through Stripe. It renews
@@ -141,7 +199,7 @@ useHead({ title: "Terms of Use · TCGo" });
       applies to you.
     </p>
 
-    <h2>8. Other tools: collection, prices, POS and shipping</h2>
+    <h2>9. Other tools: collection, prices, POS and shipping</h2>
     <ul>
       <li>
         <b>Market prices</b> shown on TCGo come from third-party sources and
@@ -165,7 +223,7 @@ useHead({ title: "Terms of Use · TCGo" });
       </li>
     </ul>
 
-    <h2>9. Prohibited items and conduct</h2>
+    <h2>10. Prohibited items and conduct</h2>
     <p>You must not:</p>
     <ul>
       <li>sell counterfeit, proxy, reprinted or altered cards as genuine, or any item that infringes someone else's rights;</li>
@@ -178,7 +236,7 @@ useHead({ title: "Terms of Use · TCGo" });
       <li>use TCGo for money laundering or any purpose unrelated to genuine trading.</li>
     </ul>
 
-    <h2>10. Content you post</h2>
+    <h2>11. Content you post</h2>
     <p>
       You keep ownership of photos, descriptions and other content you post.
       You give us a non-exclusive, royalty-free licence to host, display,
@@ -189,7 +247,7 @@ useHead({ title: "Terms of Use · TCGo" });
       Nintendo, or any other card publisher.
     </p>
 
-    <h2>11. Suspension and closing accounts</h2>
+    <h2>12. Suspension and closing accounts</h2>
     <p>
       We may remove listings, hold an order's payout while we investigate,
       limit features, or suspend or close an account if we reasonably believe
@@ -201,7 +259,7 @@ useHead({ title: "Terms of Use · TCGo" });
       any open orders are finished.
     </p>
 
-    <h2>12. Disclaimers</h2>
+    <h2>13. Disclaimers</h2>
     <p>
       We work hard to keep TCGo running and accurate, but it is provided "as
       is" and "as available". To the extent the law allows, we do not
@@ -211,7 +269,7 @@ useHead({ title: "Terms of Use · TCGo" });
       Consumer Protection Act 1999 or other law that cannot be excluded.
     </p>
 
-    <h2>13. Limits on our liability</h2>
+    <h2>14. Limits on our liability</h2>
     <ul>
       <li>
         To the extent the law allows, TCGo is not liable for indirect or
@@ -233,31 +291,45 @@ useHead({ title: "Terms of Use · TCGo" });
       </li>
     </ul>
 
-    <h2>14. Your responsibility to us</h2>
+    <h2>15. Your responsibility to us</h2>
     <p>
       If you break these Terms or the law and someone makes a claim against
       TCGo because of it, you agree to cover the reasonable losses and costs
       we incur as a result.
     </p>
 
-    <h2>15. Complaints and disputes</h2>
+    <h2>16. Problems and disputes between members</h2>
+    <p>
+      A sale is a contract between the buyer and the seller, and disputes
+      about it are theirs to settle. TCGo is not a party to the sale and does
+      not act for either side. We expect buyers and sellers to resolve
+      problems with each other first, politely and promptly.
+    </p>
     <ul>
       <li>
-        Problems with an order: use the claim process in the
-        <NuxtLink to="/refund-policy">Refund Policy</NuxtLink> first.
+        To raise a problem with an order, use <b>Report a problem</b> on the
+        order page. The seller is told, and the payment for that order stays
+        on hold while you talk.
       </li>
       <li>
-        Any other complaint: email {{ OPERATOR.supportEmail }}. We aim to
-        reply within 5 business days.
+        If you can't agree, either of you can ask TCGo to step in. Our role is
+        limited to deciding, under Buyer Protection, whether the money we are
+        holding for that order goes back to the buyer or on to the seller. We
+        decide based on the listing, photos, tracking and what both sides tell
+        us. See the <NuxtLink to="/refund-policy">Refund Policy</NuxtLink>.
       </li>
       <li>
-        If we cannot resolve it, you may take a consumer claim to the Tribunal
-        for Consumer Claims Malaysia, or to the courts as described in section
-        17.
+        Our decision doesn't stop either of you taking the matter further
+        against the other, for example to the Tribunal for Consumer Claims
+        Malaysia. Any claim about the item itself is between buyer and seller.
+      </li>
+      <li>
+        For a complaint about TCGo itself, email {{ OPERATOR.supportEmail }}.
+        We aim to reply within 5 business days.
       </li>
     </ul>
 
-    <h2>16. Changes</h2>
+    <h2>17. Changes</h2>
     <p>
       We may update these Terms as TCGo or the law changes. For material
       changes we will notify you by email or in the app at least
@@ -266,15 +338,15 @@ useHead({ title: "Terms of Use · TCGo" });
       change stay under the Terms that applied when they were placed.
     </p>
 
-    <h2>17. Governing law</h2>
+    <h2>18. Governing law</h2>
     <p>
-      These Terms are governed by the laws of Malaysia. Disputes will be heard
-      by the courts of Malaysia, with {{ D.courtVenue }} as the venue where the
-      law allows, without affecting your right to use the Tribunal for
-      Consumer Claims or any other forum the law gives you as a consumer.
+      These Terms are governed by the laws of Malaysia, and the courts of
+      Malaysia can hear disputes about them. This doesn't affect your right to
+      use the Tribunal for Consumer Claims or any other forum the law gives
+      you as a consumer.
     </p>
 
-    <h2>18. General</h2>
+    <h2>19. General</h2>
     <p>
       If any part of these Terms is found unenforceable, the rest still
       applies. If we don't enforce a right straight away, we can still enforce

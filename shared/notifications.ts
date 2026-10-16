@@ -18,6 +18,7 @@ export type NotificationKind =
   | "order_created"
   | "order_merged"
   | "order_cancelled"
+  | "order_problem"
   | "order_shipped"
   | "order_delivered"
   | "new_follower"
