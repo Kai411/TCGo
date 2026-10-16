@@ -212,10 +212,14 @@ const route = useRoute();
 // One section open at a time. A link to #bank or #pickup (Funds, the listing
 // pages) opens that section straight away.
 const editing = ref<"contact" | "bank" | null>(null);
-onMounted(() => {
-  if (route.hash === "#bank") editing.value = "bank";
-  if (route.hash === "#pickup") editing.value = "contact";
-});
+watch(
+  () => route.hash,
+  (hash) => {
+    if (hash === "#bank") editing.value = "bank";
+    if (hash === "#pickup") editing.value = "contact";
+  },
+  { immediate: true },
+);
 
 const identityVerified = computed(() => isKycVerified(profile.value?.kycStatus as any));
 const contactNumber = computed(() => profile.value?.phone || profile.value?.whatsappNumber || "");
