@@ -206,6 +206,22 @@
                   </button>
                 </div>
 
+                <!-- Low or no confidence says why up front: the ? alone is
+                     easy to miss, and this is when the reason matters. -->
+                <p
+                  v-if="!confidenceOpen && lowConfidenceNote"
+                  class="mt-2 max-w-sm text-[12px] leading-relaxed text-amber-700 dark:text-amber-300"
+                >
+                  {{ lowConfidenceNote }}
+                  <button
+                    type="button"
+                    class="font-semibold underline underline-offset-2"
+                    aria-controls="price-confidence-why"
+                    @click="confidenceOpen = true"
+                  >
+                    Why?
+                  </button>
+                </p>
                 <div
                   v-if="confidenceOpen"
                   id="price-confidence-why"
@@ -1328,6 +1344,13 @@ const confidence = computed(() => {
 });
 
 const confidenceOpen = ref(false);
+// One line under a low or missing price: the main reason, and what to do.
+const lowConfidenceNote = computed(() => {
+  const { level, reasons } = confidence.value;
+  if (level !== "low" && level !== "none") return "";
+  const lead = reasons[0] ?? "";
+  return `${lead} Check recent sales before you price.`.trim();
+});
 // A different card is a different verdict; leaving it open would attach one
 // card's reasons to another's price.
 watch(card, () => (confidenceOpen.value = false));

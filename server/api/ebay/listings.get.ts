@@ -1,6 +1,8 @@
 // Active eBay listings for one card, for the card price page.
 //
 // GET /api/ebay/listings?name=Charizard%20ex&number=199/165&language=English
+//     &mode=sold (default; Marketplace Insights, needs eBay's approval) or
+//     &mode=active (Browse API asking prices)
 //
 // Off ({ enabled: false }) until NUXT_EBAY_APP_ID and NUXT_EBAY_CERT_ID are
 // set. Results are kept for an hour per search, in memory and at the CDN, so
@@ -11,8 +13,10 @@
 import {
   EBAY_LISTING_LIMIT,
   ebayQuery,
+  ebayMode,
   ebaySearchUrl,
   toEbayListing,
+  toEbaySale,
   type EbayListingsResponse,
 } from "~/shared/ebay";
 
@@ -42,8 +46,10 @@ export default defineEventHandler(async (event): Promise<EbayListingsResponse> =
   if (!query) {
     throw createError({ statusCode: 400, statusMessage: "Card name required" });
   }
+  const mode = ebayMode(params.mode);
+  const key = `${mode}:${query}`;
 
-  const hit = cache.get(query);
+  const hit = cache.get(key);
   if (hit && Date.now() - hit.at < hit.ttl) {
     setResponseHeader(event, "Cache-Control", "public, max-age=300");
     return hit.body;
@@ -51,14 +57,17 @@ export default defineEventHandler(async (event): Promise<EbayListingsResponse> =
 
   const base = {
     enabled: true as const,
+    mode,
     query,
-    searchUrl: ebaySearchUrl(query),
+    searchUrl: ebaySearchUrl(query, mode),
     fetchedAt: Date.now(),
   };
 
   try {
     const [{ total, items }, fx] = await Promise.all([
-      searchEbayCards(query, EBAY_LISTING_LIMIT),
+      mode === "sold"
+        ? searchEbaySales(query, EBAY_LISTING_LIMIT)
+        : searchEbayCards(query, EBAY_LISTING_LIMIT),
       $fetch<{ rate: number }>("/api/fx/usd-myr"),
     ]);
     const body: EbayListingsResponse = {
@@ -66,16 +75,20 @@ export default defineEventHandler(async (event): Promise<EbayListingsResponse> =
       ok: true,
       total,
       items: items
-        .map((raw) => toEbayListing(raw, fx.rate))
+        .map((raw) =>
+          mode === "sold" ? toEbaySale(raw, fx.rate) : toEbayListing(raw, fx.rate),
+        )
         .filter((item) => item !== null),
     };
-    remember(query, TTL_MS, body);
+    remember(key, TTL_MS, body);
     setResponseHeader(event, "Cache-Control", "public, max-age=300");
     setResponseHeader(event, "Netlify-CDN-Cache-Control", "public, s-maxage=3600");
     return body;
   } catch (err) {
     const summary = ebayErrorSummary(err);
     if (summary.status === 401) forgetEbayToken();
+    // In sold mode, a keyset without Marketplace Insights lands here with
+    // invalid_scope; the page then shows active listings instead.
     console.error("[ebay] listings search failed:", summary);
     const body: EbayListingsResponse = {
       ...base,
@@ -84,7 +97,7 @@ export default defineEventHandler(async (event): Promise<EbayListingsResponse> =
       items: [],
       error: summary,
     };
-    remember(query, FAIL_TTL_MS, body);
+    remember(key, FAIL_TTL_MS, body);
     return body;
   }
 });
