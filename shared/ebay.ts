@@ -82,6 +82,31 @@ export const ebaySearchUrl = (query: string) =>
     _sacat: EBAY_CARD_CATEGORY,
   })}`;
 
+// eBay listing photos, served through Netlify's Image CDN like card art
+// (see shared/card-image.ts). Linked straight from i.ebayimg.com every photo
+// showed as a broken image on staging; fetched by our own edge, eBay's
+// cross-site and hotlink rules don't come into it. The host
+// must stay in netlify.toml's [images] remote_images allowlist.
+export const EBAY_IMAGE_HOST = "i.ebayimg.com";
+
+export const ebayImageUrl = (src: string | null, width: number) => {
+  if (!src) return null;
+  let host = "";
+  try {
+    host = new URL(src).hostname;
+  } catch {
+    return null;
+  }
+  if (host !== EBAY_IMAGE_HOST || import.meta.dev) return src;
+  const params = new URLSearchParams({
+    url: src,
+    w: String(Math.round(width * 2)),
+    fm: "webp",
+    q: "78",
+  });
+  return `/.netlify/images?${params.toString()}`;
+};
+
 const text = (value: unknown) =>
   typeof value === "string" && value.trim() ? value.trim() : null;
 

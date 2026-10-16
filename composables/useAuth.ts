@@ -70,7 +70,8 @@ export const useAuth = () => {
   };
 
   /**
-   * Create the account, then ask the server to email a code.
+   * Create the account, record the PDPA consent ticked on the form, then
+   * ask the server to email a code.
    *
    * The account exists before it is verified, on purpose: Firebase needs a
    * user to hang `emailVerified` on, and a half-finished signup that the user
@@ -82,6 +83,13 @@ export const useAuth = () => {
     displayName?: string,
   ) => {
     const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+
+    // The form only calls this once the PDPA consent box is ticked, so record
+    // it now, before anything else is collected. A failed write doesn't undo
+    // the account: onboarding sees no consent on file and asks again.
+    await recordConsentFor(cred.user.uid, "signup").catch((e) =>
+      console.warn("[consent] not recorded at sign-up", e),
+    );
 
     const name = displayName?.trim();
     if (name) {

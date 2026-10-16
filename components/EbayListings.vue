@@ -57,13 +57,14 @@
           class="flex min-h-11 items-center gap-3 rounded-lg px-2 py-3 transition-colors duration-150 hover:bg-black/[0.03] active:bg-black/[0.05] dark:hover:bg-white/[0.04] dark:active:bg-white/[0.06]"
         >
           <img
-            v-if="item.imageUrl"
-            :src="item.imageUrl"
+            v-if="item.imageUrl && !brokenImages.has(item.id)"
+            :src="ebayImageUrl(item.imageUrl, 48) ?? undefined"
             alt=""
             loading="lazy"
             decoding="async"
             referrerpolicy="no-referrer"
             class="h-16 w-12 shrink-0 rounded-md bg-black/[0.04] object-cover dark:bg-white/[0.06]"
+            @error="brokenImages.add(item.id)"
           />
           <div
             v-else
@@ -137,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import type { EbayListingsResponse } from "~/shared/ebay";
+import { ebayImageUrl, type EbayListingsResponse } from "~/shared/ebay";
 
 const props = defineProps<{
   name: string;
@@ -147,6 +148,8 @@ const props = defineProps<{
 
 const data = ref<EbayListingsResponse | null>(null);
 const loading = ref(false);
+// A photo that still fails falls back to the plain tile, not a broken icon.
+const brokenImages = reactive(new Set<string>());
 let request = 0;
 
 // Hidden while the keyset isn't configured and when eBay errors: an eBay
