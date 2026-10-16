@@ -11,7 +11,7 @@
            to finish now rather than being surprised twice. -->
       <ol class="mb-7 space-y-1">
         <li
-          v-for="(s, i) in ONBOARDING_STEPS"
+          v-for="(s, i) in shownSteps"
           :key="s.id"
           class="flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors"
           :class="s.id === state.current ? 'bg-white dark:bg-white/[0.05] shadow-sm' : ''"
@@ -191,9 +191,8 @@
         </template>
       </div>
 
-      <!-- Only the address is left: it is asked for at checkout or a bid,
-           so stepping back out is allowed. An unconfirmed email still
-           offers only Sign out. -->
+      <!-- Only steps that don't block browsing are left (the email code and
+           the address), so stepping back out is allowed. -->
       <button
         v-if="!state.complete && !state.blocking"
         @click="finish"
@@ -214,7 +213,9 @@ import { MY_STATES, stateForPostcode } from "~/shared/my-states";
 import { newAddressId } from "~/shared/addresses";
 import {
   ONBOARDING_STEPS,
+  needsConfirmedEmail,
   onboardingState,
+  stepsNeededFor,
   type OnboardingStepId,
 } from "~/shared/onboarding";
 
@@ -237,10 +238,20 @@ const code = ref("");
 
 const email = computed(() => user.value?.email ?? "");
 
+// Only what the page they came from needs: confirming the email to send a
+// message shouldn't then ask for a delivery address.
 const state = computed(() =>
-  onboardingState(profile.value, !!user.value?.emailVerified),
+  onboardingState(
+    profile.value,
+    !!user.value?.emailVerified,
+    stepsNeededFor(route.query.next as string | undefined),
+  ),
 );
 const isDone = (id: OnboardingStepId) => !state.value.remaining.includes(id);
+const shownSteps = computed(() => {
+  const ids = stepsNeededFor(route.query.next as string | undefined);
+  return ONBOARDING_STEPS.filter((s) => ids.includes(s.id));
+});
 
 // Seeded from whatever's already saved, so someone who filled half of this in
 // and came back doesn't retype it.
@@ -384,7 +395,13 @@ const saveAddress = () =>
   });
 
 // ── Exit ──────────────────────────────────────────────────────────────
-const finish = () => navigateTo((route.query.next as string) || "/");
+// "Not now" can't return someone to a page that needs the step they skipped,
+// or the gate would send them straight back here.
+const finish = () => {
+  const next = (route.query.next as string) || "/";
+  const blockedByEmail = !user.value?.emailVerified && needsConfirmedEmail(next.split(/[?#]/)[0]);
+  return navigateTo(blockedByEmail ? "/" : next);
+};
 
 const signOutAndLeave = async () => {
   await signOut();

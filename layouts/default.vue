@@ -3,6 +3,7 @@
     class="min-h-screen bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 transition-colors"
   >
     <AppNavbar />
+    <EmailConfirmBar />
     <!-- pt-8 rather than py-8: pb-28 already overrode the bottom half, so
          this is the same spacing said once. Under lg the top gap matches the
          px-4 side gutter, so content sits evenly inside the screen edges.

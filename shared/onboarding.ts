@@ -145,21 +145,38 @@ export interface OnboardingState {
 export const onboardingState = (
   p: OnboardingView | null | undefined,
   emailVerified: boolean,
+  /** Limit the flow to these steps, e.g. stepsNeededFor(next). */
+  only?: readonly OnboardingStepId[],
 ): OnboardingState => {
   const done: Record<OnboardingStepId, boolean> = {
     consent: hasCurrentConsent(p),
     email: emailVerified,
     address: hasDeliveryAddress(p),
   };
-  const remaining = ONBOARDING_STEPS.filter((s) => !done[s.id]).map((s) => s.id);
-  const finished = ONBOARDING_STEPS.length - remaining.length;
+  const steps = only ? ONBOARDING_STEPS.filter((s) => only.includes(s.id)) : ONBOARDING_STEPS;
+  const remaining = steps.filter((s) => !done[s.id]).map((s) => s.id);
+  const finished = steps.length - remaining.length;
   return {
     remaining,
     current: remaining[0] ?? null,
     blocking: remaining.find((id) => !NEEDED_TO_BUY.includes(id)) ?? null,
     complete: remaining.length === 0,
-    percent: Math.round((finished / ONBOARDING_STEPS.length) * 100),
+    percent: steps.length ? Math.round((finished / steps.length) * 100) : 100,
   };
+};
+
+/**
+ * The steps the page someone was sent from actually needs, so finishing
+ * them returns them there instead of asking for more.
+ *
+ * Selling and messaging need the email only. Anything else (paying,
+ * bidding, or just arriving from the consent screen) gets the whole list,
+ * with "Not now" for the steps that don't block browsing.
+ */
+export const stepsNeededFor = (next: string | null | undefined): OnboardingStepId[] => {
+  const path = (next ?? "").split(/[?#]/)[0];
+  if (path && path !== "/checkout" && needsConfirmedEmail(path)) return ["consent", "email"];
+  return ONBOARDING_STEPS.map((s) => s.id);
 };
 
 /**

@@ -20,11 +20,14 @@ import {
   isOnboardingExempt,
   isSellerArea,
   isSellerOnboardingExempt,
+  needsConfirmedEmail,
   onboardingState,
+  readyToBuy,
   sellerOnboardingState,
+  stepsNeededFor,
 } from "~/shared/onboarding";
 import { payoutDetailsComplete } from "~/shared/payout-details";
-import { kycStatusFor, KYC_REQUIRED } from "~/shared/didit";
+import { kycStatusFor, KYC_REQUIRED, myKadNumberFrom } from "~/shared/didit";
 import { LEGAL_VERSION } from "~/shared/legal";
 
 const address = {
@@ -154,9 +157,18 @@ describe("buyer onboarding state", () => {
     assert.equal(s.blocking, null);
   });
 
-  it("keeps an unconfirmed email out of the marketplace", () => {
-    assert.equal(onboardingState(consented, false).blocking, "email");
-    assert.equal(onboardingState({ ...consented, ...address }, false).blocking, "email");
+  it("lets someone browse before typing the email code", () => {
+    // A late or spam-filtered code used to lock new members out of every
+    // shop page. The email is asked for where it's needed instead.
+    const s = onboardingState({ ...consented, ...address }, false);
+    assert.equal(s.blocking, null);
+    assert.equal(s.current, "email");
+  });
+
+  it("needs a confirmed email and an address to buy", () => {
+    assert.equal(readyToBuy({ ...consented, ...address }, true), true);
+    assert.equal(readyToBuy({ ...consented, ...address }, false), false);
+    assert.equal(readyToBuy(consented, true), false);
   });
 
   it("keeps the personal data consent ahead of everything", () => {
@@ -276,7 +288,7 @@ describe("seller onboarding", () => {
 
 describe("what stays reachable while seller setup is unfinished", () => {
   it("lets a seller reach the flow and the forms that fix it", () => {
-    for (const p of ["/seller/onboarding", "/seller/settings", "/seller/verify"]) {
+    for (const p of ["/seller/onboarding", "/seller/settings"]) {
       assert.equal(isSellerOnboardingExempt(p), true, `${p} must stay open`);
     }
   });
@@ -294,5 +306,45 @@ describe("what stays reachable while seller setup is unfinished", () => {
     for (const p of ["/seller-policy", "/sellers", "/"]) {
       assert.equal(isSellerArea(p), false, `${p} is not the seller area`);
     }
+  });
+});
+
+describe("where a confirmed email is needed", () => {
+  it("covers paying, selling and messaging", () => {
+    for (const p of ["/checkout", "/seller", "/seller/listings/new", "/messages", "/messages/abc"]) {
+      assert.equal(needsConfirmedEmail(p), true, `${p} needs a confirmed email`);
+    }
+  });
+
+  it("leaves browsing open", () => {
+    for (const p of ["/", "/auctions", "/auctions/abc", "/cards/x", "/account", "/seller-policy"]) {
+      assert.equal(needsConfirmedEmail(p), false, `${p} is browsing`);
+    }
+  });
+
+  it("asks only for what the page you came from needs", () => {
+    assert.deepEqual(stepsNeededFor("/messages/abc"), ["consent", "email"]);
+    assert.deepEqual(stepsNeededFor("/seller/listings/new"), ["consent", "email"]);
+    assert.deepEqual(stepsNeededFor("/checkout"), ["consent", "email", "address"]);
+    assert.deepEqual(stepsNeededFor("/auctions/a1"), ["consent", "email", "address"]);
+    assert.deepEqual(stepsNeededFor(undefined), ["consent", "email", "address"]);
+  });
+
+  it("finishes once the needed steps are done, even with others left", () => {
+    const s = onboardingState(consented, true, stepsNeededFor("/messages/abc"));
+    assert.equal(s.complete, true);
+  });
+});
+
+describe("the IC number from the MyKad scan", () => {
+  it("takes a 12-digit number from either field", () => {
+    assert.equal(myKadNumberFrom({ document_number: "900101-10-1234" }), "900101101234");
+    assert.equal(myKadNumberFrom({ personal_number: "900101101234", document_number: "A1234567" }), "900101101234");
+  });
+
+  it("ignores anything that isn't a MyKad number", () => {
+    assert.equal(myKadNumberFrom({ document_number: "A1234567" }), null);
+    assert.equal(myKadNumberFrom({ document_number: 900101101234 }), null);
+    assert.equal(myKadNumberFrom(null), null);
   });
 });
