@@ -348,17 +348,20 @@
             }}
           </span>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <CollectionItemCard
+        <!-- Flat cells divided by hairlines, edge to edge on phones. Each
+             cell draws its own right and bottom line; overflow-hidden clips
+             the ones on the outer right edge. -->
+        <div
+          class="-mx-4 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 overflow-hidden border-t border-black/[0.06] dark:border-white/[0.08] lg:border-x lg:rounded-xl"
+        >
+          <CollectionOwnedTile
             v-for="card in collectionCards"
             :key="card.productId"
             :card="card"
-            :in-collection="true"
-            show-quantity
             :quantity="quantityOf(card.productId)"
             :busy="busyIds.has(card.productId)"
-            @increment="handleIncrement(card.productId)"
-            @decrement="handleDecrement(card.productId)"
+            class="shadow-[1px_0_0_0_rgba(0,0,0,0.06),0_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.08),0_1px_0_0_rgba(255,255,255,0.08)]"
+            @menu="openManage(card)"
           />
         </div>
       </template>
@@ -427,8 +430,9 @@
             </button>
           </div>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div class="-mx-1.5 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
           <CollectionItemCard
+            dense
             v-for="card in searchResults"
             :key="card.productId"
             :card="card"
@@ -460,6 +464,130 @@
         </p>
       </template>
     </div>
+
+    <!-- Manage sheet for one owned card: the ⋮ on a tile opens it. One
+         sheet, three views: the actions, then a count for "Change amount"
+         or "Mark as sold", or a confirm for "Remove". -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-opacity duration-200 ease-out"
+        enter-from-class="opacity-0"
+        leave-active-class="transition-opacity duration-150 ease-out"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="manageCard"
+          class="fixed inset-0 z-[70] bg-black/40"
+          @click="closeManage"
+        />
+      </Transition>
+      <Transition
+        enter-active-class="transition-transform duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)]"
+        enter-from-class="translate-y-full"
+        leave-active-class="transition-transform duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
+        leave-to-class="translate-y-full"
+      >
+        <div
+          v-if="manageCard"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="`Manage ${manageCard.name}`"
+          class="fixed inset-x-0 bottom-0 z-[71] mx-auto max-w-md surface rounded-t-3xl border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]"
+        >
+          <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15" aria-hidden="true" />
+          <div class="px-2 pb-2">
+            <p class="truncate text-base font-bold text-ink dark:text-white">{{ manageCard.name }}</p>
+            <p class="truncate text-xs text-ink-soft dark:text-zinc-500">
+              {{ manageCard.setName }} · {{ manageOwned }} owned
+            </p>
+          </div>
+
+          <template v-if="manageView === 'actions'">
+            <button
+              v-for="action in manageActions"
+              :key="action.view"
+              type="button"
+              class="tab-press w-full flex items-center gap-3 px-2 min-h-[52px] rounded-xl text-left text-sm font-semibold active:bg-black/[0.04] dark:active:bg-white/[0.06]"
+              :class="action.view === 'remove' ? 'text-pokemon-red' : 'text-ink dark:text-white'"
+              @click="startManage(action.view)"
+            >
+              {{ action.label }}
+            </button>
+          </template>
+
+          <template v-else-if="manageView === 'remove'">
+            <p class="px-2 pb-4 text-sm text-ink-muted dark:text-zinc-400">
+              Remove this card and all {{ manageOwned }}
+              {{ manageOwned === 1 ? "copy" : "copies" }} from your collection?
+            </p>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="flex-1 h-11 rounded-xl border border-black/[0.08] dark:border-white/[0.12] text-sm font-semibold text-ink dark:text-white"
+                @click="manageView = 'actions'"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="flex-1 h-11 rounded-xl bg-pokemon-red text-sm font-semibold text-white"
+                @click="confirmManage"
+              >
+                Remove
+              </button>
+            </div>
+          </template>
+
+          <template v-else>
+            <p class="px-2 text-sm font-semibold text-ink dark:text-white">
+              {{ manageView === "sold" ? "How many did you sell?" : "How many do you own?" }}
+            </p>
+            <div class="my-4 flex items-center justify-center gap-6">
+              <button
+                type="button"
+                class="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.12] inline-flex items-center justify-center text-ink dark:text-white disabled:opacity-40"
+                :disabled="manageCount <= manageMin"
+                aria-label="One fewer"
+                @click="manageCount--"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14" /></svg>
+              </button>
+              <span class="min-w-[3ch] text-center text-3xl font-bold tabular-price text-ink dark:text-white" aria-live="polite">
+                {{ manageCount }}
+              </span>
+              <button
+                type="button"
+                class="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.12] inline-flex items-center justify-center text-ink dark:text-white disabled:opacity-40"
+                :disabled="manageCount >= manageMax"
+                aria-label="One more"
+                @click="manageCount++"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+              </button>
+            </div>
+            <p v-if="manageView === 'amount' && manageCount === 0" class="px-2 -mt-2 mb-3 text-center text-xs text-pokemon-red">
+              Saving 0 removes the card from your collection.
+            </p>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="flex-1 h-11 rounded-xl border border-black/[0.08] dark:border-white/[0.12] text-sm font-semibold text-ink dark:text-white"
+                @click="manageView = 'actions'"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                class="flex-1 h-11 rounded-xl bg-ink dark:bg-white text-sm font-semibold text-white dark:text-ink"
+                @click="confirmManage"
+              >
+                {{ manageView === "sold" ? "Mark sold" : "Save" }}
+              </button>
+            </div>
+          </template>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -478,7 +606,7 @@ import { parseSearchQuery } from "~/shared/search-query";
 
 useHead({ title: "Add Cards | TCGo Marketplace" });
 
-// Divisible by 2, 3 and 5 — the three grid widths — so the last row is never
+// Divisible by 3 and 5 — the grid widths — so the last row is never
 // left with empty slots at any breakpoint.
 const SEARCH_PAGE_SIZE = 30;
 
@@ -498,9 +626,10 @@ const {
   isInCollection,
   quantities,
   quantityOf,
-  addCopy,
-  removeCopy,
   toggleInCollection,
+  setQuantity,
+  markSold,
+  removeFromCollection,
   listenMyCollection,
 } = useUserCollection();
 
@@ -755,6 +884,9 @@ const runSearch = async () => {
     !effectiveSetMatch.value &&
     !effectiveRarityMatch.value
   ) {
+    // Nothing left to search for: an emptied box (or reset filters) means
+    // "back to my collection", not "keep the last results on screen".
+    if (hasRunSearch.value) clearSearch();
     return;
   }
   searchPage.value = 0;
@@ -775,6 +907,21 @@ const runSearch = async () => {
   searchTotal.value = total;
   searchLoading.value = false;
 };
+
+// Emptying the box is the way back too. A search with no matches has no
+// "Back to collection" button, so without this the page stayed on "No
+// matches" after the text and filters were cleared. Not via runSearch: that
+// dismisses the keyboard mid-edit.
+watch(searchInput, (value) => {
+  if (
+    hasRunSearch.value &&
+    !value.trim() &&
+    !setFilter.value &&
+    !rarityFilter.value
+  ) {
+    clearSearch();
+  }
+});
 
 const loadMore = async () => {
   if (searchLoading.value || !hasMoreResults.value) return;
@@ -932,9 +1079,54 @@ const handleToggle = (productId: number) => {
   withBusy(productId, () => toggleInCollection(productId));
 };
 
-const handleIncrement = (productId: number) =>
-  withBusy(productId, () => addCopy(productId));
+// ── Manage sheet (⋮ on an owned tile) ─────────────────────────────────
+type ManageView = "actions" | "amount" | "sold" | "remove";
+const manageActions: { view: ManageView; label: string }[] = [
+  { view: "amount", label: "Change amount" },
+  { view: "sold", label: "Mark as sold" },
+  { view: "remove", label: "Remove from collection" },
+];
+const manageCard = ref<CatalogMatch | null>(null);
+const manageView = ref<ManageView>("actions");
+const manageCount = ref(1);
+const manageOwned = computed(() =>
+  manageCard.value ? quantityOf(manageCard.value.productId) : 0,
+);
+// Amount can go to 0 (removes the card); a sale is at least one copy and
+// at most what is owned. 999 keeps a held-down + from running away.
+const manageMin = computed(() => (manageView.value === "sold" ? 1 : 0));
+const manageMax = computed(() =>
+  manageView.value === "sold" ? manageOwned.value : 999,
+);
 
-const handleDecrement = (productId: number) =>
-  withBusy(productId, () => removeCopy(productId));
+const openManage = (card: CatalogMatch) => {
+  manageCard.value = card;
+  manageView.value = "actions";
+};
+const closeManage = () => {
+  manageCard.value = null;
+};
+const onManageKey = (e: KeyboardEvent) => {
+  if (e.key === "Escape" && manageCard.value) closeManage();
+};
+onMounted(() => window.addEventListener("keydown", onManageKey));
+onBeforeUnmount(() => window.removeEventListener("keydown", onManageKey));
+const startManage = (view: ManageView) => {
+  manageView.value = view;
+  manageCount.value = view === "amount" ? manageOwned.value : 1;
+};
+const confirmManage = () => {
+  const card = manageCard.value;
+  if (!card) return;
+  const view = manageView.value;
+  const n = manageCount.value;
+  closeManage();
+  withBusy(card.productId, () =>
+    view === "remove"
+      ? removeFromCollection(card.productId)
+      : view === "sold"
+        ? markSold(card.productId, n)
+        : setQuantity(card.productId, n),
+  );
+};
 </script>
