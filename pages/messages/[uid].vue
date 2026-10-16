@@ -29,9 +29,9 @@
       >
         <!-- Header: who, and how responsive they are -->
         <header class="chat-header flex items-center gap-2 lg:gap-3 px-2 lg:px-4 py-2 lg:py-3 border-b border-black/[0.06] dark:border-white/[0.08]">
-          <NuxtLink to="/messages" class="lg:hidden w-11 h-11 shrink-0 grid place-items-center rounded-full text-ink dark:text-white active:bg-black/[0.06] dark:active:bg-white/[0.08]" aria-label="All messages">
+          <button type="button" class="lg:hidden w-11 h-11 shrink-0 grid place-items-center rounded-full text-ink dark:text-white active:bg-black/[0.06] dark:active:bg-white/[0.08]" aria-label="Back" @click="goBack">
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-          </NuxtLink>
+          </button>
           <NuxtLink :to="`/profile/${otherUid}`" class="flex items-center gap-3 min-w-0 flex-1">
             <ChatAvatar :person="otherPerson" :online="online" class="w-10 h-10" />
             <div class="min-w-0">
@@ -240,6 +240,15 @@ const replyLabel = computed(() => replyTimeLabel(otherStats.value));
 
 let unsubs: Unsubscribe[] = [];
 let unsubMessages: Unsubscribe | null = null;
+
+// Back returns to whatever page opened this chat. Vue Router records the
+// previous in-app entry in history.state.back; when there is none (opened
+// from a push, a refresh or a direct link) fall back to the inbox.
+const router = useRouter();
+const goBack = () => {
+  if (window.history.state?.back) router.back();
+  else navigateTo("/messages", { replace: true });
+};
 
 const listenMessages = () => {
   unsubMessages?.();
