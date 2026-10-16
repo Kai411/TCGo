@@ -757,6 +757,9 @@ const runSearch = async () => {
     !effectiveSetMatch.value &&
     !effectiveRarityMatch.value
   ) {
+    // Nothing left to search for: an emptied box (or reset filters) means
+    // "back to my collection", not "keep the last results on screen".
+    if (hasRunSearch.value) clearSearch();
     return;
   }
   searchPage.value = 0;
@@ -777,6 +780,21 @@ const runSearch = async () => {
   searchTotal.value = total;
   searchLoading.value = false;
 };
+
+// Emptying the box is the way back too. A search with no matches has no
+// "Back to collection" button, so without this the page stayed on "No
+// matches" after the text and filters were cleared. Not via runSearch: that
+// dismisses the keyboard mid-edit.
+watch(searchInput, (value) => {
+  if (
+    hasRunSearch.value &&
+    !value.trim() &&
+    !setFilter.value &&
+    !rarityFilter.value
+  ) {
+    clearSearch();
+  }
+});
 
 const loadMore = async () => {
   if (searchLoading.value || !hasMoreResults.value) return;
