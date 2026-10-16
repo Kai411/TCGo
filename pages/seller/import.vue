@@ -22,7 +22,7 @@
         <TabStrip v-model="uploadMethod" :tabs="methodTabs" />
 
         <!-- Method: file -->
-        <div v-if="uploadMethod === 'file'" class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-6">
+        <div v-if="uploadMethod === 'file'" class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-6">
           <label class="block">
             <div class="border-2 border-dashed border-gray-300 dark:border-white/[0.12] rounded-xl py-10 text-center cursor-pointer hover:border-pokemon-blue transition-colors">
               <svg class="w-10 h-10 mx-auto text-gray-400 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -62,7 +62,7 @@
         </div>
 
         <!-- Method: paste -->
-        <div v-else-if="uploadMethod === 'paste'" class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
+        <div v-else-if="uploadMethod === 'paste'" class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
           <div>
             <p class="text-sm font-semibold text-ink dark:text-white">Paste your rows</p>
             <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
@@ -99,7 +99,7 @@
         </div>
 
         <!-- Method: scan photos -->
-        <div v-else class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
+        <div v-else class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
           <div>
             <p class="text-sm font-semibold text-ink dark:text-white">Scan card photos</p>
             <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
@@ -148,7 +148,7 @@
 
       <!-- Step 2: map columns -->
       <div v-else-if="step === 'map'" class="space-y-4">
-        <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+        <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
           <p class="text-sm font-semibold text-ink dark:text-white mb-1">Map your columns</p>
           <p class="text-xs text-gray-500 dark:text-zinc-400 mb-4">
             {{ parsedRows.length }} rows found. We guessed the mapping — adjust if needed. Only <span class="font-semibold">Name</span> is required.
@@ -206,7 +206,7 @@
       </div>
 
       <!-- Reconciling progress -->
-      <div v-else-if="step === 'reviewing'" class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-8 text-center">
+      <div v-else-if="step === 'reviewing'" class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-8 text-center">
         <div class="animate-spin rounded-full h-7 w-7 border-2 border-ink/10 border-t-pokemon-red mx-auto mb-4"/>
         <p class="text-sm font-semibold text-ink dark:text-white">
           {{ flow === "photos" ? "Identifying cards…" : "Matching to catalog…" }}

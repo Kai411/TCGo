@@ -2,7 +2,7 @@
   <div class="max-w-6xl mx-auto">
     <button
       type="button"
-      class="mb-5 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
+      class="mb-3 inline-flex min-h-11 items-center gap-1.5 text-sm lg:mb-5 lg:min-h-0 font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
       @click="goBack"
     >
       <svg
@@ -41,33 +41,41 @@
 
     <template v-else>
       <section
-        class="surface relative overflow-hidden rounded-3xl border border-black/[0.06] dark:border-white/[0.08]"
+        class="panel surface relative overflow-hidden rounded-3xl border border-black/[0.06] dark:border-white/[0.08]"
       >
         <div
-          class="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-pokemon-red/[0.08] blur-3xl dark:bg-pokemon-red/[0.12]"
+          class="pointer-events-none absolute hidden lg:block -right-24 -top-24 h-72 w-72 rounded-full bg-pokemon-red/[0.08] blur-3xl dark:bg-pokemon-red/[0.12]"
           aria-hidden="true"
         />
         <div
-          class="pointer-events-none absolute -bottom-32 left-1/4 h-72 w-72 rounded-full bg-pokemon-blue/[0.08] blur-3xl dark:bg-pokemon-blue/[0.12]"
+          class="pointer-events-none absolute hidden lg:block -bottom-32 left-1/4 h-72 w-72 rounded-full bg-pokemon-blue/[0.08] blur-3xl dark:bg-pokemon-blue/[0.12]"
           aria-hidden="true"
         />
 
+        <!-- Phone: a small card beside the title, chips and collection
+             control, then the price row across the full width. Every item is placed
+             explicitly because the info column below dissolves (`contents`)
+             into this grid. The second row is 1fr so the card's extra height
+             lands under the collection control instead of spreading the title
+             apart. -->
         <div
-          class="relative grid grid-cols-1 items-center gap-7 p-5 sm:p-7 md:grid-cols-[minmax(230px,310px)_1fr] md:gap-10 lg:p-10"
+          class="panel-body relative grid grid-cols-[7.5rem_minmax(0,1fr)] grid-rows-[auto_auto_1fr_auto] gap-x-4 sm:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[minmax(230px,310px)_1fr] lg:grid-rows-none lg:items-center lg:gap-10 lg:p-10"
         >
-          <div class="relative mx-auto w-full max-w-[310px] md:mx-0">
+          <div
+            class="relative col-start-1 row-span-3 row-start-1 w-full self-start lg:row-span-1 lg:mx-0 lg:max-w-[310px] lg:self-auto"
+          >
             <div
               class="absolute inset-x-5 bottom-0 h-1/2 rounded-full bg-black/15 blur-2xl dark:bg-black/40"
               aria-hidden="true"
             />
             <div
-              class="relative aspect-[2.5/3.5] overflow-hidden rounded-[1.35rem] bg-canvas-sunken ring-1 ring-black/[0.08] shadow-card-hover transition-transform duration-300 ease-premium sm:-rotate-1 sm:hover:rotate-0 dark:bg-white/[0.04] dark:ring-white/[0.10]"
+              class="relative aspect-[2.5/3.5] overflow-hidden bg-canvas-sunken ring-1 ring-black/[0.08] shadow-card-hover transition-transform duration-300 ease-premium rounded-xl lg:rounded-[1.35rem] lg:-rotate-1 lg:hover:rotate-0 dark:bg-white/[0.04] dark:ring-white/[0.10]"
             >
               <CardImage :src="card.imageUrl" :alt="card.name" />
             </div>
           </div>
 
-          <div class="min-w-0 flex flex-col">
+          <div class="contents min-w-0 lg:flex lg:flex-col">
             <!-- Chips left, collection control top-right. It used to sit
                  beside the price at the foot of the column, which buried the
                  one action on the page below the fold on narrow screens. -->
@@ -76,9 +84,11 @@
                  lets order-last move the button past them. From sm up it is an
                  ordinary row again and the desktop layout is untouched. -->
             <div
-              class="contents sm:flex sm:flex-wrap sm:items-start sm:justify-between sm:gap-3"
+              class="contents lg:flex lg:flex-wrap lg:items-start lg:justify-between lg:gap-3"
             >
-              <div class="flex flex-wrap items-center gap-1.5">
+              <div
+                class="col-start-2 row-start-2 mt-3 flex flex-wrap items-center gap-1.5 self-start lg:mt-0"
+              >
                 <span v-if="card.rarity" class="chip chip-gold">{{
                   card.rarity
                 }}</span>
@@ -88,10 +98,11 @@
                 }}</span>
               </div>
 
-              <!-- Last on a phone: the name, number and price are what the
-                   reader came for, and the button pushed all of it down. -->
+              <!-- On a phone it sits beside the card under the chips, in space
+                   the card's height leaves empty anyway, so it never pushes
+                   the price down. -->
               <div
-                class="order-last mt-6 flex shrink-0 items-center gap-2 sm:order-none sm:mt-0"
+                class="col-start-2 row-start-3 mt-3 flex shrink-0 items-start gap-2 self-start lg:mt-0 lg:items-center lg:self-auto"
               >
                 <!-- Owned: a status mark, not a button. The only action left
                      (changing how many copies) sits with the price below. -->
@@ -100,7 +111,7 @@
                   v-if="!inCollection"
                   type="button"
                   :disabled="collectionBusy || (!!user && collectionLoading)"
-                  class="inline-flex min-w-[166px] items-center justify-center gap-2 rounded-full bg-pokemon-blue px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:translate-y-0 disabled:opacity-60"
+                  class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-pokemon-blue px-4 py-2.5 lg:min-w-[166px] lg:px-5 lg:py-3 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:translate-y-0 disabled:opacity-60"
                   @click="handleCollectionToggle"
                 >
                   <div
@@ -129,9 +140,10 @@
 
             <!-- The set name is the obvious thing to click after reading it,
                  and it was inert. -->
+            <div class="col-start-2 row-start-1 flex min-w-0 flex-col lg:mt-5">
             <NuxtLink
               :to="`/collection?set=${encodeURIComponent(card.setName)}`"
-              class="mt-5 eyebrow inline-flex items-center gap-1 transition-colors hover:text-pokemon-red"
+              class="eyebrow inline-flex items-center gap-1 transition-colors hover:text-pokemon-red"
               :aria-label="`See other cards from ${card.setName}`"
             >
               {{ card.setName }}
@@ -149,7 +161,7 @@
               </svg>
             </NuxtLink>
             <h1
-              class="mt-1 font-display text-4xl font-extrabold tracking-tightest text-ink dark:text-white sm:text-5xl"
+              class="mt-1 font-display text-2xl font-extrabold leading-tight tracking-tightest text-ink dark:text-white sm:text-3xl lg:text-5xl lg:leading-none"
             >
               {{ card.name }}
             </h1>
@@ -159,11 +171,14 @@
               <span v-if="card.number">{{ card.number }} · </span
               >{{ card.language }}
             </p>
+            </div>
 
             <!-- Price left, copies stepper flush right — one row, so the
                  stepper reads as a property of the card rather than a second
                  call to action stacked under the header. -->
-            <div class="mt-7 flex flex-wrap items-end justify-between gap-4">
+            <div
+              class="col-span-2 row-start-4 mt-5 flex flex-wrap items-end justify-between gap-4 lg:mt-7"
+            >
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                   <p
@@ -191,6 +206,22 @@
                   </button>
                 </div>
 
+                <!-- Low or no confidence says why up front: the ? alone is
+                     easy to miss, and this is when the reason matters. -->
+                <p
+                  v-if="!confidenceOpen && lowConfidenceNote"
+                  class="mt-2 max-w-sm text-[12px] leading-relaxed text-amber-700 dark:text-amber-300"
+                >
+                  {{ lowConfidenceNote }}
+                  <button
+                    type="button"
+                    class="font-semibold underline underline-offset-2"
+                    aria-controls="price-confidence-why"
+                    @click="confidenceOpen = true"
+                  >
+                    Why?
+                  </button>
+                </p>
                 <div
                   v-if="confidenceOpen"
                   id="price-confidence-why"
@@ -257,6 +288,24 @@
                 >
                   Price unavailable
                 </p>
+                <!-- Phone only: the chart's own headline repeats the price, so
+                     on a phone it is hidden and the change sits here, on the
+                     first screen. -->
+                <p
+                  v-if="trend && trend.changePct !== null && trend.points.length >= 2"
+                  class="mt-1.5 inline-flex items-center gap-1 text-xs font-bold tabular-price lg:hidden"
+                  :class="
+                    trend.changePct >= 0
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-rose-600 dark:text-rose-400'
+                  "
+                >
+                  {{ trend.changePct >= 0 ? "▲" : "▼" }}
+                  {{ Math.abs(trend.changePct).toFixed(1) }}%
+                  <span class="font-semibold text-ink-soft dark:text-zinc-500"
+                    >past {{ selectedRangeLabel }}</span
+                  >
+                </p>
               </div>
               <div
                 v-if="inCollection && user"
@@ -287,11 +336,13 @@
 
             </div>
 
+            <!-- Desktop only. On a phone these sit under the chart instead,
+                 so the price and its trend come first. -->
             <div
-              class="mt-7 grid grid-cols-2 gap-3 border-t border-black/[0.06] pt-5 dark:border-white/[0.08] sm:grid-cols-3"
+              class="mt-7 hidden grid-cols-3 gap-3 border-t border-black/[0.06] pt-5 dark:border-white/[0.08] lg:grid"
             >
               <div
-                class="rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
+                class="panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
               >
                 <p
                   class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
@@ -305,7 +356,7 @@
                 </p>
               </div>
               <div
-                class="rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
+                class="panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
               >
                 <p
                   class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
@@ -319,7 +370,7 @@
                 </p>
               </div>
               <div
-                class="col-span-2 rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04] sm:col-span-1"
+                class="col-span-2 panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04] sm:col-span-1"
               >
                 <p
                   class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
@@ -338,18 +389,18 @@
         </div>
       </section>
 
-      <section class="surface rounded-2xl mt-8 p-5 sm:p-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
+      <section class="panel surface rounded-2xl mt-6 p-5 sm:p-6 lg:mt-8">
+        <div class="flex flex-wrap items-center justify-between gap-4 lg:items-start">
           <div>
-            <span class="eyebrow">Price history</span>
+            <span class="eyebrow hidden lg:inline-block">Price history</span>
             <h2
-              class="mt-1 text-xl font-bold tracking-tight text-ink dark:text-white"
+              class="text-base font-bold tracking-tight text-ink dark:text-white lg:mt-1 lg:text-xl"
             >
               Raw card trend
             </h2>
             <p
               v-if="historyCoverageLabel"
-              class="mt-1.5 text-xs text-ink-muted dark:text-zinc-400"
+              class="mt-1.5 hidden text-xs text-ink-muted dark:text-zinc-400 lg:block"
             >
               {{ historyCoverageLabel }}
             </p>
@@ -405,13 +456,46 @@
           </div>
         </div>
 
-        <div class="mt-6">
+        <div class="mt-4 lg:mt-6">
           <PriceTrendChart
             :trend="trend"
             :loading="trendLoading"
             :height="190"
+            header-class="hidden lg:flex"
           />
         </div>
+
+        <!-- Phone only: the secondary figures from the top panel, moved
+             under the chart. -->
+        <dl
+          class="mt-5 grid grid-cols-3 divide-x divide-black/[0.06] border-t border-black/[0.06] pt-4 text-center dark:divide-white/[0.08] dark:border-white/[0.08] lg:hidden"
+        >
+          <div class="px-2">
+            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+              Market low
+            </dt>
+            <dd class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
+              {{ card.price ? formatMyr(card.price.low) : "—" }}
+            </dd>
+          </div>
+          <div class="px-2">
+            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+              Market high
+            </dt>
+            <dd class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
+              {{ card.price ? formatMyr(card.price.high) : "—" }}
+            </dd>
+          </div>
+          <div class="px-2">
+            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+              Graded
+            </dt>
+            <dd class="mt-1 text-sm font-bold text-ink dark:text-white">
+              {{ activeGradedListings.length }}
+              {{ activeGradedListings.length === 1 ? "listing" : "listings" }}
+            </dd>
+          </div>
+        </dl>
 
         <div
           v-if="fullTrend"
@@ -449,7 +533,7 @@
            smaller half of the market and never the cheapest way to own the
            card — a reader could see three slabs and conclude nobody was
            selling it. -->
-      <section class="surface rounded-2xl mt-6 p-5 sm:p-6">
+      <section class="panel surface rounded-2xl mt-6 p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <span class="eyebrow">Ungraded prices</span>
@@ -502,7 +586,7 @@
 
         <div
           v-else
-          class="mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
+          class="panel-tile mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
         >
           <div class="hidden sm:block overflow-x-auto">
             <table class="w-full min-w-[600px] text-sm">
@@ -574,7 +658,7 @@
               v-for="row in rawRows"
               :key="row.key"
               :to="`/cards/${row.lowestListingId}`"
-              class="flex items-center justify-between gap-4 p-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
+              class="flex items-center justify-between gap-4 py-4 lg:px-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
             >
               <div>
                 <span
@@ -612,7 +696,7 @@
         </p>
       </section>
 
-      <section class="surface rounded-2xl mt-6 p-5 sm:p-6">
+      <section class="panel surface rounded-2xl mt-6 p-5 sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <span class="eyebrow">Graded prices</span>
@@ -666,7 +750,7 @@
 
         <div
           v-else
-          class="mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
+          class="panel-tile mt-6 overflow-hidden rounded-xl border border-black/[0.06] dark:border-white/[0.08]"
         >
           <div class="hidden sm:block overflow-x-auto">
             <table class="w-full min-w-[600px] text-sm">
@@ -741,7 +825,7 @@
               v-for="row in gradedRows"
               :key="row.key"
               :to="`/cards/${row.lowestListingId}`"
-              class="flex items-center justify-between gap-4 p-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
+              class="flex items-center justify-between gap-4 py-4 lg:px-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
             >
               <div>
                 <span
@@ -781,6 +865,13 @@
           a row to view the lowest-priced listing.
         </p>
       </section>
+
+      <!-- Below TCGo's own listings: eBay asking prices, a separate source. -->
+      <EbayListings
+        :name="card.name"
+        :number="card.number"
+        :language="card.language"
+      />
 
       <section v-if="relatedLoading || relatedCards.length" class="mt-10 pb-4">
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -995,6 +1086,13 @@ const rangeOptions = computed(() =>
     };
   }),
 );
+
+const RANGE_WORDS: Record<HistoryDays, string> = {
+  30: "month",
+  90: "3 months",
+  365: "year",
+};
+const selectedRangeLabel = computed(() => RANGE_WORDS[selectedRange.value]);
 
 const trend = computed<PriceTrend | null>(
   () =>
@@ -1246,6 +1344,13 @@ const confidence = computed(() => {
 });
 
 const confidenceOpen = ref(false);
+// One line under a low or missing price: the main reason, and what to do.
+const lowConfidenceNote = computed(() => {
+  const { level, reasons } = confidence.value;
+  if (level !== "low" && level !== "none") return "";
+  const lead = reasons[0] ?? "";
+  return `${lead} Check recent sales before you price.`.trim();
+});
 // A different card is a different verdict; leaving it open would attach one
 // card's reasons to another's price.
 watch(card, () => (confidenceOpen.value = false));

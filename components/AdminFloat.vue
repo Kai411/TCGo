@@ -1,6 +1,6 @@
 <template>
   <div
-    class="rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5"
+    class="panel rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5"
   >
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">

@@ -114,13 +114,19 @@ CREATE POLICY "prices public read"
 -- which bypasses RLS, so no INSERT/UPDATE policies are needed.
 
 ------------------------------------------------------------------
--- snapshot_prices_today : called by the daily cron after upserting
--- the current prices. Reads each row's current market price (preferring
--- Holofoil → Normal → Reverse Holofoil), prepends today's snapshot to
--- the history array, drops any duplicate today entry, and trims to 365.
--- Skips rows whose current prices have no usable market value.
+-- snapshot_prices_range : called by the daily cron after upserting
+-- the current prices, once per slice of product_ids. Reads each row's
+-- current market price (preferring Holofoil → Normal → Reverse Holofoil),
+-- prepends today's snapshot to the history array, drops any duplicate
+-- today entry, and trims to 365. Skips rows whose current prices have no
+-- usable market value.
+--
+-- Sliced because one UPDATE over the whole table outgrew PostgREST's
+-- statement timeout once the JP catalogue roughly doubled the row count:
+-- the nightly run died with "canceling statement due to statement
+-- timeout". Each call is its own statement, so each gets its own timeout.
 ------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION snapshot_prices_today()
+CREATE OR REPLACE FUNCTION snapshot_prices_range(from_id BIGINT, to_id BIGINT)
 RETURNS INT AS $$
 DECLARE
   today_date TEXT := to_char(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD');
@@ -147,14 +153,24 @@ BEGIN
                    ) sub),
                   '[]'::jsonb
                 )
-  WHERE COALESCE(
-    (cp.prices->'Holofoil'->>'market')::numeric,
-    (cp.prices->'Normal'->>'market')::numeric,
-    (cp.prices->'Reverse Holofoil'->>'market')::numeric
-  ) IS NOT NULL;
+  WHERE cp.product_id BETWEEN from_id AND to_id
+    AND COALESCE(
+      (cp.prices->'Holofoil'->>'market')::numeric,
+      (cp.prices->'Normal'->>'market')::numeric,
+      (cp.prices->'Reverse Holofoil'->>'market')::numeric
+    ) IS NOT NULL;
 
   GET DIAGNOSTICS rows_affected = ROW_COUNT;
   RETURN rows_affected;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Whole-table form, kept for running by hand from the SQL editor (which
+-- has no PostgREST timeout). The cron calls snapshot_prices_range.
+CREATE OR REPLACE FUNCTION snapshot_prices_today()
+RETURNS INT AS $$
+BEGIN
+  RETURN snapshot_prices_range(-9223372036854775808, 9223372036854775807);
 END;
 $$ LANGUAGE plpgsql;
 

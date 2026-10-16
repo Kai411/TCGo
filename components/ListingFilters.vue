@@ -147,9 +147,9 @@
       <div class="flex items-center gap-2 mb-2">
         <button
           @click="open = true"
-          class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-ink dark:text-white hover:bg-canvas-sunken dark:hover:bg-zinc-700 transition-colors"
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-ink dark:text-white hover:bg-canvas-sunken dark:hover:bg-zinc-700 transition-colors"
         >
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="7" y1="12" x2="17" y2="12" />
             <line x1="10" y1="18" x2="14" y2="18" />

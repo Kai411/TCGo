@@ -4,7 +4,8 @@
   >
     <AppNavbar />
     <!-- pt-8 rather than py-8: pb-28 already overrode the bottom half, so
-         this is the same spacing said once.
+         this is the same spacing said once. Under lg the top gap matches the
+         px-4 side gutter, so content sits evenly inside the screen edges.
 
          A page whose first element is sticky wants to start flush against the
          nav — the gap makes the bar look detached and moves when you scroll.
@@ -12,15 +13,17 @@
          cancelling the padding with a negative margin of its own. -->
     <main
       class="container mx-auto px-4 pb-28 lg:pb-12"
-      :class="route.meta.flushTop ? 'pt-0' : 'pt-8'"
+      :class="route.meta.flushTop ? 'pt-0' : 'pt-4 lg:pt-8'"
     >
       <!-- Keyed on path so each page replays the enter animation. -->
       <div :key="route.path" class="page-in">
         <slot />
       </div>
     </main>
+    <!-- Desktop only. On phones these links live on the Account tab
+         (pages/account.vue), which the bottom nav reaches. -->
     <footer
-      class="container mx-auto px-4 pb-24 lg:pb-8 text-xs text-ink-soft dark:text-zinc-500"
+      class="hidden lg:block select-none container mx-auto px-4 pb-8 text-xs text-ink-soft dark:text-zinc-500"
     >
       <div
         class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-6 border-t border-black/[0.05] dark:border-white/[0.06]"

@@ -12,7 +12,7 @@
   />
 
   <!-- Product type -->
-  <section class="surface rounded-2xl p-5 lg:col-span-2">
+  <section class="panel surface rounded-2xl p-5 lg:col-span-2">
     <FormField label="Product type" required>
       <ChoiceGroup
         :model-value="modelValue.productType"
@@ -25,7 +25,7 @@
   </section>
 
   <!-- Card details -->
-  <section class="surface rounded-2xl p-5 space-y-4">
+  <section class="panel surface rounded-2xl p-5 space-y-4">
     <h3 class="text-sm font-bold text-ink dark:text-zinc-100">Card details</h3>
 
     <FormField label="Card name" required>
@@ -152,7 +152,7 @@
   </section>
 
   <!-- Description -->
-  <section class="surface rounded-2xl p-5">
+  <section class="panel surface rounded-2xl p-5">
     <FormField label="Description" optional hint="Anything a buyer should know — flaws, centring, provenance.">
       <textarea
         :value="modelValue.description"
@@ -167,7 +167,7 @@
   <!-- Condition (ungraded) -->
   <section
     v-if="modelValue.productType === 'Ungraded'"
-    class="surface rounded-2xl p-5 lg:col-span-2"
+    class="panel surface rounded-2xl p-5 lg:col-span-2"
   >
     <FormField label="Condition" required hint="Grade honestly — condition disputes are the main reason orders get refunded.">
       <ChoiceGroup
@@ -184,7 +184,7 @@
   <!-- Grading (graded) -->
   <section
     v-else-if="modelValue.productType === 'Graded'"
-    class="surface rounded-2xl p-5 space-y-4 lg:col-span-2"
+    class="panel surface rounded-2xl p-5 space-y-4 lg:col-span-2"
   >
     <h3 class="text-sm font-bold text-ink dark:text-zinc-100">Grading</h3>
 

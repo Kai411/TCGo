@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 transition-colors">
     <!-- Top bar -->
-    <header class="sticky top-0 z-40 glass">
+    <header class="sticky top-0 z-40 glass select-none">
       <div class="px-4 h-14 flex items-center justify-between gap-3">
         <div class="flex items-center gap-2 min-w-0">
           <NuxtLink to="/" class="inline-flex items-center gap-1 text-sm text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors shrink-0">
@@ -15,6 +15,7 @@
              duplicating them up here just crowded the bar. Settings takes the
              slot instead — it's the one destination with no other entry point. -->
         <div class="flex items-center gap-2 shrink-0">
+          <ChatNavButton />
           <NotificationBell />
           <NuxtLink
             to="/seller/settings"

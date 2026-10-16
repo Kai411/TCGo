@@ -8,6 +8,7 @@ import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
 import { delyvaTrack, delyvaStage } from "~/server/utils/delyva";
 import { sendInvoiceForOrder } from "~/server/utils/send-invoice";
+import { announceOrderStatus } from "~/server/utils/order-status-notify";
 
 export default defineEventHandler(async (event) => {
   const caller = await requireUser(event);
@@ -62,6 +63,8 @@ export default defineEventHandler(async (event) => {
         patch.deliveredAt = order.deliveredAt ?? now;
       }
       await snap.ref.update(patch);
+      // Tell the buyer it's on its way, or both sides it arrived.
+      await announceOrderStatus(db, orderId, { ...order, ...patch });
       // Completed: this is the moment the invoice is issued. Non-fatal — the
       // buyer can still email it from the order page.
       if (stage === "delivered") {

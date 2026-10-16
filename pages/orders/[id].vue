@@ -79,7 +79,7 @@
         <div class="space-y-4 min-w-0">
 
           <!-- Header -->
-          <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+          <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
             <div class="flex items-start justify-between gap-3 mb-4">
               <div class="min-w-0">
                 <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
@@ -107,10 +107,20 @@
                 </NuxtLink>
               </div>
             </div>
+            <!-- Chat with the other party, with this order attached. -->
+            <MessageButton
+              v-if="role"
+              :uid="role === 'buyer' ? order.sellerUid : order.buyerUid"
+              :order-id="order.id"
+              small
+              class="mt-4"
+            >
+              {{ role === "buyer" ? "Message seller" : "Message buyer" }}
+            </MessageButton>
           </div>
 
           <!-- Items + money -->
-          <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+          <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-3">
               Items ({{ order.items.length }})
             </h2>
@@ -166,7 +176,7 @@
           </div>
 
           <!-- Invoice -->
-          <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+          <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">Invoice</h2>
@@ -204,7 +214,7 @@
           <!-- Actions. Hidden entirely when there's nothing to do — a
                delivered order leaves every button and hint false, which
                rendered an empty card. -->
-          <div v-if="hasActions" class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+          <div v-if="hasActions" class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
             <div class="flex flex-wrap gap-2">
               <!-- Buyer actions -->
               <template v-if="role === 'buyer'">
@@ -285,7 +295,7 @@
         <div class="space-y-4 min-w-0">
 
           <!-- Delivery address -->
-          <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+          <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
               Delivery address
             </h2>
@@ -314,7 +324,7 @@
           <DeliveryProgress v-if="role !== 'seller'" :order="order" />
           <template v-else>
             <!-- Waybill / tracking -->
-            <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+            <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
               <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
                 Waybill
               </h2>
@@ -418,7 +428,7 @@
              silent "cancelled" reads as "you have been refunded". -->
         <div
           v-if="order.status === 'cancelled' && order.refundStatus"
-          class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5"
+          class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5"
         >
           <h2 class="text-sm font-bold text-ink dark:text-white mb-2">Refund</h2>
           <div class="flex items-baseline justify-between gap-3">
@@ -445,7 +455,7 @@
              charged at settlement rather than recomputed from today's rate. -->
         <div
           v-if="role === 'seller' && showSettlement"
-          class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5"
+          class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5"
         >
           <div class="flex items-center justify-between gap-2 mb-3">
             <h2 class="text-sm font-bold text-ink dark:text-white">Settlement</h2>

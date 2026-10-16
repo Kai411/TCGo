@@ -15,7 +15,7 @@
         </p>
       </div>
 
-      <form class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-4" @submit.prevent="submit">
+      <form class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-4" @submit.prevent="submit">
         <div>
           <label for="staffId" class="block text-xs font-semibold mb-1.5">Staff ID</label>
           <input

@@ -167,6 +167,12 @@
 
 <script setup lang="ts">
 import { withoutMergedChildren } from "~/shared/delivery-stage";
+import {
+  ORDER_FILTER_LABELS,
+  inOrderGroup,
+  parseOrderFilter,
+  type OrderFilter,
+} from "~/shared/order-filters";
 import type { Auction } from "~/composables/useAuctions";
 
 interface TabItem {
@@ -190,21 +196,16 @@ const {
 } = useCompiledOrders();
 
 // ── Order list: filters + ordering ───────────────────────────────────
-// Buyers think in "have I paid / is it coming / is it done", not in the
-// internal status enum, so the filters collapse statuses into those groups.
-type OrderFilter = "all" | "topay" | "intransit" | "completed" | "cancelled";
-const orderFilter = ref<OrderFilter>("all");
-
-const inGroup = (status: string, f: OrderFilter) => {
-  if (f === "all") return true;
-  if (f === "topay") return status === "pending" || status === "confirmed";
-  // Everything between paid and the doorstep. Renamed from "To receive" —
-  // "In-transit" is what the row beneath it now says, and two names for one
-  // idea reads as two different things.
-  if (f === "intransit") return status === "paid" || status === "shipped";
-  if (f === "completed") return status === "delivered";
-  return status === "cancelled";
-};
+// Grouping lives in shared/order-filters so the account page's status
+// shortcuts count the same way. They link here with ?filter=.
+const orderFilter = ref<OrderFilter>(parseOrderFilter(route.query.filter));
+watch(
+  () => route.query.filter,
+  (f) => {
+    if (f !== undefined) orderFilter.value = parseOrderFilter(f);
+  },
+);
+const inGroup = inOrderGroup;
 
 // Newest first, but anything the buyer must act on floats above the rest.
 const actionRank = (status: string) =>
@@ -232,13 +233,13 @@ const visibleOrders = computed(() =>
 const countFor = (f: OrderFilter) =>
   sortedOrders.value.filter((o) => inGroup(o.status, f)).length;
 
-const orderFilters = computed(() => [
-  { id: "all" as const, label: "All", count: sortedOrders.value.length },
-  { id: "topay" as const, label: "To pay", count: countFor("topay") },
-  { id: "intransit" as const, label: "In-transit", count: countFor("intransit") },
-  { id: "completed" as const, label: "Completed", count: countFor("completed") },
-  { id: "cancelled" as const, label: "Cancelled", count: countFor("cancelled") },
-]);
+const orderFilters = computed(() =>
+  (["all", "topay", "intransit", "completed", "cancelled"] as const).map((id) => ({
+    id,
+    label: ORDER_FILTER_LABELS[id],
+    count: id === "all" ? sortedOrders.value.length : countFor(id),
+  })),
+);
 
 const activeFilterLabel = computed(
   () => orderFilters.value.find((f) => f.id === orderFilter.value)?.label ?? "",

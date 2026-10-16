@@ -1,6 +1,7 @@
 <template>
   <div
-    class="group relative surface rounded-xl overflow-hidden border border-black/[0.06] dark:border-white/[0.08] transition-shadow hover:shadow-card"
+    class="group relative surface overflow-hidden border border-black/[0.06] dark:border-white/[0.08] transition-shadow hover:shadow-card"
+    :class="dense ? 'rounded-[6px] sm:rounded-xl' : 'rounded-xl'"
   >
     <NuxtLink
       :to="`/collection/${card.productId}`"
@@ -21,14 +22,20 @@
         ×{{ quantity }}
       </span>
 
-      <div class="p-2.5" :class="readonly ? '' : 'pr-11'">
+      <div
+        :class="[
+          dense ? 'p-2 sm:p-2.5' : 'p-2.5',
+          readonly ? '' : 'pr-11',
+        ]"
+      >
         <p
-          class="font-semibold text-sm text-ink dark:text-white truncate"
+          class="text-ink dark:text-white"
+          :class="dense ? 'font-semibold text-[12px] sm:text-sm leading-tight truncate' : 'font-semibold text-sm truncate'"
           :title="card.name"
         >
           {{ card.name }}
         </p>
-        <p class="text-[11px] text-gray-500 dark:text-zinc-400 truncate">
+        <p class="text-gray-500 dark:text-zinc-400 truncate" :class="dense ? 'mt-0.5 leading-tight text-[8px] sm:text-[11px]' : 'text-[11px]'">
           <!-- Both languages are searched now, and the same card exists in
                each — two "Rayquaza ★" rows are otherwise indistinguishable.
                Only the Japanese one is marked: English is the common case and
@@ -41,9 +48,17 @@
           >{{ card.setName }}<span v-if="card.number"> · {{ card.number }}</span>
         </p>
         <div class="flex items-center justify-between mt-2">
+          <!-- Dense phones: same one-line "RM" price as the listing tiles. -->
+          <p
+            v-if="card.price && dense"
+            class="sm:hidden min-w-0 truncate tabular-nums font-bold text-[10px] leading-none text-ink dark:text-white"
+          >
+            RM{{ card.price.market.toLocaleString("en-MY", { minimumFractionDigits: Number.isInteger(card.price.market) ? 0 : 2, maximumFractionDigits: 2 }) }}
+          </p>
           <p
             v-if="card.price"
             class="text-md font-[900] text-ink dark:text-white tabular-nums"
+            :class="dense ? 'hidden sm:block' : ''"
           >
             {{ card.price.market.toFixed(2) }}
             <span class="text-xs font-semibold">MYR</span>
@@ -162,6 +177,11 @@ withDefaults(
    * question is still "do I own this at all?".
    */
     showQuantity?: boolean;
+    /**
+     * Phone-friendly layout for a three-column grid (profile Collection tab):
+     * tighter padding, one-line name, one-line "RM" price.
+     */
+    dense?: boolean;
   }>(),
   { quantity: 1 },
 );

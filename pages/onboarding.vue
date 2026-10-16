@@ -45,9 +45,58 @@
         </li>
       </ol>
 
-      <div class="surface rounded-2xl p-6">
+      <div class="panel surface rounded-2xl p-6">
+        <!-- ── PDPA consent ─────────────────────────────────────────── -->
+        <!-- Google sign-ups, members who joined before this step, and
+             everyone again whenever LEGAL_VERSION changes. A short summary
+             with the full policy one tap away: the tick is consent to the
+             policy, so the policy has to be what it links to. -->
+        <template v-if="state.current === 'consent'">
+          <h1 class="text-lg font-bold text-ink dark:text-white">
+            {{ policyUpdated ? "We've updated our policies" : "Your personal data" }}
+          </h1>
+          <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
+            {{
+              policyUpdated
+                ? "Please read the current Privacy Policy and give your consent again to keep using your account."
+                : "Before you use TCGo, we need your consent to handle your personal data."
+            }}
+          </p>
+
+          <ul class="mt-4 space-y-2 text-[13px] leading-relaxed text-ink-muted dark:text-zinc-400">
+            <li class="flex gap-2">
+              <span class="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-pokemon-red" />
+              <span><span class="font-semibold text-ink dark:text-white">What:</span> your account details, delivery address and phone, orders, messages, and for sellers, identity and bank details.</span>
+            </li>
+            <li class="flex gap-2">
+              <span class="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-pokemon-red" />
+              <span><span class="font-semibold text-ink dark:text-white">Why:</span> to run your account and orders, pay sellers, keep the marketplace safe and meet legal duties.</span>
+            </li>
+            <li class="flex gap-2">
+              <span class="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-pokemon-red" />
+              <span><span class="font-semibold text-ink dark:text-white">Who sees it:</span> the member you trade with, and service providers such as payment, courier and hosting companies. We never sell it.</span>
+            </li>
+          </ul>
+
+          <label class="mt-5 flex items-start gap-2.5 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.02] dark:bg-white/[0.03] p-3 text-[13px] leading-relaxed text-ink dark:text-zinc-200">
+            <input v-model="consentTicked" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-pokemon-red" />
+            <span>
+              I consent to TCGo collecting, using and sharing my personal data as described in the
+              <NuxtLink to="/privacy-policy" target="_blank" class="font-semibold text-pokemon-red hover:underline">Privacy Policy</NuxtLink>.
+            </span>
+          </label>
+          <p class="mt-2 text-[12px] text-ink-soft dark:text-zinc-500">
+            You can withdraw consent at any time by contacting us, as the policy explains.
+          </p>
+
+          <p v-if="error" class="mt-3 text-[13px] text-rose-600 dark:text-rose-400">{{ error }}</p>
+          <button :disabled="busy || !consentTicked" @click="giveConsent" class="btn-primary mt-5">
+            <span v-if="busy" class="spinner" />Agree and continue
+          </button>
+        </template>
+
         <!-- ── Email ────────────────────────────────────────────────── -->
-        <template v-if="state.current === 'email'">
+        <template v-else-if="state.current === 'email'">
           <h1 class="text-lg font-bold text-ink dark:text-white">Confirm your email</h1>
           <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
             We sent a 6-digit code to <span class="font-semibold text-ink dark:text-white">{{ email }}</span>.
@@ -178,6 +227,7 @@ const RESEND_COOLDOWN_S = 30;
 
 const { user, requestCode, confirmEmail, signOut } = useAuth();
 const { profile, saveAddresses, loading: loadingProfile } = useMyProfile();
+const { recordConsent } = useConsent();
 const route = useRoute();
 
 const busy = ref(false);
@@ -260,6 +310,24 @@ const resend = () =>
     const res = await requestCode(email.value, "verify_email");
     notice.value = res.message;
     startCooldown();
+  });
+
+// ── Consent step ──────────────────────────────────────────────────────
+const consentTicked = ref(false);
+// Consented once before, to an older wording: say what changed rather than
+// greeting a long-standing member as if they were new.
+const policyUpdated = computed(
+  () => !!(profile.value as { consentVersion?: string } | null)?.consentVersion,
+);
+
+const giveConsent = () =>
+  run(async () => {
+    try {
+      await recordConsent("prompt");
+    } catch {
+      throw new Error("Couldn't save your consent. Check your connection and try again.");
+    }
+    consentTicked.value = false;
   });
 
 // ── Address step ──────────────────────────────────────────────────────

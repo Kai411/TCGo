@@ -61,7 +61,8 @@ What happens:
    Holofoil / Reverse Holofoil / 1st Edition / etc.) into a single JSONB.
 4. Bulk-upserts into `card_prices` — `prices` is replaced, `history` is
    left alone (the upsert only sends the columns we provide).
-5. Calls the `snapshot_prices_today()` Postgres function, which prepends
+5. Calls the `snapshot_prices_range()` Postgres function a slice of
+   product_ids at a time (one whole-table call outgrew the API timeout), which prepends
    today's market price to each row's `history` array and trims to 365.
 
 Idempotent — safe to run multiple times per day. The history function

@@ -81,6 +81,9 @@ export default defineNuxtConfig({
       skipWaiting: true,
       clientsClaim: true,
       cleanupOutdatedCaches: true,
+      // Push notifications: the push and notificationclick handlers live in
+      // public/push-sw.js and are loaded into this generated worker.
+      importScripts: ["/push-sw.js"],
     },
     // PWA is production-only. Enabling in dev caches Vite module chunks
     // in the service worker, which then keeps serving stale bundles
@@ -115,7 +118,15 @@ export default defineNuxtConfig({
       ],
       meta: [
         { charset: "utf-8" },
-        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        // viewport-fit=cover makes env(safe-area-inset-*) report the iPhone
+        // home bar and notch, so fixed bars and the chat composer can pad for them.
+        // maximum-scale/user-scalable stop page zoom on phones (kai's call, so
+        // it feels like an app); photos zoom in the lightbox instead. Desktop
+        // browsers ignore this tag. See plugins/no-zoom.client.ts.
+        {
+          name: "viewport",
+          content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
+        },
         {
           name: "description",
           content:
@@ -255,7 +266,22 @@ export default defineNuxtConfig({
     delyvaApiKey: "",
     delyvaCustomerId: "",
     delyvaCompanyId: "",
+    // Web Push (VAPID). Generate a pair once with `npx web-push
+    // generate-vapid-keys`: the public key goes in
+    // NUXT_PUBLIC_VAPID_PUBLIC_KEY, the private one in NUXT_VAPID_PRIVATE_KEY.
+    // Unset = push is switched off and the settings card says it isn't
+    // available yet. Changing the pair later stops every existing
+    // subscription, so members would have to turn push on again.
+    vapidPrivateKey: "",
+    // Who push services contact about abuse. Defaults to support@tcgo.shop.
+    vapidSubject: "",
+    // eBay production keyset (App ID and Cert ID) for the eBay listings on
+    // the card price page: NUXT_EBAY_APP_ID and NUXT_EBAY_CERT_ID. Server
+    // only. Unset = no eBay section anywhere.
+    ebayAppId: "",
+    ebayCertId: "",
     public: {
+      vapidPublicKey: "",
       // Lets the POS show the QR option only when the platform can actually
       // create one. Not a secret — it's a feature flag, and the seller finds
       // out either way the moment they tap Pay.

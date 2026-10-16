@@ -221,6 +221,18 @@ export const useMyProfile = () => {
             privateDoc,
             (snapshot) => {
               privatePart = snapshot.exists() ? snapshot.data() : {};
+
+              // Turn a pre-address-book profile into its first card.
+              //
+              // Runs once: the condition stops matching as soon as the list
+              // exists. It reads the private document because that is where
+              // the delivery fields live (moved there by the step below on
+              // the public listener, or by the migration script). A failure
+              // degrades to the flat fields, which still work on their own.
+              if (!Array.isArray(privatePart.addresses) && privatePart.deliveryAddress1) {
+                const first = fromFlatFields(privatePart);
+                if (first) setDoc(privateDoc, { addresses: [first] }, { merge: true }).catch(() => {});
+              }
               if (publicPart) publish();
               privateLoaded = true;
               settle();
@@ -277,23 +289,6 @@ export const useMyProfile = () => {
                     .finally(() => {
                       migratingPrivate = false;
                     });
-                }
-
-                // Turn a pre-address-book profile into its first card.
-                //
-                // Runs once: the condition stops matching as soon as the list
-                // exists. Migrating here rather than in a script means every
-                // profile converts on the owner's next visit, including ones
-                // created between the deploy and any migration run.
-                if (!Array.isArray(data.addresses) && data.deliveryAddress1) {
-                  const first = fromFlatFields(data);
-                  if (first) {
-                    updateDoc(profileDoc, { addresses: [first] }).catch(() => {
-                      // The flat fields still work on their own, so a failure
-                      // here degrades to the old behaviour rather than
-                      // breaking checkout.
-                    });
-                  }
                 }
 
                 // Adopt the Auth display name for accounts that were created

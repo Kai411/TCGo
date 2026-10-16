@@ -278,6 +278,16 @@ export const useAuctionDetail = (auctionId: string) => {
     return mergeProfile(pub.exists() ? pub.data() : null, priv?.exists() ? priv.data() : null);
   };
 
+  // ── tellOutbid ───────────────────────────────────────────────────────────────
+  // Bids land in RTDB straight from this browser, so the server learns about
+  // them here. It works out who was beaten from RTDB itself; this only says
+  // "look now". Best-effort: the bid already stands.
+  const tellOutbid = () => {
+    useAuthedFetch()
+      .authedFetch("/api/auctions/outbid", { method: "POST", body: { auctionId } })
+      .catch(() => {});
+  };
+
   // ── placeBid ─────────────────────────────────────────────────────────────────
 
   const placeBid = async (bidderUid: string, bidder: string, amount: number) => {
@@ -313,6 +323,7 @@ export const useAuctionDetail = (auctionId: string) => {
     await writeBidSummary(bidderUid, bidder, amount, isAntiSnipe, currentEndsAt);
     await recordUserBid(bidderUid, amount);
     await processAutoBids(auctionId, bidderUid, amount);
+    tellOutbid();
   };
 
   // ── setAutoBid ───────────────────────────────────────────────────────────────
@@ -355,6 +366,7 @@ export const useAuctionDetail = (auctionId: string) => {
     await writeBidSummary(bidderUid, bidder, bidAmount, isAntiSnipe, currentEndsAt);
     await recordUserBid(bidderUid, bidAmount);
     await processAutoBids(auctionId, bidderUid, bidAmount);
+    tellOutbid();
   };
 
   // ── processAutoBids ──────────────────────────────────────────────────────────

@@ -29,7 +29,7 @@
 
       <form @submit.prevent="save" class="space-y-5">
         <!-- Contact -->
-        <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
+        <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
           <p class="text-sm font-bold text-ink dark:text-white">Contact</p>
           <div>
             <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Mobile number <span class="text-pokemon-red">*</span></label>
@@ -39,7 +39,7 @@
         </div>
 
         <!-- Bank account -->
-        <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
+        <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
           <p class="text-sm font-bold text-ink dark:text-white">Bank account <span class="font-normal text-xs text-gray-400">— for payouts</span></p>
           <div>
             <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Bank <span class="text-pokemon-red">*</span></label>
@@ -89,7 +89,7 @@
         </div>
 
         <!-- Pickup address -->
-        <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
+        <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
           <p class="text-sm font-bold text-ink dark:text-white">Pickup address <span class="font-normal text-xs text-gray-400">— for shipping labels</span></p>
           <div>
             <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Address line 1 <span class="text-pokemon-red">*</span></label>

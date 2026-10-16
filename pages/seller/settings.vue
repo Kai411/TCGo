@@ -23,7 +23,7 @@
         </p>
       </div>
 
-      <div class="surface rounded-2xl p-5 sm:p-6 space-y-7">
+      <div class="panel surface rounded-2xl p-5 sm:p-6 space-y-7">
         <!-- Verification -->
         <div class="flex items-center justify-between gap-3">
           <div>

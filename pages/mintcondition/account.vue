@@ -14,7 +14,7 @@
     </div>
 
     <form
-      class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-4"
+      class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-4"
       @submit.prevent="submit"
     >
       <h2 class="text-sm font-bold">{{ first ? "Set your password" : "Change password" }}</h2>

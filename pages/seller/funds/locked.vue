@@ -23,7 +23,7 @@
       </p>
 
       <!-- Total -->
-      <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 mb-5">
+      <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 mb-5">
         <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">Locked total</p>
         <p class="text-3xl font-extrabold text-ink dark:text-white tabular-nums mt-1">
           RM {{ fmt(lockedTotal) }}

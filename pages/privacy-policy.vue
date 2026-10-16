@@ -8,7 +8,7 @@ useHead({ title: "Privacy Policy · TCGo" });
 <template>
   <LegalDoc
     title="Privacy Policy"
-    summary="We collect what we need to run a safe card marketplace: your account, orders, addresses, and for sellers, identity and bank details. We share it only with the services that make TCGo work and with the other party to your order as needed to deliver it. We never sell your data."
+    summary="We collect what we need to run a safe card marketplace: your account, orders, chat messages, addresses, and for sellers, identity and bank details. We share it only with the services that make TCGo work and with the other party to your order as needed to deliver it. We never sell your data."
   >
     <p>
       This notice is given under the Personal Data Protection Act 2010
@@ -35,6 +35,18 @@ useHead({ title: "Privacy Policy · TCGo" });
         <tr>
           <td>Orders, bids, listings, photos, collection and inventory records, POS sales, favourites and reports you make</td>
           <td>When you use those features</td>
+        </tr>
+        <tr>
+          <td>Chat messages you send and receive, the photos and the orders or listings you attach, and safety warnings shown on a message</td>
+          <td>When you use chat</td>
+        </tr>
+        <tr>
+          <td>When you were last online, and your average time to reply in chat</td>
+          <td>Automatically while you have TCGo open, and when you reply to a message</td>
+        </tr>
+        <tr>
+          <td>A push notification address for each device you turn notifications on for (an address your browser's push service gives that device, plus its encryption keys), and which kinds of notification you want</td>
+          <td>When you turn on push notifications in Settings</td>
         </tr>
         <tr>
           <td>Payment records: amount, status, reference and payment method. Not your online banking password or full card number</td>
@@ -73,6 +85,8 @@ useHead({ title: "Privacy Policy · TCGo" });
       <li>To verify sellers, prevent fraud and counterfeits, and keep the marketplace safe.</li>
       <li>To meet legal duties, including keeping seller and transaction records required by the Consumer Protection (Electronic Trade Transactions) Regulations and tax law.</li>
       <li>To handle reports, complaints and Buyer Protection claims.</li>
+      <li>To let buyers and sellers message each other, and to warn you before you send a message that looks risky, such as one with a phone number, bank details, an address or a request to pay outside TCGo. This check runs automatically on the text of each message; it warns, it never blocks.</li>
+      <li>To send push notifications to the devices you turn them on for: new chat messages, order updates, and auction alerts such as being outbid or winning. They are optional. You can turn each kind off in Settings, or turn notifications off for a device there or in your browser; signing out of a device turns them off for it.</li>
       <li>To send service messages: order updates, receipts, invoices, security alerts. You can't opt out of these while you have an account, as they are part of the service.</li>
       <li>To send news or offers, only if you opt in. You can opt out any time.</li>
       <li>To improve TCGo, for example by understanding which features are used.</li>
@@ -89,6 +103,9 @@ useHead({ title: "Privacy Policy · TCGo" });
       <li>Your display name, profile photo, listings, verified badge and public profile are visible to everyone.</li>
       <li>When you buy, the seller gets what they need to fulfil the order, such as your name and order details. Shipping labels carry the delivery details couriers need.</li>
       <li>We don't show a seller's pickup address or bank details to buyers.</li>
+      <li>When you message someone, they see your messages and anything you attach. Signed-in members can see when you were last online and your average reply time, in chat and on your profile.</li>
+      <li>Photos sent in chat are stored on Cloudinary and can be opened by anyone who has the photo's link, so don't send photos of documents you want to keep private.</li>
+      <li>Messages are private between the two people in the conversation. Authorised TCGo staff may read a conversation only to handle a report, a Buyer Protection claim, or suspected fraud.</li>
     </ul>
     <h3>Service providers</h3>
     <p>These companies process data for us, under their own security and privacy terms:</p>
@@ -104,6 +121,7 @@ useHead({ title: "Privacy Policy · TCGo" });
       <li><b>Resend</b>: sending emails such as codes, receipts and invoices.</li>
       <li><b>Supabase</b>: card catalogue and price data.</li>
       <li><b>Netlify</b>: website hosting.</li>
+      <li><b>Your browser's push service</b> (Google for Chrome, Edge and Android, Apple for Safari, Mozilla for Firefox, Microsoft for Edge on Windows): delivering push notifications to your device, if you turn them on. The notification text is encrypted so that only your device can read it; the push service sees the device address, and when and how often a notification is sent.</li>
     </ul>
     <p>
       Card price data comes from third-party sources such as TCGplayer,
@@ -132,6 +150,8 @@ useHead({ title: "Privacy Policy · TCGo" });
       <li>Account data: while your account is open, and up to 12 months after it is closed to deal with any remaining questions.</li>
       <li>Order, payment, payout and seller records: 7 years, as required for tax and accounting, and at least 3 years for seller records under consumer protection rules.</li>
       <li>Identity verification images and biometrics: held by Didit under its retention policy; we keep only the result and the details listed in section 1.</li>
+      <li>Chat messages and photos: while your account is open, so both sides can refer back to them if there is a problem with an order, then as for account data.</li>
+      <li>Push notification addresses: until you turn notifications off for that device, sign out of it, or the browser tells us the address no longer works.</li>
       <li>Logs: up to 12 months.</li>
     </ul>
     <p>After that we delete or anonymise it.</p>
@@ -166,7 +186,9 @@ useHead({ title: "Privacy Policy · TCGo" });
     <h2>8. Cookies and local storage</h2>
     <p>
       We use cookies and browser storage to keep you signed in, remember your
-      cart and preferences such as dark mode, and make the app work offline.
+      cart and preferences such as dark mode, make the app work offline, and,
+      if you turn on push notifications, receive them through the app's
+      service worker.
       We do not currently use advertising cookies. If we add analytics or
       advertising tools we will update this policy first. Blocking cookies
       may stop parts of TCGo working.

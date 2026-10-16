@@ -74,6 +74,12 @@
               <p class="mt-1 text-[11px] text-ink-soft dark:text-zinc-500">
                 Member since {{ formatDate(profile.createdAt) }}
               </p>
+              <ChatResponsiveness
+                v-if="!isOwnProfile"
+                :uid="uid"
+                :last-seen-at="(profile as any).lastSeenAt"
+                class="mt-0.5"
+              />
             </div>
           </div>
 
@@ -152,6 +158,7 @@
             >
               Report
             </button>
+            <MessageButton v-if="!isOwnProfile" :uid="uid" small class="order-first" />
           </div>
         </div>
       </section>
@@ -295,14 +302,14 @@
         />
         <div
           v-else
-          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
+          class="-mx-1.5 lg:mx-0 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
         >
           <div
             v-for="card in userCards"
             :key="card.id"
             :class="{ 'opacity-40': card.sold }"
           >
-            <CardTile :card="card" />
+            <CardTile :card="card" hide-seller />
           </div>
         </div>
       </div>
@@ -316,14 +323,14 @@
         />
         <div
           v-else
-          class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
+          class="-mx-1.5 lg:mx-0 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
         >
           <div
             v-for="auction in userAuctions"
             :key="auction.id"
             :class="{ 'opacity-40': auction.endsAt <= Date.now() }"
           >
-            <CardTile :auction="auction" />
+            <CardTile :auction="auction" hide-seller />
           </div>
         </div>
       </div>
@@ -339,7 +346,7 @@
           <section v-if="favouriteCards.length">
             <span class="eyebrow mb-3 block">Cards</span>
             <div
-              class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
+              class="-mx-1.5 lg:mx-0 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
             >
               <div
                 v-for="card in favouriteCards"
@@ -353,7 +360,7 @@
           <section v-if="favouriteAuctions.length">
             <span class="eyebrow mb-3 block">Auctions</span>
             <div
-              class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
+              class="-mx-1.5 lg:mx-0 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
             >
               <div
                 v-for="auction in favouriteAuctions"
@@ -403,7 +410,7 @@
           />
           <div
             v-else
-            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5"
+            class="-mx-1.5 lg:mx-0 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
           >
             <CollectionItemCard
               v-for="c in collectionCards"
@@ -411,6 +418,7 @@
               :card="c"
               :in-collection="true"
               readonly
+              dense
             />
           </div>
         </template>

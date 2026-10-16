@@ -1,6 +1,6 @@
 <template>
   <!-- Nothing on the shelf, nothing to value. -->
-  <section v-if="holdings.rows > 0" class="surface rounded-2xl p-4 sm:p-5">
+  <section v-if="holdings.rows > 0" class="panel surface rounded-2xl p-4 sm:p-5">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <p class="eyebrow">Stock value</p>

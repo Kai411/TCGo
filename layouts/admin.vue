@@ -3,7 +3,7 @@
     class="min-h-screen bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 transition-colors"
   >
     <!-- Top bar -->
-    <header class="sticky top-0 z-40 glass">
+    <header class="sticky top-0 z-40 glass select-none">
       <div class="px-4 h-14 flex items-center justify-between gap-3">
         <div class="flex items-center gap-2 min-w-0">
           <NuxtLink

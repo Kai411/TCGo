@@ -1,5 +1,5 @@
 <template>
-  <section class="surface rounded-2xl p-5">
+  <section class="panel surface rounded-2xl p-5">
     <div class="flex items-baseline justify-between gap-3">
       <h2 class="eyebrow">
         {{ order.items.length }} {{ order.items.length === 1 ? "item" : "items" }} · {{ order.sellerName }}

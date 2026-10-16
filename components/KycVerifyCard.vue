@@ -1,6 +1,6 @@
 <template>
   <div
-    class="surface rounded-2xl border p-5"
+    class="panel surface rounded-2xl border p-5"
     :class="tone.border"
   >
     <div class="flex items-start justify-between gap-3 flex-wrap">
