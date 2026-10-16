@@ -36,7 +36,16 @@ export interface CollectionEntry {
   quantity?: number;
   condition?: string;
   notes?: string;
+  /**
+   * Copies marked sold. A sale is its own row (`sold: true`) so the owned
+   * row keeps counting what is still in hand; sold rows are left out of
+   * everything this composable exposes and kept as a record for later.
+   */
+  sold?: boolean;
+  soldAt?: number;
 }
+
+const isSoldRow = (data: { sold?: unknown }) => data.sold === true;
 
 const entries = ref<CollectionEntry[]>([]);
 const loading = ref(false);
@@ -63,9 +72,9 @@ export const useUserCollection = () => {
     unsub = onSnapshot(
       q,
       (snap) => {
-        entries.value = snap.docs.map(
-          (d) => ({ id: d.id, ...d.data() }) as CollectionEntry,
-        );
+        entries.value = snap.docs
+          .filter((d) => !isSoldRow(d.data()))
+          .map((d) => ({ id: d.id, ...d.data() }) as CollectionEntry);
         loading.value = false;
       },
       (err) => {
@@ -169,7 +178,59 @@ export const useUserCollection = () => {
       where("productId", "==", productId),
     );
     const snap = await getDocs(q);
-    await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+    // Sold rows are the sale record, not owned copies; keep them.
+    await Promise.all(
+      snap.docs.filter((d) => !isSoldRow(d.data())).map((d) => deleteDoc(d.ref)),
+    );
+  };
+
+  /**
+   * Set the copies owned to exactly `target`. Duplicate pivot docs are folded
+   * into the oldest row so the stored total is the number the owner typed.
+   */
+  const setQuantity = async (productId: number, target: number) => {
+    if (!user.value || !firestore) throw new Error("Not authenticated");
+    const next = Math.floor(target);
+    if (next < 1) {
+      await removeFromCollection(productId);
+      return;
+    }
+    const rows = entries.value
+      .filter((e) => e.productId === productId)
+      .sort((a, b) => (a.addedAt ?? 0) - (b.addedAt ?? 0));
+    const [primary, ...duplicates] = rows;
+    if (!primary) {
+      await addDoc(collection(firestore, "userCollection"), {
+        userUid: user.value.uid,
+        productId,
+        quantity: next,
+        addedAt: Date.now(),
+      });
+      return;
+    }
+    await updateDoc(doc(firestore, "userCollection", primary.id), {
+      quantity: next,
+    });
+    await Promise.all(
+      duplicates.map((d) => deleteDoc(doc(firestore, "userCollection", d.id))),
+    );
+  };
+
+  /** Move `count` copies out of the collection into a sold record. */
+  const markSold = async (productId: number, count: number) => {
+    if (!user.value || !firestore) throw new Error("Not authenticated");
+    const owned = quantityOf(productId);
+    const sold = Math.min(owned, Math.max(1, Math.floor(count)));
+    if (!owned) return;
+    await addDoc(collection(firestore, "userCollection"), {
+      userUid: user.value.uid,
+      productId,
+      quantity: sold,
+      addedAt: Date.now(),
+      sold: true,
+      soldAt: Date.now(),
+    });
+    await setQuantity(productId, owned - sold);
   };
 
   const toggleInCollection = async (productId: number) => {
@@ -194,6 +255,7 @@ export const useUserCollection = () => {
     const snap = await getDocs(q);
     const sorted = snap.docs
       .map((d) => d.data() as CollectionEntry)
+      .filter((entry) => !isSoldRow(entry))
       .sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0));
     return [...new Set(sorted.map((entry) => entry.productId))];
   };
@@ -214,6 +276,8 @@ export const useUserCollection = () => {
     addToCollection,
     removeFromCollection,
     toggleInCollection,
+    setQuantity,
+    markSold,
     getCollectionProductIds,
   };
 };
