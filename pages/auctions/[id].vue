@@ -17,12 +17,14 @@
     </div>
 
     <div v-else>
-      <NuxtLink
-        to="/auctions"
-        class="text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 text-sm inline-block mb-4"
-      >
-        ← Back to auctions
-      </NuxtLink>
+      <SubpageHeader title="Auction" tag="p" back="/auctions" back-label="auctions">
+        <NuxtLink
+          to="/auctions"
+          class="text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 text-sm inline-block mb-4"
+        >
+          ← Back to auctions
+        </NuxtLink>
+      </SubpageHeader>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <!-- Image Gallery -->

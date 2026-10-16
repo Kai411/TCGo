@@ -25,7 +25,7 @@
       <div
         :class="[
           dense ? 'p-2 sm:p-2.5' : 'p-2.5',
-          readonly ? '' : 'pr-11',
+          readonly ? '' : dense ? 'sm:pr-11' : 'pr-11',
         ]"
       >
         <p
@@ -70,90 +70,99 @@
       </div>
     </NuxtLink>
 
-    <!-- Owned-card controls: step the quantity instead of a single
-         add/remove, so a playset is managed in place. `−` at one copy removes
-         the card entirely, which is what the minus already meant. -->
+    <!-- Dense phones: the controls sit on the photo's bottom corner, so the
+         name and price below keep the tile's full width. From sm up this
+         wrapper is static and they return to the tile's bottom corner. -->
     <div
-      v-if="!readonly && showQuantity"
-      class="absolute bottom-2.5 right-2.5 z-10 flex items-center gap-0.5 rounded-full bg-canvas-raised dark:bg-[#1B1B20] border border-black/[0.08] dark:border-white/[0.12] shadow-sm"
+      :class="dense ? 'pointer-events-none absolute inset-x-0 top-0 aspect-[2.5/3.5] sm:static sm:aspect-auto' : 'contents'"
     >
+      <!-- Owned-card controls: step the quantity instead of a single
+           add/remove, so a playset is managed in place. `−` at one copy removes
+           the card entirely, which is what the minus already meant. -->
+      <div
+        v-if="!readonly && showQuantity"
+        :class="dense ? 'bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5' : 'bottom-2.5 right-2.5'"
+        class="pointer-events-auto absolute z-10 flex items-center gap-0.5 rounded-full bg-canvas-raised dark:bg-[#1B1B20] border border-black/[0.08] dark:border-white/[0.12] shadow-sm"
+      >
+        <button
+          type="button"
+          :disabled="busy"
+          @click.stop.prevent="$emit('decrement')"
+          class="inline-flex items-center justify-center w-7 h-7 rounded-full text-ink-muted dark:text-zinc-300 hover:text-pokemon-red transition-colors disabled:opacity-50 disabled:cursor-wait"
+          :aria-label="quantity <= 1 ? `Remove ${card.name} from collection` : `Remove one copy of ${card.name}`"
+        >
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14" /></svg>
+        </button>
+        <span class="min-w-[1.25rem] text-center text-[11px] font-bold tabular-price text-ink dark:text-white">
+          {{ quantity }}
+        </span>
+        <button
+          type="button"
+          :disabled="busy"
+          @click.stop.prevent="$emit('increment')"
+          class="inline-flex items-center justify-center w-7 h-7 rounded-full text-ink-muted dark:text-zinc-300 hover:text-pokemon-blue transition-colors disabled:opacity-50 disabled:cursor-wait"
+          :aria-label="`Add another copy of ${card.name}`"
+        >
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+        </button>
+      </div>
+
       <button
+        v-if="!readonly && !showQuantity"
         type="button"
         :disabled="busy"
-        @click.stop.prevent="$emit('decrement')"
-        class="inline-flex items-center justify-center w-7 h-7 rounded-full text-ink-muted dark:text-zinc-300 hover:text-pokemon-red transition-colors disabled:opacity-50 disabled:cursor-wait"
-        :aria-label="quantity <= 1 ? `Remove ${card.name} from collection` : `Remove one copy of ${card.name}`"
+        @click="$emit('toggle')"
+        :class="[
+          dense ? 'bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5' : 'bottom-2.5 right-2.5',
+          'pointer-events-auto absolute z-10 inline-flex items-center justify-center w-7 h-7 rounded-full text-white text-base font-bold transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-pokemon-blue disabled:cursor-wait disabled:opacity-75',
+          busy
+            ? 'bg-gray-400'
+            : inCollection
+            ? 'bg-gray-400 hover:bg-pokemon-red'
+            : 'bg-pokemon-blue hover:bg-blue-700',
+        ]"
+        :aria-label="
+          busy
+            ? 'Updating collection'
+            : inCollection
+              ? 'Remove from collection'
+              : 'Add to collection'
+        "
+        :aria-busy="busy"
+        :title="
+          busy
+            ? 'Updating collection…'
+            : inCollection
+              ? 'Remove from collection'
+              : 'Add to collection'
+        "
       >
-        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14" /></svg>
-      </button>
-      <span class="min-w-[1.25rem] text-center text-[11px] font-bold tabular-price text-ink dark:text-white">
-        {{ quantity }}
-      </span>
-      <button
-        type="button"
-        :disabled="busy"
-        @click.stop.prevent="$emit('increment')"
-        class="inline-flex items-center justify-center w-7 h-7 rounded-full text-ink-muted dark:text-zinc-300 hover:text-pokemon-blue transition-colors disabled:opacity-50 disabled:cursor-wait"
-        :aria-label="`Add another copy of ${card.name}`"
-      >
-        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+        <svg
+          v-if="busy"
+          class="h-3.5 w-3.5 animate-spin"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle
+            class="opacity-30"
+            cx="12"
+            cy="12"
+            r="9"
+            stroke="currentColor"
+            stroke-width="3"
+          />
+          <path
+            class="opacity-90"
+            d="M21 12a9 9 0 0 0-9-9"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="round"
+          />
+        </svg>
+        <span v-else class="leading-none -mt-0.5">{{ inCollection ? "−" : "+" }}</span>
       </button>
     </div>
-
-    <button
-      v-if="!readonly && !showQuantity"
-      type="button"
-      :disabled="busy"
-      @click="$emit('toggle')"
-      :class="[
-        'absolute bottom-2.5 right-2.5 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full text-white text-base font-bold transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-pokemon-blue disabled:cursor-wait disabled:opacity-75',
-        busy
-          ? 'bg-gray-400'
-          : inCollection
-          ? 'bg-gray-400 hover:bg-pokemon-red'
-          : 'bg-pokemon-blue hover:bg-blue-700',
-      ]"
-      :aria-label="
-        busy
-          ? 'Updating collection'
-          : inCollection
-            ? 'Remove from collection'
-            : 'Add to collection'
-      "
-      :aria-busy="busy"
-      :title="
-        busy
-          ? 'Updating collection…'
-          : inCollection
-            ? 'Remove from collection'
-            : 'Add to collection'
-      "
-    >
-      <svg
-        v-if="busy"
-        class="h-3.5 w-3.5 animate-spin"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-      >
-        <circle
-          class="opacity-30"
-          cx="12"
-          cy="12"
-          r="9"
-          stroke="currentColor"
-          stroke-width="3"
-        />
-        <path
-          class="opacity-90"
-          d="M21 12a9 9 0 0 0-9-9"
-          stroke="currentColor"
-          stroke-width="3"
-          stroke-linecap="round"
-        />
-      </svg>
-      <span v-else class="leading-none -mt-0.5">{{ inCollection ? "−" : "+" }}</span>
-    </button>
   </div>
 </template>
 
@@ -178,7 +187,8 @@ withDefaults(
    */
     showQuantity?: boolean;
     /**
-     * Phone-friendly layout for a three-column grid (profile Collection tab):
+     * Phone-friendly layout for a three-column grid (/collection and the
+     * profile Collection tab):
      * tighter padding, one-line name, one-line "RM" price.
      */
     dense?: boolean;
