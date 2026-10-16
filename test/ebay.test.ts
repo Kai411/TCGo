@@ -8,9 +8,11 @@ import assert from "node:assert/strict";
 import {
   EBAY_IMAGE_HOST,
   ebayImageUrl,
+  ebayMode,
   ebayQuery,
   ebaySearchUrl,
   toEbayListing,
+  toEbaySale,
 } from "~/shared/ebay";
 
 describe("ebay search query", () => {
@@ -107,5 +109,40 @@ describe("the netlify allowlist covers eBay photos", () => {
     const patterns = [...line.matchAll(/'([^']+)'/g)].map((m) => m[1]!);
     const sample = `https://${EBAY_IMAGE_HOST}/images/g/abc/s-l225.jpg`;
     assert.ok(patterns.some((p) => new RegExp(p).test(sample)), patterns.join(", "));
+  });
+});
+
+describe("ebay sold mode", () => {
+  it("defaults to sold, and only takes active by name", () => {
+    assert.equal(ebayMode(undefined), "sold");
+    assert.equal(ebayMode("whatever"), "sold");
+    assert.equal(ebayMode("active"), "active");
+  });
+
+  it("links the sold search to eBay's sold filter", () => {
+    const url = new URL(ebaySearchUrl("Pikachu", "sold"));
+    assert.equal(url.searchParams.get("LH_Sold"), "1");
+    assert.equal(url.searchParams.get("LH_Complete"), "1");
+    assert.equal(new URL(ebaySearchUrl("Pikachu")).searchParams.get("LH_Sold"), null);
+  });
+
+  it("shapes a sale from its last sold price and date", () => {
+    const sale = toEbaySale(
+      {
+        itemId: "v1|123456789012|0",
+        title: "Pikachu 001",
+        lastSoldPrice: { value: "10.00", currency: "USD" },
+        lastSoldDate: "2026-10-03T10:00:00.000Z",
+        condition: "Ungraded",
+      },
+      4.5,
+    );
+    assert.equal(sale?.myr, 45);
+    assert.equal(sale?.url, "https://www.ebay.com/itm/123456789012");
+    assert.equal(sale?.soldAt, "2026-10-03T10:00:00.000Z");
+  });
+
+  it("drops a sale with no price", () => {
+    assert.equal(toEbaySale({ itemId: "v1|1|0", title: "x" }, 4.5), null);
   });
 });
