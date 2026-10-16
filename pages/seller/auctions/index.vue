@@ -32,7 +32,7 @@
             No active auctions.
             <NuxtLink to="/seller/auctions/new" class="text-pokemon-red hover:underline ml-1">Create one →</NuxtLink>
           </p>
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 lg:gap-3 items-start">
             <ActivityRow
               v-for="auction in activeAuctions"
               :key="auction.id"
@@ -55,7 +55,7 @@
           <p v-if="!endedAuctions.length" class="text-sm text-gray-400 dark:text-zinc-500 py-3">
             No ended auctions yet.
           </p>
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 lg:gap-3 items-start">
             <ActivityRow
               v-for="auction in endedAuctions"
               :key="auction.id"
@@ -74,7 +74,7 @@
                 <NuxtLink
                   v-if="auction.orderId"
                   :to="`/orders/${auction.orderId}`"
-                  class="text-xs bg-gray-900 dark:bg-white/[0.10] hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg font-medium"
+                  class="text-xs bg-gray-900 dark:bg-white/[0.10] hover:bg-gray-700 text-white inline-flex items-center min-h-[36px] px-3 lg:min-h-0 lg:py-1.5 rounded-lg font-medium"
                   @click.stop
                 >
                   {{ auction.status === "sold" ? "View order" : "Awaiting payment" }}

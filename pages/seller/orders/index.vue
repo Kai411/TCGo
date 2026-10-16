@@ -31,11 +31,11 @@
              distinction the seller couldn't act on separately. The waybill
              state still shows per order inside the list, which is where it's
              useful. -->
-        <div v-if="toShip.length || shipped.length" class="grid sm:grid-cols-2 gap-3 mb-5">
+        <div v-if="toShip.length || shipped.length" class="grid grid-cols-2 gap-3 mb-5">
           <button
             type="button"
             @click="tab = 'toship'"
-            class="surface rounded-2xl p-4 text-left transition-shadow hover:shadow-card-hover"
+            class="surface rounded-2xl p-3 lg:p-4 text-left transition-[box-shadow,transform] duration-150 active:scale-[0.98] lg:active:scale-100 lg:hover:shadow-card-hover"
           >
             <div class="flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-amber-500" />
@@ -62,7 +62,7 @@
           <button
             type="button"
             @click="tab = 'shipped'"
-            class="surface rounded-2xl p-4 text-left transition-shadow hover:shadow-card-hover"
+            class="surface rounded-2xl p-3 lg:p-4 text-left transition-[box-shadow,transform] duration-150 active:scale-[0.98] lg:active:scale-100 lg:hover:shadow-card-hover"
           >
             <div class="flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-blue-500" />
@@ -83,13 +83,15 @@
 
         <div>
           <EmptyState v-if="!visible.length" :headline="emptyLabel" :caption="emptyCaption" />
+          <!-- Phones: one card per order, the waybill hint sitting above each
+               card instead of overlapping its corner. -->
           <div v-else class="grid lg:grid-cols-2 gap-3 items-start">
             <div v-for="order in visible" :key="order.id" class="relative">
               <!-- Waybill hint: distinguishes "label bought, go hand it over"
                    from "still needs a label" inside the same To-ship queue. -->
               <span
                 v-if="tab === 'toship'"
-                class="absolute -top-2 left-3 z-10 chip"
+                class="chip mb-2 lg:mb-0 lg:absolute lg:-top-2 lg:left-3 lg:z-10"
                 :class="
                   hasWaybill(order)
                     ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'

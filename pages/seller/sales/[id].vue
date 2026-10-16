@@ -1,11 +1,13 @@
 <template>
   <div class="max-w-2xl mx-auto">
-    <NuxtLink
-      to="/seller/sales"
-      class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white mb-4"
-    >
-      ← Back to counter sales
-    </NuxtLink>
+    <SubpageHeader title="Counter sale" back="/seller/sales" back-label="counter sales">
+      <NuxtLink
+        to="/seller/sales"
+        class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white mb-4"
+      >
+        ← Back to counter sales
+      </NuxtLink>
+    </SubpageHeader>
 
     <div v-if="loading" class="flex justify-center py-16">
       <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red" />
