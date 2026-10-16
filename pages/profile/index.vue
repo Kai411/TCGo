@@ -20,8 +20,8 @@
       <!-- Profile, membership and privacy only. Addresses, notifications,
            dark mode, What's new and the customer code each have their own
            place on the Account page. -->
-      <SubpageHeader />
-      <h1 class="text-2xl font-bold mb-6">Account settings</h1>
+      <SubpageHeader title="Account settings" />
+      <h1 class="hidden lg:block text-2xl font-bold mb-6">Account settings</h1>
 
       <div v-if="loading" class="flex justify-center py-12">
         <div
