@@ -410,6 +410,22 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ── PDPA consent log ─────────────────────────────────────────────
+    // One entry per acceptance (composables/useConsent.ts). The PDPA
+    // Regulations want consent recorded and kept, so it is append-only: the
+    // member creates their own with a server timestamp, nobody edits or
+    // deletes one, and only the member and admins read them.
+    match /users/{uid}/consents/{consentId} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['version', 'acceptedAt', 'source'])
+        && request.resource.data.keys().hasAll(['version', 'acceptedAt', 'source'])
+        && request.resource.data.version is string
+        && request.resource.data.acceptedAt == request.time
+        && request.resource.data.source in ['signup', 'prompt'];
+      allow update, delete: if false;
+    }
+
     // Deny anything not matched above.
     match /{document=**} {
       allow read, write: if false;
