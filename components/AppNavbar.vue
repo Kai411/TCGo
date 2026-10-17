@@ -5,7 +5,7 @@
     class="sticky top-0 z-40 glass shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.6)]"
   >
     <div
-      class="container mx-auto px-4 h-16 lg:h-[72px] lg:pt-3 flex items-center justify-between gap-2 lg:gap-4"
+      class="container mx-auto px-4 h-16 lg:h-[72px] lg:pt-3 flex items-center justify-between gap-1.5 lg:gap-4"
     >
       <!-- Logo (matches LandingNavbar: square sprite cropped to wordmark slice).
            Links to /landing (marketing) — user prefers this over the shop
@@ -75,7 +75,7 @@
         @click="openSearch"
         v-if="showMobileSearch"
         aria-label="Search cards, auctions, sets, sellers"
-        class="lg:hidden flex-1 min-w-0 h-10 flex items-center gap-2 px-4 rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-left text-sm text-ink-soft dark:text-zinc-500 transition-colors active:bg-black/[0.08] dark:active:bg-white/[0.12]"
+        class="lg:hidden flex-1 min-w-0 h-10 flex items-center gap-1.5 px-3 rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-left text-sm text-ink-soft dark:text-zinc-500 transition-colors active:bg-black/[0.08] dark:active:bg-white/[0.12]"
       >
         <svg
           class="w-4 h-4 shrink-0"
