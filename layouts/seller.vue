@@ -212,16 +212,16 @@ const IconTag = () =>
     h("path", { d: "M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59A2 2 0 0 0 3.83 11l9.58 9.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83z" }),
     h("circle", { cx: "7.5", cy: "7.5", r: "1.5", fill: "currentColor" }),
   ]);
-// A gavel tilted over its sound block: a barrel head with end caps, so it
+// A gavel tilted over its sound block (head on the right, striking end over the block): a barrel head with end caps, so it
 // can't be mistaken for an axe or hammer.
 const IconGavel = () =>
-  h("svg", { viewBox: "0 0 24 24", ...stroke }, [h("g", { transform: "translate(2.5 1.5) rotate(-45 10 10)" }, [
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [h("g", { transform: "translate(21 0.5) scale(-1 1) rotate(-45 10 10)" }, [
       h("path", { d: "M7 4.5h6M7 7.5h6" }),
       h("rect", { x: "4", y: "2.5", width: "3", height: "7", rx: "1" }),
       h("rect", { x: "13", y: "2.5", width: "3", height: "7", rx: "1" }),
       h("path", { d: "M10 7.5v10" }),
     ]),
-    h("path", { d: "M12 21h9" }),
+    h("path", { d: "M12.5 21h8" }),
   ]);
 const IconBox = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [

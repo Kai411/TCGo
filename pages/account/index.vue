@@ -336,13 +336,13 @@ const p = (d: string) => h("path", { d });
 const IconChevron = () =>
   h("svg", { ...stroke, "stroke-width": "2.5" }, [p("m9 18 6-6-6-6")]);
 const IconGavel = icon(
-  h("g", { transform: "translate(2.5 1.5) rotate(-45 10 10)" }, [
+  h("g", { transform: "translate(21 0.5) scale(-1 1) rotate(-45 10 10)" }, [
     p("M7 4.5h6M7 7.5h6"),
     h("rect", { x: "4", y: "2.5", width: "3", height: "7", rx: "1" }),
     h("rect", { x: "13", y: "2.5", width: "3", height: "7", rx: "1" }),
     p("M10 7.5v10"),
   ]),
-  p("M12 21h9"),
+  p("M12.5 21h8"),
 );
 const IconTrophy = icon(
   p("M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"),

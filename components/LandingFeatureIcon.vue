@@ -17,13 +17,13 @@
              gavel scaled to this grid; stroke divided back to 1.6) -->
         <template v-if="name === 'auction'">
           <g transform="scale(1.3333)" stroke-width="1.2">
-            <g transform="translate(2.5 1.5) rotate(-45 10 10)" stroke="#09090B">
+            <g transform="translate(21 0.5) scale(-1 1) rotate(-45 10 10)" stroke="#09090B">
               <path d="M7 4.5h6M7 7.5h6" />
               <rect x="4" y="2.5" width="3" height="7" rx="1" />
               <rect x="13" y="2.5" width="3" height="7" rx="1" />
               <path d="M10 7.5v10" />
             </g>
-            <path d="M12 21h9" stroke="#E3350D" stroke-width="1.65" />
+            <path d="M12.5 21h8" stroke="#E3350D" stroke-width="1.65" />
           </g>
         </template>
 
