@@ -40,7 +40,7 @@
 
       <!-- Mobile filter trigger (hidden on desktop where sidebar is shown) -->
       <div v-if="!loading" class="lg:hidden mb-2">
-        <ListingFilters :filters="filters" :tcg-counts="tcgCounts" />
+        <ListingFilters :filters="filters" :tcg-counts="tcgCounts" :result-count="availableCards.length" />
       </div>
 
       <!-- Loading: skeleton tiles in the same grid, so the page doesn't
