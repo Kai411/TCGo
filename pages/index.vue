@@ -10,6 +10,7 @@
 
     <!-- ── Main content ───────────────────────────────────────────────── -->
     <div class="flex-1 min-w-0">
+      <ListingBanner placement="shop" />
       <PremiumBanner />
 
       <!-- First visit, signed out: one line on what this is and what protects

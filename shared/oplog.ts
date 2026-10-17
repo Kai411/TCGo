@@ -19,6 +19,7 @@ export type LogArea =
   | "auth"
   | "staff"
   | "order"
+  | "content"
   | "system";
 
 export const LOG_AREAS: { key: LogArea; label: string }[] = [
@@ -30,6 +31,7 @@ export const LOG_AREAS: { key: LogArea; label: string }[] = [
   { key: "auth", label: "Sign-in" },
   { key: "staff", label: "Staff" },
   { key: "order", label: "Orders" },
+  { key: "content", label: "Content" },
   { key: "system", label: "System" },
 ];
 

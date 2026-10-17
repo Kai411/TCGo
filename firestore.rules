@@ -480,6 +480,21 @@ service cloud.firestore {
       allow create: if false;
     }
 
+    // ── Banners and microsites ───────────────────────────────────────
+    // Public content from Mint Condition → Content, read signed out by the
+    // Shop, Auctions and /p/{slug} pages. Written only by the /api/mc/content
+    // routes (Admin SDK), so no browser can write them. A draft microsite
+    // can't be read until it is published.
+    match /banners/{placement} {
+      allow read: if placement in ['shop', 'auctions'];
+      allow write: if false;
+    }
+
+    match /microsites/{slug} {
+      allow read: if resource.data.published == true;
+      allow write: if false;
+    }
+
     match /settings/{docId} {
       allow read, write: if false;
     }
