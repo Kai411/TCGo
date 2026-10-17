@@ -31,7 +31,7 @@
         <div
           class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-6"
         >
-          <div class="flex items-center gap-3 sm:gap-5 min-w-0">
+          <div class="flex items-center gap-3 sm:gap-5 min-w-0 pr-10">
             <img
               :src="profile.photoURL || ''"
               :alt="profile.customName || profile.displayName"
@@ -83,123 +83,103 @@
             </div>
           </div>
 
-          <!-- Actions -->
-          <div class="flex items-center gap-2 sm:self-end">
-            <!-- Share button — always visible -->
+          <!-- Visitor actions. Your own profile has none here: settings
+               and sign out live on Account. -->
+          <div v-if="!isOwnProfile" class="flex items-center gap-2 sm:self-end">
             <button
-              @click="handleShare"
-              :title="copied ? 'Link copied!' : 'Share profile'"
-              class="relative inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold border border-black/[0.08] dark:border-white/[0.08] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-            >
-              <svg
-                v-if="!copied"
-                class="w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="18" cy="5" r="3" />
-                <circle cx="6" cy="12" r="3" />
-                <circle cx="18" cy="19" r="3" />
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-              </svg>
-              <svg
-                v-else
-                class="w-4 h-4 text-emerald-500"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              {{ copied ? "Copied!" : "Share" }}
-            </button>
-
-            <template v-if="isOwnProfile">
-              <NuxtLink
-                to="/profile"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold border border-black/[0.08] dark:border-white/[0.08] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-              >
-                <svg
-                  class="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <circle cx="12" cy="12" r="3" />
-                  <path
-                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
-                  />
-                </svg>
-                Settings
-              </NuxtLink>
-              <button
-                @click="handleSignOut"
-                class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold text-pokemon-red border border-pokemon-red/30 hover:bg-pokemon-red/[0.06] transition-colors"
-              >
-                Log out
-              </button>
-            </template>
-
-            <button
-              v-else-if="user"
+              v-if="user"
               @click="showReportForm = true"
               class="inline-flex items-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold text-pokemon-red border border-pokemon-red/30 hover:bg-pokemon-red/[0.06] transition-colors"
             >
               Report
             </button>
-            <MessageButton v-if="!isOwnProfile" :uid="uid" small class="order-first" />
+            <MessageButton :uid="uid" small class="order-first" />
           </div>
         </div>
+
+        <!-- Share, icon only, pinned to the header's top right. 44px tap
+             area around a 20px glyph. -->
+        <button
+          type="button"
+          @click="handleShare"
+          :aria-label="copied ? 'Profile link copied' : 'Share profile'"
+          :title="copied ? 'Link copied!' : 'Share profile'"
+          class="absolute -top-1.5 -right-2.5 w-11 h-11 inline-flex items-center justify-center rounded-full text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-[background-color,transform] duration-150 ease-out active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokemon-blue"
+        >
+          <svg
+            v-if="!copied"
+            class="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="18" cy="5" r="3" />
+            <circle cx="6" cy="12" r="3" />
+            <circle cx="18" cy="19" r="3" />
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+          </svg>
+          <svg
+            v-else
+            class="w-5 h-5 text-emerald-500"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </button>
       </section>
 
-      <!-- Trust score (Listed + Auctions counts now live in the tab bar) -->
-      <section class="mb-3 sm:mb-5 flex gap-2">
+      <!-- Trust score and My code: two chips of one size (32px tall, the
+           hit area padded out to 44px). -->
+      <section class="mb-3 sm:mb-5 flex flex-wrap items-center gap-2">
         <button
           type="button"
           @click="showTrustInfo = true"
-          class="inline-flex items-center gap-2 surface rounded-full px-3 py-1.5 hover:shadow-card-hover transition-shadow ease-premium"
+          aria-label="Trust score, what it means"
+          class="relative h-8 inline-flex items-center gap-1.5 surface rounded-full pl-3 pr-2 hover:shadow-card-hover transition-[box-shadow,transform] duration-150 ease-premium active:scale-[0.97] before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-['']"
         >
           <span
-            class="text-[11px] font-semibold tracking-wide uppercase text-ink-muted dark:text-zinc-400"
+            class="text-[11px] font-semibold tracking-wide uppercase leading-none text-ink-muted dark:text-zinc-400"
           >
             Trust
           </span>
           <span
-            class="tabular-price text-sm font-bold"
+            class="tabular-price text-[13px] font-bold leading-none"
             :class="trustScoreColor(profile.trustScore ?? 100)"
           >
             {{ profile.trustScore ?? 100
-            }}<span class="text-ink-soft dark:text-zinc-500 font-medium"
+            }}<span class="text-[11px] text-ink-soft dark:text-zinc-500 font-medium"
               >/100</span
             >
           </span>
+          <!-- Drawn on a 16px grid so the dot and stem sit on the circle's
+               optical centre at 14px. -->
           <svg
-            class="w-3 h-3 text-ink-soft"
+            class="w-3.5 h-3.5 shrink-0 text-ink-soft dark:text-zinc-500"
+            viewBox="0 0 16 16"
             fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
+            aria-hidden="true"
           >
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4M12 8h.01" />
+            <circle cx="8" cy="8" r="6.75" stroke="currentColor" stroke-width="1.5" />
+            <circle cx="8" cy="4.85" r="0.95" fill="currentColor" />
+            <path d="M8 7.1v4.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
           </svg>
         </button>
 
         <NuxtLink
           v-if="premiumEnabled && isOwnProfile && profile.tier !== 'premium'"
           to="/membership"
-          class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 bg-amber-400/15 dark:bg-amber-400/10 border border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 hover:bg-amber-400/25 dark:hover:bg-amber-400/20 transition-colors ease-premium"
+          class="h-8 inline-flex items-center gap-1.5 rounded-full px-3 bg-amber-400/15 dark:bg-amber-400/10 border border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 hover:bg-amber-400/25 dark:hover:bg-amber-400/20 transition-colors ease-premium"
         >
           <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -215,7 +195,7 @@
           v-if="isOwnProfile"
           type="button"
           @click="showBuyerQr = true"
-          class="inline-flex items-center gap-1.5 rounded-full surface px-3 py-1.5 hover:shadow-card-hover transition-shadow ease-premium"
+          class="relative h-8 inline-flex items-center gap-1.5 rounded-full surface px-3 hover:shadow-card-hover transition-[box-shadow,transform] duration-150 ease-premium active:scale-[0.97] before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-['']"
         >
           <svg class="w-3.5 h-3.5 text-ink-muted dark:text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -223,7 +203,7 @@
             <rect x="3" y="14" width="7" height="7" rx="1" />
             <path d="M14 14h3v3h-3zM19 19h2v2h-2z" />
           </svg>
-          <span class="text-[11px] font-semibold tracking-wide uppercase">My code</span>
+          <span class="text-[11px] font-semibold tracking-wide uppercase leading-none">My code</span>
         </button>
       </section>
 
@@ -254,34 +234,44 @@
         </Transition>
       </Teleport>
 
-      <!-- Underline tabs -->
-      <div class="hairline mb-6">
+      <!-- Underline tabs. Phones: three equal columns, 44px tall, so each
+           tab is a full-width target. Desktop: left aligned as before. The
+           underline tracks the label, not the whole column. -->
+      <div class="hairline mb-4 sm:mb-6 select-none">
         <div
           ref="containerEl"
-          class="relative flex items-center gap-5 sm:gap-6 -mb-px"
+          role="tablist"
+          class="relative grid grid-cols-3 lg:flex lg:items-center lg:gap-8 -mb-px"
         >
           <button
             v-for="tab in tabs"
             :key="tab.id"
-            :ref="(el) => setTabRef(tab.id, el)"
+            type="button"
+            role="tab"
+            :aria-selected="activeTab === tab.id"
             @click="activeTab = tab.id"
-            class="relative pb-3 pt-1 text-base sm:text-lg font-bold tracking-tightest transition-colors ease-premium"
+            class="min-h-11 flex items-center justify-center lg:justify-start pb-2.5 pt-1.5 transition-colors ease-premium"
             :class="
               activeTab === tab.id
                 ? 'text-ink dark:text-white'
                 : 'text-ink-soft hover:text-ink-muted dark:text-zinc-500 dark:hover:text-zinc-300'
             "
           >
-            {{ tab.label }}
             <span
-              class="ml-1.5 tabular-price text-xs font-bold align-middle"
-              :class="
-                activeTab === tab.id
-                  ? 'text-pokemon-red'
-                  : 'text-ink-soft dark:text-zinc-600'
-              "
+              :ref="(el) => setTabRef(tab.id, el)"
+              class="inline-flex items-baseline gap-1 text-[15px] sm:text-lg font-semibold sm:font-bold tracking-tightest"
             >
-              {{ tab.count }}
+              {{ tab.label }}
+              <span
+                class="tabular-price text-[11px] sm:text-xs font-bold"
+                :class="
+                  activeTab === tab.id
+                    ? 'text-pokemon-red'
+                    : 'text-ink-soft dark:text-zinc-600'
+                "
+              >
+                {{ tab.count }}
+              </span>
             </span>
           </button>
           <!-- Single underline that slides between tabs -->
@@ -335,45 +325,6 @@
         </div>
       </div>
 
-      <!-- Favourites tab -->
-      <div v-if="activeTab === 'favourites' && showFavourites">
-        <EmptyState
-          v-if="favouriteCards.length === 0 && favouriteAuctions.length === 0"
-          headline="No favourites yet"
-          :caption="emptyFavouritesCaption"
-        />
-        <div v-else class="space-y-10">
-          <section v-if="favouriteCards.length">
-            <span class="eyebrow mb-3 block">Cards</span>
-            <div
-              class="-mx-1.5 lg:mx-0 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
-            >
-              <div
-                v-for="card in favouriteCards"
-                :key="card.id"
-                :class="{ 'opacity-40': card.sold }"
-              >
-                <CardTile :card="card" />
-              </div>
-            </div>
-          </section>
-          <section v-if="favouriteAuctions.length">
-            <span class="eyebrow mb-3 block">Auctions</span>
-            <div
-              class="-mx-1.5 lg:mx-0 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
-            >
-              <div
-                v-for="auction in favouriteAuctions"
-                :key="auction.id"
-                :class="{ 'opacity-40': auction.endsAt <= Date.now() }"
-              >
-                <CardTile :auction="auction" />
-              </div>
-            </div>
-          </section>
-        </div>
-      </div>
-
       <!-- Collection tab -->
       <div v-if="activeTab === 'collection'">
         <div v-if="loadingCollection" class="flex justify-center py-16">
@@ -391,7 +342,7 @@
             </span>
             <span class="text-ink-muted dark:text-zinc-400">
               est. value
-              <span class="font-bold text-ink dark:text-white tabular-nums">{{ formatMyr(collectionValue) }} MYR</span>
+              <span class="font-bold text-ink dark:text-white tabular-nums">RM{{ formatMyr(collectionValue) }}</span>
             </span>
             <NuxtLink
               v-if="isOwnProfile"
@@ -408,17 +359,18 @@
             headline="No cards in collection yet"
             :caption="isOwnProfile ? 'Add cards you own to showcase your collection.' : 'This collector hasn\'t added any cards yet.'"
           />
+          <!-- Same flat hairline grid as the Collection page's own list. -->
           <div
             v-else
-            class="-mx-1.5 lg:mx-0 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
+            class="-mx-4 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 overflow-hidden border-t border-black/[0.06] dark:border-white/[0.08] lg:border-x lg:rounded-xl"
           >
-            <CollectionItemCard
+            <CollectionOwnedTile
               v-for="c in collectionCards"
               :key="c.productId"
               :card="c"
-              :in-collection="true"
+              :quantity="collectionQty.get(c.productId) ?? 1"
               readonly
-              dense
+              class="shadow-[1px_0_0_0_rgba(0,0,0,0.06),0_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.08),0_1px_0_0_rgba(255,255,255,0.08)]"
             />
           </div>
         </template>
@@ -580,11 +532,10 @@ const route = useRoute();
 const uid = route.params.uid as string;
 
 const { profile, loading: profileLoading } = useProfile(uid);
-const { user, signOut } = useAuth();
+const { user } = useAuth();
 const { premiumEnabled } = useFeatureFlags();
 const { auctions } = useAuctions();
 const { cards } = useCards();
-const { userFavourites } = useUserFavourites(uid);
 const { getScoreBadge } = useTrustScore();
 
 const isOwnProfile = computed(() => user.value?.uid === uid);
@@ -594,26 +545,40 @@ const showReportForm = ref(false);
 const reportSubmitted = ref(false);
 const showTrustInfo = ref(false);
 
-const showFavourites = computed(() => {
-  if (isOwnProfile.value) return true;
-  return profile.value?.favouritesPublic ?? true;
-});
-
-type TabId = "cards" | "auctions" | "favourites" | "collection";
-const activeTab = ref<TabId>((route.query.tab as TabId) || "cards");
+type TabId = "cards" | "auctions" | "collection";
+const TAB_IDS: TabId[] = ["cards", "auctions", "collection"];
+const queryTab = route.query.tab as string | undefined;
+const activeTab = ref<TabId>(
+  TAB_IDS.includes(queryTab as TabId) ? (queryTab as TabId) : "cards",
+);
+// Favourites moved to Account. Old ?tab=favourites links on your own
+// profile land there instead of on Cards.
+if (queryTab === "favourites") {
+  watch(
+    isOwnProfile,
+    (own) => {
+      if (own) navigateTo("/account/favourites", { replace: true });
+    },
+    { immediate: true },
+  );
+}
 
 // ── Collection showcase ───────────────────────────────────────────────
-const { getCollectionProductIds } = useUserCollection();
+const { getCollectionQuantities } = useUserCollection();
 const { getCardsByIds } = useCardCatalog();
 const collectionCards = ref<CatalogMatch[]>([]);
+const collectionQty = ref(new Map<number, number>());
 const loadingCollection = ref(false);
 
 const loadCollection = async () => {
   loadingCollection.value = true;
   try {
-    const ids = await getCollectionProductIds(uid);
+    const qty = await getCollectionQuantities(uid);
+    const ids = [...qty.keys()];
+    collectionQty.value = qty;
     collectionCards.value = ids.length ? await getCardsByIds(ids) : [];
   } catch {
+    collectionQty.value = new Map();
     collectionCards.value = [];
   } finally {
     loadingCollection.value = false;
@@ -626,7 +591,11 @@ watch(
 );
 
 const collectionValue = computed(() =>
-  collectionCards.value.reduce((s, c) => s + (c.price?.market ?? 0), 0),
+  collectionCards.value.reduce(
+    (s, c) =>
+      s + (c.price?.market ?? 0) * (collectionQty.value.get(c.productId) ?? 1),
+    0,
+  ),
 );
 
 const formatMyr = (n: number) =>
@@ -666,32 +635,11 @@ const userAuctions = computed(() =>
     }),
 );
 
-const favouriteCards = computed(() => {
-  const ids = userFavourites.value
-    .filter((f: any) => f.itemType === "card")
-    .map((f: any) => f.itemId);
-  return cards.value.filter((c: any) => ids.includes(c.id));
-});
-
-const favouriteAuctions = computed(() => {
-  const ids = userFavourites.value
-    .filter((f: any) => f.itemType === "auction")
-    .map((f: any) => f.itemId);
-  return auctions.value.filter((a: any) => ids.includes(a.id));
-});
-
 const tabs = computed(() => {
   const base: { id: TabId; label: string; count: number }[] = [
     { id: "cards", label: "Cards", count: userCards.value.length },
     { id: "auctions", label: "Auctions", count: userAuctions.value.length },
   ];
-  if (showFavourites.value) {
-    base.push({
-      id: "favourites",
-      label: "Favourites",
-      count: favouriteCards.value.length + favouriteAuctions.value.length,
-    });
-  }
   base.push({
     id: "collection",
     label: "Collection",
@@ -707,12 +655,6 @@ onMounted(() => nextTick(() => measure(activeTab.value)));
 watch(
   () => [activeTab.value, tabs.value.map((t) => `${t.id}:${t.count}`).join()],
   () => nextTick(() => measure(activeTab.value)),
-);
-
-const emptyFavouritesCaption = computed(() =>
-  isOwnProfile.value
-    ? "Tap the heart on any card or auction to save it here."
-    : "This collector has no favourites yet.",
 );
 
 const isActive = (auction: Auction) => auction.endsAt > Date.now();
@@ -738,13 +680,6 @@ const badgeChipVariant = (score: number) => {
   if (score >= 40)
     return "bg-orange-500/10 text-orange-700 dark:text-orange-300";
   return "bg-pokemon-red/10 text-pokemon-red";
-};
-
-const handleSignOut = async () => {
-  await signOut();
-  // Staying put would leave them on a profile page they can no longer act on,
-  // and the onboarding gate would bounce a half-loaded session around.
-  await navigateTo("/");
 };
 
 const { origin } = useRequestURL();
