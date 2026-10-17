@@ -170,6 +170,13 @@ const IconChart = () =>
     h("line", { x1: "6", y1: "20", x2: "6", y2: "14" }),
   ]);
 
+const IconImage = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("rect", { x: "3", y: "3", width: "18", height: "18", rx: "2" }),
+    h("circle", { cx: "9", cy: "9", r: "2" }),
+    h("path", { d: "m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21" }),
+  ]);
+
 const IconList = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [
     h("line", { x1: "8", y1: "6", x2: "21", y2: "6" }),
@@ -191,6 +198,7 @@ const allNav = [
   { to: "/mintcondition/refunds", label: "Refunds", icon: IconWallet, perm: "payouts.view" },
   { to: "/mintcondition/problems", label: "Order problems", icon: IconFlag, perm: "reports.view" },
   { to: "/mintcondition/reports", label: "Reports", icon: IconFlag, perm: "reports.view" },
+  { to: "/mintcondition/content", label: "Content", icon: IconImage, perm: "content.manage" },
   { to: "/mintcondition/logs", label: "Logs", icon: IconList, perm: "logs.view" },
   { to: "/mintcondition/staff", label: "Staff", icon: IconUsers, perm: "staff.view" },
 ];

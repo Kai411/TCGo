@@ -88,6 +88,13 @@ export const PERMISSIONS: PermissionDef[] = [
     dangerous: true,
   },
   {
+    key: "content.manage",
+    group: "Content",
+    label: "Manage banners and pages",
+    description:
+      "Edit, show and hide the Shop and Auctions banners, and create and publish microsites. Changes are public at once.",
+  },
+  {
     key: "logs.view",
     group: "Operations",
     label: "View logs",
