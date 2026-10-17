@@ -37,7 +37,7 @@
             {{ [item.cardSet, item.condition].filter(Boolean).join(" · ") }}
           </p>
         </div>
-        <p class="text-sm font-semibold tabular-nums text-ink dark:text-white">
+        <p class="shrink-0 text-sm font-semibold tabular-nums text-ink dark:text-white">
           RM {{ item.price.toFixed(2) }}
         </p>
       </div>
@@ -62,10 +62,10 @@
     <!-- Tracking (if shipped) -->
     <div
       v-if="order.trackingNumber"
-      class="mt-3 text-xs text-gray-500 dark:text-zinc-400 break-all"
+      class="mt-3 text-xs text-gray-500 dark:text-zinc-400 break-words"
     >
       Tracking:
-      <span class="font-mono font-semibold text-ink dark:text-white">{{ order.trackingNumber }}</span>
+      <span class="break-all select-text font-mono font-semibold text-ink dark:text-white">{{ order.trackingNumber }}</span>
       <span v-if="order.shippingCarrier"> · {{ order.shippingCarrier }}</span>
     </div>
 
