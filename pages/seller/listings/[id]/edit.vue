@@ -77,22 +77,6 @@
               class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2.5 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-blue focus:outline-none focus:ring-1 focus:ring-pokemon-blue"
             />
           </div>
-
-          <!-- Shipping -->
-          <div
-            class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3"
-          >
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
-              Shipping
-            </h3>
-            <p class="text-xs text-gray-500 dark:text-zinc-400">
-              Buyers are quoted a live courier rate from your pickup address to
-              theirs at checkout — there's no price to set per listing.
-              <NuxtLink to="/seller/settings#pickup" class="text-pokemon-red hover:underline">
-                Check your pickup address →
-              </NuxtLink>
-            </p>
-          </div>
         </div>
 
         <div
