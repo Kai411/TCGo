@@ -254,7 +254,7 @@
   </nav>
 
   <!-- Mobile bottom tab bar: Shop / Auctions / Sell / Collection / Account.
-       Sell sits in the middle as the one raised action; Orders moved into the
+       Sell sits in the middle as the one red action; Orders moved into the
        Account page. Pads for the iPhone home bar, keeping the old 16px as the floor. -->
   <nav
     class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] pb-[max(16px,env(safe-area-inset-bottom))]"
@@ -266,14 +266,18 @@
           v-if="tab.sell"
           type="button"
           @click.stop="onSellTap"
-          class="tab-press flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-wide text-ink dark:text-white"
+          class="tab-press flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500"
+          :class="sellSheetOpen ? '!text-pokemon-red' : ''"
           aria-haspopup="dialog"
           :aria-expanded="sellSheetOpen"
         >
+          <!-- Sell stays the one red action, but as a flat pill in the same
+               28px icon row as the other tabs, so all five labels share one
+               baseline and one colour. -->
           <span
-            class="-mt-5 w-12 h-12 rounded-full bg-pokemon-red text-white shadow-glow ring-4 ring-canvas dark:ring-canvas-inverse flex items-center justify-center"
+            class="h-7 w-11 rounded-[10px] bg-pokemon-red text-white flex items-center justify-center shadow-[0_2px_8px_-2px_rgba(227,53,13,0.55)]"
           >
-            <component :is="tab.icon" class="w-6 h-6" />
+            <component :is="tab.icon" class="w-5 h-5" />
           </span>
           <span>{{ tab.label }}</span>
         </button>
@@ -284,7 +288,7 @@
           :class="isTabActive(tab.to!) ? '!text-pokemon-red' : ''"
           :aria-current="isTabActive(tab.to!) ? 'page' : undefined"
         >
-          <span class="relative">
+          <span class="relative h-7 flex items-center">
             <component :is="tab.icon" class="w-6 h-6" />
             <span
               v-if="tab.dot"
@@ -400,11 +404,16 @@ const IconShop = () =>
     h("path", { d: "M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9" }),
     h("path", { d: "M9 13h6" }),
   ]);
+// A gavel tilted over its sound block: a barrel head with end caps, so it
+// can't be mistaken for an axe or hammer.
 const IconGavel = () =>
-  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
-    h("path", { d: "M14 4l6 6-3 3-6-6 3-3z" }),
-    h("path", { d: "M11 7l-7 7 3 3 7-7" }),
-    h("path", { d: "M3 21h12" }),
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [h("g", { transform: "translate(2.5 1.5) rotate(-45 10 10)" }, [
+      h("path", { d: "M7 4.5h6M7 7.5h6" }),
+      h("rect", { x: "4", y: "2.5", width: "3", height: "7", rx: "1" }),
+      h("rect", { x: "13", y: "2.5", width: "3", height: "7", rx: "1" }),
+      h("path", { d: "M10 7.5v10" }),
+    ]),
+    h("path", { d: "M12 21h9" }),
   ]);
 const IconPlus = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke, "stroke-width": "2.5" }, [
