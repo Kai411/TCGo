@@ -259,19 +259,9 @@
           >
             <span
               :ref="(el) => setTabRef(tab.id, el)"
-              class="inline-flex items-baseline gap-1 text-[15px] sm:text-lg font-semibold sm:font-bold tracking-tightest"
+              class="text-[15px] sm:text-lg font-semibold sm:font-bold tracking-tightest"
             >
               {{ tab.label }}
-              <span
-                class="tabular-price text-[11px] sm:text-xs font-bold"
-                :class="
-                  activeTab === tab.id
-                    ? 'text-pokemon-red'
-                    : 'text-ink-soft dark:text-zinc-600'
-                "
-              >
-                {{ tab.count }}
-              </span>
             </span>
           </button>
           <!-- Single underline that slides between tabs -->
@@ -331,10 +321,12 @@
           <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red"/>
         </div>
         <template v-else>
-          <!-- Summary strip -->
+          <!-- Summary strip. Sits between the tab bar's hairline and the
+               grid's, so its bottom gap matches the tab bar's margin above
+               it (16px phones, 24px from sm). -->
           <div
             v-if="collectionCards.length"
-            class="flex flex-wrap items-center gap-x-6 gap-y-1 mb-5 text-sm"
+            class="flex flex-wrap items-center gap-x-6 gap-y-1 mb-4 sm:mb-6 text-sm"
           >
             <span class="text-ink-muted dark:text-zinc-400">
               <span class="font-bold text-ink dark:text-white tabular-nums">{{ collectionCards.length }}</span>
@@ -635,25 +627,18 @@ const userAuctions = computed(() =>
     }),
 );
 
-const tabs = computed(() => {
-  const base: { id: TabId; label: string; count: number }[] = [
-    { id: "cards", label: "Cards", count: userCards.value.length },
-    { id: "auctions", label: "Auctions", count: userAuctions.value.length },
-  ];
-  base.push({
-    id: "collection",
-    label: "Collection",
-    count: collectionCards.value.length,
-  });
-  return base;
-});
+const tabs: { id: TabId; label: string }[] = [
+  { id: "cards", label: "Cards" },
+  { id: "auctions", label: "Auctions" },
+  { id: "collection", label: "Collection" },
+];
 
 // Sliding red underline under the active tab. Re-measure when the active
-// tab changes and when labels/counts change (they alter tab widths).
+// tab changes.
 const { containerEl, setTabRef, indicatorStyle, measure } = useTabIndicator();
 onMounted(() => nextTick(() => measure(activeTab.value)));
 watch(
-  () => [activeTab.value, tabs.value.map((t) => `${t.id}:${t.count}`).join()],
+  activeTab,
   () => nextTick(() => measure(activeTab.value)),
 );
 
