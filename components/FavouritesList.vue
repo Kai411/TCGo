@@ -5,41 +5,34 @@
       headline="No favourites yet"
       caption="Tap the heart on any card or auction to save it here."
     />
-    <div v-else class="space-y-10">
-      <section v-if="favouriteCards.length">
-        <span class="eyebrow mb-3 block">Cards</span>
-        <div
-          class="-mx-1.5 lg:mx-0 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
-        >
-          <div
-            v-for="card in favouriteCards"
-            :key="card.id"
-            :class="{ 'opacity-40': card.sold }"
-          >
-            <CardTile :card="card" />
-          </div>
-        </div>
-      </section>
-      <section v-if="favouriteAuctions.length">
-        <span class="eyebrow mb-3 block">Auctions</span>
-        <div
-          class="-mx-1.5 lg:mx-0 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-5"
-        >
-          <div
-            v-for="auction in favouriteAuctions"
-            :key="auction.id"
-            :class="{ 'opacity-40': auction.endsAt <= Date.now() }"
-          >
-            <CardTile :auction="auction" />
-          </div>
-        </div>
-      </section>
-    </div>
+    <template v-else>
+      <p class="mb-3 text-[11px] text-ink-soft dark:text-zinc-500 tabular-price">
+        {{ total }} saved
+      </p>
+      <!-- Flat cells divided by hairlines, edge to edge on phones: the same
+           grid as Your collection. Listings first, then auctions. -->
+      <div
+        class="-mx-4 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 overflow-hidden border-t border-black/[0.06] dark:border-white/[0.08] lg:border-x lg:rounded-xl"
+      >
+        <FavouriteTile
+          v-for="card in favouriteCards"
+          :key="card.id"
+          :card="card"
+          :class="cellLines"
+        />
+        <FavouriteTile
+          v-for="auction in favouriteAuctions"
+          :key="auction.id"
+          :auction="auction"
+          :class="cellLines"
+        />
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-// The grid that used to be the profile's Favourites tab, unchanged.
+// The list that used to be the profile's Favourites tab.
 const props = defineProps<{ uid: string }>();
 
 const { auctions } = useAuctions();
@@ -59,4 +52,10 @@ const favouriteAuctions = computed(() => {
     .map((f: any) => f.itemId);
   return auctions.value.filter((a: any) => ids.includes(a.id));
 });
+
+const total = computed(
+  () => favouriteCards.value.length + favouriteAuctions.value.length,
+);
+const cellLines =
+  "shadow-[1px_0_0_0_rgba(0,0,0,0.06),0_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.08),0_1px_0_0_rgba(255,255,255,0.08)]";
 </script>
