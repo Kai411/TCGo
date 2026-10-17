@@ -13,12 +13,18 @@
         stroke-linejoin="round"
         fill="none"
       >
-        <!-- Live auctions: gavel striking a block -->
+        <!-- Live auctions: gavel over its sound block (the app's 24px
+             gavel scaled to this grid; stroke divided back to 1.6) -->
         <template v-if="name === 'auction'">
-          <path d="M17.5 5.5 26 14l-3.2 3.2L14.3 8.7z" stroke="#09090B" />
-          <path d="M13.4 9.6 5.6 17.4l3.4 3.4 7.8-7.8" stroke="#09090B" />
-          <path d="M6 27h13" stroke="#E3350D" stroke-width="2.2" />
-          <path d="M20.5 4 24 7.5M22 20l4 4" stroke="#E3350D" />
+          <g transform="scale(1.3333)" stroke-width="1.2">
+            <g transform="translate(21 0.5) scale(-1 1) rotate(-45 10 10)" stroke="#09090B">
+              <path d="M7 4.5h6M7 7.5h6" />
+              <rect x="4" y="2.5" width="3" height="7" rx="1" />
+              <rect x="13" y="2.5" width="3" height="7" rx="1" />
+              <path d="M10 7.5v10" />
+            </g>
+            <path d="M12.5 21h8" stroke="#E3350D" stroke-width="1.65" />
+          </g>
         </template>
 
         <!-- Trust: shield with a check -->

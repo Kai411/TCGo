@@ -262,7 +262,7 @@ const timerClasses = computed(() => {
           </p>
           <div class="hidden sm:flex items-end justify-between">
             <div class="min-w-0">
-              <!-- Auction: current bid with hammer icon -->
+              <!-- Auction: current bid with gavel icon -->
               <template v-if="isAuction">
                 <p
                   class="tabular-price font-extrabold text-[17px] leading-none text-ink dark:text-white inline-flex items-center gap-1"
@@ -276,9 +276,13 @@ const timerClasses = computed(() => {
                     stroke-linecap="round"
                     stroke-linejoin="round"
                   >
-                    <path
-                      d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
-                    />
+                    <g transform="translate(21 0.5) scale(-1 1) rotate(-45 10 10)">
+                      <path d="M7 4.5h6M7 7.5h6" />
+                      <rect x="4" y="2.5" width="3" height="7" rx="1" />
+                      <rect x="13" y="2.5" width="3" height="7" rx="1" />
+                      <path d="M10 7.5v10" />
+                    </g>
+                    <path d="M12.5 21h8" />
                   </svg>
                   {{ formatPrice(auction?.currentPrice || 0) }}
                   <span

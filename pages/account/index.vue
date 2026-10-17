@@ -335,7 +335,15 @@ const p = (d: string) => h("path", { d });
 
 const IconChevron = () =>
   h("svg", { ...stroke, "stroke-width": "2.5" }, [p("m9 18 6-6-6-6")]);
-const IconGavel = icon(p("M14 4l6 6-3 3-6-6 3-3z"), p("M11 7l-7 7 3 3 7-7"), p("M3 21h12"));
+const IconGavel = icon(
+  h("g", { transform: "translate(21 0.5) scale(-1 1) rotate(-45 10 10)" }, [
+    p("M7 4.5h6M7 7.5h6"),
+    h("rect", { x: "4", y: "2.5", width: "3", height: "7", rx: "1" }),
+    h("rect", { x: "13", y: "2.5", width: "3", height: "7", rx: "1" }),
+    p("M10 7.5v10"),
+  ]),
+  p("M12.5 21h8"),
+);
 const IconTrophy = icon(
   p("M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"),
   p("M17 6h3v2a3 3 0 0 1-3 3M7 6H4v2a3 3 0 0 0 3 3"),
