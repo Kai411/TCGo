@@ -5,7 +5,7 @@
       @click="toggle"
       :aria-expanded="open"
       :aria-label="hasUnread ? `Notifications, ${unread} unread` : 'Notifications'"
-      class="relative inline-flex items-center justify-center w-9 h-9 rounded-lg text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+      class="relative inline-flex items-center justify-center w-11 h-11 lg:w-9 lg:h-9 rounded-lg text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
     >
       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />

@@ -5,13 +5,15 @@
     class="sticky top-0 z-40 glass shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.6)]"
   >
     <div
-      class="container mx-auto px-4 h-16 lg:h-[72px] lg:pt-3 flex items-center justify-between gap-4"
+      class="container mx-auto px-4 h-16 lg:h-[72px] lg:pt-3 flex items-center justify-between gap-2 lg:gap-4"
     >
       <!-- Logo (matches LandingNavbar: square sprite cropped to wordmark slice).
            Links to /landing (marketing) — user prefers this over the shop
            home since the marketing surface is where new visitors land.
-           Beta tag sits beside the wordmark, baseline-aligned to its bottom. -->
-      <div class="flex items-end h-full shrink-0 gap-1.5">
+           Beta tag sits beside the wordmark, baseline-aligned to its bottom.
+           Desktop only: on phones the bottom nav's Shop tab is the way home,
+           so the search field gets the room instead. -->
+      <div class="hidden lg:flex items-end h-full shrink-0 gap-1.5">
         <NuxtLink to="/landing" class="flex items-center h-full">
           <img
             src="~/assets/images/tcgo_sprites.png"
@@ -63,8 +65,36 @@
         </button>
       </form>
 
+      <!-- Mobile search, in line with the icons. A field rather than an
+           icon: it reads as "search here" at a glance. Tapping it opens the
+           same search popup, which owns results and history. Not on the
+           Account pages (settings screens, not places to shop), Collection
+           (its own search bar sits right beneath the nav) or Messages. -->
+      <button
+        type="button"
+        @click="openSearch"
+        v-if="showMobileSearch"
+        aria-label="Search cards, auctions, sets, sellers"
+        class="lg:hidden flex-1 min-w-0 h-10 flex items-center gap-2 px-4 rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-left text-sm text-ink-soft dark:text-zinc-500 transition-colors active:bg-black/[0.08] dark:active:bg-white/[0.12]"
+      >
+        <svg
+          class="w-4 h-4 shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <span class="truncate">Search cards, sellers</span>
+      </button>
+
       <!-- Right cluster -->
-      <div class="flex items-center gap-1.5 lg:gap-2 shrink-0">
+      <div class="ml-auto flex items-center lg:gap-2 shrink-0">
         <!-- Desktop sell CTAs → enter the inventory system -->
         <div v-if="user" class="hidden lg:flex items-center gap-2 ml-1">
           <!-- Single glowing Sell CTA; the menu asks card vs auction. -->
@@ -140,7 +170,7 @@
           @click="cartOpen = true"
           aria-label="Cart"
           data-cart-target
-          class="relative inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
+          class="relative inline-flex items-center justify-center w-11 h-11 lg:w-10 lg:h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
         >
           <svg
             class="w-5 h-5"
@@ -194,35 +224,6 @@
           Sign In
         </button>
       </div>
-    </div>
-
-    <!-- Mobile search row. A field rather than an icon: it reads as "search
-         here" at a glance. Tapping it opens the same search popup, which owns
-         results and history. Inside the nav so --app-nav-h grows with it.
-         Not on the Account pages (settings screens, not places to shop) or
-         Collection, which has its own search bar right beneath the nav. -->
-    <div v-if="showMobileSearch" class="lg:hidden container mx-auto px-4 pb-3">
-      <button
-        type="button"
-        @click="openSearch"
-        aria-label="Search cards, auctions, sets, sellers"
-        class="w-full h-10 flex items-center gap-2 px-4 rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-left text-sm text-ink-soft dark:text-zinc-500 transition-colors active:bg-black/[0.08] dark:active:bg-white/[0.12]"
-      >
-        <svg
-          class="w-4 h-4 shrink-0"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="11" cy="11" r="7" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <span class="truncate">Search cards, auctions, sets, sellers...</span>
-      </button>
     </div>
 
     <!-- Second row (desktop): section nav — Shop / Auctions / Collection /
