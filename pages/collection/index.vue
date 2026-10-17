@@ -430,16 +430,21 @@
             </button>
           </div>
         </div>
-        <div class="-mx-1.5 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-          <CollectionItemCard
-            dense
+        <!-- Same flat hairline grid as Your collection: owned results get
+             the ⋮ manage sheet, the rest an add button. -->
+        <div
+          class="-mx-4 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 overflow-hidden border-t border-black/[0.06] dark:border-white/[0.08] lg:border-x lg:rounded-xl"
+        >
+          <CollectionOwnedTile
             v-for="card in searchResults"
             :key="card.productId"
             :card="card"
-            :in-collection="isInCollection(card.productId)"
             :quantity="quantityOf(card.productId)"
             :busy="busyIds.has(card.productId)"
-            @toggle="handleToggle(card.productId)"
+            addable
+            class="shadow-[1px_0_0_0_rgba(0,0,0,0.06),0_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.08),0_1px_0_0_rgba(255,255,255,0.08)]"
+            @menu="openManage(card)"
+            @add="handleToggle(card.productId)"
           />
         </div>
         <!-- Scrolling to the bottom IS the request for more. The sentinel sits
@@ -623,7 +628,6 @@ const {
   entries,
   count,
   totalCopies,
-  isInCollection,
   quantities,
   quantityOf,
   toggleInCollection,
