@@ -254,7 +254,7 @@
   </nav>
 
   <!-- Mobile bottom tab bar: Shop / Auctions / Sell / Collection / Account.
-       Sell sits in the middle as the one red action; Orders moved into the
+       Sell sits in the middle as the one raised action; Orders moved into the
        Account page. Pads for the iPhone home bar, keeping the old 16px as the floor. -->
   <nav
     class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] pb-[max(16px,env(safe-area-inset-bottom))]"
@@ -266,19 +266,20 @@
           v-if="tab.sell"
           type="button"
           @click.stop="onSellTap"
-          class="tab-press flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500"
+          class="tab-press relative flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500"
           :class="sellSheetOpen ? '!text-pokemon-red' : ''"
           aria-haspopup="dialog"
           :aria-expanded="sellSheetOpen"
         >
-          <!-- Sell stays the one red action, but as a flat pill in the same
-               28px icon row as the other tabs, so all five labels share one
-               baseline and one colour. -->
+          <!-- The raised circle floats above the bar on its own, while an empty
+               28px slot keeps "Sell" on the same baseline and in the same grey
+               as the other four labels. -->
           <span
-            class="h-7 w-11 rounded-[10px] bg-pokemon-red text-white flex items-center justify-center shadow-[0_2px_8px_-2px_rgba(227,53,13,0.55)]"
+            class="absolute left-1/2 -top-[18px] -translate-x-1/2 w-12 h-12 rounded-full bg-pokemon-red text-white ring-4 ring-canvas dark:ring-canvas-inverse shadow-[0_6px_14px_-4px_rgba(227,53,13,0.55)] flex items-center justify-center"
           >
-            <component :is="tab.icon" class="w-5 h-5" />
+            <component :is="tab.icon" class="w-6 h-6" />
           </span>
+          <span class="h-7" aria-hidden="true" />
           <span>{{ tab.label }}</span>
         </button>
         <NuxtLink
