@@ -288,30 +288,6 @@
       </div>
 
 
-      <div
-        v-if="!loading"
-        class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6 mt-4"
-      >
-        <p class="text-xl font-bold">Privacy</p>
-
-        <!-- Privacy Settings -->
-        <div>
-          <label class="flex items-center justify-between cursor-pointer">
-            <div>
-              <p class="text-sm font-medium text-gray-700 dark:text-zinc-200">Favourites</p>
-              <p class="text-xs text-gray-400 dark:text-zinc-500">
-                Others can see your favourited cards
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              :checked="editFavouritesPublic"
-              @change="toggleFavouritesPublic"
-              class="w-5 h-5 rounded border-gray-300 dark:border-white/[0.20] dark:bg-white/[0.06] text-pokemon-red focus:ring-pokemon-red cursor-pointer"
-            />
-          </label>
-        </div>
-      </div>
     </template>
   </div>
 </template>
@@ -390,7 +366,6 @@ const editName = ref("");
 const phonePrefix = ref("60");
 const phoneNumber = ref("");
 const phoneError = ref("");
-const editFavouritesPublic = ref(true);
 
 
 const saving = ref(false);
@@ -408,7 +383,6 @@ watch(
   (p: UserProfile | null) => {
     if (p) {
       editName.value = p.customName || p.displayName;
-      editFavouritesPublic.value = p.favouritesPublic ?? true;
 
       // Parse existing phone into prefix + number
       const existing = p.whatsappNumber || p.phone || "";
@@ -472,11 +446,6 @@ const savePhone = async () => {
 };
 
 const { sellerReady } = useSellerKyc();
-
-const toggleFavouritesPublic = async () => {
-  editFavouritesPublic.value = !editFavouritesPublic.value;
-  await updateProfile({ favouritesPublic: editFavouritesPublic.value });
-};
 
 const handlePhotoUpload = async (event: Event) => {
   const input = event.target as HTMLInputElement;
