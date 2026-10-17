@@ -266,15 +266,20 @@
           v-if="tab.sell"
           type="button"
           @click.stop="onSellTap"
-          class="tab-press flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-wide text-ink dark:text-white"
+          class="tab-press relative flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500"
+          :class="sellSheetOpen ? '!text-pokemon-red' : ''"
           aria-haspopup="dialog"
           :aria-expanded="sellSheetOpen"
         >
+          <!-- The raised circle floats above the bar on its own, while an empty
+               28px slot keeps "Sell" on the same baseline and in the same grey
+               as the other four labels. -->
           <span
-            class="-mt-5 w-12 h-12 rounded-full bg-pokemon-red text-white shadow-glow ring-4 ring-canvas dark:ring-canvas-inverse flex items-center justify-center"
+            class="absolute left-1/2 -top-[18px] -translate-x-1/2 w-12 h-12 rounded-full bg-pokemon-red text-white ring-4 ring-canvas dark:ring-canvas-inverse shadow-[0_6px_14px_-4px_rgba(227,53,13,0.55)] flex items-center justify-center"
           >
             <component :is="tab.icon" class="w-6 h-6" />
           </span>
+          <span class="h-7" aria-hidden="true" />
           <span>{{ tab.label }}</span>
         </button>
         <NuxtLink
@@ -284,7 +289,7 @@
           :class="isTabActive(tab.to!) ? '!text-pokemon-red' : ''"
           :aria-current="isTabActive(tab.to!) ? 'page' : undefined"
         >
-          <span class="relative">
+          <span class="relative h-7 flex items-center">
             <component :is="tab.icon" class="w-6 h-6" />
             <span
               v-if="tab.dot"
@@ -400,11 +405,16 @@ const IconShop = () =>
     h("path", { d: "M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9" }),
     h("path", { d: "M9 13h6" }),
   ]);
+// A gavel tilted over its sound block (head on the right, striking end over the block): a barrel head with end caps, so it
+// can't be mistaken for an axe or hammer.
 const IconGavel = () =>
-  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
-    h("path", { d: "M14 4l6 6-3 3-6-6 3-3z" }),
-    h("path", { d: "M11 7l-7 7 3 3 7-7" }),
-    h("path", { d: "M3 21h12" }),
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [h("g", { transform: "translate(21 0.5) scale(-1 1) rotate(-45 10 10)" }, [
+      h("path", { d: "M7 4.5h6M7 7.5h6" }),
+      h("rect", { x: "4", y: "2.5", width: "3", height: "7", rx: "1" }),
+      h("rect", { x: "13", y: "2.5", width: "3", height: "7", rx: "1" }),
+      h("path", { d: "M10 7.5v10" }),
+    ]),
+    h("path", { d: "M12.5 21h8" }),
   ]);
 const IconPlus = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke, "stroke-width": "2.5" }, [
