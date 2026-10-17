@@ -368,7 +368,9 @@
     </section>
 
     <!-- ── Search results ──────────────────────────────────────────── -->
-    <div v-else class="pt-5">
+    <!-- The title row sits between two hairlines (the search bar's and the
+         grid's), so it gets the same gap above and below. -->
+    <div v-else class="pt-4">
       <div
         v-if="searchLoading && searchResults.length === 0"
         class="flex justify-center py-16"
@@ -409,7 +411,7 @@
       </p>
 
       <template v-else>
-        <div class="flex items-center justify-between mb-3 gap-3">
+        <div class="flex items-center justify-between mb-4 gap-3">
           <h2
             class="text-sm font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400"
           >
