@@ -12,7 +12,7 @@
     <div class="flex-1 min-w-0">
       <!-- Mobile filter trigger (hidden on desktop) -->
       <div v-if="!loading" class="lg:hidden mb-2">
-        <ListingFilters :filters="filters" :show-auction-sort="true" />
+        <ListingFilters :filters="filters" :show-auction-sort="true" :result-count="publicAuctions.length" noun="auction" />
       </div>
 
       <!-- Loading -->
