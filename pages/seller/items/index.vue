@@ -325,7 +325,48 @@
           </div>
         </div>
 
-        <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08]">
+        <!-- Phone: one compact row per item — photo, name and condition,
+             then Edit and a ⋯ menu. Tapping the photo or name views it;
+             price, quantity and photo are changed in the edit drawer. -->
+        <ul class="sm:hidden surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+          <li
+            v-for="item in pagedItems"
+            :key="item.id"
+            class="flex items-center gap-2 pr-1 py-2"
+            :class="isSelected(item.id) ? 'bg-pokemon-red/[0.03]' : ''"
+          >
+            <label class="shrink-0 flex items-center justify-center w-10 h-11 cursor-pointer">
+              <input type="checkbox" :checked="isSelected(item.id)" @change="toggleSelect(item.id)" class="rounded" :aria-label="`Select ${item.cardName}`" />
+            </label>
+            <button
+              type="button"
+              @click="viewItem(item)"
+              class="relative shrink-0 w-11 h-[3.75rem] rounded overflow-hidden bg-gray-100 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06] active:scale-[0.97] transition-transform duration-150"
+              :aria-label="viewLabel(item)"
+            >
+              <CardImage v-if="item.primaryImage" :src="item.primaryImage" :alt="item.cardName" />
+              <span v-if="uploadingPhotoId === item.id" class="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
+              </span>
+            </button>
+            <button type="button" @click="viewItem(item)" class="flex-1 min-w-0 self-stretch flex flex-col justify-center text-left py-1" :aria-label="viewLabel(item)">
+              <span class="text-sm font-medium text-ink dark:text-white leading-snug line-clamp-2 break-words">{{ item.cardName }}</span>
+              <span class="text-xs text-gray-500 dark:text-zinc-400 truncate">{{ item.condition || "No condition" }}</span>
+              <span class="mt-0.5 flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-zinc-500 tabular-nums">
+                RM{{ formatMyr(item.listPrice || 0) }}<template v-if="item.quantity > 1"> × {{ item.quantity }}</template>
+                <span class="font-semibold px-1.5 rounded-full whitespace-nowrap" :class="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
+              </span>
+            </button>
+            <button type="button" @click="openEditDialog(item)" aria-label="Edit listing" class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full text-gray-500 dark:text-zinc-400 active:bg-black/[0.05] dark:active:bg-white/[0.08]">
+              <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </button>
+            <button type="button" @click="menuItem = item" aria-label="More actions" class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full text-gray-500 dark:text-zinc-400 active:bg-black/[0.05] dark:active:bg-white/[0.08]">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+            </button>
+          </li>
+        </ul>
+
+        <div class="hidden sm:block surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08]">
           <table class="w-full text-sm table-fixed">
             <thead class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-zinc-500 border-b border-black/[0.06] dark:border-white/[0.08]">
               <tr>
@@ -498,6 +539,27 @@
       <input ref="photoInput" type="file" accept="image/*" class="hidden" @change="onPhotoSelected" />
     </template>
 
+    <!-- Phone ⋯ menu: the row's listing actions and Remove, as a bottom sheet. -->
+    <Transition name="sheet">
+      <div
+        v-if="menuItem"
+        class="sm:hidden fixed inset-0 z-50 flex items-end bg-black/40"
+        @click.self="menuItem = null"
+      >
+        <div class="sheet-panel surface w-full rounded-t-3xl border-t border-black/[0.06] dark:border-white/[0.08] px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <div class="mx-auto mb-1 h-1 w-9 rounded-full bg-gray-300 dark:bg-white/20" aria-hidden="true" />
+          <p class="px-3 py-2 text-xs text-gray-500 dark:text-zinc-400 truncate">{{ menuItem.cardName }}</p>
+          <template v-if="menuItem.status === 'in_stock'">
+            <button type="button" class="menu-row text-pokemon-red" @click="menuAction(openListDialog)">List for sale</button>
+            <button type="button" class="menu-row" @click="menuAction((i) => handleMarkSold(i.id))">Mark sold</button>
+          </template>
+          <button v-else-if="menuItem.status === 'listed'" type="button" class="menu-row" @click="menuAction((i) => handleUnlist(i.id))">Unlist (back to stock)</button>
+          <button type="button" class="menu-row text-red-600 dark:text-red-400" @click="menuAction((i) => handleRemove(i.id))">Remove from inventory</button>
+          <button type="button" class="menu-row justify-center mt-1 font-semibold" @click="menuItem = null">Cancel</button>
+        </div>
+      </div>
+    </Transition>
+
     <!-- List-for-sale dialog -->
     <div
       v-if="listing"
@@ -554,19 +616,39 @@
       </div>
     </div>
 
-    <!-- Edit-details dialog -->
+    <!-- Edit-details dialog. Centred card from sm up; on a phone a
+         full-width drawer from the bottom that also holds the photo. -->
+    <Transition name="sheet">
     <div
       v-if="editing"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40"
       @click.self="editing = null"
     >
-      <div class="surface rounded-2xl w-full max-w-md p-5 border border-black/[0.06] dark:border-white/[0.08] max-h-[90vh] overflow-y-auto">
+      <div class="sheet-panel surface w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-5 border-t sm:border border-black/[0.06] dark:border-white/[0.08] max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto overscroll-contain">
+        <div class="sm:hidden mx-auto -mt-2 mb-3 h-1 w-9 rounded-full bg-gray-300 dark:bg-white/20" aria-hidden="true" />
         <h3 class="text-base font-bold text-ink dark:text-white mb-1">Edit item</h3>
         <p v-if="editLocked" class="text-xs text-amber-600 dark:text-amber-400 mb-4">
           This item is live on the marketplace — only the price can be changed.
           Unlist it first to edit the card details.
         </p>
         <p v-else class="text-xs text-gray-500 dark:text-zinc-400 mb-4">Update the card details in your inventory.</p>
+        <!-- Phone only: the row has no photo button, so it lives here. -->
+        <div class="sm:hidden flex items-center gap-3 mb-4">
+          <div class="relative w-14 h-[4.75rem] shrink-0 rounded-md overflow-hidden bg-gray-100 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06]">
+            <CardImage v-if="editingLive?.primaryImage" :src="editingLive.primaryImage" :alt="editingLive.cardName" />
+            <span v-if="uploadingPhotoId === editing.id" class="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
+            </span>
+          </div>
+          <button
+            type="button"
+            @click="openPhotoPicker(editing)"
+            :disabled="uploadingPhotoId === editing.id"
+            class="min-h-11 px-4 rounded-full text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-ink dark:text-white active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
+          >
+            {{ editingLive?.photos?.length ? "Change photo" : "Add a photo" }}
+          </button>
+        </div>
         <div class="space-y-3">
           <!-- Same rule as the listing edit page: everything but price is
                read-only while listed. A disabled fieldset greys the lot. -->
@@ -638,6 +720,7 @@
         </div>
       </div>
     </div>
+    </Transition>
   </div>
 </template>
 
@@ -647,6 +730,35 @@
 }
 .edit-input {
   @apply w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white;
+}
+.menu-row {
+  @apply flex w-full items-center min-h-12 px-3 rounded-xl text-[15px] text-left text-ink dark:text-white active:bg-black/[0.05] dark:active:bg-white/[0.08];
+}
+/* Phone sheets slide up from the bottom; from sm up the edit dialog keeps
+   its plain fade-free appearance. */
+@media (max-width: 639.98px) {
+  .sheet-enter-active,
+  .sheet-leave-active {
+    transition: background-color 240ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .sheet-enter-active .sheet-panel,
+  .sheet-leave-active .sheet-panel {
+    transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .sheet-enter-from,
+  .sheet-leave-to {
+    background-color: transparent;
+  }
+  .sheet-enter-from .sheet-panel,
+  .sheet-leave-to .sheet-panel {
+    transform: translateY(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet-enter-active .sheet-panel,
+  .sheet-leave-active .sheet-panel {
+    transition: none;
+  }
 }
 </style>
 
@@ -1283,6 +1395,28 @@ const openEditDialog = (item: InventoryItem) => {
     costPrice: validCost(item.costPrice) ? item.costPrice : "",
     costNote: item.costNote || "",
   };
+};
+
+// The drawer's photo follows the live row, so a new upload shows at once.
+const editingLive = computed(() =>
+  items.value.find((i) => i.id === editing.value?.id) ?? editing.value,
+);
+
+// ── Phone row: view and ⋯ menu ────────────────────────────────────────
+// A listed item opens its live listing; anything else has no public page,
+// so tapping it opens the edit drawer instead.
+const viewItem = (item: InventoryItem) => {
+  if (item.status === "listed" && item.listingId) navigateTo(`/cards/${item.listingId}`);
+  else openEditDialog(item);
+};
+const viewLabel = (item: InventoryItem) =>
+  item.status === "listed" && item.listingId ? `View listing: ${item.cardName}` : `Edit ${item.cardName}`;
+
+const menuItem = ref<InventoryItem | null>(null);
+const menuAction = (fn: (item: InventoryItem) => unknown) => {
+  const item = menuItem.value;
+  menuItem.value = null;
+  if (item) fn(item);
 };
 
 // Listed items follow the listing-edit rule: price only. Anything else must
