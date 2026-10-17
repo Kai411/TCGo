@@ -11,9 +11,13 @@
            Links to /landing (marketing) — user prefers this over the shop
            home since the marketing surface is where new visitors land.
            Beta tag sits beside the wordmark, baseline-aligned to its bottom.
-           Desktop only: on phones the bottom nav's Shop tab is the way home,
-           so the search field gets the room instead. -->
-      <div class="hidden lg:flex items-end h-full shrink-0 gap-1.5">
+           On phones it only shows where there's no search field (Account,
+           Collection, Messages); elsewhere the search gets the room and the
+           bottom nav's Shop tab is the way home. -->
+      <div
+        class="items-end h-full shrink-0 gap-1.5 lg:flex"
+        :class="showMobileSearch ? 'hidden' : 'flex'"
+      >
         <NuxtLink to="/landing" class="flex items-center h-full">
           <img
             src="~/assets/images/tcgo_sprites.png"
