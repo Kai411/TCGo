@@ -43,13 +43,36 @@
           <span v-if="card.price" class="font-bold">RM{{ formatPrice(card.price.market) }}</span>
           <span v-else class="text-gray-400 dark:text-zinc-500">No price</span>
         </p>
-        <p class="mt-0.5 truncate leading-tight text-[8px] sm:text-[11px] text-gray-500 dark:text-zinc-400">
+        <p
+          v-if="quantity > 0"
+          class="mt-0.5 truncate leading-tight text-[8px] sm:text-[11px] text-gray-500 dark:text-zinc-400"
+        >
           Qty {{ quantity }}
         </p>
       </div>
+      <!-- Search results: a card not owned yet gets an add button where an
+           owned card has its ⋮, so both read as the same tile. -->
+      <button
+        v-if="addable && quantity === 0"
+        type="button"
+        :disabled="busy"
+        @click="$emit('add')"
+        class="-mr-1.5 -my-1.5 shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokemon-blue disabled:cursor-wait"
+        :aria-label="`Add ${card.name} to collection`"
+      >
+        <span
+          class="inline-flex items-center justify-center w-6 h-6 rounded-full text-white transition-[background-color,transform] duration-150 ease-out active:scale-90"
+          :class="busy ? 'bg-gray-400' : 'bg-pokemon-blue hover:bg-blue-700'"
+        >
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </span>
+      </button>
       <!-- 32px hit area on a 16px glyph: the tile is too narrow for 44px
            without eating the value line. -->
       <button
+        v-else-if="!readonly"
         type="button"
         :disabled="busy"
         @click="$emit('menu')"
@@ -84,9 +107,13 @@ const props = defineProps<{
   card: CatalogMatch;
   quantity: number;
   busy?: boolean;
+  /** No ⋮ menu: someone else's collection, shown on their profile. */
+  readonly?: boolean;
+  /** Show an add button instead of the ⋮ while the card isn't owned. */
+  addable?: boolean;
 }>();
 
-defineEmits<{ (e: "menu"): void }>();
+defineEmits<{ (e: "menu"): void; (e: "add"): void }>();
 
 // "Reshiram RC22/RC25": the number is how collectors tell printings apart.
 // Skip it when the name already carries it ("Charizard ex - 199/165").

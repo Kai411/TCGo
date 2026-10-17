@@ -368,7 +368,7 @@ const shortcuts = computed(() => [
   { label: "Won", to: "/activity?tab=won", icon: IconTrophy, badge: 0 },
   {
     label: "Favourites",
-    to: `/profile/${user.value?.uid}?tab=favourites`,
+    to: "/account/favourites",
     icon: IconHeart,
     badge: 0,
   },

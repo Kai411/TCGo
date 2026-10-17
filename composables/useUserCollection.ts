@@ -244,20 +244,27 @@ export const useUserCollection = () => {
   // One-time read of any user's collection (for showcasing on their profile).
   // Returns productIds newest-first. Requires the userCollection read rule to
   // allow reading other users' rows (collections are public showcases).
-  const getCollectionProductIds = async (
+  // Another user's collection (profile page): copies owned per product,
+  // newest first. Same quantity rules as `quantities` above.
+  const getCollectionQuantities = async (
     targetUid: string,
-  ): Promise<number[]> => {
-    if (!firestore || !targetUid) return [];
+  ): Promise<Map<number, number>> => {
+    const out = new Map<number, number>();
+    if (!firestore || !targetUid) return out;
     const q = query(
       collection(firestore, "userCollection"),
       where("userUid", "==", targetUid),
     );
     const snap = await getDocs(q);
-    const sorted = snap.docs
+    snap.docs
       .map((d) => d.data() as CollectionEntry)
       .filter((entry) => !isSoldRow(entry))
-      .sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0));
-    return [...new Set(sorted.map((entry) => entry.productId))];
+      .sort((a, b) => (b.addedAt ?? 0) - (a.addedAt ?? 0))
+      .forEach((entry) => {
+        const copies = Math.max(1, Number(entry.quantity ?? 1));
+        out.set(entry.productId, (out.get(entry.productId) ?? 0) + copies);
+      });
+    return out;
   };
 
   return {
@@ -278,6 +285,6 @@ export const useUserCollection = () => {
     toggleInCollection,
     setQuantity,
     markSold,
-    getCollectionProductIds,
+    getCollectionQuantities,
   };
 };
