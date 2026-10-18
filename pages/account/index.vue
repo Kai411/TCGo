@@ -240,6 +240,15 @@
           <span class="flex-1 text-sm font-medium text-ink dark:text-white">Dark mode</span>
           <ThemeToggle />
         </label>
+        <NuxtLink to="/account/help" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
+          <span
+            class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] text-ink dark:text-zinc-200 flex items-center justify-center"
+          >
+            <IconHelp class="w-[18px] h-[18px]" />
+          </span>
+          <span class="flex-1 text-sm font-medium text-ink dark:text-white">Help</span>
+          <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
+        </NuxtLink>
       </section>
     </template>
 
@@ -369,6 +378,7 @@ const IconQr = icon(
   p("M14 14h3v3h-3zM19 19h2v2h-2z"),
 );
 const IconMoon = icon(p("M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"));
+const IconHelp = icon(h("circle", { cx: "12", cy: "12", r: "9" }), p("M9.5 9.5a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.3-2.4 3.8"), p("M12 17h.01"));
 
 // ── Shortcuts ────────────────────────────────────────────────────────
 const shortcuts = computed(() => [
@@ -412,11 +422,13 @@ const settingsRows = computed(() => {
   return rows;
 });
 
-const aboutLinks = [
+// Signed out there is no settings list, so Help leads this one instead.
+const aboutLinks = computed(() => [
+  ...(user.value || authLoading.value ? [] : [{ to: "/account/help", label: "Help" }]),
   { to: "/landing", label: "About TCGo" },
   { to: "/pricing", label: "Plans & pricing" },
   ...LEGAL_LINKS,
-];
+]);
 
 const handleSignOut = async () => {
   await signOut();
