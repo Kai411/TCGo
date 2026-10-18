@@ -9,6 +9,7 @@ import {
   normaliseLinkPath,
   parseArticle,
   slugify,
+  normaliseBanner,
   validateBanner,
   validateMicrosite,
 } from "~/shared/site-content";
@@ -60,21 +61,44 @@ describe("slugify", () => {
 });
 
 describe("validateBanner", () => {
-  it("accepts a linked image banner", () => {
-    const r = validateBanner({ visible: true, imageUrl: IMG, headline: " Drop ", linkPath: "/auctions" }, HOSTS);
+  const slide = (x: Record<string, unknown> = {}) => ({ id: "a1", imageUrl: IMG, headline: "", subtext: "", linkPath: "", ...x });
+
+  it("keeps several banners in order", () => {
+    const r = validateBanner(
+      { visible: true, slides: [slide({ headline: " Drop ", linkPath: "/auctions" }), slide({ id: "b2" })] },
+      HOSTS,
+    );
     assert.ok("banner" in r);
-    assert.equal(r.banner.headline, "Drop");
-    assert.equal(r.banner.linkPath, "/auctions");
+    assert.deepEqual(r.banner.slides.map((s) => s.id), ["a1", "b2"]);
+    assert.equal(r.banner.slides[0]!.headline, "Drop");
+    assert.equal(r.banner.slides[0]!.linkPath, "/auctions");
   });
 
-  it("refuses an external link or a foreign image", () => {
-    assert.ok("error" in validateBanner({ imageUrl: IMG, linkPath: "https://evil.com" }, HOSTS));
-    assert.ok("error" in validateBanner({ imageUrl: "https://evil.com/a.png" }, HOSTS));
+  it("refuses an external link or a foreign image, naming the banner", () => {
+    const r = validateBanner({ slides: [slide(), slide({ linkPath: "https://evil.com" })] }, HOSTS);
+    assert.ok("error" in r && r.error.includes("banner 2"));
+    assert.ok("error" in validateBanner({ slides: [slide({ imageUrl: "https://evil.com/a.png" })] }, HOSTS));
   });
 
-  it("refuses to show an empty banner but saves a hidden one", () => {
-    assert.ok("error" in validateBanner({ visible: true }, HOSTS));
-    assert.ok("banner" in validateBanner({ visible: false }, HOSTS));
+  it("refuses an empty banner, too many, or showing none", () => {
+    assert.ok("error" in validateBanner({ slides: [slide({ imageUrl: "" })] }, HOSTS));
+    assert.ok("error" in validateBanner({ slides: Array.from({ length: 9 }, () => slide()) }, HOSTS));
+    assert.ok("error" in validateBanner({ visible: true, slides: [] }, HOSTS));
+    assert.ok("banner" in validateBanner({ visible: false, slides: [] }, HOSTS));
+  });
+});
+
+describe("normaliseBanner", () => {
+  it("turns a banner saved before rotation into one slide", () => {
+    const b = normaliseBanner({ visible: true, imageUrl: IMG, headline: "Old", subtext: "", linkPath: "/" });
+    assert.equal(b.visible, true);
+    assert.equal(b.slides.length, 1);
+    assert.equal(b.slides[0]!.headline, "Old");
+  });
+
+  it("handles a missing or empty doc", () => {
+    assert.deepEqual(normaliseBanner(undefined), { visible: false, slides: [] });
+    assert.deepEqual(normaliseBanner({ visible: false, imageUrl: "", headline: "" }).slides, []);
   });
 });
 

@@ -1,5 +1,6 @@
-// Save one listing banner. The page reads banners/{placement} straight from
-// Firestore, so this is the only way content gets there.
+// Save one listing page's banners (switch plus the rotation, in order). The
+// page reads banners/{placement} straight from Firestore, so this is the only
+// way content gets there.
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireStaff } from "~/server/utils/staff-auth";
@@ -28,7 +29,7 @@ export default defineEventHandler(async (event) => {
   noteAction({
     area: "content",
     action: "banner.save",
-    summary: `${BANNER_PLACEMENT_LABELS[placement]} banner ${banner.visible ? "shown" : "hidden"}`,
+    summary: `${BANNER_PLACEMENT_LABELS[placement]} banners ${banner.visible ? "shown" : "hidden"} (${banner.slides.length} saved)`,
     actor,
     subject: placement,
     event,

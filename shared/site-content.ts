@@ -17,24 +17,69 @@ export const BANNER_PLACEMENT_LABELS: Record<BannerPlacement, string> = {
 export const BANNER_HEADLINE_MAX = 60;
 export const BANNER_SUBTEXT_MAX = 120;
 
-export interface Banner {
-  visible: boolean;
+/** One banner in a listing page's rotation. */
+export interface BannerSlide {
+  /** Stable key for the console list; carries no meaning. */
+  id: string;
   imageUrl: string;
   headline: string;
   subtext: string;
   /** In-app path such as /auctions or /p/summer-sale; empty for no link. */
   linkPath: string;
+}
+
+/** Everything above one listing page: its show/hide switch and its banners, in order. */
+export interface Banner {
+  visible: boolean;
+  slides: BannerSlide[];
   updatedAt?: number;
   updatedBy?: string;
 }
 
-export const emptyBanner = (): Banner => ({
-  visible: false,
+export const BANNER_SLIDES_MAX = 8;
+/** How long each banner stays before the next slides in. */
+export const BANNER_INTERVAL_MS = 5000;
+
+const newSlideId = () => Math.random().toString(36).slice(2, 10);
+
+export const emptySlide = (): BannerSlide => ({
+  id: newSlideId(),
   imageUrl: "",
   headline: "",
   subtext: "",
   linkPath: "",
 });
+
+export const emptyBanner = (): Banner => ({ visible: false, slides: [] });
+
+export const slideHasContent = (s: Pick<BannerSlide, "imageUrl" | "headline">) =>
+  !!(s.imageUrl || s.headline.trim());
+
+/**
+ * A stored banner doc in today's shape. Docs saved before banners could
+ * rotate hold one banner's fields at the top level; they become one slide.
+ */
+export const normaliseBanner = (raw: any): Banner => {
+  if (!raw || typeof raw !== "object") return emptyBanner();
+  const slideFrom = (x: any, i: number): BannerSlide => ({
+    id: typeof x?.id === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(x.id) ? x.id : `s${i}`,
+    imageUrl: String(x?.imageUrl ?? ""),
+    headline: String(x?.headline ?? ""),
+    subtext: String(x?.subtext ?? ""),
+    linkPath: String(x?.linkPath ?? ""),
+  });
+  const slides = Array.isArray(raw.slides)
+    ? raw.slides.map(slideFrom)
+    : slideHasContent({ imageUrl: String(raw.imageUrl ?? ""), headline: String(raw.headline ?? "") })
+      ? [slideFrom(raw, 0)]
+      : [];
+  return {
+    visible: raw.visible === true,
+    slides,
+    ...(typeof raw.updatedAt === "number" ? { updatedAt: raw.updatedAt } : {}),
+    ...(typeof raw.updatedBy === "string" ? { updatedBy: raw.updatedBy } : {}),
+  };
+};
 
 export type MicrositeType = "image" | "article";
 
@@ -150,24 +195,31 @@ export const isAllowedImageUrl = (url: string) =>
 const str = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
 
 export const validateBanner = (
-  input: Partial<Banner>,
+  input: { visible?: unknown; slides?: unknown },
   appHosts: readonly string[] = [],
 ): { banner: Banner } | { error: string } => {
-  const imageUrl = str(input.imageUrl, 1000);
-  if (!isAllowedImageUrl(imageUrl)) return { error: "Upload the image here instead of linking one." };
-  const linkPath = normaliseLinkPath(String(input.linkPath ?? ""), appHosts);
-  if (linkPath === null) return { error: "Links can only go to pages inside TCGo." };
-  const banner: Banner = {
-    visible: input.visible === true,
-    imageUrl,
-    headline: str(input.headline, BANNER_HEADLINE_MAX),
-    subtext: str(input.subtext, BANNER_SUBTEXT_MAX),
-    linkPath,
-  };
-  if (banner.visible && !banner.imageUrl && !banner.headline) {
-    return { error: "Add an image or a headline before showing the banner." };
+  const raw = Array.isArray(input.slides) ? input.slides : [];
+  if (raw.length > BANNER_SLIDES_MAX) return { error: `Up to ${BANNER_SLIDES_MAX} banners per page.` };
+  const slides: BannerSlide[] = [];
+  for (const [i, x] of raw.entries()) {
+    const n = raw.length > 1 ? ` (banner ${i + 1})` : "";
+    const imageUrl = str(x?.imageUrl, 1000);
+    if (!isAllowedImageUrl(imageUrl)) return { error: `Upload the image here instead of linking one${n}.` };
+    const linkPath = normaliseLinkPath(String(x?.linkPath ?? ""), appHosts);
+    if (linkPath === null) return { error: `Links can only go to pages inside TCGo${n}.` };
+    const slide: BannerSlide = {
+      id: typeof x?.id === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(x.id) ? x.id : newSlideId(),
+      imageUrl,
+      headline: str(x?.headline, BANNER_HEADLINE_MAX),
+      subtext: str(x?.subtext, BANNER_SUBTEXT_MAX),
+      linkPath,
+    };
+    if (!slideHasContent(slide)) return { error: `Add an image or a headline${n}, or remove it.` };
+    slides.push(slide);
   }
-  return { banner };
+  const visible = input.visible === true;
+  if (visible && !slides.length) return { error: "Add a banner before showing them." };
+  return { banner: { visible, slides } };
 };
 
 export const validateMicrosite = (

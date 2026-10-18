@@ -3,7 +3,7 @@
 // /api/mc/content. See shared/site-content.ts.
 
 import { doc, getDoc } from "firebase/firestore";
-import { emptyBanner, type Banner, type BannerPlacement, type Microsite } from "~/shared/site-content";
+import { emptyBanner, normaliseBanner, type Banner, type BannerPlacement, type Microsite } from "~/shared/site-content";
 
 export const useListingBanner = (placement: BannerPlacement) => {
   // Kept for the session, so coming back to the Shop shows the banner at once
@@ -13,7 +13,7 @@ export const useListingBanner = (placement: BannerPlacement) => {
     try {
       const { firestore } = useFirebase();
       const snap = await getDoc(doc(firestore, "banners", placement));
-      banner.value = snap.exists() ? { ...emptyBanner(), ...(snap.data() as Banner) } : emptyBanner();
+      banner.value = normaliseBanner(snap.data());
     } catch {
       // Rules not deployed yet, or offline: no banner is the right fallback.
       banner.value ??= emptyBanner();
