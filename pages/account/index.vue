@@ -175,6 +175,8 @@
         <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
       </NuxtLink>
 
+      <AccountProCard />
+
       <!-- My orders, by the same groups as the Orders page filters -->
       <section
         class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] pt-2 pb-3"
@@ -289,7 +291,6 @@ import {
 const { user, authLoading, signOut } = useAuth();
 const { goToLogin } = useSignInGate();
 const { profile } = useMyProfile();
-const { premiumEnabled } = useFeatureFlags();
 const { unreadConversations, listenInbox } = useChat();
 const { hasUnreadSeller: sellerHasUnread, listen: listenNotifications } =
   useNotifications();
@@ -360,7 +361,6 @@ const IconX = icon(h("circle", { cx: "12", cy: "12", r: "9" }), p("m15 9-6 6M9 9
 const IconPin = icon(p("M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"), h("circle", { cx: "12", cy: "9", r: "2.5" }));
 const IconBell = icon(p("M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"), p("M13.7 21a2 2 0 0 1-3.4 0"));
 const IconUserCog = icon(h("circle", { cx: "10", cy: "8", r: "4" }), p("M3 21a7 7 0 0 1 11-5.7"), h("circle", { cx: "18", cy: "17", r: "2.5" }));
-const IconStar = icon(p("M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"));
 const IconSpark = icon(p("M12 2v4M12 18v4M4.9 4.9l2.9 2.9M16.2 16.2l2.9 2.9M2 12h4M18 12h4M4.9 19.1l2.9-2.9M16.2 7.8l2.9-2.9"));
 const IconQr = icon(
   h("rect", { x: "3", y: "3", width: "7", height: "7", rx: "1" }),
@@ -405,15 +405,18 @@ const settingsRows = computed(() => {
   const rows = [
     { label: "Shipping addresses", to: "/account/addresses", icon: IconPin },
     { label: "Notifications", to: "/account/notifications", icon: IconBell },
-    // Name, photo, contact details, membership and privacy.
+    // Name, photo, contact details and privacy. Pro has its own card above.
     { label: "Account settings", to: "/profile", icon: IconUserCog },
   ];
-  if (premiumEnabled) rows.push({ label: "TCGo Premium", to: "/membership", icon: IconStar });
   rows.push({ label: "What's new", to: "/update-notice", icon: IconSpark });
   return rows;
 });
 
-const aboutLinks = [{ to: "/landing", label: "About TCGo" }, ...LEGAL_LINKS];
+const aboutLinks = [
+  { to: "/landing", label: "About TCGo" },
+  { to: "/pricing", label: "Plans & pricing" },
+  ...LEGAL_LINKS,
+];
 
 const handleSignOut = async () => {
   await signOut();
