@@ -733,6 +733,8 @@ export const useCardCatalog = () => {
      * missing entries count as one, so existing callers are unaffected.
      */
     quantities?: Map<number, number> | Record<number, number>,
+    /** Already fetched with getPriceHistories, to skip a second round-trip. */
+    prefetched?: Map<number, PricePoint[]>,
   ): Promise<CollectionPriceTrend> => {
     const uniqueIds = [...new Set(productIds)];
     const copiesOf = (id: number): number => {
@@ -741,7 +743,7 @@ export const useCardCatalog = () => {
         quantities instanceof Map ? quantities.get(id) : (quantities as any)[id];
       return Math.max(1, Number(q ?? 1));
     };
-    const histories = await getPriceHistories(uniqueIds);
+    const histories = prefetched ?? (await getPriceHistories(uniqueIds));
     const usable = uniqueIds
       .map((productId) => ({ productId, points: histories.get(productId) ?? [] }))
       .filter((item) => item.points.length >= 2);

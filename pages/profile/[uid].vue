@@ -361,6 +361,7 @@
               :key="c.productId"
               :card="c"
               :quantity="collectionQty.get(c.productId) ?? 1"
+              :change="priceChanges.get(c.productId)"
               readonly
               class="shadow-[1px_0_0_0_rgba(0,0,0,0.06),0_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.08),0_1px_0_0_rgba(255,255,255,0.08)]"
             />
@@ -519,6 +520,7 @@
 <script setup lang="ts">
 import type { Auction } from "~/composables/useAuctions";
 import type { CatalogMatch } from "~/composables/useCardCatalog";
+import { priceChange, type PriceChange } from "~/shared/price-change";
 
 const route = useRoute();
 const uid = route.params.uid as string;
@@ -557,9 +559,10 @@ if (queryTab === "favourites") {
 
 // ── Collection showcase ───────────────────────────────────────────────
 const { getCollectionQuantities } = useUserCollection();
-const { getCardsByIds } = useCardCatalog();
+const { getCardsByIds, getPriceHistories } = useCardCatalog();
 const collectionCards = ref<CatalogMatch[]>([]);
 const collectionQty = ref(new Map<number, number>());
+const priceChanges = ref(new Map<number, PriceChange | null>());
 const loadingCollection = ref(false);
 
 const loadCollection = async () => {
@@ -574,6 +577,16 @@ const loadCollection = async () => {
     collectionCards.value = [];
   } finally {
     loadingCollection.value = false;
+  }
+  // The tile arrows arrive after the tiles; a failure just leaves them off.
+  const ids = collectionCards.value.map((c) => c.productId);
+  try {
+    const histories = ids.length ? await getPriceHistories(ids) : new Map();
+    priceChanges.value = new Map(
+      [...histories].map(([id, points]) => [id, priceChange(points)]),
+    );
+  } catch {
+    priceChanges.value = new Map();
   }
 };
 onMounted(loadCollection);

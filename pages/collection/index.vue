@@ -359,6 +359,7 @@
             :key="card.productId"
             :card="card"
             :quantity="quantityOf(card.productId)"
+            :change="priceChanges.get(card.productId)"
             :busy="busyIds.has(card.productId)"
             class="shadow-[1px_0_0_0_rgba(0,0,0,0.06),0_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.08),0_1px_0_0_rgba(255,255,255,0.08)]"
             @menu="openManage(card)"
@@ -442,6 +443,7 @@
             :key="card.productId"
             :card="card"
             :quantity="quantityOf(card.productId)"
+            :change="priceChanges.get(card.productId)"
             :busy="busyIds.has(card.productId)"
             addable
             class="shadow-[1px_0_0_0_rgba(0,0,0,0.06),0_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.08),0_1px_0_0_rgba(255,255,255,0.08)]"
@@ -610,6 +612,7 @@ import {
   type CollectionPriceTrend,
 } from "~/composables/useCardCatalog";
 import { parseSearchQuery } from "~/shared/search-query";
+import { priceChange, type PriceChange } from "~/shared/price-change";
 
 useHead({ title: "Add Cards | TCGo Marketplace" });
 
@@ -625,6 +628,7 @@ const {
   listSets,
   listRarities,
   getCollectionPriceTrend,
+  getPriceHistories,
 } = useCardCatalog();
 const {
   entries,
@@ -1008,12 +1012,15 @@ const valueTrend = ref<CollectionPriceTrend>({
   totalCards: 0,
 });
 const trendLoading = ref(false);
+// Each owned card's move over PRICE_CHANGE_DAYS, for the arrow on its tile.
+const priceChanges = ref(new Map<number, PriceChange | null>());
 
 watch(
   collectionProductIds,
   async (ids) => {
     if (!ids.length) {
       collectionCards.value = [];
+      priceChanges.value = new Map();
       valueTrend.value = {
         trend: null,
         trackedCards: 0,
@@ -1036,10 +1043,16 @@ watch(
       collectionLoading.value = false;
     }
     try {
+      // One fetch feeds both the portfolio chart and the tile arrows.
+      const histories = await getPriceHistories(ids);
+      priceChanges.value = new Map(
+        [...histories].map(([id, points]) => [id, priceChange(points)]),
+      );
       valueTrend.value = await getCollectionPriceTrend(
         ids,
         30,
         quantities.value,
+        histories,
       );
     } finally {
       trendLoading.value = false;
