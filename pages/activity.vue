@@ -154,7 +154,7 @@
             No active bids.
             <NuxtLink to="/auctions" class="text-pokemon-red hover:underline ml-1">Browse auctions →</NuxtLink>
           </p>
-          <div v-else class="grid lg:grid-cols-2 lg:gap-3 items-start">
+          <div v-else class="grid grid-cols-1 lg:grid-cols-2 lg:gap-3 items-start">
             <ActivityRow
               v-for="item in activeBids"
               :key="item.auction.id"
@@ -197,7 +197,7 @@
           <p v-if="!wonBids.length" class="text-sm text-gray-400 dark:text-zinc-500 py-3">
             No wins yet.
           </p>
-          <div v-else class="grid lg:grid-cols-2 lg:gap-3 items-start">
+          <div v-else class="grid grid-cols-1 lg:grid-cols-2 lg:gap-3 items-start">
             <ActivityRow
               v-for="item in wonBids"
               :key="item.auction.id"
