@@ -7,13 +7,13 @@
     </div>
     <h1 class="text-2xl font-extrabold text-ink dark:text-white mb-2">No worries</h1>
     <p class="text-gray-500 dark:text-zinc-400 mb-8">
-      You were not charged. You can upgrade any time from the pricing page.
+      You were not charged. You can upgrade any time from your account.
     </p>
     <NuxtLink
-      to="/membership"
+      to="/account"
       class="inline-block bg-ink dark:bg-white text-white dark:text-ink font-bold px-6 py-3 rounded-xl transition-colors"
     >
-      Back to pricing
+      Back to your account
     </NuxtLink>
   </div>
 </template>

@@ -5,21 +5,21 @@
         <polyline points="20 6 9 17 4 12"/>
       </svg>
     </div>
-    <h1 class="text-2xl font-extrabold text-ink dark:text-white mb-2">Welcome to Premium!</h1>
+    <h1 class="text-2xl font-extrabold text-ink dark:text-white mb-2">Welcome to Pro!</h1>
     <p class="text-gray-500 dark:text-zinc-400 mb-8">
-      Your subscription is now active. Enjoy unlimited card scans and all Premium features.
+      Your subscription is now active. Enjoy unlimited card scans and everything else in Pro.
     </p>
     <NuxtLink
-      to="/profile"
+      to="/account"
       class="inline-block bg-amber-500 hover:bg-amber-400 text-ink font-bold px-6 py-3 rounded-xl transition-colors"
     >
-      Go to your profile →
+      Back to your account →
     </NuxtLink>
   </div>
 </template>
 
 <script setup lang="ts">
-useHead({ title: 'Welcome to Premium | TCGo' });
+useHead({ title: 'Welcome to Pro | TCGo' });
 
 definePageMeta({ layout: 'default' });
 </script>
