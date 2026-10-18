@@ -175,8 +175,6 @@
         <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
       </NuxtLink>
 
-      <AccountProCard />
-
       <!-- My orders, by the same groups as the Orders page filters -->
       <section
         class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] pt-2 pb-3"
@@ -216,6 +214,7 @@
       <section
         class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] overflow-hidden"
       >
+        <AccountProRow />
         <NuxtLink
           v-for="row in settingsRows"
           :key="row.to"
@@ -415,7 +414,7 @@ const settingsRows = computed(() => {
   const rows = [
     { label: "Shipping addresses", to: "/account/addresses", icon: IconPin },
     { label: "Notifications", to: "/account/notifications", icon: IconBell },
-    // Name, photo, contact details and privacy. Pro has its own card above.
+    // Name, photo, contact details and privacy. Pro is its own row above.
     { label: "Account settings", to: "/profile", icon: IconUserCog },
   ];
   rows.push({ label: "What's new", to: "/update-notice", icon: IconSpark });
