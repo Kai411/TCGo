@@ -251,13 +251,15 @@ const remove = async () => {
   let linked: string[] = [];
   try {
     const b = await mcFetch<{ banners: Record<string, Banner> }>("/api/mc/content/banners");
-    linked = BANNER_PLACEMENTS.filter((p) => b.banners[p]?.linkPath === micrositePath(slug)).map(
+    linked = BANNER_PLACEMENTS.filter((p) =>
+      (b.banners[p]?.slides ?? []).some((s) => s.linkPath === micrositePath(slug)),
+    ).map(
       (p) => BANNER_PLACEMENT_LABELS[p],
     );
   } catch {
     // Not knowing shouldn't block a delete.
   }
-  const warn = linked.length ? `\n\nThe ${linked.join(" and ")} banner links here and will lead to "page not found".` : "";
+  const warn = linked.length ? `\n\nA ${linked.join(" and ")} banner links here and will lead to "page not found".` : "";
   if (!confirm(`Delete /p/${slug}? This can't be undone.${warn}`)) return;
   busy.value = true;
   error.value = "";
