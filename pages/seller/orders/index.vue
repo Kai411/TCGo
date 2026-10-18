@@ -85,8 +85,11 @@
           <EmptyState v-if="!visible.length" :headline="emptyLabel" :caption="emptyCaption" />
           <!-- Phones: one card per order, the waybill hint sitting above each
                card instead of overlapping its corner. -->
-          <div v-else class="grid lg:grid-cols-2 gap-3 items-start">
-            <div v-for="order in visible" :key="order.id" class="relative">
+          <!-- grid-cols-1 (minmax(0, 1fr)) rather than an implicit column:
+               an implicit column grows to the longest single-line item or
+               set name, pushing the card past the screen edge. -->
+          <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
+            <div v-for="order in visible" :key="order.id" class="relative min-w-0">
               <!-- Waybill hint: distinguishes "label bought, go hand it over"
                    from "still needs a label" inside the same To-ship queue. -->
               <span
