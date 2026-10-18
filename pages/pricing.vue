@@ -49,9 +49,6 @@
               }}</span>
               <span class="text-sm text-ink-soft">{{ plan.period }}</span>
             </p>
-            <p class="mt-1 text-xs font-medium text-ink-muted">
-              {{ plan.plus }}
-            </p>
             <p class="mt-4 text-[13px] leading-relaxed text-ink-muted">
               {{ plan.who }}
             </p>
@@ -612,7 +609,6 @@ const plans = [
     defaults: { avgSale: 35, salesPerMonth: 12, withdrawals: 1 },
     price: "RM0",
     period: "/month",
-    plus: `+ ${(STANDARD_RATE * 100).toFixed(0)}% per online sale`,
     who: "For collectors clearing shelf space and sellers testing the water.",
     featured: false,
     features: [
@@ -632,7 +628,6 @@ const plans = [
     defaults: { avgSale: 45, salesPerMonth: 70, withdrawals: 2 },
     price: `RM${MARKETPLACE_MONTHLY}`,
     period: "/month",
-    plus: `+ ${(STANDARD_RATE * 100).toFixed(0)}% per online sale — the same rate`,
     who: "For a shop or a serious seller, where the scan cap starts to bite.",
     featured: true,
     features: [
