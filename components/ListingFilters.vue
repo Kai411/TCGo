@@ -145,8 +145,7 @@
     <div>
       <!-- Trigger row: Filters and Sort are separate because they answer
            different questions. Sort names its current order so the row says
-           how the grid is arranged without opening anything; the count on the
-           right anchors the row and updates as filters change. Both buttons
+           how the grid is arranged without opening anything. Both buttons
            stay 34px tall (kai's size) with the hit area grown to 44px. -->
       <div class="flex items-center gap-2 mb-2">
         <button
@@ -187,14 +186,6 @@
             <path d="m6 9 6 6 6-6" />
           </svg>
         </button>
-
-        <p
-          v-if="resultCount != null"
-          class="ml-auto shrink-0 text-xs text-ink-muted dark:text-zinc-400 tabular-nums"
-          aria-live="polite"
-        >
-          {{ resultCount.toLocaleString("en-MY") }} {{ resultCount === 1 ? noun : `${noun}s` }}
-        </p>
       </div>
 
       <!-- Active filter chips, each removable, with Clear all at the end -->
@@ -384,8 +375,8 @@ const props = defineProps<{
   sidebar?: boolean;
   /** Games present in the feed, with "All" first. Hidden when only one. */
   tcgCounts?: { type: string; count: number }[];
-  /** How many items the current filters leave. Shown beside the phone
-   *  buttons and on the filter sheet's button. */
+  /** How many items the current filters leave, shown on the filter
+   *  sheet's button. */
   resultCount?: number;
   /** What one result is called in that count ("card", "auction"). */
   noun?: string;
