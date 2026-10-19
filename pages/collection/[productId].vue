@@ -87,7 +87,7 @@
               class="contents lg:flex lg:flex-wrap lg:items-start lg:justify-between lg:gap-3"
             >
               <div
-                class="col-start-2 row-start-2 mt-3 flex flex-wrap items-center gap-1.5 self-start lg:mt-0"
+                class="col-start-2 row-start-2 mt-2.5 flex flex-wrap items-center gap-1.5 self-start lg:mt-0"
               >
                 <span v-if="card.rarity" class="chip chip-gold">{{
                   card.rarity
@@ -102,11 +102,11 @@
                    the card's height leaves empty anyway, so it never pushes
                    the price down. -->
               <div
-                class="col-start-2 row-start-3 mt-3 flex shrink-0 items-start gap-2 self-start lg:mt-0 lg:items-center lg:self-auto"
+                class="col-start-2 row-start-3 mt-2.5 flex shrink-0 items-start gap-2 self-start lg:mt-0 lg:items-center lg:self-auto"
               >
                 <!-- Owned: a status mark, not a button. The only action left
                      (changing how many copies) sits with the price below. -->
-                <CollectedBadge v-if="inCollection" :quantity="ownedQuantity" label />
+                <CollectedBadge v-if="inCollection" :quantity="ownedQuantity" size="sm" label />
                 <button
                   v-if="!inCollection"
                   type="button"
@@ -138,56 +138,58 @@
               </div>
             </div>
 
-            <!-- The set name is the obvious thing to click after reading it,
-                 and it was inert. -->
+            <!-- Card name first, then the set (a link to the rest of the set)
+                 and the printed number in smaller type. The language is a chip
+                 below, not repeated here. -->
             <div class="col-start-2 row-start-1 flex min-w-0 flex-col lg:mt-5">
-            <NuxtLink
-              :to="`/collection?set=${encodeURIComponent(card.setName)}`"
-              class="eyebrow inline-flex items-center gap-1 transition-colors hover:text-pokemon-red"
-              :aria-label="`See other cards from ${card.setName}`"
-            >
-              {{ card.setName }}
-              <svg
-                class="w-3 h-3 shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
+              <h1
+                class="font-display text-xl font-extrabold leading-tight tracking-tight text-ink dark:text-white sm:text-3xl lg:text-5xl lg:leading-none lg:tracking-tightest"
               >
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            </NuxtLink>
-            <h1
-              class="mt-1 font-display text-2xl font-extrabold leading-tight tracking-tightest text-ink dark:text-white sm:text-3xl lg:text-5xl lg:leading-none"
-            >
-              {{ card.name }}
-            </h1>
-            <p
-              class="mt-2 text-sm text-ink-muted dark:text-zinc-400 sm:text-base"
-            >
-              <span v-if="card.number">{{ card.number }} · </span
-              >{{ card.language }}
-            </p>
+                {{ card.name }}
+              </h1>
+              <NuxtLink
+                :to="`/collection?set=${encodeURIComponent(card.setName)}`"
+                class="mt-1.5 line-clamp-2 self-start text-[13px] font-medium leading-snug text-ink-muted transition-colors hover:text-pokemon-red dark:text-zinc-400 lg:mt-3 lg:text-base"
+                :aria-label="`See other cards from ${card.setName}`"
+              >
+                {{ card.setName }}
+                <svg
+                  class="-mt-0.5 inline-block h-3.5 w-3.5 align-middle"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </NuxtLink>
+              <p
+                v-if="card.number"
+                class="mt-0.5 text-xs text-ink-soft tabular-price dark:text-zinc-500 lg:mt-1 lg:text-sm"
+              >
+                {{ card.number }}
+              </p>
             </div>
 
-            <!-- Price left, copies stepper flush right — one row, so the
-                 stepper reads as a property of the card rather than a second
-                 call to action stacked under the header. -->
+            <!-- Label and confidence across the top, then the price left and
+                 the copies stepper flush right on one row, so the stepper
+                 reads as a property of the card rather than a second call to
+                 action. A hairline on phones separates it from the card's
+                 identity above. -->
             <div
-              class="col-span-2 row-start-4 mt-5 flex flex-wrap items-end justify-between gap-4 lg:mt-7"
+              class="col-span-2 row-start-4 mt-4 border-t border-black/[0.06] pt-4 dark:border-white/[0.08] lg:mt-7 lg:border-t-0 lg:pt-0"
             >
-              <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <p
                     class="text-xs font-semibold text-ink-muted dark:text-zinc-400"
                   >
                     Raw market price
                   </p>
                   <span
-                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                    class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
                     :class="CONFIDENCE_CLASS[confidence.level]"
                   >
                     {{ CONFIDENCE_LABEL[confidence.level] }}
@@ -197,7 +199,7 @@
                   <button
                     type="button"
                     @click="confidenceOpen = !confidenceOpen"
-                    class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-black/[0.15] text-[9px] font-bold text-ink-muted transition-colors hover:border-pokemon-red hover:text-pokemon-red dark:border-white/[0.20] dark:text-zinc-400"
+                    class="relative inline-flex h-[18px] w-[18px] items-center justify-center rounded-full border border-black/[0.15] text-[10px] font-bold before:absolute before:-inset-3 before:content-[''] text-ink-muted transition-colors hover:border-pokemon-red hover:text-pokemon-red dark:border-white/[0.20] dark:text-zinc-400"
                     :aria-expanded="confidenceOpen"
                     aria-controls="price-confidence-why"
                     :aria-label="`Why this is ${CONFIDENCE_LABEL[confidence.level].toLowerCase()}`"
@@ -253,13 +255,15 @@
                     listings agree.
                   </p>
                 </div>
+              <div class="mt-2 flex items-center justify-between gap-4">
+              <div class="min-w-0">
                 <p
                   v-if="card.price"
-                  class="mt-1 text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
+                  class="text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
                 >
                   {{ formatMyr(card.price.market) }}
                   <span
-                    class="mr-1 text-xl font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
+                    class="ml-0.5 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
                     >MYR</span
                   >
                 </p>
@@ -269,11 +273,11 @@
                      from a different angle. -->
                 <template v-else-if="secondary">
                   <p
-                    class="mt-1 text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
+                    class="text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
                   >
                     {{ formatMyr(secondary.market) }}
                     <span
-                      class="mr-1 text-xl font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
+                      class="ml-0.5 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
                       >MYR</span
                     >
                   </p>
@@ -284,7 +288,7 @@
                 </template>
                 <p
                   v-else
-                  class="mt-2 text-xl font-bold text-ink-muted dark:text-zinc-300"
+                  class="text-xl font-bold text-ink-muted dark:text-zinc-300"
                 >
                   Price unavailable
                 </p>
@@ -293,7 +297,7 @@
                      first screen. -->
                 <p
                   v-if="trend && trend.changePct !== null && trend.points.length >= 2"
-                  class="mt-1.5 inline-flex items-center gap-1 text-xs font-bold tabular-price lg:hidden"
+                  class="mt-2 inline-flex items-center gap-1 text-xs font-bold tabular-price lg:hidden"
                   :class="
                     trend.changePct >= 0
                       ? 'text-emerald-600 dark:text-emerald-400'
@@ -309,13 +313,13 @@
               </div>
               <div
                 v-if="inCollection && user"
-                class="inline-flex items-center gap-0.5 rounded-full border border-black/[0.10] bg-canvas-raised px-0.5 dark:border-white/[0.12] dark:bg-[#1B1B20]"
+                class="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-black/[0.10] bg-canvas-raised px-0.5 dark:border-white/[0.12] dark:bg-[#1B1B20]"
               >
                 <button
                   type="button"
                   :disabled="collectionBusy"
                   @click="handleCollectionDecrement"
-                  class="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-muted transition-colors hover:text-pokemon-red disabled:opacity-50 dark:text-zinc-300"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors hover:text-pokemon-red disabled:opacity-50 dark:text-zinc-300"
                   :aria-label="ownedQuantity <= 1 ? 'Remove from collection' : 'Remove one copy'"
                 >
                   <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14" /></svg>
@@ -327,11 +331,12 @@
                   type="button"
                   :disabled="collectionBusy"
                   @click="handleCollectionIncrement"
-                  class="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-muted transition-colors hover:text-pokemon-blue disabled:opacity-50 dark:text-zinc-300"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors hover:text-pokemon-blue disabled:opacity-50 dark:text-zinc-300"
                   aria-label="Add another copy"
                 >
                   <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
                 </button>
+              </div>
               </div>
 
             </div>
@@ -394,7 +399,7 @@
           <div>
             <span class="eyebrow hidden lg:inline-block">Price history</span>
             <h2
-              class="text-base font-bold tracking-tight text-ink dark:text-white lg:mt-1 lg:text-xl"
+              class="text-lg font-bold tracking-tight text-ink dark:text-white lg:mt-1 lg:text-xl"
             >
               Raw card trend
             </h2>
@@ -538,7 +543,7 @@
           <div>
             <span class="eyebrow">Ungraded prices</span>
             <h2
-              class="mt-1 text-xl font-bold tracking-tight text-ink dark:text-white"
+              class="mt-1 text-lg font-bold tracking-tight text-ink dark:text-white lg:text-xl"
             >
               Active listings
             </h2>
@@ -701,7 +706,7 @@
           <div>
             <span class="eyebrow">Graded prices</span>
             <h2
-              class="mt-1 text-xl font-bold tracking-tight text-ink dark:text-white"
+              class="mt-1 text-lg font-bold tracking-tight text-ink dark:text-white lg:text-xl"
             >
               Active graded listings
             </h2>
@@ -878,7 +883,7 @@
           <div>
             <span class="eyebrow">Keep exploring</span>
             <h2
-              class="mt-1 text-2xl font-bold tracking-tight text-ink dark:text-white"
+              class="mt-1 text-lg font-bold tracking-tight text-ink dark:text-white lg:text-2xl"
             >
               Cards you may also like
             </h2>
