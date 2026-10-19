@@ -241,16 +241,6 @@
           <span class="flex-1 text-sm font-medium text-ink dark:text-white">Dark mode</span>
           <ThemeToggle />
         </label>
-        <NuxtLink to="/landing" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
-          <span
-            class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] flex items-center justify-center overflow-hidden"
-          >
-            <img src="/tcgo_sprites.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain dark:hidden" />
-            <img src="/tcgo_sprites_white.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain hidden dark:block" />
-          </span>
-          <span class="flex-1 text-sm font-medium text-ink dark:text-white">About TCGo</span>
-          <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
-        </NuxtLink>
         <AccountPolicyRow />
         <NuxtLink to="/account/help" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
           <span
@@ -259,6 +249,16 @@
             <IconHelp class="w-[18px] h-[18px]" />
           </span>
           <span class="flex-1 text-sm font-medium text-ink dark:text-white">Help Center</span>
+          <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
+        </NuxtLink>
+        <NuxtLink to="/landing" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
+          <span
+            class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] flex items-center justify-center overflow-hidden"
+          >
+            <img src="/tcgo_sprites.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain dark:hidden" />
+            <img src="/tcgo_sprites_white.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain hidden dark:block" />
+          </span>
+          <span class="flex-1 text-sm font-medium text-ink dark:text-white">About TCGo</span>
           <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
         </NuxtLink>
       </section>
@@ -270,16 +270,6 @@
       v-else-if="!authLoading"
       class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] lg:overflow-hidden"
     >
-      <NuxtLink to="/landing" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
-        <span
-          class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] flex items-center justify-center overflow-hidden"
-        >
-          <img src="/tcgo_sprites.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain dark:hidden" />
-          <img src="/tcgo_sprites_white.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain hidden dark:block" />
-        </span>
-        <span class="flex-1 text-sm font-medium text-ink dark:text-white">About TCGo</span>
-        <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
-      </NuxtLink>
       <AccountPolicyRow />
       <NuxtLink to="/account/help" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
         <span
@@ -290,9 +280,19 @@
         <span class="flex-1 text-sm font-medium text-ink dark:text-white">Help Center</span>
         <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
       </NuxtLink>
+      <NuxtLink to="/landing" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
+        <span
+          class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] flex items-center justify-center overflow-hidden"
+        >
+          <img src="/tcgo_sprites.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain dark:hidden" />
+          <img src="/tcgo_sprites_white.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain hidden dark:block" />
+        </span>
+        <span class="flex-1 text-sm font-medium text-ink dark:text-white">About TCGo</span>
+        <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
+      </NuxtLink>
     </section>
 
-    <!-- What's left of the old footer links. About TCGo and the policy pages
+    <!-- What's left of the old footer links. The policy pages and About TCGo
          are rows above. -->
     <section
       class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] overflow-hidden"
