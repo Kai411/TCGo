@@ -125,7 +125,22 @@ function buildRow(product, group, categoryId, language) {
     language,
     extended_data: product.extendedData ?? [],
     modified_on: product.modifiedOn ?? null,
+    // The set's release date ("2023-09-22T00:00:00"), for the Newest sort.
+    ...(hasReleasedOn
+      ? { released_on: group.publishedOn ? String(group.publishedOn).slice(0, 10) : null }
+      : {}),
   };
+}
+
+// released_on is added to the schema by hand. Until it is, leave it out
+// rather than failing every upsert and stopping new sets arriving.
+let hasReleasedOn = true;
+async function checkReleasedOn() {
+  const { error } = await supabase.from("cards_catalog").select("released_on").limit(1);
+  if (error) {
+    hasReleasedOn = false;
+    console.log(`released_on not in cards_catalog yet (${error.message}); skipping release dates.`);
+  }
 }
 
 async function upsertBatched(rows) {
@@ -175,6 +190,7 @@ async function seedCategory(category) {
 
 async function main() {
   const startedAt = Date.now();
+  await checkReleasedOn();
   let grandTotal = 0;
   const allFailures = [];
 
