@@ -1,11 +1,13 @@
 <template>
   <!-- TCGo Pro as one row of the Account settings list, on a light brand
-       wash so it stands out from the plain rows below. The row says which
+       wash so it stands out from the plain rows below. The wash bleeds 8px
+       into the page gutter (-mx-2 px-2) so the icon, label and chevron line
+       up exactly with the rows under it. The row says which
        plan the member is on; tapping it opens a sheet with the one action
        that fits: Upgrade (Stripe checkout) or Manage billing (Stripe portal). -->
   <button
     type="button"
-    class="press w-full text-left flex items-center gap-4 px-3 lg:px-4 my-1.5 lg:m-2 lg:w-[calc(100%-1rem)] min-h-[56px] rounded-xl bg-pokemon-red/[0.06] dark:bg-pokemon-red/[0.14]"
+    class="press -mx-2 px-2 w-[calc(100%+1rem)] lg:mx-0 lg:px-4 lg:w-full text-left flex items-center gap-4 min-h-[56px] rounded-xl lg:rounded-none bg-pokemon-red/[0.06] dark:bg-pokemon-red/[0.14]"
     aria-haspopup="dialog"
     @click="open = true"
   >
