@@ -69,6 +69,21 @@
         </button>
       </form>
 
+      <!-- Phone back arrow on product pages (a shop listing or an auction).
+           Those pages drop their breadcrumb and the bottom nav, so this is
+           the way back to where the person came from. -->
+      <button
+        v-if="isProductPage"
+        type="button"
+        @click="goBackFromProduct"
+        :aria-label="route.path.startsWith('/auctions/') ? 'Back to auctions' : 'Back to shop'"
+        class="lg:hidden -ml-3 w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-full text-ink dark:text-white transition-transform duration-150 active:scale-90"
+      >
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+      </button>
+
       <!-- Mobile search, in line with the icons. A field rather than an
            icon: it reads as "search here" at a glance. Tapping it opens the
            same search popup, which owns results and history. Not on the
@@ -261,7 +276,10 @@
   <!-- Mobile bottom tab bar: Shop / Auctions / Sell / Collection / Account.
        Sell sits in the middle as the one raised action; Orders moved into the
        Account page. Pads for the iPhone home bar, keeping the old 16px as the floor. -->
+  <!-- Not on product pages: their own fixed bar (Buy now / Add to cart, or
+       the bid button) takes this place. -->
   <nav
+    v-if="!isProductPage"
     class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] pb-[max(16px,env(safe-area-inset-bottom))]"
     aria-label="Main"
   >
@@ -596,6 +614,16 @@ const route = useRoute();
 const showMobileSearch = computed(
   () => !["/account", "/collection", "/messages"].some((p) => route.path === p || route.path.startsWith(p + "/")),
 );
+// A single shop listing or auction: /cards/{id} or /auctions/{id}, but not
+// the create pages or a listing's edit page.
+const isProductPage = computed(() => {
+  const m = route.path.match(/^\/(cards|auctions)\/([^/]+)\/?$/);
+  return !!m && m[2] !== "create";
+});
+const goBackToShop = useGoBack("/");
+const goBackToAuctions = useGoBack("/auctions");
+const goBackFromProduct = () =>
+  route.path.startsWith("/auctions/") ? goBackToAuctions() : goBackToShop();
 watch(
   () => route.fullPath,
   () => {

@@ -157,6 +157,11 @@ const IconFlag = () =>
     h("path", { d: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" }),
     h("line", { x1: "4", y1: "22", x2: "4", y2: "15" }),
   ]);
+const IconInbox = () =>
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
+    h("path", { d: "M22 12h-6l-2 3h-4l-2-3H2" }),
+    h("path", { d: "M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" }),
+  ]);
 const IconUsers = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [
     h("path", { d: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" }),
@@ -198,6 +203,7 @@ const allNav = [
   { to: "/mintcondition/refunds", label: "Refunds", icon: IconWallet, perm: "payouts.view" },
   { to: "/mintcondition/problems", label: "Order problems", icon: IconFlag, perm: "reports.view" },
   { to: "/mintcondition/reports", label: "Reports", icon: IconFlag, perm: "reports.view" },
+  { to: "/mintcondition/enquiries", label: "Enquiries", icon: IconInbox, perm: "reports.view" },
   { to: "/mintcondition/content", label: "Content", icon: IconImage, perm: "content.manage" },
   { to: "/mintcondition/logs", label: "Logs", icon: IconList, perm: "logs.view" },
   { to: "/mintcondition/staff", label: "Staff", icon: IconUsers, perm: "staff.view" },

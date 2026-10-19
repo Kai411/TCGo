@@ -489,3 +489,9 @@ export const searchHelp = (query: string): HelpArticle[] => {
     return words.every((w) => text.includes(w));
   });
 };
+
+/**
+ * Where members (and anyone signed out) can email TCGo. Shown on the Help
+ * Center's Contact us tab.
+ */
+export const HELP_EMAIL = "help@tcgo.shop";

@@ -20,7 +20,7 @@ import type { NotificationKind } from "~/shared/notifications";
 export type PushCategory = "messages" | "orders" | "auctions";
 
 export const PUSH_CATEGORIES: { key: PushCategory; label: string; hint: string }[] = [
-  { key: "messages", label: "Messages", hint: "When someone sends you a chat message" },
+  { key: "messages", label: "Messages", hint: "Chat messages, and TCGo's replies to your enquiries" },
   { key: "orders", label: "Orders", hint: "Paid, shipped, delivered and cancelled orders, and new followers" },
   { key: "auctions", label: "Auctions", hint: "When you're outbid, win, or sell at auction" },
 ];
@@ -61,6 +61,8 @@ const KIND_CATEGORY: Record<NotificationKind, PushCategory> = {
   auction_outbid: "auctions",
   auction_won: "auctions",
   auction_sold: "auctions",
+  // A reply from TCGo reads like a message, so it follows the Messages switch.
+  enquiry_reply: "messages",
 };
 
 export const categoryForKind = (kind: NotificationKind): PushCategory =>
