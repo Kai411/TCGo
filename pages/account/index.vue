@@ -212,9 +212,10 @@
 
       <!-- Settings list -->
       <section
-        class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] lg:overflow-hidden"
+        class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] lg:overflow-hidden [&>:first-child+*]:!border-t-transparent"
       >
-        <!-- Not clipped on phones: the Pro row's tint bleeds into the gutter. -->
+        <!-- Not clipped on phones: the Pro row's tint bleeds into the gutter.
+             Its own tint separates it, so no divider under it. -->
         <AccountProRow />
         <NuxtLink
           v-for="row in settingsRows"
