@@ -10,7 +10,7 @@
            summary strip — adding ~24px of padding to a block that looked like
            it had none. Symmetric padding now, so the bar sits the same
            distance from the nav as it does from the results. -->
-      <div class="flex items-center gap-2 py-3">
+      <div class="flex items-center gap-1.5 py-3">
         <!-- Scanner placeholder — not yet implemented -->
         <button
           type="button"
@@ -51,9 +51,9 @@
             v-model="searchInput"
             type="search"
             enterkeyhint="search"
-            placeholder="Search cards to add"
+            placeholder="Search cards"
             aria-label='Search cards to add, e.g. "pikachu 151"'
-            class="w-full h-10 pl-9 pr-3 rounded-full border-0 bg-black/[0.05] dark:bg-white/[0.08] text-sm text-ink dark:text-white placeholder:text-sm placeholder:text-ink-soft dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-white/15 [&::-webkit-search-cancel-button]:appearance-none"
+            class="w-full h-10 pl-9 pr-3 rounded-full border-0 bg-black/[0.05] dark:bg-white/[0.08] text-sm text-ink dark:text-white collection-search placeholder:text-ink-soft dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-white/15 [&::-webkit-search-cancel-button]:appearance-none"
             @keydown.enter.prevent="runSearch"
           />
         </div>
@@ -62,7 +62,7 @@
         <button
           type="button"
           @click="cyclePrice"
-          class="shrink-0 inline-flex items-center gap-0.5 h-10 px-3 rounded-full text-sm font-semibold transition-colors"
+          class="shrink-0 inline-flex items-center gap-0.5 h-10 px-2.5 rounded-full text-sm font-semibold transition-colors"
           :class="
             priceSort
               ? 'bg-pokemon-red/10 text-pokemon-red'
@@ -290,7 +290,7 @@
           <PriceTrendChart
             :trend="valueTrend.trend"
             :loading="trendLoading"
-            :height="120"
+            :height="96"
             :show-header="false"
           />
         </div>
@@ -1196,3 +1196,12 @@ const confirmManage = () => {
   );
 };
 </script>
+
+<style scoped>
+/* Phones force inputs to 16px so iOS doesn't zoom on focus (tailwind.css).
+   That rule is on the input, not its placeholder, so the hint can match the
+   app's 14px search pill while typed text stays 16px. */
+.collection-search::placeholder {
+  font-size: 14px;
+}
+</style>
