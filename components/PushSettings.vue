@@ -1,6 +1,6 @@
 <template>
   <div
-    class="panel surface rounded-2xl p-5 space-y-5"
+    class="surface rounded-2xl p-4 lg:p-5 space-y-5"
   >
     <div>
       <h2 class="text-base font-bold text-ink dark:text-white">Notifications</h2>

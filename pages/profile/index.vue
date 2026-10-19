@@ -14,8 +14,8 @@
     <template v-else>
       <!-- Profile, sign-in, notifications and membership. Addresses, dark
            mode and the customer code each have their own place on the
-           Account page. Sections follow the Account page's pattern: a bold
-           heading over a list of rows, flat on phones. -->
+           Account page. Each section is a card on phones too (kai 10-19):
+           settings pages have room for cards; only listings go flat. -->
       <SubpageHeader title="Account settings" desktop-title />
 
       <Transition name="toast">
@@ -34,7 +34,7 @@
 
       <template v-else>
         <!-- Who you are: photo, name, email, and the public page others see. -->
-        <section class="panel surface rounded-2xl p-5 flex items-center gap-4">
+        <section class="surface rounded-2xl p-4 lg:p-5 flex items-center gap-4">
           <label class="relative shrink-0 cursor-pointer press" aria-label="Change photo">
             <img
               v-if="profile?.photoURL || user.photoURL"
@@ -81,7 +81,7 @@
         </section>
 
         <!-- Profile details -->
-        <section class="panel surface rounded-2xl p-5 space-y-5">
+        <section class="surface rounded-2xl p-4 lg:p-5 space-y-5">
           <h2 class="text-base font-bold text-ink dark:text-white">Profile</h2>
 
           <div>
@@ -144,13 +144,13 @@
 
         <!-- How this account signs in. Change password only exists for
              email and password accounts; Google ones manage it at Google. -->
-        <section class="panel surface rounded-2xl lg:p-0 lg:pt-5 lg:overflow-hidden">
-          <h2 class="text-base font-bold text-ink dark:text-white lg:px-4 mb-1">Sign-in and security</h2>
-          <div class="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+        <section class="surface rounded-2xl pt-4 lg:pt-5 overflow-hidden">
+          <h2 class="text-base font-bold text-ink dark:text-white px-4 mb-1">Sign-in and security</h2>
+          <div class="divide-y divide-black/[0.05] dark:divide-white/[0.06] border-t border-black/[0.05] dark:border-white/[0.06] mt-2">
             <div
               v-for="p in providers"
               :key="p.id"
-              class="flex items-center gap-4 lg:px-4 min-h-[56px]"
+              class="flex items-center gap-4 px-4 min-h-[56px]"
             >
               <span
                 class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] text-ink dark:text-zinc-200 flex items-center justify-center"
@@ -188,10 +188,10 @@
              staff are shop operations, not buyer profile preferences. -->
         <section
           v-if="sellerReady"
-          class="panel surface rounded-2xl lg:p-0 lg:pt-5 lg:overflow-hidden"
+          class="surface rounded-2xl pt-4 lg:pt-5 overflow-hidden"
         >
-          <h2 class="text-base font-bold text-ink dark:text-white lg:px-4 mb-1">Selling</h2>
-          <NuxtLink to="/seller/settings" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
+          <h2 class="text-base font-bold text-ink dark:text-white px-4 mb-1">Selling</h2>
+          <NuxtLink to="/seller/settings" class="press flex items-center gap-4 px-4 min-h-[56px]">
             <span
               class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] text-ink dark:text-zinc-200 flex items-center justify-center"
             >
@@ -214,7 +214,7 @@
 
       <div
         v-if="!loading && premiumEnabled"
-        class="panel surface rounded-2xl p-5 space-y-4"
+        class="surface rounded-2xl p-4 lg:p-5 space-y-4"
       >
         <div class="flex items-center justify-between">
           <p class="text-xl font-bold">Membership</p>

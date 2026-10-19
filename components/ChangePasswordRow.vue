@@ -3,7 +3,7 @@
        page stays a list. Only shown for email and password accounts. -->
   <button
     type="button"
-    class="press w-full text-left flex items-center gap-4 lg:px-4 min-h-[56px]"
+    class="press w-full text-left flex items-center gap-4 px-4 min-h-[56px]"
     aria-haspopup="dialog"
     @click="openSheet"
   >
