@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { ref, type Ref } from "vue";
 import type { CatalogMatch, CatalogPrice } from "./useCardCatalog";
 
 // One scanned card waiting to be turned into a listing or auction. The
@@ -50,16 +50,23 @@ export interface ScanQueueItem {
   error?: string;
 }
 
-// Module-level singleton — survives modal close/reopen and form
-// navigation, but lives only in memory (cleared on page reload).
-const queue = ref<ScanQueueItem[]>([]);
+// Module-level singletons — survive modal close/reopen and form
+// navigation, but live only in memory (cleared on page reload). One queue per
+// scope, so scans made for the collection never turn up in a seller's
+// half-finished listing, or the other way round.
+export type ScanScope = "listing" | "collection";
+const queues: Record<ScanScope, Ref<ScanQueueItem[]>> = {
+  listing: ref<ScanQueueItem[]>([]),
+  collection: ref<ScanQueueItem[]>([]),
+};
 
 const randomId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
-export const useScanQueue = () => {
+export const useScanQueue = (scope: ScanScope = "listing") => {
+  const queue = queues[scope];
   const addProcessing = (scannedImageUrl: string) => {
     const id = randomId();
     queue.value.push({
