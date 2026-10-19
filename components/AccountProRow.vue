@@ -1,19 +1,20 @@
 <template>
-  <!-- TCGo Pro as one row of the Account settings list. The row says which
+  <!-- TCGo Pro as one row of the Account settings list, on a light brand
+       wash so it stands out from the plain rows below. The row says which
        plan the member is on; tapping it opens a sheet with the one action
        that fits: Upgrade (Stripe checkout) or Manage billing (Stripe portal). -->
   <button
     type="button"
-    class="press w-full text-left flex items-center gap-4 lg:px-4 min-h-[56px]"
+    class="press w-full text-left flex items-center gap-4 px-3 lg:px-4 my-1.5 lg:m-2 lg:w-[calc(100%-1rem)] min-h-[56px] rounded-xl bg-pokemon-red/[0.06] dark:bg-pokemon-red/[0.14]"
     aria-haspopup="dialog"
     @click="open = true"
   >
     <span
-      class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] text-ink dark:text-zinc-200 flex items-center justify-center"
+      class="w-9 h-9 shrink-0 rounded-xl bg-pokemon-red/[0.10] dark:bg-pokemon-red/[0.20] text-pokemon-red dark:text-red-400 flex items-center justify-center"
     >
       <svg class="w-[18px] h-[18px]" v-bind="stroke"><path :d="STAR" /></svg>
     </span>
-    <span class="flex-1 text-sm font-medium text-ink dark:text-white">TCGo Pro</span>
+    <span class="flex-1 text-sm font-semibold text-ink dark:text-white">TCGo Pro</span>
     <span
       class="text-xs font-medium"
       :class="paymentFailed ? 'text-pokemon-red' : 'text-ink-soft dark:text-zinc-500'"
