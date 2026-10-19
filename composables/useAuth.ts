@@ -8,6 +8,9 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
   reload,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
   type User,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -148,6 +151,18 @@ export const useAuth = () => {
       body: { email: email.trim(), code: code.trim(), password },
     });
 
+  /**
+   * Email and password accounts only. Firebase wants a recent sign-in before
+   * a password change, so the current password re-authenticates first; that
+   * also means a borrowed, unlocked phone can't change it.
+   */
+  const changePassword = async (current: string, next: string) => {
+    const u = auth.currentUser;
+    if (!u?.email) throw new Error("Sign in again to change your password.");
+    await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, current));
+    await updatePassword(u, next);
+  };
+
   const signOut = async () => {
     // While still signed in: the server needs the token to drop this
     // device's push subscription, so the next person on it doesn't get ours.
@@ -171,6 +186,7 @@ export const useAuth = () => {
     requestCode,
     confirmEmail,
     resetPassword,
+    changePassword,
     signOut,
   };
 };

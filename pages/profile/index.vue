@@ -1,199 +1,220 @@
 <template>
-  <div class="max-w-xl mx-auto">
+  <div class="max-w-xl mx-auto space-y-4">
     <div v-if="!user" class="text-center py-12">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to manage your profile.</p>
+      <p class="text-sm text-ink-muted dark:text-zinc-400 mb-4">Sign in to manage your account.</p>
       <button
+        type="button"
         @click="goToLogin"
-        class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors"
+        class="min-h-[44px] px-6 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink"
       >
         Sign in
       </button>
     </div>
 
     <template v-else>
-      <div
-        v-if="saveSuccess"
-        class="fixed bottom-10 right-10 text-green-600 text-sm bg-green-200 p-4 rounded"
-      >
-        Profile updated!
-      </div>
-      <!-- Profile, membership and privacy only. Addresses, notifications,
-           dark mode, What's new and the customer code each have their own
-           place on the Account page. -->
-      <SubpageHeader title="Account settings" />
-      <h1 class="hidden lg:block text-2xl font-bold mb-6">Account settings</h1>
+      <!-- Profile, sign-in, notifications and membership. Addresses, dark
+           mode and the customer code each have their own place on the
+           Account page. Each section is a card on phones too (kai 10-19):
+           settings pages have room for cards; only listings go flat. -->
+      <SubpageHeader title="Account settings" desktop-title />
+
+      <Transition name="toast">
+        <p
+          v-if="saveSuccess"
+          role="status"
+          class="fixed z-50 left-1/2 -translate-x-1/2 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-8 px-4 py-2.5 rounded-full text-sm font-medium bg-ink text-white dark:bg-white dark:text-ink shadow-lg"
+        >
+          Saved
+        </p>
+      </Transition>
 
       <div v-if="loading" class="flex justify-center py-12">
-        <div
-          class="animate-spin rounded-full h-6 w-6 border-b-2 border-pokemon-red"
-        ></div>
+        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-pokemon-red"></div>
       </div>
 
-      <div
-        v-if="!loading"
-        class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-6"
-      >
-        <p class="text-xl font-bold">Profile</p>
-        <!-- Avatar -->
-        <div class="flex items-center gap-4">
-          <div class="relative group">
+      <template v-else>
+        <!-- Who you are: photo, name, email, and the public page others see. -->
+        <section class="surface rounded-2xl p-4 lg:p-5 flex items-center gap-4">
+          <label class="relative shrink-0 cursor-pointer press" aria-label="Change photo">
             <img
+              v-if="profile?.photoURL || user.photoURL"
               :src="profile?.photoURL || user.photoURL || ''"
-              :alt="profile?.customName || user.displayName || 'User'"
-              class="w-16 h-16 rounded-full border-2 border-gray-200 dark:border-white/[0.10] object-cover"
+              alt=""
+              class="w-16 h-16 rounded-full object-cover border border-black/[0.08] dark:border-white/[0.10]"
             />
-            <label
-              class="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            <span
+              v-else
+              class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold bg-black/[0.05] dark:bg-white/[0.08] text-ink dark:text-white"
             >
-              <svg
-                class="w-5 h-5 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                />
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                />
+              {{ initial }}
+            </span>
+            <!-- Always visible: phones have no hover to reveal it. -->
+            <span
+              class="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full flex items-center justify-center bg-ink text-white dark:bg-white dark:text-ink ring-2 ring-[#F7F7F8] dark:ring-[#0E0E11]"
+            >
+              <svg class="w-3.5 h-3.5" v-bind="stroke" stroke-width="2.2">
+                <path d="M3 9a2 2 0 0 1 2-2h.9a2 2 0 0 0 1.7-.9l.8-1.2A2 2 0 0 1 10.1 4h3.8a2 2 0 0 1 1.7.9l.8 1.2a2 2 0 0 0 1.7.9H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <circle cx="12" cy="13" r="3" />
               </svg>
-              <input
-                type="file"
-                accept="image/*"
-                class="hidden"
-                @change="handlePhotoUpload"
-              />
-            </label>
-            <div
+            </span>
+            <span
               v-if="uploadingPhoto"
               class="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center"
             >
-              <div
-                class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"
-              ></div>
-            </div>
-          </div>
-          <div>
-            <p class="font-bold text-lg">
+              <span class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>
+            </span>
+            <input type="file" accept="image/*" class="sr-only" @change="handlePhotoUpload" />
+          </label>
+          <div class="min-w-0 flex-1">
+            <p class="text-base font-bold text-ink dark:text-white truncate">
               {{ profile?.customName || user.displayName }}
             </p>
-            <p class="text-sm text-gray-500 dark:text-zinc-400">{{ user.email }}</p>
-          </div>
-        </div>
-
-        <!-- Display Name -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-            Display Name
-          </label>
-          <div class="flex gap-3">
-            <input
-              v-model="editName"
-              type="text"
-              maxlength="30"
-              placeholder="Your display name"
-              class="flex-1 border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-            />
-            <button
-              @click="saveName"
-              :disabled="
-                saving || !editName.trim() || editName === profile?.customName
-              "
-              class="bg-pokemon-red text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {{ saving ? "Saving..." : "Save" }}
-            </button>
-          </div>
-          <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
-            This name will be shown on your bids and listings.
-          </p>
-        </div>
-
-        <!-- Contact Number -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-zinc-200 mb-1">
-            Mobile Number
-          </label>
-          <div class="flex gap-2">
-            <select
-              v-model="phonePrefix"
-              class="border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-            >
-              <option value="60">🇲🇾 +60</option>
-              <option value="65">🇸🇬 +65</option>
-            </select>
-            <input
-              v-model="phoneNumber"
-              type="tel"
-              placeholder="123456789"
-              class="flex-1 border border-gray-300 dark:border-white/[0.10] dark:bg-white/[0.06] rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 focus:border-pokemon-red focus:outline-none focus:ring-1 focus:ring-pokemon-red"
-            />
-          </div>
-          <div class="w-full flex">
-            <button
-              v-if="fullPhone !== profile?.whatsappNumber"
-              @click="savePhone"
-              :disabled="savingPhone || !phoneNumber"
-              class="bg-pokemon-red w-full mt-2 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {{ savingPhone ? "..." : "Save" }}
-            </button>
-          </div>
-
-          <p v-if="phoneError" class="text-red-500 text-xs mt-1">
-            {{ phoneError }}
-          </p>
-          <p v-else class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
-            Enter without leading 0. E.g. 123456789
-          </p>
-        </div>
-
-        <div class="pt-4 border-t border-gray-200 dark:border-white/[0.08]">
-          <p class="text-sm text-gray-500 dark:text-zinc-400">
-            Your public profile:
+            <p class="text-sm text-ink-muted dark:text-zinc-400 truncate">{{ user.email }}</p>
             <NuxtLink
               :to="`/profile/${user.uid}`"
-              class="text-pokemon-red hover:underline"
+              class="inline-flex items-center gap-0.5 mt-1 min-h-[32px] text-sm font-semibold text-pokemon-red"
             >
-              View profile →
+              View public profile
+              <svg class="w-4 h-4" v-bind="stroke" stroke-width="2.5"><path d="m9 18 6-6-6-6" /></svg>
             </NuxtLink>
-          </p>
-        </div>
-      </div>
+          </div>
+        </section>
 
-      <!-- Seller settings moved out to /seller/settings.
-           Shipping, couriers and staff are shop operations, not buyer profile
-           preferences — mixing them here made this page a grab-bag and buried
-           the seller controls behind a buyer-facing screen. -->
-      <NuxtLink
-        v-if="!loading && sellerReady"
-        to="/seller/settings"
-        class="flex items-center gap-4 bg-white dark:bg-white/[0.04] rounded-xl p-5 border border-gray-200 dark:border-white/[0.08] mt-4 hover:border-gray-300 dark:hover:border-white/[0.16] transition-colors"
-      >
-        <div class="w-10 h-10 shrink-0 rounded-xl bg-pokemon-red/[0.08] flex items-center justify-center">
-          <svg class="w-5 h-5 text-pokemon-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 9h18M3 9l1.5-4.5A2 2 0 0 1 6.4 3h11.2a2 2 0 0 1 1.9 1.5L21 9M3 9v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9" />
-          </svg>
-        </div>
-        <div class="min-w-0 flex-1">
-          <p class="text-sm font-bold text-ink dark:text-white">Seller settings</p>
-          <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-            Pickup address, parcel handover, preferred couriers and staff.
-          </p>
-        </div>
-        <svg class="w-4 h-4 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-      </NuxtLink>
+        <!-- Profile details -->
+        <section class="surface rounded-2xl p-4 lg:p-5 space-y-5">
+          <h2 class="text-base font-bold text-ink dark:text-white">Profile</h2>
+
+          <div>
+            <label for="display-name" class="block text-xs font-medium text-ink-muted dark:text-zinc-400 mb-1.5">
+              Display name
+            </label>
+            <div class="flex gap-2">
+              <input
+                id="display-name"
+                v-model="editName"
+                type="text"
+                maxlength="30"
+                placeholder="Your display name"
+                :class="field"
+              />
+              <button
+                v-if="editName.trim() && editName !== profile?.customName"
+                type="button"
+                :disabled="saving"
+                :class="saveBtn"
+                @click="saveName"
+              >
+                {{ saving ? "Saving…" : "Save" }}
+              </button>
+            </div>
+            <p class="text-xs text-ink-soft dark:text-zinc-500 mt-1.5">Shown on your bids and listings.</p>
+          </div>
+
+          <div>
+            <label for="mobile" class="block text-xs font-medium text-ink-muted dark:text-zinc-400 mb-1.5">
+              Mobile number
+            </label>
+            <div class="flex gap-2">
+              <select v-model="phonePrefix" aria-label="Country code" :class="field" class="!flex-none w-[7.25rem] !pr-8">
+                <option value="60">🇲🇾 +60</option>
+                <option value="65">🇸🇬 +65</option>
+              </select>
+              <input
+                id="mobile"
+                v-model="phoneNumber"
+                type="tel"
+                inputmode="numeric"
+                placeholder="123456789"
+                :class="field"
+              />
+              <button
+                v-if="phoneNumber && fullPhone !== profile?.whatsappNumber"
+                type="button"
+                :disabled="savingPhone"
+                :class="saveBtn"
+                @click="savePhone"
+              >
+                {{ savingPhone ? "Saving…" : "Save" }}
+              </button>
+            </div>
+            <p v-if="phoneError" class="text-xs text-pokemon-red mt-1.5">{{ phoneError }}</p>
+            <p v-else class="text-xs text-ink-soft dark:text-zinc-500 mt-1.5">Without the leading 0, e.g. 123456789.</p>
+          </div>
+        </section>
+
+        <!-- How this account signs in. Change password only exists for
+             email and password accounts; Google ones manage it at Google. -->
+        <section class="surface rounded-2xl pt-4 lg:pt-5 overflow-hidden">
+          <h2 class="text-base font-bold text-ink dark:text-white px-4 mb-1">Sign-in and security</h2>
+          <div class="divide-y divide-black/[0.05] dark:divide-white/[0.06] border-t border-black/[0.05] dark:border-white/[0.06] mt-2">
+            <div
+              v-for="p in providers"
+              :key="p.id"
+              class="flex items-center gap-4 px-4 min-h-[56px]"
+            >
+              <span
+                class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] text-ink dark:text-zinc-200 flex items-center justify-center"
+              >
+                <svg v-if="p.id === 'google.com'" class="w-[18px] h-[18px]" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#4285F4" d="M22.6 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.3-4.8 3.3-8z" />
+                  <path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.7c-1 .7-2.2 1-3.7 1-2.9 0-5.3-1.9-6.2-4.5H2.1v2.8A11 11 0 0 0 12 23z" />
+                  <path fill="#FBBC05" d="M5.8 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2.1a11 11 0 0 0 0 9.8z" />
+                  <path fill="#EA4335" d="M12 5.4c1.6 0 3 .6 4.2 1.6l3.1-3.1A11 11 0 0 0 2.1 7.1l3.7 2.8C6.7 7.3 9.1 5.4 12 5.4z" />
+                </svg>
+                <svg v-else-if="p.id === 'password'" class="w-[18px] h-[18px]" v-bind="stroke">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="m3 7 9 6 9-6" />
+                </svg>
+                <svg v-else class="w-[18px] h-[18px]" v-bind="stroke">
+                  <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" />
+                  <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
+                </svg>
+              </span>
+              <span class="flex-1 min-w-0">
+                <span class="block text-sm font-medium text-ink dark:text-white">{{ p.label }}</span>
+                <span v-if="p.email" class="block text-xs text-ink-soft dark:text-zinc-500 truncate">{{ p.email }}</span>
+              </span>
+              <span
+                class="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+              >
+                Connected
+              </span>
+            </div>
+            <ChangePasswordRow v-if="hasPassword" />
+          </div>
+        </section>
+
+        <!-- Seller settings live on their own page: shipping, couriers and
+             staff are shop operations, not buyer profile preferences. -->
+        <section
+          v-if="sellerReady"
+          class="surface rounded-2xl pt-4 lg:pt-5 overflow-hidden"
+        >
+          <h2 class="text-base font-bold text-ink dark:text-white px-4 mb-1">Selling</h2>
+          <NuxtLink to="/seller/settings" class="press flex items-center gap-4 px-4 min-h-[56px]">
+            <span
+              class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] text-ink dark:text-zinc-200 flex items-center justify-center"
+            >
+              <svg class="w-[18px] h-[18px]" v-bind="stroke">
+                <path d="M3 9h18M3 9l1.5-4.5A2 2 0 0 1 6.4 3h11.2a2 2 0 0 1 1.9 1.5L21 9M3 9v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9" />
+              </svg>
+            </span>
+            <span class="flex-1 min-w-0">
+              <span class="block text-sm font-medium text-ink dark:text-white">Seller settings</span>
+              <span class="block text-xs text-ink-soft dark:text-zinc-500 truncate">Pickup, parcel handover, couriers and staff</span>
+            </span>
+            <svg class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" v-bind="stroke" stroke-width="2.5"><path d="m9 18 6-6-6-6" /></svg>
+          </NuxtLink>
+        </section>
+
+        <!-- Notifications live here too, so Account has one settings row. -->
+        <PushSettings id="notifications" class="scroll-mt-20" />
+
+      </template>
 
       <div
         v-if="!loading && premiumEnabled"
-        class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-4 mt-4"
+        class="surface rounded-2xl p-4 lg:p-5 space-y-4"
       >
         <div class="flex items-center justify-between">
           <p class="text-xl font-bold">Membership</p>
@@ -286,8 +307,6 @@
           </div>
         </template>
       </div>
-
-
     </template>
   </div>
 </template>
@@ -447,6 +466,40 @@ const savePhone = async () => {
 
 const { sellerReady } = useSellerKyc();
 
+const stroke = {
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  "stroke-width": "1.8",
+  "stroke-linecap": "round",
+  "stroke-linejoin": "round",
+  "aria-hidden": "true",
+};
+const field =
+  "flex-1 min-w-0 h-11 rounded-xl border border-black/[0.10] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] px-3.5 text-base text-ink dark:text-white placeholder:text-ink-soft dark:placeholder:text-zinc-500 focus:border-ink dark:focus:border-white focus:outline-none focus:ring-0";
+const saveBtn =
+  "press shrink-0 h-11 px-4 rounded-xl text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink disabled:opacity-50";
+
+const initial = computed(() =>
+  (profile.value?.customName || user.value?.displayName || user.value?.email || "?").charAt(0).toUpperCase(),
+);
+
+// Each way this account can sign in, from Firebase's linked providers.
+const PROVIDER_LABELS: Record<string, string> = {
+  password: "Email and password",
+  "google.com": "Google",
+  "apple.com": "Apple",
+  "facebook.com": "Facebook",
+};
+const providers = computed(() =>
+  (user.value?.providerData ?? []).map((p) => ({
+    id: p.providerId,
+    label: PROVIDER_LABELS[p.providerId] ?? p.providerId,
+    email: p.email ?? "",
+  })),
+);
+const hasPassword = computed(() => providers.value.some((p) => p.id === "password"));
+
 const handlePhotoUpload = async (event: Event) => {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
@@ -468,3 +521,22 @@ const handlePhotoUpload = async (event: Event) => {
   }
 };
 </script>
+
+<style scoped>
+.press {
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+.press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.toast-enter-active,
+.toast-leave-active {
+  transition: opacity 200ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 8px);
+}
+</style>

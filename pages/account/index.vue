@@ -175,8 +175,6 @@
         <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
       </NuxtLink>
 
-      <AccountProCard />
-
       <!-- My orders, by the same groups as the Orders page filters -->
       <section
         class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] pt-2 pb-3"
@@ -214,8 +212,11 @@
 
       <!-- Settings list -->
       <section
-        class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] overflow-hidden"
+        class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] lg:overflow-hidden [&>:first-child+*]:!border-t-transparent"
       >
+        <!-- Not clipped on phones: the Pro row's tint bleeds into the gutter.
+             Its own tint separates it, so no divider under it. -->
+        <AccountProRow />
         <NuxtLink
           v-for="row in settingsRows"
           :key="row.to"
@@ -240,20 +241,59 @@
           <span class="flex-1 text-sm font-medium text-ink dark:text-white">Dark mode</span>
           <ThemeToggle />
         </label>
+        <AccountPolicyRow />
         <NuxtLink to="/account/help" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
           <span
             class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] text-ink dark:text-zinc-200 flex items-center justify-center"
           >
             <IconHelp class="w-[18px] h-[18px]" />
           </span>
-          <span class="flex-1 text-sm font-medium text-ink dark:text-white">Help</span>
+          <span class="flex-1 text-sm font-medium text-ink dark:text-white">Help Center</span>
+          <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
+        </NuxtLink>
+        <NuxtLink to="/landing" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
+          <span
+            class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] flex items-center justify-center overflow-hidden"
+          >
+            <img src="/tcgo_sprites.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain dark:hidden" />
+            <img src="/tcgo_sprites_white.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain hidden dark:block" />
+          </span>
+          <span class="flex-1 text-sm font-medium text-ink dark:text-white">About TCGo</span>
           <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
         </NuxtLink>
       </section>
     </template>
 
-    <!-- About and policies: what the footer used to hold. Shown signed out
-         too, so the policy pages stay one tap away for visitors. -->
+    <!-- Signed out there is no settings list, so these rows stand alone,
+         in the same order as signed in. -->
+    <section
+      v-else-if="!authLoading"
+      class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] lg:overflow-hidden"
+    >
+      <AccountPolicyRow />
+      <NuxtLink to="/account/help" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
+        <span
+          class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] text-ink dark:text-zinc-200 flex items-center justify-center"
+        >
+          <IconHelp class="w-[18px] h-[18px]" />
+        </span>
+        <span class="flex-1 text-sm font-medium text-ink dark:text-white">Help Center</span>
+        <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
+      </NuxtLink>
+      <NuxtLink to="/landing" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
+        <span
+          class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] flex items-center justify-center overflow-hidden"
+        >
+          <img src="/tcgo_sprites.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain dark:hidden" />
+          <img src="/tcgo_sprites_white.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain hidden dark:block" />
+        </span>
+        <span class="flex-1 text-sm font-medium text-ink dark:text-white">About TCGo</span>
+        <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
+      </NuxtLink>
+    </section>
+
+    <!-- What's left of the old footer links. The policy pages and About TCGo
+         are rows above. -->
     <section
       class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] overflow-hidden"
     >
@@ -287,7 +327,6 @@
 
 <script setup lang="ts">
 import { h, computed, ref, watch } from "vue";
-import { LEGAL_LINKS } from "~/shared/legal";
 import { SELLER_STEPS } from "~/shared/onboarding";
 import { badgeLabel } from "~/shared/notifications";
 import { withoutMergedChildren } from "~/shared/delivery-stage";
@@ -368,9 +407,12 @@ const IconTruck = icon(p("M1 4h14v12H1z"), p("M15 9h4l3 3v4h-7"), h("circle", { 
 const IconCheck = icon(h("circle", { cx: "12", cy: "12", r: "9" }), p("m8 12 3 3 5-6"));
 const IconX = icon(h("circle", { cx: "12", cy: "12", r: "9" }), p("m15 9-6 6M9 9l6 6"));
 const IconPin = icon(p("M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"), h("circle", { cx: "12", cy: "9", r: "2.5" }));
-const IconBell = icon(p("M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"), p("M13.7 21a2 2 0 0 1-3.4 0"));
-const IconUserCog = icon(h("circle", { cx: "10", cy: "8", r: "4" }), p("M3 21a7 7 0 0 1 11-5.7"), h("circle", { cx: "18", cy: "17", r: "2.5" }));
-const IconSpark = icon(p("M12 2v4M12 18v4M4.9 4.9l2.9 2.9M16.2 16.2l2.9 2.9M2 12h4M18 12h4M4.9 19.1l2.9-2.9M16.2 7.8l2.9-2.9"));
+const IconUserCog = icon(
+  h("circle", { cx: "9", cy: "7", r: "4" }),
+  p("M10 15H6a4 4 0 0 0-4 4v2"),
+  h("circle", { cx: "18", cy: "15", r: "3" }),
+  p("m14.3 16.5.9-.4M15.2 13.9l-.9-.4M16.9 12.2l-.4-.9M16.9 17.8l-.4.9M19.1 12.2l.4-.9M19.5 18.7l-.4-.9M20.8 13.9l.9-.4M20.8 16.1l.9.4"),
+);
 const IconQr = icon(
   h("rect", { x: "3", y: "3", width: "7", height: "7", rx: "1" }),
   h("rect", { x: "14", y: "3", width: "7", height: "7", rx: "1" }),
@@ -414,21 +456,15 @@ const orderGroups = computed(() => [
 const settingsRows = computed(() => {
   const rows = [
     { label: "Shipping addresses", to: "/account/addresses", icon: IconPin },
-    { label: "Notifications", to: "/account/notifications", icon: IconBell },
-    // Name, photo, contact details and privacy. Pro has its own card above.
+    // Name, photo, contact details, notifications and privacy. Pro is its own row above.
     { label: "Account settings", to: "/profile", icon: IconUserCog },
   ];
-  rows.push({ label: "What's new", to: "/update-notice", icon: IconSpark });
   return rows;
 });
 
-// Signed out there is no settings list, so Help leads this one instead.
-const aboutLinks = computed(() => [
-  ...(user.value || authLoading.value ? [] : [{ to: "/account/help", label: "Help" }]),
-  { to: "/landing", label: "About TCGo" },
+const aboutLinks = [
   { to: "/pricing", label: "Plans & pricing" },
-  ...LEGAL_LINKS,
-]);
+];
 
 const handleSignOut = async () => {
   await signOut();
