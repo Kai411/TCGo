@@ -1,444 +1,512 @@
 <template>
-  <div>
-    <div v-if="loading" class="flex justify-center py-12">
-      <div
-        class="animate-spin rounded-full h-6 w-6 border-b-2 border-pokemon-red"
-      ></div>
+  <div class="max-w-5xl mx-auto">
+    <!-- Loading: same skeleton as a shop listing -->
+    <div v-if="loading" class="grid md:grid-cols-2 gap-6 md:gap-10" role="status" aria-label="Loading auction">
+      <div class="skeleton aspect-[3.55/5] rounded-2xl w-full max-w-[18rem] mx-auto md:max-w-none" />
+      <div class="space-y-4 pt-2">
+        <div class="skeleton h-8 w-3/4" />
+        <div class="skeleton h-3 w-1/3" />
+        <div class="skeleton h-10 w-1/2" />
+        <div class="skeleton h-12 w-full rounded-xl" />
+        <div class="skeleton h-32 w-full rounded-xl" />
+      </div>
     </div>
 
-    <div v-else-if="!auction" class="text-center py-12">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg">Auction not found.</p>
+    <EmptyState
+      v-else-if="!auction"
+      headline="This auction isn't available"
+      caption="It may have been removed by the seller. There are more auctions running."
+    >
       <NuxtLink
         to="/auctions"
-        class="text-pokemon-red hover:underline mt-2 inline-block text-sm"
+        class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
       >
-        ← Back to auctions
+        Back to auctions
       </NuxtLink>
-    </div>
+    </EmptyState>
 
-    <div v-else>
-      <SubpageHeader title="Auction" tag="p" back="/auctions" back-label="auctions">
-        <NuxtLink
-          to="/auctions"
-          class="text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 text-sm inline-block mb-4"
-        >
-          ← Back to auctions
-        </NuxtLink>
-      </SubpageHeader>
+    <template v-else>
+      <!-- Breadcrumb, desktop only: on phones the header's back arrow
+           does this job. -->
+      <nav aria-label="Breadcrumb" class="hidden lg:block min-w-0 mb-6">
+        <ol class="flex items-center gap-1.5 text-sm text-ink-muted dark:text-zinc-400">
+          <li class="shrink-0">
+            <button type="button" @click="goBackToAuctions" class="hover:text-ink dark:hover:text-white transition-colors">Auctions</button>
+          </li>
+          <li aria-hidden="true" class="text-ink-faint dark:text-zinc-600">/</li>
+          <li class="truncate text-ink dark:text-white font-medium" aria-current="page">
+            {{ auction.title }}
+          </li>
+        </ol>
+      </nav>
 
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <!-- Image Gallery -->
-        <div class="lg:col-span-4">
+      <div class="grid md:grid-cols-2 gap-6 md:gap-10 md:items-start">
+        <!-- ── Gallery ─────────────────────────────────────────────── -->
+        <section aria-label="Photos" class="w-full max-w-[18rem] mx-auto md:max-w-none md:sticky md:top-24 lg:top-[8.75rem]">
           <div
-            class="bg-white dark:bg-white/[0.04] rounded-xl overflow-hidden border border-gray-200 dark:border-white/[0.08] sticky top-8"
+            class="relative aspect-[3.55/5] rounded-2xl overflow-hidden"
+            tabindex="0"
+            role="region"
+            aria-roledescription="carousel"
+            :aria-label="`Photo ${activeImageIndex + 1} of ${allImages.length || 1}`"
+            @keydown.left.prevent="prevImage"
+            @keydown.right.prevent="nextImage"
           >
-            <!-- Scroll-snap strip -->
-            <div class="relative aspect-[3/4] bg-gray-100 dark:bg-white/[0.04]">
-              <div
-                ref="scrollContainer"
-                class="absolute inset-0 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory"
-                style="scrollbar-width: none; -ms-overflow-style: none;"
-                @scroll.passive="onImageScroll"
-              >
-                <div
-                  v-if="allImages.length === 0"
-                  class="w-full h-full shrink-0 snap-start flex items-center justify-center"
-                >
-                  <span class="text-gray-400 dark:text-zinc-500">No Image</span>
-                </div>
-                <div
-                  v-for="(img, i) in allImages"
-                  :key="i"
-                  class="w-full h-full shrink-0 snap-start flex items-center justify-center"
-                >
-                  <img
-                    :src="img"
-                    :alt="auction.cardName"
-                    class="w-full h-full object-cover cursor-zoom-in"
-                    @click="openLightbox(allImages, i)"
-                  />
-                </div>
+            <div
+              ref="scrollContainer"
+              class="absolute inset-0 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory rounded-2xl"
+              style="scrollbar-width: none; -ms-overflow-style: none;"
+              @scroll.passive="onImageScroll"
+            >
+              <div v-if="allImages.length === 0" class="w-full h-full shrink-0 snap-start">
+                <CardImage src="" :alt="auction.cardName" />
               </div>
+              <div
+                v-for="(img, i) in allImages"
+                :key="i"
+                class="w-full h-full shrink-0 snap-start flex items-center justify-center"
+              >
+                <img
+                  :src="cdnUrl(img, 900)"
+                  :alt="`${auction.cardName}, photo ${i + 1}`"
+                  :loading="i === 0 ? 'eager' : 'lazy'"
+                  class="w-full h-full object-contain cursor-zoom-in"
+                  @click="openLightbox(allImages, i)"
+                />
+              </div>
+            </div>
 
-              <!-- Prev arrow -->
+            <template v-if="allImages.length > 1">
               <button
-                v-if="allImages.length > 1 && activeImageIndex > 0"
+                v-if="activeImageIndex > 0"
+                type="button"
                 @click="prevImage"
-                class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors z-10"
+                aria-label="Previous photo"
+                class="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-ink shadow-card hover:bg-white flex items-center justify-center transition-colors z-10"
               >
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="15 18 9 12 15 6"/>
-                </svg>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
               </button>
-
-              <!-- Next arrow -->
               <button
-                v-if="allImages.length > 1 && activeImageIndex < allImages.length - 1"
+                v-if="activeImageIndex < allImages.length - 1"
+                type="button"
                 @click="nextImage"
-                class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-colors z-10"
+                aria-label="Next photo"
+                class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-ink shadow-card hover:bg-white flex items-center justify-center transition-colors z-10"
               >
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6"/>
-                </svg>
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
               </button>
-
-              <!-- Counter badge -->
               <span
-                v-if="allImages.length > 1"
                 class="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full z-10"
+                aria-hidden="true"
               >
                 {{ activeImageIndex + 1 }}/{{ allImages.length }}
               </span>
-            </div>
+            </template>
 
-            <!-- Thumbnails -->
-            <div v-if="allImages.length > 1" class="flex gap-2 p-2 overflow-x-auto">
-              <button
-                v-for="(img, index) in allImages"
-                :key="index"
-                @click="scrollToImage(index)"
-                class="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-colors"
-                :class="activeImageIndex === index ? 'border-pokemon-red' : 'border-gray-200 dark:border-white/[0.08] hover:border-gray-400'"
-              >
-                <img :src="img" :alt="`Photo ${index + 1}`" class="w-full h-full object-cover" />
-              </button>
+            <div
+              v-if="isEnded"
+              class="absolute inset-0 bg-black/40 flex items-center justify-center z-10 pointer-events-none"
+            >
+              <span class="px-3 py-1 rounded-full text-sm font-bold bg-black/70 text-white tracking-wide uppercase">Ended</span>
             </div>
           </div>
-        </div>
 
-        <!-- Card Info -->
-        <div class="lg:col-span-4 space-y-4">
-          <div class="panel bg-white dark:bg-white/[0.04] rounded-xl p-5 border border-gray-200 dark:border-white/[0.08]">
-            <h1 class="text-xl font-bold mb-2">{{ auction.title }}</h1>
-            <div
-              v-if="auction.isPrivate"
-              class="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-xs font-medium px-2 py-0.5 rounded-full mb-2"
+          <!-- Thumbnails -->
+          <div v-if="allImages.length > 1" class="flex gap-2 mt-3 overflow-x-auto pb-1">
+            <button
+              v-for="(img, i) in allImages"
+              :key="i"
+              type="button"
+              @click="scrollToImage(i)"
+              :aria-label="`Show photo ${i + 1}`"
+              :aria-current="activeImageIndex === i ? 'true' : undefined"
+              class="w-14 h-[4.75rem] shrink-0 rounded-lg overflow-hidden ring-2 transition"
+              :class="activeImageIndex === i ? 'ring-pokemon-red' : 'ring-transparent opacity-70 hover:opacity-100'"
             >
-              🔒 Private Auction
+              <img :src="cdnUrl(img, 160)" alt="" class="w-full h-full object-cover" />
+            </button>
+          </div>
+        </section>
+
+        <!-- ── Details ─────────────────────────────────────────────── -->
+        <div class="min-w-0">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink dark:text-white">
+                {{ auction.title }}
+              </h1>
+              <p v-if="auction.cardSet" class="mt-1 text-sm font-medium text-ink-muted dark:text-zinc-400">{{ auction.cardSet }}</p>
             </div>
-            <div class="flex flex-wrap gap-2 mb-3">
-              <span
-                class="bg-gray-100 dark:bg-white/[0.04] text-gray-700 dark:text-zinc-200 px-2.5 py-0.5 rounded-full text-xs"
-                >{{ auction.cardName }}</span
+            <div class="flex items-center gap-0.5 shrink-0 -mr-1.5 text-ink-muted dark:text-zinc-400">
+              <button
+                type="button"
+                @click="handleShare"
+                :aria-label="copied ? 'Link copied' : 'Share auction'"
+                class="relative w-9 h-9 rounded-full flex items-center justify-center hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
               >
-              <span
-                class="bg-gray-100 dark:bg-white/[0.04] text-gray-700 dark:text-zinc-200 px-2.5 py-0.5 rounded-full text-xs"
-                >{{ auction.cardSet }}</span
-              >
-              <span
-                v-if="auction.language && auction.language !== 'EN'"
-                class="bg-black/85 text-white px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide"
-                >{{ auction.language }}</span
-              >
-              <span
-                class="bg-gray-100 dark:bg-white/[0.04] text-gray-700 dark:text-zinc-200 px-2.5 py-0.5 rounded-full text-xs"
-                >{{ auction.condition }}</span
-              >
+                <svg v-if="!copied" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+                <svg v-else class="w-[18px] h-[18px] text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span v-if="copied" role="status" class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap pointer-events-none">
+                  Copied!
+                </span>
+              </button>
+              <FavouriteButton :item-id="auction.id" item-type="auction" size="md" />
             </div>
-            <p v-if="auction.description" class="text-gray-600 dark:text-zinc-300 text-sm">
-              {{ auction.description }}
+          </div>
+
+          <!-- Condition + quick facts -->
+          <div class="flex flex-wrap items-center gap-1.5 mt-3">
+            <span
+              v-if="auction.productType === 'Graded' && auction.grade"
+              class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 border border-amber-600"
+            >
+              <span class="uppercase tracking-wide">{{ gradingProviderLabel }}</span>
+              <span>{{ auction.grade }}</span>
+            </span>
+            <span
+              v-else-if="auction.productType === 'Sealed'"
+              class="text-xs font-bold px-2 py-0.5 rounded-md bg-blue-500 text-white border border-blue-700"
+            >
+              Sealed
+            </span>
+            <span
+              v-else-if="auction.condition"
+              class="text-xs font-semibold px-2 py-0.5 rounded-md bg-white text-ink border border-ink-faint dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-600"
+            >
+              {{ auction.condition }}
+            </span>
+            <span v-if="auction.language && auction.language !== 'EN'" class="text-xs font-bold tracking-wide px-2 py-0.5 rounded-md bg-black/85 text-white">
+              {{ auction.language }}
+            </span>
+            <span v-if="auction.isPrivate" class="text-xs font-medium px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300">
+              Private auction
+            </span>
+            <span v-if="auction.pickupAvailable" class="text-xs font-medium px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+              Pickup available
+            </span>
+          </div>
+
+          <!-- Current bid + clock -->
+          <div class="mt-5">
+            <p class="text-xs font-medium text-ink-muted dark:text-zinc-400">
+              {{ isEnded ? (bids.length ? "Winning bid" : "Starting price") : bids.length ? "Current bid" : "Starting bid" }}
             </p>
-            <div class="flex gap-4 mt-4 text-xs text-gray-500 dark:text-zinc-400">
-              <p>
-                Seller:
-                <NuxtLink
-                  :to="`/profile/${auction.sellerUid}`"
-                  class="text-pokemon-blue hover:underline"
-                  >{{ auction.seller }}</NuxtLink
-                >
-              </p>
-              <p>
-                Min increment:
-                <span class="text-gray-700 dark:text-zinc-200"
-                  >RM {{ (auction.minIncrement || 1).toFixed(2) }}</span
-                >
-              </p>
-            </div>
-            <MessageButton
-              :uid="auction.sellerUid"
-              :product-id="auction.id"
-              product-kind="auction"
-              small
-              class="mt-3"
-            >
-              Message seller
-            </MessageButton>
-          </div>
-          <!-- Bid History -->
-          <div class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
-            <h3 class="font-bold text-sm mb-4">
-              Bid History ({{ bids.length }})
-            </h3>
+            <p class="tabular-price text-3xl font-extrabold text-ink dark:text-white">
+              <span class="text-lg font-bold text-ink-muted dark:text-zinc-400 mr-1">RM</span>{{ formatRM(auction.currentPrice) }}
+            </p>
+            <p class="mt-1 text-sm text-ink-muted dark:text-zinc-400">
+              {{ bids.length }} {{ bids.length === 1 ? "bid" : "bids" }} · RM {{ formatRM(auction.minIncrement || 1) }} increments · + shipping
+            </p>
             <div
-              v-if="bids.length === 0"
-              class="text-gray-400 dark:text-zinc-500 text-sm text-center py-4"
+              class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold tabular-nums"
+              :class="isEnded ? 'bg-black/[0.05] dark:bg-white/[0.08] text-ink-muted dark:text-zinc-400' : 'bg-pokemon-red/10 text-pokemon-red'"
             >
-              No bids yet. Be the first!
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+              {{ isEnded ? "Auction ended" : `Ends in ${timeLeft}` }}
             </div>
-            <div v-else class="space-y-2 max-h-64 overflow-y-auto">
-              <div
-                v-for="(bid, index) in bids"
-                :key="bid.id"
-                class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-white/[0.06] last:border-0"
-              >
-                <div>
-                  <p
-                    class="text-sm font-medium"
-                    :class="index === 0 ? 'text-pokemon-red' : 'text-gray-700 dark:text-zinc-200'"
-                  >
-                    {{ bid.bidder }}
-                    <span
-                      v-if="bid.isAutoBid"
-                      class="text-xs text-gray-400 dark:text-zinc-500 ml-1"
-                      >(auto)</span
-                    >
-                  </p>
-                  <p class="text-xs text-gray-400 dark:text-zinc-500">
-                    {{ formatTime(bid.timestamp) }}
-                  </p>
-                </div>
-                <p
-                  class="font-bold text-sm"
-                  :class="index === 0 ? 'text-pokemon-red' : 'text-gray-700 dark:text-zinc-200'"
-                >
-                  <span
-                    v-if="bid.triggeredAntiSnipe"
-                    title="Triggered anti-snipe"
-                    >⚡</span
-                  >
-                  RM {{ bid.amount.toFixed(2) }}
-                </p>
-              </div>
-            </div>
+            <p v-if="antiSnipeActive && !isEnded" class="mt-2 text-xs font-medium text-amber-600 dark:text-amber-400">
+              A late bid extended the clock.
+            </p>
           </div>
-        </div>
 
-        <!-- Bidding Panel -->
-        <div class="lg:col-span-4 space-y-4">
-          <div class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08]">
-            <div class="text-center mb-4">
-              <p class="text-xs text-gray-500 dark:text-zinc-400">Current Price</p>
-              <p class="text-3xl font-bold text-pokemon-red">
-                RM {{ auction.currentPrice.toFixed(2) }}
-              </p>
-              <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
-                Started at RM {{ auction.startingPrice.toFixed(2) }}
-              </p>
-            </div>
-
-            <div
-              class="text-center py-2 rounded-lg"
-              :class="isEnded ? 'bg-red-50' : 'bg-gray-100 dark:bg-white/[0.04]'"
+          <!-- Bidding -->
+          <div class="mt-6 space-y-3">
+            <!-- Signed out: the phone bar carries "Sign in to bid" -->
+            <button
+              v-if="!user && !isEnded"
+              type="button"
+              @click="goToLogin"
+              class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
             >
-              <p
-                class="text-sm"
-                :class="isEnded ? 'text-red-600' : 'text-gray-600 dark:text-zinc-300'"
-              >
-                {{ isEnded ? "Auction Ended" : `Ends in ${timeLeft}` }}
-              </p>
-              <p
-                v-if="antiSnipeActive && !isEnded"
-                class="text-xs text-orange-600 font-medium mt-1"
-              >
-                ⚡ Anti-snipe active — time extended
-              </p>
-            </div>
+              Sign in to bid
+            </button>
 
-            <!-- Must be logged in -->
-            <div v-if="!user && !isEnded" class="mt-4 text-center">
-              <p class="text-gray-500 dark:text-zinc-400 text-sm mb-3">Sign in to place a bid</p>
-              <button
-                @click="goToLogin"
-                class="bg-gray-900 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
-              >
-                Sign in
-              </button>
-            </div>
-
-            <!-- Seller cannot bid -->
             <div
               v-else-if="user && !isEnded && isSeller"
-              class="mt-4 text-center"
+              class="surface rounded-xl px-4 py-3 text-sm text-center text-ink-muted dark:text-zinc-400"
             >
-              <p class="text-gray-500 dark:text-zinc-400 text-sm">
-                You cannot bid on your own listing.
-              </p>
+              This is your auction. You can't bid on it.
             </div>
 
-            <!-- Bid Form -->
-            <div
-              v-else-if="user && !isEnded && !isSeller"
-              class="mt-4 space-y-4"
-            >
-              <!-- Leading bidder message -->
+            <template v-else-if="user && !isEnded && !isSeller">
               <div
                 v-if="isLeadingBidder"
-                class="bg-green-50 border border-green-200 rounded-lg p-4 text-center"
+                class="rounded-xl px-4 py-3 bg-emerald-500/10 text-center"
               >
-                <p class="text-green-700 font-medium text-sm">
-                  ✓ You're the highest bidder!
-                </p>
-                <p class="text-green-600 text-xs mt-1">
-                  You'll be notified if someone outbids you.
-                </p>
+                <p class="text-sm font-semibold text-emerald-700 dark:text-emerald-300">You're the highest bidder</p>
+                <p class="mt-0.5 text-xs text-emerald-700/80 dark:text-emerald-300/80">We'll let you know if someone outbids you.</p>
               </div>
 
               <template v-else>
-                <div
-                  class="flex rounded-lg overflow-hidden border border-gray-300 dark:border-white/[0.10]"
-                >
+                <!-- Bid / Auto bid -->
+                <div class="grid grid-cols-2 p-1 rounded-xl bg-black/[0.05] dark:bg-white/[0.06]" role="tablist" aria-label="Bid type">
                   <button
-                    @click="bidMode = 'manual'"
-                    class="flex-1 py-2 text-sm font-medium transition-colors"
-                    :class="
-                      bidMode === 'manual'
-                        ? 'bg-pokemon-red text-white'
-                        : 'bg-gray-50 dark:bg-white/[0.02] text-gray-600 dark:text-zinc-300'
-                    "
+                    v-for="m in BID_MODES"
+                    :key="m"
+                    type="button"
+                    role="tab"
+                    :aria-selected="bidMode === m"
+                    @click="bidMode = m"
+                    class="py-2 rounded-lg text-sm font-semibold transition-colors"
+                    :class="bidMode === m ? 'bg-white dark:bg-zinc-800 text-ink dark:text-white shadow-sm' : 'text-ink-muted dark:text-zinc-400'"
                   >
-                    Bid
-                  </button>
-                  <button
-                    @click="bidMode = 'auto'"
-                    class="flex-1 py-2 text-sm font-medium transition-colors"
-                    :class="
-                      bidMode === 'auto'
-                        ? 'bg-pokemon-red text-white'
-                        : 'bg-gray-50 dark:bg-white/[0.02] text-gray-600 dark:text-zinc-300'
-                    "
-                  >
-                    Auto Bid
+                    {{ m === "manual" ? "Bid" : "Auto bid" }}
                   </button>
                 </div>
 
-                <!-- Manual — single button at next increment -->
-                <div v-if="bidMode === 'manual'" class="space-y-3">
-                  <div class="text-center bg-gray-50 dark:bg-white/[0.02] rounded-lg py-3">
-                    <p class="text-xs text-gray-500 dark:text-zinc-400">Your bid will be</p>
-                    <p class="text-2xl font-bold text-pokemon-red">
-                      RM {{ minBidAmount.toFixed(2) }}
-                    </p>
-                    <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
-                      Current RM {{ auction.currentPrice.toFixed(2) }} + RM
-                      {{ (auction.minIncrement || 1).toFixed(2) }} increment
-                    </p>
-                  </div>
-                  <button
-                    @click="handleQuickBid"
-                    :disabled="bidding"
-                    class="w-full bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50"
-                  >
-                    {{
-                      bidding
-                        ? "Placing Bid..."
-                        : `Bid RM ${minBidAmount.toFixed(2)}`
-                    }}
-                  </button>
-                </div>
-
-                <!-- Auto -->
-                <div v-else class="space-y-3">
-                  <div class="bg-blue-50 rounded-lg p-3 text-xs text-gray-600 dark:text-zinc-300">
-                    Set your maximum. The system bids the minimum increment on
-                    your behalf up to your max.
-                  </div>
-                  <div>
-                    <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1"
-                      >Max Bid (min RM {{ minBidAmount.toFixed(2) }})</label
-                    >
+                <p v-if="bidMode === 'manual'" class="text-sm text-ink-muted dark:text-zinc-400">
+                  Your bid will be
+                  <span class="font-semibold text-ink dark:text-white tabular-nums">RM {{ formatRM(minBidAmount) }}</span>,
+                  the current bid plus one increment.
+                </p>
+                <div v-else class="space-y-2">
+                  <label for="auto-bid-max" class="block text-sm text-ink-muted dark:text-zinc-400">
+                    Your maximum (at least RM {{ formatRM(minBidAmount) }}). We bid one increment at a time for you, up to it.
+                  </label>
+                  <div class="flex items-center h-12 rounded-xl border border-black/[0.10] dark:border-white/[0.12] focus-within:border-ink dark:focus-within:border-white px-4 gap-2">
+                    <span class="text-sm font-semibold text-ink-muted dark:text-zinc-400">RM</span>
                     <input
+                      id="auto-bid-max"
                       v-model.number="autoBidMax"
                       type="number"
+                      inputmode="decimal"
                       :min="minBidAmount"
                       step="0.01"
                       :placeholder="(minBidAmount + 10).toFixed(2)"
-                      class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg px-4 py-2 text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:border-pokemon-blue focus:outline-none focus:ring-1 focus:ring-pokemon-blue"
+                      class="flex-1 min-w-0 bg-transparent text-base text-ink dark:text-white placeholder:text-ink-soft dark:placeholder:text-zinc-500 outline-none tabular-nums"
                     />
                   </div>
-                  <button
-                    @click="handleAutoBid"
-                    :disabled="bidding"
-                    class="w-full bg-pokemon-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
-                  >
-                    {{ bidding ? "Setting Auto Bid..." : "Set Auto Bid" }}
-                  </button>
                 </div>
 
-                <p v-if="bidError" class="text-red-500 text-sm text-center">
-                  {{ bidError }}
-                </p>
-                <p v-if="bidSuccess" class="text-green-600 text-sm text-center">
-                  {{ bidSuccess }}
-                </p>
+                <!-- Desktop button; on phones the fixed bar does this -->
+                <button
+                  type="button"
+                  @click="bidMode === 'manual' ? handleQuickBid() : handleAutoBid()"
+                  :disabled="bidding"
+                  class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow disabled:opacity-50"
+                >
+                  {{ bidButtonLabel }}
+                </button>
               </template>
-            </div>
 
-            <!-- Winner -->
-            <div
-              v-if="isEnded && bids.length > 0"
-              class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4 text-center"
-            >
-              <p class="text-xs text-gray-500 dark:text-zinc-400">Winner</p>
+              <p v-if="bidError" role="alert" class="text-sm text-center text-red-600 dark:text-red-400">{{ bidError }}</p>
+              <p v-if="bidSuccess" role="status" class="text-sm text-center text-emerald-600 dark:text-emerald-400">{{ bidSuccess }}</p>
+            </template>
+
+            <!-- Winner + settlement -->
+            <div v-if="isEnded && bids.length > 0" class="surface rounded-xl px-4 py-4 text-center">
+              <p class="text-xs text-ink-muted dark:text-zinc-400">Winner</p>
               <NuxtLink
                 :to="`/profile/${bids[0].bidderUid}`"
-                class="font-bold text-amber-700 text-lg hover:underline"
+                class="text-lg font-bold text-ink dark:text-white hover:underline"
               >
-                {{ bids[0].bidder }}
+                @{{ bids[0].bidder }}
               </NuxtLink>
-              <p class="text-sm text-gray-600 dark:text-zinc-300">
-                Final: RM {{ bids[0].amount.toFixed(2) }}
-              </p>
+              <p class="text-sm text-ink-muted dark:text-zinc-400 tabular-nums">Final RM {{ formatRM(bids[0].amount) }}</p>
               <!-- Settlement: the winner pays via FPX, same rail as the shop -->
-              <div class="mt-3 pt-3 border-t border-amber-200 space-y-2">
-                <p v-if="settling" class="text-xs text-gray-500 dark:text-zinc-400">
+              <div class="mt-3 pt-3 border-t border-black/[0.06] dark:border-white/[0.08] space-y-2">
+                <p v-if="settling" class="text-xs text-ink-muted dark:text-zinc-400">
                   Finalising the result…
                 </p>
-                <p v-else-if="settleError" class="text-xs text-red-600">{{ settleError }}</p>
+                <p v-else-if="settleError" class="text-xs text-red-600 dark:text-red-400">{{ settleError }}</p>
 
                 <template v-else-if="settledOrderId">
                   <NuxtLink
                     v-if="isWinner"
                     :to="`/orders/${settledOrderId}`"
-                    class="w-full inline-flex items-center justify-center gap-2 bg-pokemon-red text-white text-sm py-2.5 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                    class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
                   >
                     Pay now (FPX)
                   </NuxtLink>
                   <NuxtLink
                     v-else-if="isSeller"
                     :to="`/orders/${settledOrderId}`"
-                    class="w-full inline-flex items-center justify-center gap-2 border border-amber-300 text-amber-800 text-sm py-2.5 rounded-lg font-semibold hover:bg-amber-100 transition-colors"
+                    class="w-full inline-flex items-center justify-center py-3 rounded-xl text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
                   >
                     View order
                   </NuxtLink>
-                  <p v-if="isSeller" class="text-xs text-center text-amber-700">
+                  <p v-if="isSeller" class="text-xs text-ink-muted dark:text-zinc-400">
                     You'll be notified when the buyer pays. Funds are released after delivery.
                   </p>
                 </template>
 
-                <p v-else-if="auctionStatus === 'expired'" class="text-xs text-center text-amber-700">
-                  The winner didn't pay in time — this auction was voided.
+                <p v-else-if="auctionStatus === 'expired'" class="text-xs text-ink-muted dark:text-zinc-400">
+                  The winner didn't pay in time, so this auction was voided.
                 </p>
-
-                <NuxtLink
-                  v-if="isSeller"
-                  :to="`/profile/${bids[0].bidderUid}`"
-                  class="block text-center text-xs text-amber-700 hover:underline"
-                >
-                  View buyer profile →
-                </NuxtLink>
               </div>
             </div>
 
             <div
               v-if="isEnded && bids.length === 0"
-              class="mt-4 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-3 text-center"
+              class="surface rounded-xl px-4 py-3 text-sm text-center text-ink-muted dark:text-zinc-400"
             >
-              <p class="text-sm text-gray-500 dark:text-zinc-400">Auction ended with no bids.</p>
+              This auction ended with no bids.
+              <NuxtLink to="/auctions" class="font-semibold text-ink dark:text-white underline underline-offset-2">See live auctions</NuxtLink>
             </div>
           </div>
+
+          <!-- Seller: the badge opens their profile; the icon messages them
+               with this auction ready to attach (hidden on your own). -->
+          <div class="mt-6 surface rounded-xl pl-4 pr-2 py-2 flex items-center gap-2">
+            <NuxtLink
+              :to="`/profile/${auction.sellerUid}`"
+              class="flex-1 min-w-0 flex items-center gap-3 py-1 rounded-lg transition-opacity active:opacity-60"
+            >
+              <img
+                v-if="sellerPhotoURL"
+                :src="sellerPhotoURL"
+                alt=""
+                class="w-10 h-10 rounded-full object-cover"
+              />
+              <div
+                v-else
+                class="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-black/[0.06] dark:bg-white/[0.08] text-ink-muted dark:text-zinc-400 text-sm font-bold"
+                aria-hidden="true"
+              >
+                {{ (auction.seller || "?").charAt(0).toUpperCase() }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs text-ink-muted dark:text-zinc-400">Auction by</p>
+                <p class="text-sm font-semibold text-ink dark:text-white truncate">@{{ auction.seller }}</p>
+              </div>
+              <svg class="w-4 h-4 shrink-0 text-ink-faint dark:text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+            </NuxtLink>
+            <MessageButton
+              :uid="auction.sellerUid"
+              :product-id="auction.id"
+              product-kind="auction"
+              icon-only
+            />
+          </div>
+
+          <!-- Description -->
+          <section v-if="auction.description" class="mt-8">
+            <h2 class="text-sm font-semibold text-ink dark:text-white">From the seller</h2>
+            <p class="mt-2 text-sm leading-relaxed text-ink-subtle dark:text-zinc-300 whitespace-pre-line">{{ auction.description }}</p>
+          </section>
+
+          <!-- Condition notes -->
+          <section v-if="auction.defects?.length" class="mt-8">
+            <h2 class="text-sm font-semibold text-ink dark:text-white">Condition notes</h2>
+            <ul class="mt-2 space-y-1">
+              <li
+                v-for="d in auction.defects"
+                :key="d"
+                class="flex items-start gap-2 text-sm text-ink-subtle dark:text-zinc-300"
+              >
+                <span class="mt-[7px] w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" aria-hidden="true" />
+                {{ d }}
+              </li>
+            </ul>
+          </section>
+
+          <!-- Bid history -->
+          <section class="mt-8">
+            <h2 class="text-sm font-semibold text-ink dark:text-white">Bids ({{ bids.length }})</h2>
+            <p v-if="bids.length === 0" class="mt-2 text-sm text-ink-muted dark:text-zinc-400">
+              No bids yet. Be the first!
+            </p>
+            <ul v-else class="mt-2 max-h-72 overflow-y-auto divide-y divide-black/[0.06] dark:divide-white/[0.06]">
+              <li
+                v-for="(bid, index) in bids"
+                :key="bid.id"
+                class="flex items-center justify-between gap-4 py-2"
+              >
+                <div class="min-w-0">
+                  <p
+                    class="text-sm font-medium truncate"
+                    :class="index === 0 ? 'text-pokemon-red' : 'text-ink dark:text-white'"
+                  >
+                    {{ bid.bidder }}
+                    <span v-if="bid.isAutoBid" class="text-xs font-normal text-ink-muted dark:text-zinc-400 ml-1">(auto)</span>
+                  </p>
+                  <p class="text-xs text-ink-muted dark:text-zinc-400">{{ formatTime(bid.timestamp) }}</p>
+                </div>
+                <p
+                  class="shrink-0 text-sm font-semibold tabular-nums"
+                  :class="index === 0 ? 'text-pokemon-red' : 'text-ink dark:text-white'"
+                >
+                  <span v-if="bid.triggeredAntiSnipe" title="Extended the clock" aria-label="Extended the clock">⚡</span>
+                  RM {{ formatRM(bid.amount) }}
+                </p>
+              </li>
+            </ul>
+          </section>
+
+          <!-- Card details -->
+          <section v-if="details.length" class="mt-8">
+            <h2 class="text-sm font-semibold text-ink dark:text-white">Card details</h2>
+            <dl class="mt-2 divide-y divide-black/[0.06] dark:divide-white/[0.06] text-sm">
+              <div v-for="row in details" :key="row.label" class="flex justify-between gap-4 py-2">
+                <dt class="text-ink-muted dark:text-zinc-400">{{ row.label }}</dt>
+                <dd class="text-right font-medium text-ink dark:text-white">{{ row.value }}</dd>
+              </div>
+            </dl>
+          </section>
         </div>
       </div>
-    </div>
+
+      <!-- Phone action bar: fixed where the bottom nav would be (the nav
+           hides on product pages). Carries the bid, or Pay now for the
+           winner. Not shown to the seller or once there's nothing to do. -->
+      <!-- Teleported: the page's enter animation leaves a transform on an
+           ancestor, which would pin a fixed bar to the content instead of
+           the screen. -->
+      <Teleport to="body">
+        <div
+          v-if="showActionBar"
+          class="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-white dark:bg-[#111114] border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]"
+        >
+          <!-- The page's own message may be scrolled away, so the bar repeats it. -->
+          <p v-if="!isEnded && (bidError || bidSuccess)" class="mb-2 text-xs font-medium text-center" :class="bidError ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'">
+            {{ bidError || bidSuccess }}
+          </p>
+          <div class="flex items-center gap-3">
+            <div class="min-w-0 flex-1">
+              <p class="text-xs text-ink-muted dark:text-zinc-400 truncate tabular-nums">
+                {{ isEnded ? "You won" : `Ends in ${timeLeft}` }}
+              </p>
+              <p class="tabular-price font-extrabold text-ink dark:text-white">RM {{ formatRM(auction.currentPrice) }}</p>
+            </div>
+            <NuxtLink
+              v-if="isEnded"
+              :to="`/orders/${settledOrderId}`"
+              class="h-12 px-5 shrink-0 inline-flex items-center justify-center rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-transform duration-150 active:scale-[0.97]"
+            >
+              Pay now (FPX)
+            </NuxtLink>
+            <button
+              v-else-if="!user"
+              type="button"
+              @click="goToLogin"
+              class="h-12 px-5 shrink-0 rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-transform duration-150 active:scale-[0.97]"
+            >
+              Sign in to bid
+            </button>
+            <span
+              v-else-if="isLeadingBidder"
+              class="h-12 px-4 shrink-0 inline-flex items-center rounded-xl text-sm font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+            >
+              You're winning
+            </span>
+            <button
+              v-else
+              type="button"
+              @click="bidMode === 'manual' ? handleQuickBid() : handleAutoBid()"
+              :disabled="bidding"
+              class="h-12 px-5 shrink-0 rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-transform duration-150 active:scale-[0.97] disabled:opacity-50"
+            >
+              {{ bidButtonLabel }}
+            </button>
+          </div>
+        </div>
+      </Teleport>
+    </template>
 
     <!-- First bid: what a bid commits you to, said once before it happens.
          A bottom sheet on phones, a floating card from sm up. -->
@@ -494,6 +562,7 @@
 <script setup lang="ts">
 import { AUCTION_PAYMENT_WINDOW_HOURS } from "~/shared/auctions";
 import { readyToBuy } from "~/shared/onboarding";
+import { cdnUrl } from "~/composables/useStorage";
 
 const route = useRoute();
 const auctionId = route.params.id as string;
@@ -598,7 +667,8 @@ const antiSnipeActive = computed(
   () => auction.value && (auction.value as any).antiSnipeTriggered,
 );
 
-const bidMode = ref<"manual" | "auto">("manual");
+const BID_MODES = ["manual", "auto"] as const;
+const bidMode = ref<(typeof BID_MODES)[number]>("manual");
 const autoBidMax = ref<number | null>(null);
 const bidding = ref(false);
 const bidError = ref("");
@@ -773,5 +843,95 @@ const placeAutoBid = async () => {
 };
 
 const formatTime = (timestamp: number) => new Date(timestamp).toLocaleString();
+
+const formatRM = (n: number) =>
+  n.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const goBackToAuctions = useGoBack("/auctions");
+
+const bidButtonLabel = computed(() => {
+  if (bidding.value) return bidMode.value === "manual" ? "Placing bid…" : "Setting auto bid…";
+  return bidMode.value === "manual"
+    ? `Bid RM ${formatRM(minBidAmount.value)}`
+    : "Set auto bid";
+});
+
+// Phone bar: bidders (or signed-out visitors) while it runs, and the winner
+// once there's an order to pay. The seller manages theirs from the page.
+const showActionBar = computed(() => {
+  if (!auction.value) return false;
+  if (isEnded.value) return !!(isWinner.value && settledOrderId.value);
+  return !isSeller.value;
+});
+
+const gradingProviderLabel = computed(() => {
+  const a = auction.value;
+  if (!a) return "";
+  return a.gradingProvider === "Others"
+    ? a.customGradingProvider || "Graded"
+    : a.gradingProvider;
+});
+
+// Spec sheet, same rows as a shop listing: only what the seller filled in.
+const details = computed(() => {
+  const a = auction.value;
+  if (!a) return [];
+  const rows: { label: string; value: string }[] = [];
+  const add = (label: string, value?: string | number | null) => {
+    if (value !== undefined && value !== null && String(value).trim())
+      rows.push({ label, value: String(value) });
+  };
+  add("Card", a.cardName !== a.title ? a.cardName : "");
+  add("Set", a.cardSet);
+  add("Card number", a.cardNumber);
+  add("Rarity", a.rarity);
+  add("Variant", a.variant);
+  add("Edition", a.edition);
+  add("Language", a.language || "EN");
+  if (a.productType === "Graded") {
+    add("Grade", `${gradingProviderLabel.value} ${a.grade}`.trim());
+    add("Cert number", a.certNumber);
+  } else if (a.productType === "Sealed") {
+    add("Type", "Sealed product");
+  } else {
+    add("Condition", a.condition);
+  }
+  add("Illustrator", a.artist);
+  add("Starting price", `RM ${formatRM(a.startingPrice)}`);
+  return rows;
+});
+
+// Share button, as on a shop listing.
+const { origin } = useRequestURL();
+const copied = ref(false);
+const handleShare = async () => {
+  if (!auction.value) return;
+  const url = `${origin}/auctions/${auctionId}`;
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: auction.value.title, text: auction.value.cardSet || "", url });
+    } catch {}
+  } else {
+    await navigator.clipboard.writeText(url);
+    copied.value = true;
+    setTimeout(() => (copied.value = false), 2000);
+  }
+};
+
+// Seller avatar for the badge.
+const { firestore } = useFirebase();
+const sellerPhotoURL = ref("");
+watch(
+  () => auction.value?.sellerUid,
+  async (uid) => {
+    if (!uid) return;
+    try {
+      const { doc, getDoc } = await import("firebase/firestore");
+      const userDoc = await getDoc(doc(firestore!, "users", uid));
+      if (userDoc.exists()) sellerPhotoURL.value = (userDoc.data().photoURL || "") as string;
+    } catch {}
+  },
+  { immediate: true },
+);
 
 </script>
