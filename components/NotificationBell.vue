@@ -125,7 +125,7 @@
           </button>
           <NuxtLink
             v-else
-            to="/account/notifications"
+            to="/profile#notifications"
             @click="open = false"
             :class="isPhone ? 'min-h-[44px]' : 'min-h-[36px]'"
             class="shrink-0 inline-flex items-center px-3 rounded-lg text-[12px] font-semibold text-pokemon-red hover:bg-pokemon-red/10"

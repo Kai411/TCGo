@@ -3,8 +3,7 @@
     class="panel bg-white dark:bg-white/[0.04] rounded-xl p-6 border border-gray-200 dark:border-white/[0.08] space-y-5"
   >
     <div>
-      <!-- On phones the page header already says "Notifications". -->
-      <p class="hidden lg:block text-xl font-bold">Notifications</p>
+      <p class="text-xl font-bold">Notifications</p>
       <p class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
         Get messages, order updates and auction alerts on this device, even when TCGo is closed.
       </p>

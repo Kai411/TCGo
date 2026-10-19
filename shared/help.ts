@@ -426,7 +426,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: "Turn on notifications",
         summary: "Get messages, order updates and auction alerts on your phone.",
         steps: [
-          "Go to Account, then Notifications.",
+          "Go to Account, then Account settings, and scroll to Notifications.",
           "Turn on Push notifications on this device and allow them when your phone asks.",
           "Choose which alerts you want, like messages, orders and outbid alerts.",
         ],

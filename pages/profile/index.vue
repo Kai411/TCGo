@@ -17,8 +17,8 @@
       >
         Profile updated!
       </div>
-      <!-- Profile, membership and privacy only. Addresses, notifications,
-           dark mode, What's new and the customer code each have their own
+      <!-- Profile, membership, notifications and privacy. Addresses,
+           dark mode and the customer code each have their own
            place on the Account page. -->
       <SubpageHeader title="Account settings" />
       <h1 class="hidden lg:block text-2xl font-bold mb-6">Account settings</h1>
@@ -287,7 +287,8 @@
         </template>
       </div>
 
-
+      <!-- Notifications live here too, so Account has one settings row. -->
+      <PushSettings v-if="!loading" id="notifications" class="mt-4 scroll-mt-20" />
     </template>
   </div>
 </template>
