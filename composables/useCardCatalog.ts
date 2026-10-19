@@ -134,7 +134,7 @@ export interface CollectionPriceTrend {
   totalCards: number;
 }
 
-export type CatalogSort = "best" | "name" | "price_asc" | "price_desc";
+export type CatalogSort = "newest" | "best" | "name" | "price_asc" | "price_desc";
 
 // What we return to callers: the catalog row + a derived MYR price.
 export interface CatalogMatch {
@@ -644,6 +644,38 @@ export const useCardCatalog = () => {
   };
 
   /**
+   * Each card's set release date (YYYY-MM-DD), for the Newest sort.
+   *
+   * Its own query rather than a column in SELECT_COLUMNS: released_on is
+   * added to the schema by hand, and a deploy that runs ahead of it must not
+   * break every catalogue read. Until then this returns an empty map and
+   * Newest falls back to the order cards were added.
+   */
+  const getReleaseDates = async (
+    productIds: number[],
+  ): Promise<Map<number, string>> => {
+    const dates = new Map<number, string>();
+    if (!supabase || productIds.length === 0) return dates;
+    const CHUNK = 200;
+    for (let i = 0; i < productIds.length; i += CHUNK) {
+      const { data, error } = await supabase
+        .from("cards_catalog")
+        .select("product_id, released_on")
+        .in("product_id", productIds.slice(i, i + CHUNK));
+      if (error) {
+        if (!/does not exist|schema cache/i.test(error.message)) {
+          console.error("[useCardCatalog] getReleaseDates error:", error.message);
+        }
+        return dates;
+      }
+      for (const row of data ?? []) {
+        if (row.released_on) dates.set(Number(row.product_id), String(row.released_on));
+      }
+    }
+    return dates;
+  };
+
+  /**
    * Suggestions for a catalogue detail page. Same-name printings come first,
    * followed by cards from the same exact set, with rarity and live pricing as
    * secondary signals. This stays entirely within the existing catalogue.
@@ -884,6 +916,7 @@ export const useCardCatalog = () => {
     lookupByNameAndNumber,
     getCardWithPrice,
     getCardsByIds,
+    getReleaseDates,
     getSecondaryPrice,
     listSets,
     listRarities,
