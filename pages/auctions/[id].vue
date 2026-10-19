@@ -196,11 +196,16 @@
             <p class="text-xs font-medium text-ink-muted dark:text-zinc-400">
               {{ isEnded ? (bids.length ? "Winning bid" : "Starting price") : bids.length ? "Current bid" : "Starting bid" }}
             </p>
-            <p class="tabular-price text-3xl font-extrabold text-ink dark:text-white">
-              <span class="text-lg font-bold text-ink-muted dark:text-zinc-400 mr-1">RM</span>{{ formatRM(auction.currentPrice) }}
-            </p>
+            <div class="flex items-baseline gap-2.5">
+              <p class="tabular-price text-3xl font-extrabold text-ink dark:text-white">
+                <span class="text-lg font-bold text-ink-muted dark:text-zinc-400 mr-1">RM</span>{{ formatRM(auction.currentPrice) }}
+              </p>
+              <span class="text-sm font-semibold text-ink-muted dark:text-zinc-400 tabular-nums">
+                {{ bids.length }} {{ bids.length === 1 ? "bid" : "bids" }}
+              </span>
+            </div>
             <p class="mt-1 text-sm text-ink-muted dark:text-zinc-400">
-              {{ bids.length }} {{ bids.length === 1 ? "bid" : "bids" }} · RM {{ formatRM(auction.minIncrement || 1) }} increments · + shipping
+              RM {{ formatRM(auction.minIncrement || 1) }} increments · + shipping
             </p>
             <div
               class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold tabular-nums"
@@ -471,7 +476,10 @@
               <p class="text-xs text-ink-muted dark:text-zinc-400 truncate tabular-nums">
                 {{ isEnded ? "You won" : `Ends in ${timeLeft}` }}
               </p>
-              <p class="tabular-price font-extrabold text-ink dark:text-white">RM {{ formatRM(auction.currentPrice) }}</p>
+              <p class="tabular-price font-extrabold text-ink dark:text-white">
+              RM {{ formatRM(auction.currentPrice) }}
+              <span class="ml-1 text-xs font-semibold text-ink-muted dark:text-zinc-400 tabular-nums">{{ bids.length }} {{ bids.length === 1 ? "bid" : "bids" }}</span>
+            </p>
             </div>
             <NuxtLink
               v-if="isEnded"
