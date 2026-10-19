@@ -24,7 +24,8 @@ export type NotificationKind =
   | "new_follower"
   | "auction_outbid"
   | "auction_won"
-  | "auction_sold";
+  | "auction_sold"
+  | "enquiry_reply";
 
 export type NotificationAudience = "buyer" | "seller";
 

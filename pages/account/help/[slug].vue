@@ -6,7 +6,7 @@
       <SubpageHeader
         :title="found.article.title"
         back="/account/help"
-        back-label="Help"
+        back-label="Help Center"
         desktop-title
       />
       <p class="text-sm text-ink-muted dark:text-zinc-400 -mt-2">{{ found.article.summary }}</p>
@@ -76,7 +76,7 @@
     </template>
 
     <template v-else>
-      <SubpageHeader title="Help" back="/account/help" back-label="Help" desktop-title />
+      <SubpageHeader title="Help" back="/account/help" back-label="Help Center" desktop-title />
       <div class="text-center py-12 space-y-4">
         <p class="text-sm text-ink-muted dark:text-zinc-400">This help article doesn't exist.</p>
         <NuxtLink
