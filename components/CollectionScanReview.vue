@@ -74,9 +74,9 @@
 
                 <!-- Matched to a catalogue card -->
                 <template v-else-if="item.status === 'ready' && item.productId">
-                  <p class="truncate text-sm font-semibold text-ink dark:text-white">{{ item.cardName }}</p>
+                  <p class="truncate text-sm font-semibold text-ink dark:text-white">{{ displayName(item.cardName) }}</p>
                   <p class="truncate text-xs text-ink-soft dark:text-zinc-500">
-                    {{ item.cardSet }}<template v-if="item.cardNumber"> · {{ item.cardNumber }}</template>
+                    <template v-if="item.cardNumber">{{ item.cardNumber }} · </template>{{ item.cardSet }}
                   </p>
                   <p class="mt-1 text-sm font-bold tabular-price text-ink dark:text-white">
                     <template v-if="item.tcgoPrice">RM {{ formatMyr(item.tcgoPrice.market) }}</template>
@@ -172,7 +172,7 @@
                 <div class="aspect-[5/7] rounded-md overflow-hidden bg-black/[0.04] dark:bg-white/[0.06] ring-1 ring-black/[0.06] dark:ring-white/[0.08]">
                   <img v-if="m.imageUrl" :src="m.imageUrl" alt="" loading="lazy" class="w-full h-full object-cover" />
                 </div>
-                <p class="mt-1 truncate text-[11px] font-semibold text-ink dark:text-white">{{ m.name }}</p>
+                <p class="mt-1 truncate text-[11px] font-semibold text-ink dark:text-white">{{ displayName(m.name) }}</p>
                 <p class="truncate text-[10px] text-ink-soft dark:text-zinc-500">
                   <template v-if="m.number">{{ m.number }} · </template>{{ m.setName }}
                 </p>
@@ -254,6 +254,10 @@ const readyValue = computed(() =>
 
 const formatMyr = (n: number) =>
   n.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// The number is shown on its own line, so TCGplayer's " - 199/165" suffix
+// on same-name printings is only noise here.
+const displayName = (name?: string) => (name ?? "").replace(/\s+-\s+\S+\/\S+$/, "");
 
 const readAs = (item: ScanQueueItem) =>
   [item.detectedName || item.cardName, item.detectedNumber || item.cardNumber]

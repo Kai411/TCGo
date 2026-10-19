@@ -484,14 +484,14 @@
     />
     <Transition
       enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0 translate-y-2"
+      enter-from-class="opacity-0 -translate-y-2"
       leave-active-class="transition duration-150 ease-out"
       leave-to-class="opacity-0"
     >
       <p
         v-if="scanAddedNote"
         role="status"
-        class="fixed left-1/2 -translate-x-1/2 bottom-[calc(88px+env(safe-area-inset-bottom))] lg:bottom-6 z-[60] whitespace-nowrap rounded-full bg-ink dark:bg-white px-4 py-2.5 text-sm font-semibold text-white dark:text-ink shadow-lg"
+        class="fixed left-1/2 -translate-x-1/2 top-[calc(12px+env(safe-area-inset-top))] z-[80] whitespace-nowrap rounded-full bg-ink dark:bg-white px-4 py-2.5 text-sm font-semibold text-white dark:text-ink shadow-lg"
       >
         {{ scanAddedNote }}
       </p>
