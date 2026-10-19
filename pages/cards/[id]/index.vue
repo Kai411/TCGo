@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-5xl mx-auto pb-20 md:pb-0">
+  <div class="max-w-5xl mx-auto">
     <!-- Loading -->
     <div v-if="loading" class="grid md:grid-cols-2 gap-6 md:gap-10" role="status" aria-label="Loading listing">
       <div class="skeleton aspect-[3.55/5] rounded-2xl" />
@@ -26,37 +26,28 @@
     </EmptyState>
 
     <template v-else>
-      <!-- Breadcrumb + owner actions -->
-      <div class="flex items-center justify-between gap-3 mb-4 sm:mb-6">
-        <nav aria-label="Breadcrumb" class="min-w-0">
-          <ol class="flex items-center gap-1.5 text-sm text-ink-muted dark:text-zinc-400">
-            <li class="shrink-0">
-              <!-- A button, not a NuxtLink: a NuxtLink would also push "/" on
-                   top of our history.back(), and that second navigation
-                   scrolls to top. -->
-              <button type="button" @click="goBackToShop" class="hover:text-ink dark:hover:text-white transition-colors">Shop</button>
-            </li>
-            <li aria-hidden="true" class="text-ink-faint dark:text-zinc-600">/</li>
-            <li class="truncate text-ink dark:text-white font-medium" aria-current="page">
-              {{ card.cardName }}
-            </li>
-          </ol>
-        </nav>
-        <NuxtLink
-          v-if="isOwnListing && available"
-          :to="`/seller/listings/${card.id}/edit`"
-          class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold bg-black/[0.04] dark:bg-white/[0.06] text-ink dark:text-white hover:bg-black/[0.08] dark:hover:bg-white/[0.10] transition-colors"
-        >
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
-          Edit listing
-        </NuxtLink>
-      </div>
+      <!-- Breadcrumb, desktop only: on phones the header's back arrow
+           does this job. -->
+      <nav aria-label="Breadcrumb" class="hidden lg:block min-w-0 mb-6">
+        <ol class="flex items-center gap-1.5 text-sm text-ink-muted dark:text-zinc-400">
+          <li class="shrink-0">
+            <!-- A button, not a NuxtLink: a NuxtLink would also push "/" on
+                 top of our history.back(), and that second navigation
+                 scrolls to top. -->
+            <button type="button" @click="goBackToShop" class="hover:text-ink dark:hover:text-white transition-colors">Shop</button>
+          </li>
+          <li aria-hidden="true" class="text-ink-faint dark:text-zinc-600">/</li>
+          <li class="truncate text-ink dark:text-white font-medium" aria-current="page">
+            {{ card.cardName }}
+          </li>
+        </ol>
+      </nav>
 
       <div class="grid md:grid-cols-2 gap-6 md:gap-10 md:items-start">
         <!-- ── Gallery ─────────────────────────────────────────────── -->
         <section aria-label="Photos" class="w-full max-w-[18rem] mx-auto md:max-w-none md:sticky md:top-24 lg:top-[8.75rem]">
           <div
-            class="relative aspect-[3.55/5] rounded-2xl overflow-hidden surface p-3"
+            class="relative aspect-[3.55/5] rounded-2xl overflow-hidden"
             tabindex="0"
             role="region"
             aria-roledescription="carousel"
@@ -66,7 +57,7 @@
           >
             <div
               ref="scrollContainer"
-              class="absolute inset-3 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory rounded-lg"
+              class="absolute inset-0 flex overflow-x-auto overflow-y-hidden snap-x snap-mandatory rounded-2xl"
               style="scrollbar-width: none; -ms-overflow-style: none;"
               @scroll.passive="onImageScroll"
             >
@@ -97,7 +88,7 @@
                 type="button"
                 @click="prevImage"
                 aria-label="Previous photo"
-                class="absolute left-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-ink shadow-card hover:bg-white flex items-center justify-center transition-colors z-10"
+                class="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-ink shadow-card hover:bg-white flex items-center justify-center transition-colors z-10"
               >
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
               </button>
@@ -106,12 +97,12 @@
                 type="button"
                 @click="nextImage"
                 aria-label="Next photo"
-                class="absolute right-4 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-ink shadow-card hover:bg-white flex items-center justify-center transition-colors z-10"
+                class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 text-ink shadow-card hover:bg-white flex items-center justify-center transition-colors z-10"
               >
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
               </button>
               <span
-                class="absolute bottom-4 right-4 bg-black/70 text-white text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full z-10"
+                class="absolute bottom-2 right-2 bg-black/70 text-white text-xs font-semibold tabular-nums px-2 py-0.5 rounded-full z-10"
                 aria-hidden="true"
               >
                 {{ activeImageIndex + 1 }}/{{ allImages.length }}
@@ -145,12 +136,23 @@
 
         <!-- ── Details ─────────────────────────────────────────────── -->
         <div class="min-w-0">
-          <p v-if="card.cardSet" class="eyebrow">{{ card.cardSet }}</p>
-          <div class="mt-1 flex items-start justify-between gap-3">
-            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink dark:text-white">
-              {{ card.cardName }}
-            </h1>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink dark:text-white">
+                {{ card.cardName }}
+              </h1>
+              <p v-if="card.cardSet" class="mt-1 text-sm font-medium text-ink-muted dark:text-zinc-400">{{ card.cardSet }}</p>
+            </div>
             <div class="flex items-center gap-0.5 shrink-0 -mr-1.5 text-ink-muted dark:text-zinc-400">
+              <NuxtLink
+                v-if="isOwnListing && available"
+                :to="`/seller/listings/${card.id}/edit`"
+                aria-label="Edit listing"
+                title="Edit listing"
+                class="w-9 h-9 rounded-full flex items-center justify-center hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+              >
+                <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+              </NuxtLink>
               <button
                 type="button"
                 @click="handleShare"
@@ -228,7 +230,7 @@
           </div>
 
           <!-- Actions -->
-          <div ref="actionsEl" class="mt-6">
+          <div class="mt-6" :class="available && !isOwnListing ? 'hidden lg:block' : ''">
             <div v-if="!available" class="surface rounded-xl px-4 py-3 text-sm text-center text-ink-muted dark:text-zinc-400">
               <template v-if="reserved">Being paid for in store. Check back in a few minutes.</template>
               <template v-else>
@@ -237,7 +239,7 @@
               </template>
             </div>
 
-            <div v-else-if="!isOwnListing" class="space-y-2.5">
+            <div v-else-if="!isOwnListing" class="hidden lg:block space-y-2.5">
               <div class="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
@@ -265,39 +267,39 @@
             </div>
           </div>
 
-          <!-- Seller -->
-          <NuxtLink
-            :to="`/profile/${card.sellerUid}`"
-            class="mt-6 surface rounded-xl px-4 py-3 flex items-center gap-3 hover:shadow-card-hover transition-shadow"
-          >
-            <img
-              v-if="sellerPhotoURL"
-              :src="sellerPhotoURL"
-              alt=""
-              class="w-10 h-10 rounded-full object-cover"
-            />
-            <div
-              v-else
-              class="w-10 h-10 rounded-full flex items-center justify-center bg-black/[0.06] dark:bg-white/[0.08] text-ink-muted dark:text-zinc-400 text-sm font-bold"
-              aria-hidden="true"
+          <!-- Seller: the badge opens their profile; the icon messages them
+               with this listing ready to attach (hidden on your own). -->
+          <div class="mt-6 surface rounded-xl pl-4 pr-2 py-2 flex items-center gap-2">
+            <NuxtLink
+              :to="`/profile/${card.sellerUid}`"
+              class="flex-1 min-w-0 flex items-center gap-3 py-1 rounded-lg transition-opacity active:opacity-60"
             >
-              {{ card.seller.charAt(0).toUpperCase() }}
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-xs text-ink-muted dark:text-zinc-400">Sold by</p>
-              <p class="text-sm font-semibold text-ink dark:text-white truncate">@{{ card.seller }}</p>
-            </div>
-            <span class="text-sm font-medium text-ink-muted dark:text-zinc-400">View profile</span>
-          </NuxtLink>
-          <!-- Opens chat with this listing ready to attach. Hidden on your own. -->
-          <MessageButton
-            :uid="card.sellerUid"
-            :product-id="card.id"
-            product-kind="listing"
-            class="mt-2 w-full"
-          >
-            Message seller
-          </MessageButton>
+              <img
+                v-if="sellerPhotoURL"
+                :src="sellerPhotoURL"
+                alt=""
+                class="w-10 h-10 rounded-full object-cover"
+              />
+              <div
+                v-else
+                class="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-black/[0.06] dark:bg-white/[0.08] text-ink-muted dark:text-zinc-400 text-sm font-bold"
+                aria-hidden="true"
+              >
+                {{ card.seller.charAt(0).toUpperCase() }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs text-ink-muted dark:text-zinc-400">Sold by</p>
+                <p class="text-sm font-semibold text-ink dark:text-white truncate">@{{ card.seller }}</p>
+              </div>
+              <svg class="w-4 h-4 shrink-0 text-ink-faint dark:text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+            </NuxtLink>
+            <MessageButton
+              :uid="card.sellerUid"
+              :product-id="card.id"
+              product-kind="listing"
+              icon-only
+            />
+          </div>
 
           <!-- Description -->
           <section v-if="card.description" class="mt-8">
@@ -333,44 +335,41 @@
         </div>
       </div>
 
-      <!-- Mobile buy bar: appears once the main buttons scroll out of view,
-           sitting just above the bottom tab bar. -->
-      <Transition
-        enter-active-class="transition duration-200 ease-premium"
-        enter-from-class="opacity-0 translate-y-2"
-        leave-active-class="transition duration-150"
-        leave-to-class="opacity-0 translate-y-2"
-      >
+      <!-- Phone action bar: fixed where the bottom nav would be (the nav
+           hides on product pages). Only while the card can be bought by
+           someone other than its seller. -->
+      <!-- Teleported: the page's enter animation leaves a transform on an
+           ancestor, which would pin a fixed bar to the content instead of
+           the screen. -->
+      <Teleport to="body">
         <div
-          v-if="showStickyBar"
-          class="md:hidden fixed inset-x-0 bottom-[80px] z-30 glass border-t px-4 py-2.5 flex items-center gap-3"
+          v-if="available && !isOwnListing"
+          class="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-white dark:bg-[#111114] border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]"
         >
-          <div class="min-w-0 flex-1">
-            <p class="text-xs text-ink-muted dark:text-zinc-400 truncate">{{ card.cardName }}</p>
-            <p class="tabular-price font-extrabold text-ink dark:text-white">RM {{ formatRM(card.price) }}</p>
+          <div class="grid grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              @click="handleAddToCart($event)"
+              :disabled="inCart"
+              class="h-12 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white transition-transform duration-150 active:scale-[0.97] disabled:cursor-default disabled:active:scale-100"
+            >
+              <svg v-if="!inCart" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+              </svg>
+              <svg v-else class="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
+              {{ inCart ? "In cart" : "Add to cart" }}
+            </button>
+            <button
+              type="button"
+              @click="user ? handleBuyNow() : goToLogin()"
+              class="h-12 inline-flex items-center justify-center rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-transform duration-150 active:scale-[0.97]"
+            >
+              {{ user ? "Buy now" : "Sign in to buy" }}
+            </button>
           </div>
-          <button
-            type="button"
-            @click="handleAddToCart($event)"
-            :disabled="inCart"
-            :aria-label="inCart ? 'In cart' : 'Add to cart'"
-            class="w-11 h-11 shrink-0 rounded-xl border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white flex items-center justify-center"
-          >
-            <svg v-if="!inCart" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-            </svg>
-            <svg v-else class="w-5 h-5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
-          </button>
-          <button
-            type="button"
-            @click="user ? handleBuyNow() : goToLogin()"
-            class="h-11 px-5 shrink-0 rounded-xl text-sm font-semibold bg-pokemon-red text-white"
-          >
-            {{ user ? "Buy now" : "Sign in to buy" }}
-          </button>
         </div>
-      </Transition>
+      </Teleport>
     </template>
   </div>
 </template>
@@ -497,27 +496,6 @@ const details = computed(() => {
   add("Illustrator", c.artist);
   return rows;
 });
-
-// Show the mobile buy bar only while the main action buttons are off-screen.
-const actionsEl = ref<HTMLElement | null>(null);
-const actionsVisible = ref(true);
-let actionsObserver: IntersectionObserver | null = null;
-watch(actionsEl, (el) => {
-  actionsObserver?.disconnect();
-  if (!el) return;
-  actionsObserver = new IntersectionObserver(
-    ([entry]) => (actionsVisible.value = entry.isIntersecting),
-    { rootMargin: "0px 0px -80px 0px" },
-  );
-  actionsObserver.observe(el);
-});
-onBeforeUnmount(() => actionsObserver?.disconnect());
-const showStickyBar = computed(
-  () =>
-    available.value &&
-    !isOwnListing.value &&
-    !actionsVisible.value,
-);
 
 const isOwnListing = computed(
   () => user.value && card.value && card.value.sellerUid === user.value.uid,
