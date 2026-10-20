@@ -82,7 +82,7 @@ export const posPlatformFee = (total: number): number =>
 export const WITHDRAWAL_FEE = 1.25;
 
 // Free scans a month before Pro is worth buying. Mirrors FREE_SCAN_LIMIT in
-// composables/useScanQuota.ts, which is what actually enforces it — this copy
+// shared/scan-quota.ts, which the server enforces — this copy
 // exists so the pricing page can quote the number without importing a Vue
 // composable into the Nitro build.
 export const FREE_SCANS_MONTHLY = 20;

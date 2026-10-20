@@ -286,6 +286,9 @@
 <script setup lang="ts">
 import type { CatalogMatch } from "~/composables/useCardCatalog";
 
+// /api/identify-card needs the caller's sign-in and counts each photo as a scan.
+const { authedFetch } = useAuthedFetch();
+
 definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Bulk add | TCGo" });
 
@@ -572,7 +575,7 @@ const identifyPhotos = async () => {
       try {
         const resized = await resizeImage(entry.file);
         const imageBase64 = await blobToBase64(resized);
-        const res = await $fetch<{ name: string; number: string; language: string }>(
+        const res = await authedFetch<{ name: string; number: string; language: string }>(
           "/api/identify-card",
           { method: "POST", body: { imageBase64, mimeType: "image/jpeg" } },
         );
