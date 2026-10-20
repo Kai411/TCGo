@@ -205,8 +205,8 @@
               @click="addAll"
             >
               <template v-if="saving">Adding…</template>
-              <template v-else-if="readyTotal > 0">Add {{ readyTotal }} to collection</template>
-              <template v-else>Add to collection</template>
+              <template v-else-if="readyTotal > 0">Add {{ readyTotal }} to Dex</template>
+              <template v-else>Add to Dex</template>
             </button>
           </div>
         </div>

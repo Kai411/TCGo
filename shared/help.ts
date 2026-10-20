@@ -305,29 +305,29 @@ export const HELP_TOPICS: HelpTopic[] = [
   },
   {
     id: "collection",
-    title: "Collection and prices",
+    title: "TCGo Dex and prices",
     articles: [
       {
         slug: "track-collection",
-        title: "Track your collection",
+        title: "Track your cards in TCGo Dex",
         summary: "Add the cards you own and see what they're worth.",
         steps: [
-          "Open the Collection tab.",
+          "Open the Dex tab.",
           "Search the TCGo catalogue by name, set or number.",
-          "Tap + on a card to add it to your collection, and set how many copies you own.",
-          "The top of the page shows your collection's estimated value and how it is trending.",
+          "Tap + on a card to add it to your Dex, and set how many copies you own.",
+          "The top of the page shows your Dex's estimated value and how it is trending.",
         ],
         notes: [
           "For Japanese cards from the DP era, search the name and set (like \"omanyte dp4\"), since their numbers aren't in the catalogue.",
         ],
-        links: [{ to: "/collection", label: "Your collection" }],
+        links: [{ to: "/collection", label: "Your Dex" }],
       },
       {
         slug: "card-prices",
         title: "Check a card's price",
         summary: "Market price, price history and live eBay listings.",
         steps: [
-          "Open any card from your collection or from a catalogue search.",
+          "Open any card from your Dex or from a catalogue search.",
           "See its market price, the market low and high, and how the price has moved.",
           "Pick a range to see more of the price history.",
           "Scroll down for live eBay listings of the same card.",

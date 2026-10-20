@@ -72,7 +72,7 @@
           :disabled="busy"
           @click="$emit('add')"
           class="-mr-1.5 -my-[11px] shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokemon-blue disabled:cursor-wait"
-          :aria-label="`Add ${card.name} to collection`"
+          :aria-label="`Add ${card.name} to Dex`"
         >
           <span
             class="inline-flex items-center justify-center w-6 h-6 rounded-full text-white transition-[background-color,transform] duration-150 ease-out active:scale-90"

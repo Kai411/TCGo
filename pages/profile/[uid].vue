@@ -234,14 +234,15 @@
         </Transition>
       </Teleport>
 
-      <!-- Underline tabs. Phones: three equal columns, 44px tall, so each
+      <!-- Underline tabs. Phones: equal columns, 44px tall, so each
            tab is a full-width target. Desktop: left aligned as before. The
            underline tracks the label, not the whole column. -->
       <div class="hairline mb-4 sm:mb-6 select-none">
         <div
           ref="containerEl"
           role="tablist"
-          class="relative grid grid-cols-3 lg:flex lg:items-center lg:gap-8 -mb-px"
+          class="relative grid lg:flex lg:items-center lg:gap-8 -mb-px"
+          :class="tabs.length === 3 ? 'grid-cols-3' : 'grid-cols-2'"
         >
           <button
             v-for="tab in tabs"
@@ -353,8 +354,8 @@
 
           <EmptyState
             v-if="collectionCards.length === 0"
-            headline="No cards in collection yet"
-            :caption="isOwnProfile ? 'Add cards you own to showcase your collection.' : 'This collector hasn\'t added any cards yet.'"
+            headline="No cards in this Dex yet"
+            :caption="isOwnProfile ? 'Add cards you own to show them off in your Dex.' : 'This collector hasn\'t added any cards yet.'"
           />
           <!-- Same flat hairline grid as the Collection page's own list. -->
           <div
@@ -526,6 +527,7 @@
 import type { Auction } from "~/composables/useAuctions";
 import type { CatalogMatch } from "~/composables/useCardCatalog";
 import { isAvailable } from "~/shared/card-availability";
+import { SHOW_DEX_ON_PROFILE } from "~/shared/dex";
 import { priceChange, type PriceChange } from "~/shared/price-change";
 
 const route = useRoute();
@@ -546,7 +548,10 @@ const reportSubmitted = ref(false);
 const showTrustInfo = ref(false);
 
 type TabId = "cards" | "auctions" | "collection";
-const TAB_IDS: TabId[] = ["cards", "auctions", "collection"];
+// The Dex tab is hidden for now; an old ?tab=collection link opens Shop.
+const TAB_IDS: TabId[] = SHOW_DEX_ON_PROFILE
+  ? ["cards", "auctions", "collection"]
+  : ["cards", "auctions"];
 const queryTab = route.query.tab as string | undefined;
 const activeTab = ref<TabId>(
   queryTab === "shop"
@@ -599,11 +604,14 @@ const loadCollection = async () => {
     priceChanges.value = new Map();
   }
 };
-onMounted(loadCollection);
-watch(
-  () => uid,
-  () => loadCollection(),
-);
+// Nothing shows the Dex while its tab is hidden, so don't fetch it.
+if (SHOW_DEX_ON_PROFILE) {
+  onMounted(loadCollection);
+  watch(
+    () => uid,
+    () => loadCollection(),
+  );
+}
 
 const collectionValue = computed(() =>
   collectionCards.value.reduce(
@@ -666,7 +674,7 @@ const liveAuctionCount = computed(
 const tabs = computed<{ id: TabId; label: string; count?: number }[]>(() => [
   { id: "cards", label: "Shop", count: listedCount.value },
   { id: "auctions", label: "Auctions", count: liveAuctionCount.value },
-  { id: "collection", label: "Collection" },
+  ...(SHOW_DEX_ON_PROFILE ? [{ id: "collection" as const, label: "Dex" }] : []),
 ]);
 
 // Sliding red underline under the active tab's label. Re-measure when the

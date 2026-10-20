@@ -147,7 +147,7 @@ export const APP_HOSTS = ["tcgo.shop", "www.tcgo.shop", "tcgo-staging.netlify.ap
 export const LINK_PRESETS: { label: string; path: string }[] = [
   { label: "Shop", path: "/" },
   { label: "Auctions", path: "/auctions" },
-  { label: "Collection", path: "/collection" },
+  { label: "TCGo Dex", path: "/collection" },
   { label: "Sell a card", path: "/seller/listings/new" },
   { label: "Start an auction", path: "/seller/auctions/new" },
   { label: "Messages", path: "/messages" },

@@ -89,7 +89,7 @@
           :disabled="busy"
           @click.stop.prevent="$emit('decrement')"
           class="inline-flex items-center justify-center w-7 h-7 rounded-full text-ink-muted dark:text-zinc-300 hover:text-pokemon-red transition-colors disabled:opacity-50 disabled:cursor-wait"
-          :aria-label="quantity <= 1 ? `Remove ${card.name} from collection` : `Remove one copy of ${card.name}`"
+          :aria-label="quantity <= 1 ? `Remove ${card.name} from Dex` : `Remove one copy of ${card.name}`"
         >
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14" /></svg>
         </button>
@@ -123,18 +123,18 @@
         ]"
         :aria-label="
           busy
-            ? 'Updating collection'
+            ? 'Updating Dex'
             : inCollection
-              ? 'Remove from collection'
-              : 'Add to collection'
+              ? 'Remove from Dex'
+              : 'Add to Dex'
         "
         :aria-busy="busy"
         :title="
           busy
-            ? 'Updating collection…'
+            ? 'Updating Dex…'
             : inCollection
-              ? 'Remove from collection'
-              : 'Add to collection'
+              ? 'Remove from Dex'
+              : 'Add to Dex'
         "
       >
         <svg
