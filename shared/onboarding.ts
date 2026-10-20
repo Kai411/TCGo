@@ -264,14 +264,36 @@ export interface SellerOnboardingView extends OnboardingView {
   handoverPreference?: string | null;
 }
 
+const filled = (v: unknown): boolean => !!String(v ?? "").trim();
+
+/**
+ * What the contact step still needs, in words for the seller: "contact
+ * number", "pickup address", "postcode", "city", "state". Empty when done.
+ *
+ * Named field by field because the step as a whole can look finished when it
+ * isn't: Seller settings shows the pickup address line once there's a street
+ * and postcode, and the setup form prefills the number from the delivery
+ * address, so a missing number or city was invisible everywhere except the
+ * "3 of 4 done" count.
+ */
+export const missingSellerContact = (p: SellerOnboardingView | null | undefined): string[] => {
+  const out: string[] = [];
+  if (!filled(p?.phone) && !filled(p?.whatsappNumber)) out.push("contact number");
+  if (!filled(p?.pickupAddress1)) out.push("pickup address");
+  if (!filled(p?.pickupPostcode)) out.push("postcode");
+  if (!filled(p?.pickupCity)) out.push("city");
+  if (!filled(p?.pickupState)) out.push("state");
+  return out;
+};
+
 export const hasSellerContact = (p: SellerOnboardingView | null | undefined): boolean =>
-  !!(
-    (p?.phone?.trim() || p?.whatsappNumber?.trim()) &&
-    p?.pickupAddress1?.trim() &&
-    p?.pickupPostcode?.trim() &&
-    p?.pickupCity?.trim() &&
-    p?.pickupState?.trim()
-  );
+  missingSellerContact(p).length === 0;
+
+/** "city", "city and state", "contact number, city and state". */
+export const joinWords = (words: string[]): string =>
+  words.length < 2
+    ? (words[0] ?? "")
+    : `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}`;
 
 /**
  * Everything Billplz needs to send a payout.

@@ -85,6 +85,12 @@
             <p>{{ pickupLine }}</p>
             <p v-if="contactNumber" class="text-ink-muted dark:text-zinc-400 tabular-nums">{{ contactNumber }}</p>
           </div>
+          <p
+            v-if="editing !== 'contact' && contactGaps.length"
+            class="mt-2 text-sm text-amber-700 dark:text-amber-300"
+          >
+            Add your {{ joinWords(contactGaps) }} to finish setup.
+          </p>
         </div>
 
         <!-- Bank account -->
@@ -199,6 +205,7 @@
 import { stateName } from "~/shared/my-states";
 import { isKycVerified } from "~/shared/didit";
 import { bankName, resolveBankCode } from "~/shared/banks";
+import { joinWords, missingSellerContact } from "~/shared/onboarding";
 
 definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Settings | TCGo" });
@@ -223,6 +230,9 @@ watch(
 
 const identityVerified = computed(() => isKycVerified(profile.value?.kycStatus as any));
 const contactNumber = computed(() => profile.value?.phone || profile.value?.whatsappNumber || "");
+// The address line above can show while the step is still undone (no number,
+// city or state), so say exactly what's left.
+const contactGaps = computed(() => missingSellerContact(profile.value));
 const bankLine = computed(() => {
   const p = profile.value;
   if (!p?.bankAccountNumber) return "";
