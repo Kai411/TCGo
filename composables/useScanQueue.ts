@@ -8,10 +8,10 @@ import type { CatalogMatch, CatalogPrice } from "./useCardCatalog";
 // Identification runs in the background so the user can keep scanning
 // while previous captures are still being processed. Each item carries a
 // status:
-//   - processing : Gemini lookup + TCGo DB query in flight
+//   - processing : Gemini lookup + TCGo Dex query in flight
 //   - ready      : single best match was selected (or non-EN auto-ready)
-//   - needs-pick : multiple candidates from TCGo DB, user has to choose
-//   - failed     : Gemini errored or TCGo DB returned nothing
+//   - needs-pick : multiple candidates from TCGo Dex, user has to choose
+//   - failed     : Gemini errored or TCGo Dex returned nothing
 export type ScanStatus = "processing" | "ready" | "needs-pick" | "failed";
 
 export interface ScanQueueItem {
@@ -39,7 +39,7 @@ export interface ScanQueueItem {
   cardName?: string;
   cardSet?: string;
   cardNumber?: string;
-  imageUrl?: string;            // TCGo DB reference image (used as a thumb)
+  imageUrl?: string;            // TCGo Dex reference image (used as a thumb)
   // Current market price in MYR pulled from card_prices.
   tcgoPrice?: CatalogPrice | null;
 

@@ -567,7 +567,7 @@ const processInBackground = async (
     artist,
   });
 
-  // 3. Languages with no TCGo DB coverage (KR, ZH, …) keep the old behavior:
+  // 3. Languages with no TCGo Dex coverage (KR, ZH, …) keep the old behavior:
   // use the scanned image + Gemini's translated name + printed number, and
   // the seller prices it manually. EN and JP both have catalog coverage —
   // the JP catalog (TCGCSV "Pokemon Japan") uses English product names, so
@@ -584,7 +584,7 @@ const processInBackground = async (
     return;
   }
 
-  // 4. Look up the card in the TCGo DB (Supabase cards_catalog + card_prices),
+  // 4. Look up the card in the TCGo Dex (Supabase cards_catalog + card_prices),
   //    scoped to the detected print language. First tries exact-ish
   //    name + number; falls back to name-only suggestions.
   let lookup: Awaited<ReturnType<typeof lookupByNameAndNumber>>;
@@ -595,7 +595,7 @@ const processInBackground = async (
   } catch {
     updateItem(id, {
       status: "failed",
-      error: "Couldn't reach the card database. Try again or search by name.",
+      error: "Couldn't reach TCGo Dex. Try again or search by name.",
     });
     return;
   }
@@ -625,7 +625,7 @@ const processInBackground = async (
   } else {
     updateItem(id, {
       status: "failed",
-      error: "No matches found in TCGo DB — fill in manually below.",
+      error: "No matches found in TCGo Dex — fill in manually below.",
     });
   }
 };
