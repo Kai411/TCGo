@@ -92,7 +92,7 @@ export const PERMISSIONS: PermissionDef[] = [
     group: "Content",
     label: "Manage banners and pages",
     description:
-      "Edit, show and hide the Shop and Auctions banners, and create and publish microsites. Changes are public at once.",
+      "Edit, show and hide the Marketplace and Auctions banners, and create and publish microsites. Changes are public at once.",
   },
   {
     key: "logs.view",

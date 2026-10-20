@@ -19,7 +19,7 @@
         to="/"
         class="mt-6 inline-flex items-center gap-1 text-sm text-pokemon-red font-semibold hover:underline"
       >
-        ← Back to shop
+        ← Back to Marketplace
       </NuxtLink>
     </div>
 

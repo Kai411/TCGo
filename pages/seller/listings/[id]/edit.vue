@@ -13,7 +13,7 @@
       <NuxtLink
         to="/"
         class="text-pokemon-blue hover:underline mt-2 inline-block text-sm"
-        >← Back to shop</NuxtLink
+        >← Back to Marketplace</NuxtLink
       >
     </div>
 

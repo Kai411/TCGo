@@ -76,7 +76,7 @@
         v-if="isProductPage"
         type="button"
         @click="goBackFromProduct"
-        :aria-label="route.path.startsWith('/auctions/') ? 'Back to auctions' : 'Back to shop'"
+        :aria-label="route.path.startsWith('/auctions/') ? 'Back to auctions' : 'Back to marketplace'"
         class="lg:hidden -ml-3 w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-full text-ink dark:text-white transition-transform duration-150 active:scale-90"
       >
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -245,7 +245,7 @@
       </div>
     </div>
 
-    <!-- Second row (desktop): section nav — Shop / Auctions / Collection /
+    <!-- Second row (desktop): section nav — Marketplace / Auctions / Collection /
          Orders. Dark strip under the glassy top bar, TCGplayer-style. -->
     <div class="hidden lg:block">
       <div
@@ -273,9 +273,10 @@
     </div>
   </nav>
 
-  <!-- Mobile bottom tab bar: Shop / Auctions / Sell / Collection / Account.
+  <!-- Mobile bottom tab bar: Marketplace / Auctions / Sell / Dex / Account.
        Sell sits in the middle as the one raised action; Orders moved into the
-       Account page. Pads for the iPhone home bar, keeping the old 16px as the floor. -->
+       Account page. Labels never wrap: "Marketplace", the longest, just fits
+       a 360px phone. Pads for the iPhone home bar, keeping the old 16px as the floor. -->
   <!-- Not on product pages: their own fixed bar (Buy now / Add to cart, or
        the bid button) takes this place. -->
   <nav
@@ -303,7 +304,7 @@
             <component :is="tab.icon" class="w-6 h-6" />
           </span>
           <span class="h-7" aria-hidden="true" />
-          <span>{{ tab.label }}</span>
+          <span class="whitespace-nowrap">{{ tab.label }}</span>
         </button>
         <NuxtLink
           v-else
@@ -320,7 +321,7 @@
               aria-label="Unread seller notifications"
             />
           </span>
-          <span>{{ tab.label }}</span>
+          <span class="whitespace-nowrap">{{ tab.label }}</span>
         </NuxtLink>
       </template>
     </div>
@@ -403,7 +404,7 @@ const { premiumEnabled } = useFeatureFlags();
 
 const desktopLinks = computed(() => {
   const links = [
-    { to: "/", label: "Shop" },
+    { to: "/", label: "Marketplace" },
     { to: "/auctions", label: "Auctions" },
   ];
   if (premiumEnabled) links.push({ to: "/membership", label: "Pricing" });
@@ -483,7 +484,7 @@ interface MobileTab {
 // too (sign in plus the policy pages that used to live in the footer), so
 // the bar is the same five tabs for everyone.
 const mobileTabs = computed<MobileTab[]>(() => [
-  { to: "/", label: "Shop", icon: IconShop },
+  { to: "/", label: "Marketplace", icon: IconShop },
   { to: "/auctions", label: "Auctions", icon: IconGavel },
   { label: "Sell", icon: IconPlus, sell: true },
   { to: "/collection", label: "Dex", icon: IconDex },
@@ -492,7 +493,7 @@ const mobileTabs = computed<MobileTab[]>(() => [
   { to: "/account", label: "Account", icon: IconAccount, dot: sellerHasUnread.value },
 ]);
 
-// Exact match for Shop, prefix match for the rest, so /auctions/123 keeps
+// Exact match for Marketplace, prefix match for the rest, so /auctions/123 keeps
 // Auctions lit. The account page's own sub-pages (orders, settings, your
 // profile) count as Account, since that is where they're reached from now.
 const isTabActive = (to: string) => {
