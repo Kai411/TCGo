@@ -8,9 +8,7 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
   reload,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  updatePassword,
+  sendPasswordResetEmail,
   type User,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -152,15 +150,29 @@ export const useAuth = () => {
     });
 
   /**
-   * Email and password accounts only. Firebase wants a recent sign-in before
-   * a password change, so the current password re-authenticates first; that
-   * also means a borrowed, unlocked phone can't change it.
+   * Email and password accounts only. Sends Firebase's own reset email to
+   * the signed-in address; the new password is chosen on the page the link
+   * opens, so only whoever reads that mailbox can change it. Doesn't depend
+   * on Mailtrap. The change starts the 24-hour hold on payouts and bank
+   * details (shared/security-lock.ts), which the server notices from
+   * Firebase's tokensValidAfterTime.
    */
-  const changePassword = async (current: string, next: string) => {
+  const sendPasswordLink = async () => {
     const u = auth.currentUser;
     if (!u?.email) throw new Error("Sign in again to change your password.");
-    await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, current));
-    await updatePassword(u, next);
+    try {
+      // Brings them back to Account settings after the reset.
+      await sendPasswordResetEmail(auth, u.email, {
+        url: `${window.location.origin}/profile`,
+      });
+    } catch (e) {
+      // A host missing from Firebase's authorized domains can't be the
+      // return address; the email still works without it.
+      const code = (e as { code?: string })?.code ?? "";
+      if (code !== "auth/unauthorized-continue-uri" && code !== "auth/invalid-continue-uri") throw e;
+      await sendPasswordResetEmail(auth, u.email);
+    }
+    return u.email;
   };
 
   const signOut = async () => {
@@ -186,7 +198,7 @@ export const useAuth = () => {
     requestCode,
     confirmEmail,
     resetPassword,
-    changePassword,
+    sendPasswordLink,
     signOut,
   };
 };

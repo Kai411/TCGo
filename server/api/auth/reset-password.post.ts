@@ -13,6 +13,7 @@
 import { getAdminFirestore, getAdminAuth } from "~/server/utils/firebase-admin";
 import { consumeCode, normaliseEmail } from "~/server/utils/auth-codes";
 import { noteAction } from "~/server/utils/oplog";
+import { recordPasswordChange } from "~/server/utils/security-lock";
 
 /** Firebase's own floor is 6; this is deliberately above it. */
 export const MIN_PASSWORD_LENGTH = 8;
@@ -60,6 +61,8 @@ export default defineEventHandler(async (event) => {
 
   await auth.updateUser(user.uid, { password, emailVerified: true });
   await auth.revokeRefreshTokens(user.uid);
+  // Starts the 24-hour hold on payouts and bank details.
+  await recordPasswordChange(user.uid);
 
   await db
     .collection("users")

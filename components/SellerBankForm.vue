@@ -1,5 +1,6 @@
 <template>
   <div>
+    <p v-if="held" class="lock" role="status">{{ lockText }}</p>
     <div class="space-y-3">
       <label class="block">
         <span class="lbl">Bank</span>
@@ -51,7 +52,7 @@
     <p v-if="error" class="err">{{ error }}</p>
     <div class="mt-5 flex gap-2">
       <button v-if="cancellable" type="button" class="btn-secondary" @click="emit('cancel')">Cancel</button>
-      <button :disabled="busy" class="btn-primary" @click="save">
+      <button :disabled="busy || held" class="btn-primary" @click="save">
         <span v-if="busy" class="spinner" />{{ submitLabel }}
       </button>
     </div>
@@ -75,7 +76,13 @@ withDefaults(
 );
 const emit = defineEmits<{ saved: []; cancel: [] }>();
 
-const { profile, updateProfile } = useMyProfile();
+const { profile } = useMyProfile();
+const { authedFetch } = useAuthedFetch();
+const { lockedUntil: lockEnds, lockText } = useSecurityLock();
+
+// Changing an existing payout account is held for 24 hours after a password
+// change; adding the first one never is (server/api/account/payout-details).
+const held = computed(() => !!lockEnds.value && !!profile.value?.bankAccountNumber);
 
 // The sandbox test bank only means anything against Billplz sandbox. The
 // value arrives as a string, so "false" must not count as on.
@@ -150,13 +157,15 @@ const save = async () => {
   }
   busy.value = true;
   try {
-    await updateProfile({
-      bankCode: form.bankCode,
-      // Denormalised for display (order pages, admin console).
-      bankName: bankByCode(form.bankCode)?.name ?? "",
-      bankAccountNumber: normaliseAccountNumber(form.bankAccountNumber),
-      bankAccountHolder: form.bankAccountHolder.trim(),
-      identityNumber: form.identityNumber.replace(/[\s-]/g, ""),
+    // Through the server so the hold after a password change is enforced.
+    await authedFetch("/api/account/payout-details", {
+      method: "POST",
+      body: {
+        bankCode: form.bankCode,
+        bankAccountNumber: normaliseAccountNumber(form.bankAccountNumber),
+        bankAccountHolder: form.bankAccountHolder.trim(),
+        identityNumber: form.identityNumber.replace(/[\s-]/g, ""),
+      },
     });
     emit("saved");
   } catch (e: any) {
@@ -173,6 +182,10 @@ const save = async () => {
 }
 .hint {
   @apply mt-1.5 block text-[11px] text-ink-soft dark:text-zinc-500;
+}
+.lock {
+  @apply mb-4 rounded-xl bg-amber-50 px-3.5 py-2.5 text-[13px] text-amber-800
+         dark:bg-amber-400/10 dark:text-amber-300;
 }
 .err {
   @apply mt-3 text-[13px] text-rose-600 dark:text-rose-400;

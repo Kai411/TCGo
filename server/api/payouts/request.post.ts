@@ -12,9 +12,12 @@ import { toPayoutRecipient } from "~/shared/payout-details";
 import { bankName } from "~/shared/banks";
 import type { PayoutBatch } from "~/shared/payout-ledger";
 import { getUserProfile } from "~/server/utils/user-profile";
+import { assertNotLocked } from "~/server/utils/security-lock";
 
 export default defineEventHandler(async (event) => {
   const caller = await requireUser(event);
+  // Held for 24 hours after a password change (shared/security-lock.ts).
+  await assertNotLocked(caller.uid);
   const db = getAdminFirestore();
 
   const profile = (await getUserProfile(db, caller.uid)) as any;

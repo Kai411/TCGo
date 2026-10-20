@@ -80,8 +80,28 @@ service cloud.firestore {
         'kycDeclineReason',
         'tier', 'subscriptionStatus', 'stripeCustomerId',
         'stripeSubscriptionId', 'currentPeriodEnd', 'cancelAtPeriodEnd',
-        'trustScore'
+        'trustScore',
+        // Payout bank, saved through /api/account/payout-details so the
+        // 24-hour hold after a password change can be enforced there.
+        'bankCode', 'bankName'
       ];
+    }
+
+    // The payout bank fields in users/{uid}/private/profile. The owner may
+    // leave them as they are, or copy in the value still on their public
+    // document (moving a legacy profile), but never set new ones: new bank
+    // details go through /api/account/payout-details, which holds changes
+    // for 24 hours after a password change.
+    function bankFieldKept(uid, f) {
+      let next = request.resource.data.get(f, null);
+      return next == (resource == null ? null : resource.data.get(f, null))
+        || next == get(/databases/$(database)/documents/users/$(uid)).data.get(f, null);
+    }
+
+    function bankFieldsKept(uid) {
+      return bankFieldKept(uid, 'bankAccountNumber')
+        && bankFieldKept(uid, 'bankAccountHolder')
+        && bankFieldKept(uid, 'identityNumber');
     }
 
     // Favouriting and view-interest bump counters on someone else's listing.
@@ -161,8 +181,9 @@ service cloud.firestore {
       allow delete: if false;
 
       // The personal half of the profile. Only its owner and admins read it.
-      // The owner writes their own contact, address and payout details; the
-      // identity result and merchant credentials are written by the server.
+      // The owner writes their own contact and address details; payout bank
+      // details, the identity result and merchant credentials are written
+      // by the server.
       match /private/{docId} {
         allow read: if isOwner(uid) || isAdmin();
         allow create, update: if isOwner(uid)
@@ -185,7 +206,8 @@ service cloud.firestore {
               : !request.resource.data.diff(resource.data).affectedKeys()
                   .hasAny(['kycVerifiedName', 'kycDocumentType',
                     'kycIssuingState', 'kycDeclineReason',
-                    'hitpayAccessToken', 'hitpayMerchantKey'].toSet()));
+                    'hitpayAccessToken', 'hitpayMerchantKey'].toSet()))
+          && bankFieldsKept(uid);
         allow delete: if false;
       }
     }
