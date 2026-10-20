@@ -12,7 +12,7 @@
 // and it was wrong in two ways at once. It was never actually charged —
 // `sellerPlan` is read in three places and written in none, so effectiveRate()
 // fell through to the standard rate for everyone — and the arithmetic didn't
-// work either: against a flat 4% plus the RM 4.99 plan, Vendor only earned
+// work either: against a flat 4% plus the RM 4.99 plan of the time, Vendor only earned
 // TCGo more from sellers under ~RM 6,500 of online sales a month, which are
 // exactly the sellers who would never pay RM 69.99. It made its money from
 // people who wouldn't buy it.
@@ -39,7 +39,7 @@ export interface Plan {
 
 export const STANDARD_RATE = 0.04;
 
-export const MARKETPLACE_MONTHLY = 4.99;
+export const MARKETPLACE_MONTHLY = 5.99;
 
 // ── The counter ───────────────────────────────────────────────────────
 //

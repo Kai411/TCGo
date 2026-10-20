@@ -22,7 +22,7 @@
           Unlimited scans with Premium
         </p>
         <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-          List faster with AI — RM 5.99/month, cancel anytime.
+          List faster with AI — RM {{ MARKETPLACE_MONTHLY }}/month, cancel anytime.
         </p>
       </div>
 
@@ -50,6 +50,7 @@
 </template>
 
 <script setup lang="ts">
+import { MARKETPLACE_MONTHLY } from "~/shared/pricing";
 const STORAGE_KEY = 'tcgo-premium-banner-dismissed';
 const DISMISS_DAYS = 7;
 

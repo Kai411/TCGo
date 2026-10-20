@@ -583,7 +583,7 @@ const feeLines = feeComponentRates().map((c) => ({
 
 // Two subscriptions sit on top of the per-sale 4%.
 //
-// Two plans, one rate. Pro (RM4.99) unlocks unlimited AI card scans — the free
+// Two plans, one rate. Pro (MARKETPLACE_MONTHLY) unlocks unlimited AI card scans — the free
 // tier caps at 20 a month. It does NOT change commission, and no plan does:
 // see the note at the top of shared/pricing.ts for why the Vendor tier and its
 // 3% were removed.
@@ -767,7 +767,7 @@ const faqs = [
   },
   {
     q: "Do I need a subscription to sell online?",
-    a: "No. Selling costs 4% a sale on both plans, the free one included, and the till needs no subscription either. Pro at RM4.99 lifts the 20-a-month cap on card scans — that's the whole difference.",
+    a: `No. Selling costs 4% a sale on both plans, the free one included, and the till needs no subscription either. Pro at RM${MARKETPLACE_MONTHLY} lifts the 20-a-month cap on card scans — that's the whole difference.`,
   },
   {
     q: "What does tap-to-pay cost?",
