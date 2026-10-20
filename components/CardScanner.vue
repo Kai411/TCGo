@@ -282,6 +282,15 @@
 </template>
 
 <script setup lang="ts">
+import type { ScanScope } from "~/composables/useScanQueue";
+const props = withDefaults(
+  defineProps<{
+    /** Which scan queue to fill: a seller's listing, or the member's collection. */
+    scope?: ScanScope;
+  }>(),
+  { scope: "listing" },
+);
+
 const emit = defineEmits<{
   close: [];
   finished: [];
@@ -290,7 +299,7 @@ const emit = defineEmits<{
 const { uploadImage } = useStorage();
 const { lookupByNameAndNumber } = useCardCatalog();
 const { queue, addProcessing, updateItem, pickMatch, processingCount } =
-  useScanQueue();
+  useScanQueue(props.scope);
 const {user} = useAuth();
 const { goToLogin } = useSignInGate();
 const { isPremium, remaining, used, tryConsumeScan } = useScanQuota();

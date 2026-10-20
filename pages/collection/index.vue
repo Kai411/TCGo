@@ -11,13 +11,12 @@
            it had none. Symmetric padding now, so the bar sits the same
            distance from the nav as it does from the results. -->
       <div class="flex items-center gap-1.5 py-3">
-        <!-- Scanner placeholder — not yet implemented -->
+        <!-- Scan cards into the collection: camera, then a review sheet. -->
         <button
           type="button"
-          disabled
-          title="Card scanner — coming soon"
-          class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-ink-soft dark:text-zinc-500 opacity-60 cursor-not-allowed"
-          aria-label="Scan card (coming soon)"
+          class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-ink dark:text-zinc-200 hover:text-pokemon-red transition-colors"
+          aria-label="Scan cards"
+          @click="openScanner"
         >
           <svg
             class="w-5 h-5"
@@ -467,6 +466,36 @@
         </p>
       </template>
     </div>
+
+    <!-- Card scanning. The scanner fills the collection's own queue; the
+         review sheet is where matches are checked and added. -->
+    <CardScanner
+      v-if="scannerOpen"
+      scope="collection"
+      @close="onScannerClosed"
+      @finished="onScannerClosed"
+    />
+    <CollectionScanReview
+      v-if="scanReviewOpen"
+      @close="scanReviewOpen = false"
+      @scan-more="openScanner"
+      @search="searchFromScan"
+      @added="onScanAdded"
+    />
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      leave-active-class="transition duration-150 ease-out"
+      leave-to-class="opacity-0"
+    >
+      <p
+        v-if="scanAddedNote"
+        role="status"
+        class="fixed left-1/2 -translate-x-1/2 top-[calc(12px+env(safe-area-inset-top))] z-[80] whitespace-nowrap rounded-full bg-ink dark:bg-white px-4 py-2.5 text-sm font-semibold text-white dark:text-ink shadow-lg"
+      >
+        {{ scanAddedNote }}
+      </p>
+    </Transition>
 
     <!-- Manage sheet for one owned card: the ⋮ on a tile opens it. One
          sheet, three views: the actions, then a count for "Change amount"
@@ -1114,6 +1143,41 @@ const totalValue = computed(() =>
     0,
   ),
 );
+
+// ── Card scanning ─────────────────────────────────────────────────────
+const { queue: scanQueue } = useScanQueue("collection");
+const scannerOpen = ref(false);
+const scanReviewOpen = ref(false);
+
+const openScanner = () => {
+  // The scanner has its own sign-in screen, but a guest gets further sooner
+  // with the usual prompt.
+  if (!requireSignIn()) return;
+  scanReviewOpen.value = false;
+  scannerOpen.value = true;
+};
+
+// Closing the camera with scans in hand goes to the review; with none, it
+// just closes.
+const onScannerClosed = () => {
+  scannerOpen.value = false;
+  if (scanQueue.value.length) scanReviewOpen.value = true;
+};
+
+const searchFromScan = (query: string) => {
+  scanReviewOpen.value = false;
+  searchInput.value = query;
+  runSearch();
+};
+
+const scanAddedNote = ref("");
+let scanNoteTimer: ReturnType<typeof setTimeout> | undefined;
+const onScanAdded = (copies: number) => {
+  if (!scanQueue.value.length) scanReviewOpen.value = false;
+  scanAddedNote.value = `Added ${copies} ${copies === 1 ? "card" : "cards"} to your collection`;
+  clearTimeout(scanNoteTimer);
+  scanNoteTimer = setTimeout(() => (scanAddedNote.value = ""), 2600);
+};
 
 const formatMyr = (n: number) =>
   n.toLocaleString("en-MY", {

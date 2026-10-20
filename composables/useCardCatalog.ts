@@ -1,4 +1,5 @@
 import { numberCandidates } from "~/shared/card-number";
+import { parsePrintedNumber, printedNumberForms, rankScanMatches } from "~/shared/scan-match";
 
 // Query parsing lives in shared/ so it can be tested without a Nuxt runtime.
 // Re-exported here because both search surfaces reach it through this module.
@@ -554,50 +555,57 @@ export const useCardCatalog = () => {
   ): Promise<{ exact: CatalogMatch[]; suggestions: CatalogMatch[] }> => {
     if (!supabase) return { exact: [], suggestions: [] };
     const trimmedName = name.trim();
-    if (trimmedName.length < 2) return { exact: [], suggestions: [] };
+    const printed = parsePrintedNumber(number);
+    if (trimmedName.length < 2 && !printed) return { exact: [], suggestions: [] };
 
     // Fetch the FX rate concurrently with the lookup.
     const fxReady = ensureRate();
 
-    const numericOnly = number?.includes("/") ? number.split("/")[0].trim() : number?.trim();
-
-    // Step 1: exact-ish match (name ILIKE + matching number form).
-    if (numericOnly) {
-      let q = supabase
+    // Two queries, ranked together in shared/scan-match.ts. By number: the
+    // stronger signal, and it still finds the card when the name came back
+    // translated or misspelt. The stored number is zero-padded ("065/202")
+    // and the scanner's isn't ("65/202"), so every padded form is asked for.
+    // By name: for cards with no readable number.
+    const byNumber = async () => {
+      if (!printed) return [];
+      const forms = printedNumberForms(printed.printed);
+      // With a set size, only that set's card: "65" alone is in every set.
+      const totals = printed.total ? printedNumberForms(printed.total) : [];
+      const or = forms.flatMap((f) =>
+        totals.length
+          ? totals.map((t) => `number.ilike.${f}/${t}`)
+          : [`number.ilike.${f}`, `number.ilike.${f}/*`],
+      );
+      let q = supabase!.from("cards_catalog").select(SELECT_COLUMNS).or(or.join(",")).limit(30);
+      if (opts.language) q = q.eq("language", opts.language);
+      const { data, error } = await q;
+      if (error) console.error("[useCardCatalog] scan number lookup error:", error.message);
+      return data ?? [];
+    };
+    const byName = async () => {
+      if (trimmedName.length < 2) return [];
+      let q = supabase!
         .from("cards_catalog")
         .select(SELECT_COLUMNS)
-        .ilike("name", `${trimmedName}%`)
-        .or(`number.eq.${number},number.like.${numericOnly}/%,number.eq.${numericOnly}`)
-        .limit(8);
-
+        .ilike("name", `%${trimmedName.replace(/[%_]/g, "")}%`)
+        .order("name", { ascending: true })
+        .limit(40);
       if (opts.language) q = q.eq("language", opts.language);
-
       const { data, error } = await q;
-      if (error) {
-        console.error("[useCardCatalog] exact lookup error:", error.message);
-      } else if (data && data.length > 0) {
-        await fxReady;
-        return { exact: data.map(rowToMatch), suggestions: [] };
-      }
-    }
+      if (error) console.error("[useCardCatalog] scan name lookup error:", error.message);
+      return data ?? [];
+    };
 
-    // Step 2: name-only fallback — show suggestions in the scanner.
-    let fallback = supabase
-      .from("cards_catalog")
-      .select(SELECT_COLUMNS)
-      .ilike("name", `${trimmedName}%`)
-      .order("name", { ascending: true })
-      .limit(12);
-
-    if (opts.language) fallback = fallback.eq("language", opts.language);
-
-    const { data: fbData, error: fbErr } = await fallback;
-    if (fbErr) {
-      console.error("[useCardCatalog] suggestion lookup error:", fbErr.message);
-      return { exact: [], suggestions: [] };
-    }
+    const [numberRows, nameRows] = await Promise.all([byNumber(), byName()]);
     await fxReady;
-    return { exact: [], suggestions: (fbData ?? []).map(rowToMatch) };
+    const seen = new Set<number>();
+    const rows: CatalogMatch[] = [];
+    for (const r of [...numberRows, ...nameRows]) {
+      if (seen.has(r.product_id)) continue;
+      seen.add(r.product_id);
+      rows.push(rowToMatch(r));
+    }
+    return rankScanMatches({ name: trimmedName, number }, rows);
   };
 
   // Detail-page lookup — fetch a single catalog row + its current price.
