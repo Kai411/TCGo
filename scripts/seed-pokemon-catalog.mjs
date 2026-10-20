@@ -157,6 +157,10 @@ async function seedCategory(category) {
   console.log(`\n=== ${category.label} (category ${category.id}) ===`);
   const groups = await fetchGroups(category.id);
   console.log(`Found ${groups.length} groups (sets).`);
+  // Release dates feed the Dex's Newest sort; say plainly if upstream sent none.
+  const dated = groups.filter((g) => g.publishedOn).length;
+  console.log(`Release dates: ${dated} of ${groups.length} sets (released_on ${hasReleasedOn ? "on" : "off"}).`);
+  if (!dated && groups[0]) console.log(`First group's fields: ${Object.keys(groups[0]).join(", ")}`);
 
   let totalProducts = 0;
   const failures = [];
