@@ -312,7 +312,7 @@
         <p
           class="text-sm text-ink-muted dark:text-zinc-400 mt-1 max-w-sm mx-auto"
         >
-          Search the TCGo catalogue above and tap + on any card to start
+          Search TCGo Dex above and tap + on any card to start
           tracking it.
         </p>
       </div>
@@ -386,7 +386,7 @@
         <!-- A DPBP number will never match, so say why rather than leaving
              them to retype it. -->
         <template v-if="looksLikeDpbp">
-          Japanese DP-era cards are in the catalogue, but their DPBP number
+          Japanese DP-era cards are in TCGo Dex, but their DPBP number
           isn't — it isn't published with the card data we use.
           <span class="block mt-2 text-ink dark:text-white font-semibold">
             Search the name and set instead, like “omanyte dp4”.

@@ -29,7 +29,7 @@
     <div v-else-if="!card" class="surface rounded-2xl py-20 px-5 text-center">
       <p class="text-lg font-bold text-ink dark:text-white">Card not found</p>
       <p class="mt-1 text-sm text-ink-muted dark:text-zinc-400">
-        This catalogue card may no longer be available.
+        This card may no longer be in TCGo Dex.
       </p>
       <NuxtLink
         to="/collection"

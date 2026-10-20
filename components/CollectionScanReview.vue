@@ -98,7 +98,7 @@
                 <!-- Not found, or no catalogue entry to add -->
                 <template v-else>
                   <p class="text-sm font-semibold text-ink dark:text-white">
-                    {{ item.status === "failed" ? "Couldn't match this card" : "Not in the TCGo catalogue" }}
+                    {{ item.status === "failed" ? "Couldn't match this card" : "Not in TCGo Dex" }}
                   </p>
                   <p class="text-xs text-ink-soft dark:text-zinc-500">
                     {{ item.status === "failed" ? item.error : `Read as ${readAs(item)}` }}
