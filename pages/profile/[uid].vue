@@ -670,11 +670,13 @@ const tabs = computed<{ id: TabId; label: string; count?: number }[]>(() => [
 ]);
 
 // Sliding red underline under the active tab's label. Re-measure when the
-// active tab changes and when counts change (they alter label widths).
+// active tab changes, when counts change (they alter label widths) and when
+// the profile finishes loading (the tab bar isn't rendered before that, so
+// the first measure on mount finds nothing).
 const { containerEl, setTabRef, indicatorStyle, measure } = useTabIndicator();
 onMounted(() => nextTick(() => measure(activeTab.value)));
 watch(
-  () => [activeTab.value, listedCount.value, liveAuctionCount.value],
+  () => [activeTab.value, listedCount.value, liveAuctionCount.value, !!profile.value],
   () => nextTick(() => measure(activeTab.value)),
 );
 
