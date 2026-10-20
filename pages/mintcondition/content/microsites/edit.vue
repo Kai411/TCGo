@@ -80,7 +80,7 @@
         :hint="
           form.type === 'image'
             ? 'The whole page. Shown full width on phones; tall posters scroll. At least 1080 px wide.'
-            : 'Across the top, edge to edge. 16:9 on phones, so about 1600 × 900.'
+            : 'Across the top, never cropped: edge to edge on phones, in the text column on wider screens. A listing banner (3:1) or a 16:9 image both work; at least 1500 px wide.'
         "
       />
 
