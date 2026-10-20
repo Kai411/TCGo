@@ -365,43 +365,60 @@ export const useCardCatalog = () => {
     const rarities = (opts.rarityMatches ?? []).filter(Boolean);
     if (opts.numberMatch || rarities.length > 1) {
       const forms = opts.numberMatch ? numberCandidates(opts.numberMatch) : [];
-      let q = supabase
-        .from("cards_catalog")
-        .select(SELECT_COLUMNS, { count: "exact" });
+      // A function, because a query can only run once and the Newest order
+      // may need a second try (see below).
+      const build = () => {
+        let q = supabase
+          .from("cards_catalog")
+          .select(SELECT_COLUMNS, { count: "exact" });
 
-      // The whole number, or the printed part before the slash — 012 finds
-      // 012/202 without the searcher knowing the set size, gg44 finds
-      // GG44/GG70, swsh020 matches outright.
-      //
-      // NOT a bare prefix match. numberCandidates also yields the unpadded
-      // form, and `12%` pulls in 122/106 and every other number that merely
-      // starts with those digits.
-      const numberOr = [
-        ...forms.flatMap((f) => [`number.ilike.${f}`, `number.ilike.${f}/*`]),
-        // The same token read as a set name, when it is both. This joins the
-        // OR group rather than narrowing it, so "pikachu 151" returns the
-        // 151-set Pikachus alongside any numbered 151.
-        ...(opts.setOrNumber && setMatch ? [`group_name.ilike.*${setMatch}*`] : []),
-      ];
-      if (numberOr.length) q = q.or(numberOr.join(","));
+        // The whole number, or the printed part before the slash — 012 finds
+        // 012/202 without the searcher knowing the set size, gg44 finds
+        // GG44/GG70, swsh020 matches outright.
+        //
+        // NOT a bare prefix match. numberCandidates also yields the unpadded
+        // form, and `12%` pulls in 122/106 and every other number that merely
+        // starts with those digits.
+        const numberOr = [
+          ...forms.flatMap((f) => [`number.ilike.${f}`, `number.ilike.${f}/*`]),
+          // The same token read as a set name, when it is both. This joins the
+          // OR group rather than narrowing it, so "pikachu 151" returns the
+          // 151-set Pikachus alongside any numbered 151.
+          ...(opts.setOrNumber && setMatch ? [`group_name.ilike.*${setMatch}*`] : []),
+        ];
+        if (numberOr.length) q = q.or(numberOr.join(","));
 
-      // A second .or() is ANDed against the first, which is what we want:
-      // (this number or set) AND (any of these rarities).
-      if (rarities.length > 1) {
-        q = q.or(rarities.map((r) => `rarity.ilike.${r}`).join(","));
-      } else if (rarityMatch) {
-        q = q.ilike("rarity", `%${rarityMatch}%`);
-      }
+        // A second .or() is ANDed against the first, which is what we want:
+        // (this number or set) AND (any of these rarities).
+        if (rarities.length > 1) {
+          q = q.or(rarities.map((r) => `rarity.ilike.${r}`).join(","));
+        } else if (rarityMatch) {
+          q = q.ilike("rarity", `%${rarityMatch}%`);
+        }
 
-      if (trimmed.length >= 2) q = q.ilike("name", `%${trimmed}%`);
-      if (setMatch && !opts.setOrNumber) q = q.ilike("group_name", `%${setMatch}%`);
-      if (opts.language && opts.language !== "ALL") q = q.eq("language", opts.language);
+        if (trimmed.length >= 2) q = q.ilike("name", `%${trimmed}%`);
+        if (setMatch && !opts.setOrNumber) q = q.ilike("group_name", `%${setMatch}%`);
+        if (opts.language && opts.language !== "ALL") q = q.eq("language", opts.language);
+        return q;
+      };
 
       const size = opts.limit ?? 28;
       const from = (opts.page ?? 0) * size;
-      const { data, error, count } = await q
-        .order("number", { ascending: true })
-        .range(from, from + size - 1);
+      // Newest and Name A–Z apply here too; this path used to keep number
+      // order whatever was chosen. Price still can't, as it sits in the
+      // joined card_prices row.
+      const ordered = (newest: boolean) => {
+        let q = build();
+        if (newest) q = q.order("released_on", { ascending: false, nullsFirst: false });
+        if (opts.sort === "name") q = q.order("name", { ascending: true });
+        return q.order("number", { ascending: true }).range(from, from + size - 1);
+      };
+      let { data, error, count } = await ordered(opts.sort === "newest");
+      // released_on is added by hand; until it is, keep number order rather
+      // than returning nothing.
+      if (error && opts.sort === "newest" && /released_on/.test(error.message)) {
+        ({ data, error, count } = await ordered(false));
+      }
 
       if (error) {
         console.error("[useCardCatalog] number search error:", error.message);
