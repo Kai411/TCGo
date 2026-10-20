@@ -10,7 +10,11 @@
       type="button"
       aria-label="Back"
       class="fixed left-3 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full transition-transform duration-150 ease-out active:scale-90"
-      :class="floatingBack ? 'bg-black/45 text-white backdrop-blur-md' : 'text-ink dark:text-white'"
+      :class="
+        site?.type === 'image'
+          ? 'bg-black/45 text-white backdrop-blur-md'
+          : 'bg-white/85 text-ink shadow-sm ring-1 ring-black/[0.06] backdrop-blur-md dark:bg-zinc-900/85 dark:text-white dark:ring-white/[0.08]'
+      "
       style="top: calc(env(safe-area-inset-top) + 10px)"
       @click="goBack"
     >
@@ -46,26 +50,33 @@
       />
     </div>
 
-    <!-- Article: full-bleed banner, then the text in a readable column. -->
+    <!-- Article. Phones: the banner runs edge to edge below the back
+         button. Wider screens: banner and text share one centred column,
+         the banner with rounded corners. The banner is never cropped or
+         covered, since staff often reuse a listing banner with text baked
+         into it. -->
     <article
       v-else-if="site"
+      class="pt-[calc(env(safe-area-inset-top)+60px)] sm:pt-20"
       style="padding-bottom: calc(env(safe-area-inset-bottom) + 4rem)"
     >
-      <img
-        v-if="site.imageUrl"
-        :src="cdnUrl(site.imageUrl, 1600)"
-        alt=""
-        class="block aspect-[16/9] w-full object-cover lg:aspect-[3/1]"
-        draggable="false"
-      />
-      <div
-        class="mx-auto max-w-2xl px-4"
-        :class="site.imageUrl ? 'pt-6' : 'pt-[calc(env(safe-area-inset-top)+64px)]'"
-      >
-        <h1 class="text-[26px] font-bold leading-tight text-ink dark:text-white [text-wrap:balance] sm:text-3xl">
-          {{ site.title }}
-        </h1>
-        <ArticleBody :body="site.body" class="mt-5" />
+      <div class="mx-auto max-w-[46rem] sm:px-6">
+        <img
+          v-if="site.imageUrl"
+          :src="cdnUrl(site.imageUrl, 1600)"
+          alt=""
+          class="block h-auto max-h-[75vh] w-full bg-black/[0.04] object-cover dark:bg-white/[0.06] sm:rounded-2xl sm:ring-1 sm:ring-black/[0.06] sm:dark:ring-white/[0.08]"
+          draggable="false"
+        />
+        <div
+          class="px-4 sm:px-0"
+          :class="site.imageUrl ? 'pt-6 sm:pt-10' : 'pt-2 sm:pt-0'"
+        >
+          <h1 class="text-[28px] font-bold leading-[1.15] tracking-tight text-ink dark:text-white [text-wrap:balance] sm:text-[40px]">
+            {{ site.title }}
+          </h1>
+          <ArticleBody :body="site.body" class="mt-5 sm:mt-7" />
+        </div>
       </div>
     </article>
 
@@ -92,11 +103,6 @@ const { mcFetch } = useMcFetch();
 const site = ref<Microsite | null>(null);
 const loading = ref(true);
 const isDraft = ref(false);
-
-// Over an image the back button needs its own backdrop to stay visible.
-const floatingBack = computed(
-  () => site.value?.type === "image" || (site.value?.type === "article" && !!site.value.imageUrl),
-);
 
 const load = async () => {
   loading.value = true;
