@@ -98,7 +98,7 @@
                 <!-- Not found, or no catalogue entry to add -->
                 <template v-else>
                   <p class="text-sm font-semibold text-ink dark:text-white">
-                    {{ item.status === "failed" ? "Couldn't match this card" : "Not in the TCGo catalogue" }}
+                    {{ item.status === "failed" ? "Couldn't match this card" : "Not in TCGo Dex" }}
                   </p>
                   <p class="text-xs text-ink-soft dark:text-zinc-500">
                     {{ item.status === "failed" ? item.error : `Read as ${readAs(item)}` }}
@@ -205,8 +205,8 @@
               @click="addAll"
             >
               <template v-if="saving">Adding…</template>
-              <template v-else-if="readyTotal > 0">Add {{ readyTotal }} to collection</template>
-              <template v-else>Add to collection</template>
+              <template v-else-if="readyTotal > 0">Add {{ readyTotal }} to Dex</template>
+              <template v-else>Add to Dex</template>
             </button>
           </div>
         </div>

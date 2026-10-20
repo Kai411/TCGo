@@ -17,7 +17,7 @@
       >
         <path d="m15 18-6-6 6-6" />
       </svg>
-      Back to collection
+      Back to TCGo Dex
     </button>
 
     <div v-if="loading" class="flex justify-center py-24">
@@ -29,13 +29,13 @@
     <div v-else-if="!card" class="surface rounded-2xl py-20 px-5 text-center">
       <p class="text-lg font-bold text-ink dark:text-white">Card not found</p>
       <p class="mt-1 text-sm text-ink-muted dark:text-zinc-400">
-        This catalogue card may no longer be available.
+        This card may no longer be in TCGo Dex.
       </p>
       <NuxtLink
         to="/collection"
         class="mt-5 inline-flex items-center justify-center rounded-full bg-ink dark:bg-white px-5 py-2.5 text-sm font-semibold text-white dark:text-ink hover:opacity-90 transition-opacity"
       >
-        Browse collection cards
+        Browse TCGo Dex
       </NuxtLink>
     </div>
 
@@ -324,7 +324,7 @@
                   :disabled="collectionBusy"
                   @click="handleCollectionDecrement"
                   class="inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors hover:text-pokemon-red disabled:opacity-50 dark:text-zinc-300"
-                  :aria-label="ownedQuantity <= 1 ? 'Remove from collection' : 'Remove one copy'"
+                  :aria-label="ownedQuantity <= 1 ? 'Remove from Dex' : 'Remove one copy'"
                 >
                   <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14" /></svg>
                 </button>
@@ -899,7 +899,7 @@
             :to="`/collection?set=${encodeURIComponent(card.setName)}`"
             class="inline-flex items-center gap-1 text-xs font-bold text-pokemon-red hover:underline"
           >
-            Explore collection
+            Explore set
             <svg
               class="h-3.5 w-3.5"
               viewBox="0 0 24 24"
@@ -1189,9 +1189,9 @@ const inCollection = computed(
 // Only rendered when the card is NOT collected — the owned state is the
 // CollectedBadge, not this button.
 const collectionButtonLabel = computed(() => {
-  if (!user.value) return "Sign in to collect";
-  if (collectionLoading.value) return "Checking collection…";
-  return "Add to collection";
+  if (!user.value) return "Sign in to add";
+  if (collectionLoading.value) return "Checking your Dex…";
+  return "Add to Dex";
 });
 
 /** Copies of this card owned, for the badge and stepper. */

@@ -408,7 +408,7 @@ const desktopLinks = computed(() => {
   ];
   if (premiumEnabled) links.push({ to: "/membership", label: "Pricing" });
   if (user.value) {
-    links.push({ to: "/collection", label: "Collection" });
+    links.push({ to: "/collection", label: "Dex" });
     links.push({ to: "/activity", label: "Orders" });
     links.push({ to: "/seller", label: "Seller Dashboard" });
   }
@@ -443,12 +443,18 @@ const IconPlus = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke, "stroke-width": "2.5" }, [
     h("path", { d: "M12 5v14M5 12h14" }),
   ]);
-const IconCollection = () =>
+// TCGo Dex: a card with a rising price line and the logo's sparkle. The
+// card sits a little right of centre so it lines up under the label, with
+// the sparkle hanging off its top corner.
+const IconDex = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [
-    h("rect", { x: "3", y: "3", width: "7", height: "7", rx: "1" }),
-    h("rect", { x: "14", y: "3", width: "7", height: "7", rx: "1" }),
-    h("rect", { x: "3", y: "14", width: "7", height: "7", rx: "1" }),
-    h("rect", { x: "14", y: "14", width: "7", height: "7", rx: "1" }),
+    h("rect", { x: "5.5", y: "3.5", width: "12", height: "17", rx: "2.5" }),
+    h("path", { d: "M8.4 15.4 10.8 12.6l2 1.6 2.4-3.4" }),
+    h("path", {
+      d: "M20.4 1.7Q20.886 3.914 23.1 4.4Q20.886 4.886 20.4 7.1Q19.914 4.886 17.7 4.4Q19.914 3.914 20.4 1.7Z",
+      fill: "currentColor",
+      stroke: "none",
+    }),
   ]);
 
 const IconStore = () =>
@@ -457,7 +463,7 @@ const IconStore = () =>
     h("path", { d: "M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9" }),
     h("path", { d: "M9 13h6" }),
   ]);
-// A person in a circle: the account, distinct from Collection's grid.
+// A person in a circle: the account.
 const IconAccount = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [
     h("circle", { cx: "12", cy: "12", r: "9.5" }),
@@ -480,7 +486,7 @@ const mobileTabs = computed<MobileTab[]>(() => [
   { to: "/", label: "Shop", icon: IconShop },
   { to: "/auctions", label: "Auctions", icon: IconGavel },
   { label: "Sell", icon: IconPlus, sell: true },
-  { to: "/collection", label: "Collection", icon: IconCollection },
+  { to: "/collection", label: "Dex", icon: IconDex },
   // The seller dot used to ride on the top-bar Sell menu; the dashboard
   // link now lives on the Account page, so the dot follows it there.
   { to: "/account", label: "Account", icon: IconAccount, dot: sellerHasUnread.value },

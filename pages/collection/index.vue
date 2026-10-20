@@ -127,14 +127,15 @@
           />
         </button>
 
-        <!-- "Your collection" only exists once there's an account. A guest
+        <!-- "Your Dex" only exists once there's an account. A guest
              gets the same row pointed at sign-in rather than a dead link to
-             /profile/undefined. -->
+             /profile/undefined. Hidden while profiles don't show the Dex. -->
         <NuxtLink
+          v-if="SHOW_DEX_ON_PROFILE"
           :to="user ? `/profile/${user.uid}?tab=collection` : { path: '/login', query: { next: $route.fullPath } }"
           class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-ink dark:text-zinc-200 hover:text-pokemon-red transition-colors"
-          aria-label="See your collection as others do"
-          title="See your collection as others do"
+          aria-label="See your Dex as others do"
+          title="See your Dex as others do"
         >
           <svg
             class="w-5 h-5"
@@ -306,19 +307,19 @@
 
       <div v-else-if="!collectionCards.length" class="text-center py-16">
         <p class="text-ink dark:text-white font-semibold">
-          Your collection is empty
+          Your Dex is empty
         </p>
         <p
           class="text-sm text-ink-muted dark:text-zinc-400 mt-1 max-w-sm mx-auto"
         >
-          Search the TCGo catalogue above and tap + on any card to start
+          Search TCGo Dex above and tap + on any card to start
           tracking it.
         </p>
       </div>
 
       <template v-else>
         <div class="flex items-baseline justify-between mb-3">
-          <h2 class="eyebrow">Your collection</h2>
+          <h2 class="eyebrow">Your Dex</h2>
           <span
             class="text-xs text-ink-soft dark:text-zinc-500 tabular-price"
           >
@@ -385,7 +386,7 @@
         <!-- A DPBP number will never match, so say why rather than leaving
              them to retype it. -->
         <template v-if="looksLikeDpbp">
-          Japanese DP-era cards are in the catalogue, but their DPBP number
+          Japanese DP-era cards are in TCGo Dex, but their DPBP number
           isn't — it isn't published with the card data we use.
           <span class="block mt-2 text-ink dark:text-white font-semibold">
             Search the name and set instead, like “omanyte dp4”.
@@ -422,7 +423,7 @@
               @click="clearSearch"
               class="text-xs font-semibold text-pokemon-red hover:underline"
             >
-              Back to collection
+              Back to Dex
             </button>
           </div>
         </div>
@@ -550,7 +551,7 @@
           <template v-else-if="manageView === 'remove'">
             <p class="px-2 pb-4 text-sm text-ink-muted dark:text-zinc-400">
               Remove this card and all {{ manageOwned }}
-              {{ manageOwned === 1 ? "copy" : "copies" }} from your collection?
+              {{ manageOwned === 1 ? "copy" : "copies" }} from your Dex?
             </p>
             <div class="flex gap-2">
               <button
@@ -598,7 +599,7 @@
               </button>
             </div>
             <p v-if="manageView === 'amount' && manageCount === 0" class="px-2 -mt-2 mb-3 text-center text-xs text-pokemon-red">
-              Saving 0 removes the card from your collection.
+              Saving 0 removes the card from your Dex.
             </p>
             <div class="flex gap-2">
               <button
@@ -637,8 +638,9 @@ import {
 import { parseSearchQuery } from "~/shared/search-query";
 import { priceChange, type PriceChange } from "~/shared/price-change";
 import { countBy, filterOwned, sortOwned } from "~/shared/collection-sort";
+import { SHOW_DEX_ON_PROFILE } from "~/shared/dex";
 
-useHead({ title: "Add Cards | TCGo Marketplace" });
+useHead({ title: "TCGo Dex | TCGo Marketplace" });
 
 // Divisible by 3 and 5 — the grid widths — so the last row is never
 // left with empty slots at any breakpoint.
@@ -950,7 +952,7 @@ const runSearch = async () => {
 };
 
 // Emptying the box is the way back too. A search with no matches has no
-// "Back to collection" button, so without this the page stayed on "No
+// "Back to Dex" button, so without this the page stayed on "No
 // matches" after the text and filters were cleared. Not via runSearch: that
 // dismisses the keyboard mid-edit.
 watch(searchInput, (value) => {
@@ -1174,7 +1176,7 @@ const scanAddedNote = ref("");
 let scanNoteTimer: ReturnType<typeof setTimeout> | undefined;
 const onScanAdded = (copies: number) => {
   if (!scanQueue.value.length) scanReviewOpen.value = false;
-  scanAddedNote.value = `Added ${copies} ${copies === 1 ? "card" : "cards"} to your collection`;
+  scanAddedNote.value = `Added ${copies} ${copies === 1 ? "card" : "cards"} to your Dex`;
   clearTimeout(scanNoteTimer);
   scanNoteTimer = setTimeout(() => (scanAddedNote.value = ""), 2600);
 };
@@ -1214,7 +1216,7 @@ type ManageView = "actions" | "amount" | "sold" | "remove";
 const manageActions: { view: ManageView; label: string }[] = [
   { view: "amount", label: "Change amount" },
   { view: "sold", label: "Mark as sold" },
-  { view: "remove", label: "Remove from collection" },
+  { view: "remove", label: "Remove from Dex" },
 ];
 const manageCard = ref<CatalogMatch | null>(null);
 const manageView = ref<ManageView>("actions");
