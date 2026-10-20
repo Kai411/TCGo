@@ -327,7 +327,7 @@
 
 <script setup lang="ts">
 import { h, computed, ref, watch } from "vue";
-import { SELLER_STEPS } from "~/shared/onboarding";
+import { SELLER_STEPS, joinWords, missingSellerContact } from "~/shared/onboarding";
 import { badgeLabel } from "~/shared/notifications";
 import { withoutMergedChildren } from "~/shared/delivery-stage";
 import {
@@ -364,6 +364,11 @@ const avatarUrl = computed(() => profile.value?.photoURL || user.value?.photoURL
 const { sellerReady: isSeller, setup: sellerSetup, kycLoading: sellerLoading } = useSellerKyc();
 const nextSellerStep = computed(() => {
   const id = sellerSetup.value.current;
+  // The contact step can look done everywhere else, so name the detail.
+  if (id === "contact") {
+    const gaps = missingSellerContact(profile.value);
+    if (gaps.length && gaps.length < 5) return `add your ${joinWords(gaps)}`;
+  }
   return (SELLER_STEPS.find((s) => s.id === id)?.title ?? "").toLowerCase();
 });
 

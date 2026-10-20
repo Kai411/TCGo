@@ -20,6 +20,8 @@ import {
   isOnboardingExempt,
   isSellerArea,
   isSellerOnboardingExempt,
+  joinWords,
+  missingSellerContact,
   needsConfirmedEmail,
   onboardingState,
   readyToBuy,
@@ -262,6 +264,23 @@ describe("seller onboarding", () => {
     for (const k of ["pickupAddress1", "pickupPostcode", "pickupCity", "pickupState"]) {
       assert.equal(hasSellerContact({ ...seller, [k]: "" }), false, `${k} required`);
     }
+  });
+
+  it("names the contact details still missing", () => {
+    assert.deepEqual(missingSellerContact(seller), []);
+    // A delivery number doesn't count: the seller has to save one for selling.
+    const noNumber = { ...seller, phone: "", whatsappNumber: "", deliveryPhone: "0123456789" };
+    assert.deepEqual(missingSellerContact(noNumber), ["contact number"]);
+    assert.deepEqual(
+      missingSellerContact({ ...seller, pickupCity: "", pickupState: " " }),
+      ["city", "state"],
+    );
+    assert.equal(joinWords(["city", "state"]), "city and state");
+    assert.equal(joinWords(["contact number", "city", "state"]), "contact number, city and state");
+  });
+
+  it("doesn't throw on a number stored as a number", () => {
+    assert.equal(hasSellerContact({ ...seller, phone: 60123456789 as never }), true);
   });
 
   it("agrees with payoutDetailsComplete, which is the authority at payout time", () => {
