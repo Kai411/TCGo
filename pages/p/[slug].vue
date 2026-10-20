@@ -13,7 +13,8 @@
       :class="
         site?.type === 'image'
           ? 'bg-black/45 text-white backdrop-blur-md'
-          : 'bg-white/85 text-ink shadow-sm ring-1 ring-black/[0.06] backdrop-blur-md dark:bg-zinc-900/85 dark:text-white dark:ring-white/[0.08]'
+          : 'bg-white/85 text-ink shadow-sm ring-1 ring-black/[0.06] backdrop-blur-md dark:bg-zinc-900/85 dark:text-white dark:ring-white/[0.08]' +
+            (site ? ' sm:hidden' : '')
       "
       style="top: calc(env(safe-area-inset-top) + 10px)"
       @click="goBack"
@@ -52,15 +53,30 @@
 
     <!-- Article. Phones: the banner runs edge to edge below the back
          button. Wider screens: banner and text share one centred column,
-         the banner with rounded corners. The banner is never cropped or
-         covered, since staff often reuse a listing banner with text baked
-         into it. -->
+         the banner with rounded corners and the back button on its top
+         corner. The banner is never cropped, since staff often reuse a
+         listing banner with text baked into it. -->
     <article
       v-else-if="site"
-      class="pt-[calc(env(safe-area-inset-top)+60px)] sm:pt-20"
+      class="pt-[calc(env(safe-area-inset-top)+60px)] sm:pt-16"
       style="padding-bottom: calc(env(safe-area-inset-bottom) + 4rem)"
     >
-      <div class="mx-auto max-w-[46rem] sm:px-6">
+      <div class="relative mx-auto max-w-[46rem] sm:px-6">
+        <button
+          type="button"
+          aria-label="Back"
+          class="z-10 hidden h-10 w-10 items-center justify-center rounded-full transition-transform duration-150 ease-out active:scale-90 sm:inline-flex"
+          :class="
+            site.imageUrl
+              ? 'absolute left-8 top-2 !h-8 !w-8 bg-black/50 text-white backdrop-blur-md'
+              : 'mb-6 bg-white text-ink shadow-sm ring-1 ring-black/[0.06] dark:bg-zinc-900 dark:text-white dark:ring-white/[0.08]'
+          "
+          @click="goBack"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
         <img
           v-if="site.imageUrl"
           :src="cdnUrl(site.imageUrl, 1600)"
