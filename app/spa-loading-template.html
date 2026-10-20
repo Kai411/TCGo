@@ -1,0 +1,90 @@
+<!--
+  Boot cover for the installed app (Home Screen / Android install): the TCGo
+  logo on the app background until the first page has rendered, so the native
+  splash hands over to the same picture instead of a blank screen.
+
+  Nuxt serves this inside <div id="__nuxt-loader"> and deletes that div the
+  moment the app has rendered. The script below moves the cover and its style
+  out of it first, then fades the cover when that div goes, so the hand-off
+  works even if a plugin fails. Plain browser tabs never see it: they had no
+  splash before and keep it that way.
+
+  Width and colours match scripts/generate-splash.py, which draws the iPhone
+  startup images, so the logo doesn't jump when iOS hands over.
+-->
+<div id="tcgo-splash" aria-hidden="true"><div class="tcgo-splash-logo"></div></div>
+<style id="tcgo-splash-style">
+  #tcgo-splash {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    align-items: center;
+    justify-content: center;
+    background: #fafafa;
+    transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  html.dark #tcgo-splash {
+    background: #111114;
+  }
+  #tcgo-splash.is-app {
+    display: flex;
+  }
+  #tcgo-splash.is-leaving {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .tcgo-splash-logo {
+    width: 180px;
+    aspect-ratio: 816 / 378;
+    background: url("/splash-logo.png") center / contain no-repeat;
+  }
+  html.dark .tcgo-splash-logo {
+    background-image: url("/splash-logo-dark.png");
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #tcgo-splash {
+      transition-duration: 100ms;
+    }
+  }
+</style>
+<script>
+  (function () {
+    var el = document.getElementById("tcgo-splash");
+    var style = document.getElementById("tcgo-splash-style");
+    var loader = document.getElementById("__nuxt-loader");
+    if (!el) return;
+    var installed =
+      window.navigator.standalone === true ||
+      window.matchMedia("(display-mode: standalone)").matches;
+    if (!installed || !loader) {
+      el.remove();
+      return;
+    }
+    el.classList.add("is-app");
+    document.head.appendChild(style);
+    document.body.appendChild(el);
+
+    var done = false;
+    function remove() {
+      el.remove();
+      style.remove();
+    }
+    function leave() {
+      if (done) return;
+      done = true;
+      el.classList.add("is-leaving");
+      el.addEventListener("transitionend", remove, { once: true });
+      // transitionend doesn't fire if the transition is skipped.
+      setTimeout(remove, 400);
+    }
+    new MutationObserver(function (_, observer) {
+      if (!loader.isConnected) {
+        observer.disconnect();
+        leave();
+      }
+    }).observe(document.body, { childList: true });
+    // Never outstay the app: if the hand-off doesn't come, go anyway.
+    setTimeout(leave, 10000);
+  })();
+</script>

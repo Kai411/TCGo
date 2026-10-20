@@ -11,6 +11,33 @@ const LIGHT_ONLY_ROUTES = [
   "/update-notice",
 ];
 
+// iPhone launch screens for the installed app (built by
+// scripts/generate-splash.py; keep the sizes in step). iOS picks the image
+// whose media query matches the screen exactly, light or dark by the phone's
+// own setting, and caches it when the app is added to the Home Screen.
+const IOS_STARTUP_SCREENS: [number, number, number][] = [
+  [440, 956, 3],
+  [430, 932, 3],
+  [420, 912, 3],
+  [402, 874, 3],
+  [393, 852, 3],
+  [428, 926, 3],
+  [390, 844, 3],
+  [414, 896, 3],
+  [414, 896, 2],
+  [375, 812, 3],
+  [414, 736, 3],
+  [375, 667, 2],
+  [320, 568, 2],
+];
+const IOS_STARTUP_IMAGES = IOS_STARTUP_SCREENS.flatMap(([w, h, dpr]) =>
+  (["light", "dark"] as const).map((scheme) => ({
+    rel: "apple-touch-startup-image",
+    href: `/splash/${w * dpr}x${h * dpr}-${scheme}.png`,
+    media: `(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${dpr}) and (orientation: portrait) and (prefers-color-scheme: ${scheme})`,
+  }))
+);
+
 // The PWA module only emits manifest.webmanifest for production builds
 // (devOptions.enabled is false, deliberately — see the pwa block below).
 // Linking it in dev anyway makes the browser fetch a file that doesn't exist,
@@ -40,8 +67,13 @@ export default defineNuxtConfig({
       name: "TCGo Marketplace",
       short_name: "TCGo",
       description: "TCGo Marketplace - Buy, Sell & Auction Cards",
-      theme_color: "#dc2626",
-      background_color: "#f9fafb",
+      // Android colours the status bar with theme_color and paints its launch
+      // splash with background_color (canvas, so it hands over to the page's
+      // boot cover without a colour change). White matches the light header;
+      // the theme-color meta (pre-paint script, useTheme) overrides it
+      // with the dark header colour in dark mode.
+      theme_color: "#ffffff",
+      background_color: "#fafafa",
       display: "standalone",
       orientation: "portrait",
       icons: [
@@ -75,6 +107,9 @@ export default defineNuxtConfig({
       // by Nuxt and cache-busted by filename — letting them through the
       // network avoids the "old SW serves stale chunks" trap.
       globPatterns: ["**/*.{svg,ico,png,webp,webmanifest}"],
+      // iPhone startup images: a phone only ever needs its own two, and iOS
+      // reads them at install, so precaching all of them would waste data.
+      globIgnores: ["splash/**"],
       // New SW takes over immediately for all open tabs and removes
       // outdated precache entries on activation. Critical for users who
       // had the old precache-everything SW cached.
@@ -104,14 +139,18 @@ export default defineNuxtConfig({
         {
           // Apply theme synchronously before paint to avoid a light→dark flash.
           // Mirrors the logic in composables/useTheme.ts; keep in sync.
+          // Also adds the theme-color meta (the Android status bar colour):
+          // white like the light header, #111114 like the dark one. It's added
+          // here rather than in `meta` below because Nuxt prints meta tags
+          // after this script, too late to set it before the first paint.
           //
           // Two rules, both deliberate:
           //  1. Light-only routes never get `dark`, whatever the visitor chose.
           //  2. An ABSENT key resolves to light, not to the OS preference —
           //     dark is opt-in. Only an explicit "system" follows the OS.
-          innerHTML: `(function(){try{var L=${JSON.stringify(
+          innerHTML: `(function(){var d=false;try{var L=${JSON.stringify(
             LIGHT_ONLY_ROUTES
-          )};var p=location.pathname.replace(/\\/+$/,'')||'/';if(L.indexOf(p)!==-1)return;var t=localStorage.getItem('tcgo-theme');var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`,
+          )};var p=location.pathname.replace(/\\/+$/,'')||'/';if(L.indexOf(p)===-1){var t=localStorage.getItem('tcgo-theme');d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);}if(d)document.documentElement.classList.add('dark');}catch(e){}var m=document.createElement('meta');m.name='theme-color';m.content=d?'#111114':'#ffffff';document.head.appendChild(m);})();`,
           type: "text/javascript",
           tagPosition: "head",
         },
@@ -139,7 +178,7 @@ export default defineNuxtConfig({
         },
         { name: "author", content: "TCGo Marketplace" },
         { name: "robots", content: "index, follow" },
-        { name: "theme-color", content: "#dc2626" },
+        // theme-color is added by the pre-paint script above.
 
         // Open Graph (Facebook, WhatsApp, Discord)
         { property: "og:title", content: "TCGo Marketplace" },
@@ -183,6 +222,7 @@ export default defineNuxtConfig({
           sizes: "180x180",
           href: "/apple-touch-icon.png",
         },
+        ...IOS_STARTUP_IMAGES,
         { rel: "canonical", href: "https://tcgo.shop/" },
         // PWA manifest — @vite-pwa/nuxt doesn't auto-inject this in
         // ssr:false mode, so we add it ourselves. Production only: see isDev.
