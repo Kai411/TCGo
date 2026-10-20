@@ -480,7 +480,7 @@ const handleFile = async (e: Event) => {
   }
 };
 
-// ── Photo scan (AI identify → TCGo DB match) ─────────────────────────
+// ── Photo scan (AI identify → TCGo Dex match) ─────────────────────────
 interface PhotoEntry {
   file: File;
   preview: string;
@@ -551,7 +551,7 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
   });
 
 // Each photo: Gemini identify (same /api/identify-card the listing scanner
-// uses) → TCGo DB match by name+number (EN only; the catalog is EN-first).
+// uses) → TCGo Dex match by name+number (EN only; the catalog is EN-first).
 // Failures still produce a row (photo attached, deselected) so the seller
 // can decide rather than lose the card silently.
 const identifyPhotos = async () => {

@@ -151,11 +151,11 @@
                     >
                       {{ item.error }}
                     </p>
-                    <!-- TCGo DB market price (current daily snapshot, MYR). -->
+                    <!-- TCGo Dex market price (current daily snapshot, MYR). -->
                     <p
                       v-if="item.tcgoPrice"
                       class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-500/[0.12] px-1.5 py-0.5 rounded"
-                      :title="`Source: TCGo DB (${item.tcgoPrice.subtype}, TCGPlayer market in USD, converted to MYR)`"
+                      :title="`Source: TCGo Dex (${item.tcgoPrice.subtype}, TCGPlayer market in USD, converted to MYR)`"
                     >
                       <svg
                         class="w-3 h-3"
@@ -194,11 +194,11 @@
                   <span>Reading the card and looking up matches…</span>
                 </div>
 
-                <!-- needs-pick: candidate grid from TCGo DB. Falls back to
+                <!-- needs-pick: candidate grid from TCGo Dex. Falls back to
                      a helpful hint if Gemini couldn't read the number. -->
                 <div v-if="item.status === 'needs-pick' && item.matches">
                   <p class="text-[11px] text-gray-500 dark:text-zinc-400 mb-1.5">
-                    Pick the matching print from TCGo DB:
+                    Pick the matching print from TCGo Dex:
                   </p>
                   <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
                     <button
@@ -736,7 +736,7 @@ const retryManualSearch = async (id: string) => {
   } catch {
     updateQueueItem(id, {
       status: "failed",
-      error: "Search couldn't reach the card database. Try again in a moment.",
+      error: "Search couldn't reach TCGo Dex. Try again in a moment.",
     });
   } finally {
     manualSearching.value[id] = false;

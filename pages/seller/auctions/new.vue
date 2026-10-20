@@ -906,7 +906,7 @@ const retryManualSearch = async (id: string) => {
   } catch {
     updateQueueItem(id, {
       status: "failed",
-      error: "Search couldn't reach the card database. Try again in a moment.",
+      error: "Search couldn't reach TCGo Dex. Try again in a moment.",
     });
   } finally {
     manualSearching.value[id] = false;

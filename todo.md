@@ -21,7 +21,7 @@ Status legend: ✅ done · 🎯 next · 🔜 then · 🗓️ later · 🧹 clean
 **Seller / inventory**
 - [x] Sales stats dashboard (tiles → drill-down, weekly trend)
 - [x] Inventory system split into `/inventory` + own layout; Activity slimmed to buyer-only
-- [x] Inventory data model + Bulk add (CSV / Excel / ODS / paste / **photo scan via AI + TCGo DB match**, smart mapping, reconciliation, review, template)
+- [x] Inventory data model + Bulk add (CSV / Excel / ODS / paste / **photo scan via AI + TCGo Dex match**, smart mapping, reconciliation, review, template)
 - [x] Inventory ↔ listing bridge (list / unlist / sold sync both ways)
 - [x] Items table: filter, pagination, select-all, bulk actions, inline photo upload
 
@@ -76,7 +76,7 @@ Status legend: ✅ done · 🎯 next · 🔜 then · 🗓️ later · 🧹 clean
   coverage back to vintage (Expansion Pack '96, Jungle, vending series). English product names → scanner's
   Gemini-translated names match JP directly. Native BIGINT productIds, schema unchanged.
   - [x] Seed + snapshot scripts parametrized for categories [3, 85]; cat-85 rows tagged `language='JP'`
-  - [x] Scanner + bulk-add photo scan: JP cards now attempt TCGo DB match (language-scoped), graceful fallback to scanned data on miss
+  - [x] Scanner + bulk-add photo scan: JP cards now attempt TCGo Dex match (language-scoped), graceful fallback to scanned data on miss
   - [ ] Language toggle (EN / JP / All) in collection + bulk-add search UI (RPC already supports `lang`; search still defaults EN)
   - Caveat: JP prices are TCGPlayer **US-market USD** (international reference, not Japan-domestic yuyutei prices)
 - [x] Seller payouts / escrow gateway — **decided: Billplz-only** (see Payments & fulfillment above); Curlec Route is the scale-up path
