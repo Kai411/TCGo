@@ -34,12 +34,19 @@
           {{ displayName.charAt(0).toUpperCase() }}
         </span>
         <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-1">
-            <p class="text-lg font-bold text-ink dark:text-white truncate">
-              {{ displayName }}
-            </p>
+          <p class="text-lg font-bold text-ink dark:text-white truncate">
+            {{ displayName }}
+          </p>
+          <p class="flex items-center text-xs text-ink-soft dark:text-zinc-500 mt-0.5">
+            <span
+              v-if="profile?.kycStatus === 'verified'"
+              class="font-semibold text-emerald-700 dark:text-emerald-300 mr-1"
+            >
+              Verified ·
+            </span>
+            View your profile
             <svg
-              class="w-5 h-5 shrink-0 text-ink-soft dark:text-zinc-500"
+              class="w-3.5 h-3.5 shrink-0 ml-0.5"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -50,15 +57,6 @@
             >
               <path d="m9 18 6-6-6-6" />
             </svg>
-          </div>
-          <p class="text-xs text-ink-soft dark:text-zinc-500 mt-0.5">
-            <span
-              v-if="profile?.kycStatus === 'verified'"
-              class="font-semibold text-emerald-700 dark:text-emerald-300"
-            >
-              Verified ·
-            </span>
-            View your profile
           </p>
         </div>
       </NuxtLink>
@@ -102,8 +100,9 @@
     </div>
 
     <template v-if="user">
-      <!-- Quick shortcuts -->
-      <div class="grid grid-cols-4">
+      <!-- Quick shortcuts. The last column is wider: "Manage Listings" is
+           the longest label. -->
+      <div class="grid grid-cols-[1fr_1fr_1fr_1.3fr]">
         <NuxtLink
           v-for="s in shortcuts"
           :key="s.label"
@@ -121,6 +120,7 @@
           </span>
           {{ s.label }}
         </NuxtLink>
+        <ManageListingsShortcut />
       </div>
 
       <!-- Selling. New sellers get the invitation; set-up sellers get their
@@ -339,7 +339,6 @@ import {
 const { user, authLoading, signOut } = useAuth();
 const { goToLogin } = useSignInGate();
 const { profile } = useMyProfile();
-const { unreadConversations, listenInbox } = useChat();
 const { hasUnreadSeller: sellerHasUnread, listen: listenNotifications } =
   useNotifications();
 const { buyerCompiledOrders, listenBuyerCompiledOrders } = useCompiledOrders();
@@ -347,7 +346,6 @@ const { buyerCompiledOrders, listenBuyerCompiledOrders } = useCompiledOrders();
 watch(
   () => user.value?.uid,
   (uid) => {
-    listenInbox();
     listenNotifications();
     if (uid) listenBuyerCompiledOrders();
   },
@@ -400,7 +398,6 @@ const IconTrophy = icon(
 const IconHeart = icon(
   p("M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"),
 );
-const IconChat = icon(p("M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"));
 const IconStore = icon(p("M3 9l1.5-5h15L21 9"), p("M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9"), p("M9 13h6"));
 const IconWallet = icon(p("M3 7a2 2 0 0 1 2-2h14v4"), p("M3 7v12a2 2 0 0 0 2 2h16V9H5a2 2 0 0 1-2-2z"), p("M16 15h2"));
 const IconTruck = icon(p("M1 4h14v12H1z"), p("M15 9h4l3 3v4h-7"), h("circle", { cx: "5.5", cy: "18.5", r: "2" }), h("circle", { cx: "18.5", cy: "18.5", r: "2" }));
@@ -432,7 +429,6 @@ const shortcuts = computed(() => [
     icon: IconHeart,
     badge: 0,
   },
-  { label: "Messages", to: "/messages", icon: IconChat, badge: unreadConversations.value },
 ]);
 
 // ── Orders by status ─────────────────────────────────────────────────

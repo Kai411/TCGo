@@ -299,7 +299,7 @@
               :disabled="upgradeLoading"
               class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-ink px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
             >
-              {{ upgradeLoading ? 'Redirecting...' : 'Upgrade to Premium · RM 5.99/mo' }}
+              {{ upgradeLoading ? 'Redirecting...' : `Upgrade to Premium · RM ${MARKETPLACE_MONTHLY}/mo` }}
             </button>
             <NuxtLink to="/membership" class="text-xs text-gray-400 dark:text-zinc-500 hover:text-ink dark:hover:text-white transition-colors">
               Compare plans →
@@ -314,6 +314,7 @@
 <script setup lang="ts">
 import type { UserProfile } from "~/composables/useProfile";
 import { MY_STATES } from "~/shared/my-states";
+import { MARKETPLACE_MONTHLY } from "~/shared/pricing";
 
 const {user} = useAuth();
 const { goToLogin } = useSignInGate();
