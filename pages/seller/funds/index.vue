@@ -53,7 +53,7 @@
           <div class="mt-4 flex flex-wrap items-center gap-3">
             <button
               @click="doRequestPayout"
-              :disabled="!canWithdraw || requesting"
+              :disabled="!canWithdraw || requesting || !!lockEnds"
               class="px-4 py-2 rounded-lg text-sm font-bold bg-white text-ink hover:bg-white/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
             >
               <span v-if="requesting" class="animate-spin rounded-full h-4 w-4 border-b-2 border-ink" />
@@ -61,6 +61,7 @@
             </button>
             <p v-if="bankLine" class="text-xs text-white/70 min-w-0 truncate">to {{ bankLine }}</p>
           </div>
+          <p v-if="lockText" class="text-xs text-amber-200 mt-2" role="status">{{ lockText }}</p>
           <p v-if="!bankLine" class="text-xs text-white/70 mt-2">
             <NuxtLink to="/seller/settings#bank" class="underline font-semibold text-white">Add your bank account</NuxtLink>
             to receive payouts.
@@ -197,6 +198,7 @@ const {
   lastFailureReason,
   requestPayout,
 } = useSellerFunds();
+const { lockedUntil: lockEnds, lockText } = useSecurityLock();
 
 const holdDays = PAYOUT_HOLD_DAYS;
 
@@ -264,7 +266,7 @@ const bankLine = computed(() => {
 
 const requesting = ref(false);
 const doRequestPayout = async () => {
-  if (requesting.value || !canWithdraw.value) return;
+  if (requesting.value || !canWithdraw.value || lockEnds.value) return;
   if (!bankLine.value) {
     if (confirm("Add your bank account and IC number first to receive payouts. Go to Seller settings?")) {
       navigateTo("/seller/settings#bank");
