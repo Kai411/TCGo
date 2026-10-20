@@ -4,16 +4,22 @@
   >
     <AppNavbar />
     <EmailConfirmBar />
-    <!-- pt-8 rather than py-8: pb-28 already overrode the bottom half, so
+    <!-- pt-8 rather than py-8: the bottom padding already overrode the bottom half, so
          this is the same spacing said once. Under lg the top gap matches the
          px-4 side gutter, so content sits evenly inside the screen edges.
 
          A page whose first element is sticky wants to start flush against the
          nav — the gap makes the bar look detached and moves when you scroll.
          Those pages set `flushTop` in definePageMeta rather than each one
-         cancelling the padding with a negative margin of its own. -->
+         cancelling the padding with a negative margin of its own.
+
+         Bottom padding under lg clears the phone bottom nav: its 64px bar,
+         its own max(16px, safe-area) bottom padding, the Sell circle that
+         sticks ~22px above the bar, and an 18px gap. A flat pb-28 ignored
+         the safe area, so on phones with a home indicator the circle sat on
+         the last link of a page (Back to cart on checkout). -->
     <main
-      class="container mx-auto px-4 pb-28 lg:pb-12"
+      class="container mx-auto px-4 pb-[calc(6.5rem+max(16px,env(safe-area-inset-bottom)))] lg:pb-12"
       :class="route.meta.flushTop ? 'pt-0' : 'pt-4 lg:pt-8'"
     >
       <!-- Keyed on path so each page replays the enter animation. -->
