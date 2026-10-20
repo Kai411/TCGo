@@ -79,14 +79,14 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: "Find cards",
         summary: "Search, filter and save cards you like.",
         steps: [
-          "The Shop tab shows cards for sale and the Auctions tab shows live auctions.",
+          "The Marketplace tab shows cards for sale and the Auctions tab shows live auctions.",
           "Tap the search bar at the top to search by card name, set or seller.",
           "Use Filters to narrow the list and Sort to change the order.",
           "Tap a card to see its photos, condition, price and seller.",
           "Tap the heart on a card to save it. Your saved cards are in Account, under Favourites.",
         ],
         links: [
-          { to: "/", label: "Go to the Shop" },
+          { to: "/", label: "Go to the Marketplace" },
           { to: "/account/favourites", label: "Your favourites" },
         ],
       },
@@ -205,7 +205,7 @@ export const HELP_TOPICS: HelpTopic[] = [
           "Add up to 3 photos of your own card.",
           "Enter your price. TCGo shows its price guide for the card to help you decide.",
           "Optionally add what you paid. Only you see it; your dashboard uses it to show your margin.",
-          "Submit to put the listing live in the Shop.",
+          "Submit to put the listing live in the Marketplace.",
         ],
         notes: [
           `Your own photo is required for graded and sealed items, for Mint or Near Mint claims, and for anything over RM${HIGH_VALUE_THRESHOLD}.`,

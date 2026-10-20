@@ -10,7 +10,7 @@ export const BANNER_PLACEMENTS = ["shop", "auctions"] as const;
 export type BannerPlacement = (typeof BANNER_PLACEMENTS)[number];
 
 export const BANNER_PLACEMENT_LABELS: Record<BannerPlacement, string> = {
-  shop: "Shop",
+  shop: "Marketplace",
   auctions: "Auctions",
 };
 
@@ -145,7 +145,7 @@ export const APP_HOSTS = ["tcgo.shop", "www.tcgo.shop", "tcgo-staging.netlify.ap
 
 /** Common destinations for the console's link picker. */
 export const LINK_PRESETS: { label: string; path: string }[] = [
-  { label: "Shop", path: "/" },
+  { label: "Marketplace", path: "/" },
   { label: "Auctions", path: "/auctions" },
   { label: "TCGo Dex", path: "/collection" },
   { label: "Sell a card", path: "/seller/listings/new" },

@@ -15,13 +15,13 @@
     <EmptyState
       v-else-if="!card"
       headline="This listing isn't available"
-      caption="It may have been removed by the seller. There are plenty more cards in the shop."
+      caption="It may have been removed by the seller. There are plenty more cards in the Marketplace."
     >
       <NuxtLink
         to="/"
         class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
       >
-        Back to shop
+        Back to Marketplace
       </NuxtLink>
     </EmptyState>
 
@@ -34,7 +34,7 @@
             <!-- A button, not a NuxtLink: a NuxtLink would also push "/" on
                  top of our history.back(), and that second navigation
                  scrolls to top. -->
-            <button type="button" @click="goBackToShop" class="hover:text-ink dark:hover:text-white transition-colors">Shop</button>
+            <button type="button" @click="goBackToShop" class="hover:text-ink dark:hover:text-white transition-colors">Marketplace</button>
           </li>
           <li aria-hidden="true" class="text-ink-faint dark:text-zinc-600">/</li>
           <li class="truncate text-ink dark:text-white font-medium" aria-current="page">

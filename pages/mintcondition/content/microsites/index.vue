@@ -2,7 +2,7 @@
   <div class="max-w-5xl">
     <h1 class="text-xl font-bold text-ink dark:text-white">Content</h1>
     <p class="mb-4 text-sm text-ink-muted dark:text-zinc-400">
-      The banners above the Shop and Auctions listings, and pages of your own.
+      The banners above the Marketplace and Auctions listings, and pages of your own.
     </p>
     <McContentTabs />
 

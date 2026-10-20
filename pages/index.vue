@@ -130,7 +130,7 @@ import { isAvailable } from "~/shared/card-availability";
 import { SHOP_PAGE_SIZE, SHOP_STATE_KEY } from "~/composables/useShopOrdering";
 
 useHead({
-  title: "Shop Pokemon Cards | TCGo Marketplace",
+  title: "Marketplace: Buy Pokemon Cards | TCGo",
   meta: [
     {
       name: "description",
