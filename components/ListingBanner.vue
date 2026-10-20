@@ -40,7 +40,7 @@
           draggable="false"
           @click="onClick"
         >
-          <div class="aspect-[3/1] w-full lg:aspect-[4/1]">
+          <div class="aspect-[3/1] w-full">
             <img
               v-if="s.imageUrl"
               :src="cdnUrl(s.imageUrl, 1600)"
