@@ -259,9 +259,14 @@
           >
             <span
               :ref="(el) => setTabRef(tab.id, el)"
-              class="text-[15px] sm:text-lg font-semibold sm:font-bold tracking-tightest"
+              class="inline-flex items-baseline gap-1.5 text-[15px] sm:text-lg font-semibold sm:font-bold tracking-tightest"
             >
               {{ tab.label }}
+              <span
+                v-if="tab.count !== undefined"
+                class="tabular-nums text-[12px] sm:text-sm font-medium text-ink-soft dark:text-zinc-500"
+                >{{ tab.count }}<span class="sr-only"> listed</span></span
+              >
             </span>
           </button>
           <!-- Single underline that slides between tabs -->
@@ -273,7 +278,7 @@
         </div>
       </div>
 
-      <!-- Cards tab -->
+      <!-- Shop tab (id stays "cards" so old ?tab=cards links keep working) -->
       <div v-if="activeTab === 'cards'">
         <EmptyState
           v-if="userCards.length === 0"
@@ -520,6 +525,7 @@
 <script setup lang="ts">
 import type { Auction } from "~/composables/useAuctions";
 import type { CatalogMatch } from "~/composables/useCardCatalog";
+import { isAvailable } from "~/shared/card-availability";
 import { priceChange, type PriceChange } from "~/shared/price-change";
 
 const route = useRoute();
@@ -543,7 +549,11 @@ type TabId = "cards" | "auctions" | "collection";
 const TAB_IDS: TabId[] = ["cards", "auctions", "collection"];
 const queryTab = route.query.tab as string | undefined;
 const activeTab = ref<TabId>(
-  TAB_IDS.includes(queryTab as TabId) ? (queryTab as TabId) : "cards",
+  queryTab === "shop"
+    ? "cards"
+    : TAB_IDS.includes(queryTab as TabId)
+      ? (queryTab as TabId)
+      : "cards",
 );
 // Favourites moved to Account. Old ?tab=favourites links on your own
 // profile land there instead of on Cards.
@@ -640,18 +650,31 @@ const userAuctions = computed(() =>
     }),
 );
 
-const tabs: { id: TabId; label: string }[] = [
-  { id: "cards", label: "Cards" },
-  { id: "auctions", label: "Auctions" },
+// Tab counts are what's on sale now: available listings and live auctions.
+// Sold cards and ended auctions still show below as track record, but
+// aren't counted. Collection has no count.
+const listedCount = computed(
+  () => userCards.value.filter((c: any) => isAvailable(c)).length,
+);
+const liveAuctionCount = computed(
+  () =>
+    userAuctions.value.filter(
+      (a: any) =>
+        (!a.status || a.status === "active") && (a.endsAt ?? 0) > Date.now(),
+    ).length,
+);
+const tabs = computed<{ id: TabId; label: string; count?: number }[]>(() => [
+  { id: "cards", label: "Shop", count: listedCount.value },
+  { id: "auctions", label: "Auctions", count: liveAuctionCount.value },
   { id: "collection", label: "Collection" },
-];
+]);
 
-// Sliding red underline under the active tab. Re-measure when the active
-// tab changes.
+// Sliding red underline under the active tab's label. Re-measure when the
+// active tab changes and when counts change (they alter label widths).
 const { containerEl, setTabRef, indicatorStyle, measure } = useTabIndicator();
 onMounted(() => nextTick(() => measure(activeTab.value)));
 watch(
-  activeTab,
+  () => [activeTab.value, listedCount.value, liveAuctionCount.value],
   () => nextTick(() => measure(activeTab.value)),
 );
 
