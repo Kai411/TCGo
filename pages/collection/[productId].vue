@@ -107,25 +107,29 @@
                 <!-- Owned: a status mark, not a button. The only action left
                      (changing how many copies) sits with the price below. -->
                 <CollectedBadge v-if="inCollection" :quantity="ownedQuantity" size="sm" label />
+                <!-- Phone: a quiet tinted pill the same height as the chips'
+                     row rhythm, so it reads as an option rather than the
+                     page's headline. The pseudo-element keeps a 44px tap
+                     target. Desktop keeps the solid button. -->
                 <button
                   v-if="!inCollection"
                   type="button"
                   :disabled="collectionBusy || (!!user && collectionLoading)"
-                  class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-pokemon-blue px-4 py-2.5 lg:min-w-[166px] lg:px-5 lg:py-3 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:translate-y-0 disabled:opacity-60"
+                  class="relative inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-pokemon-blue/10 px-3 text-[13px] font-semibold text-pokemon-blue transition-all before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] hover:bg-pokemon-blue/15 active:scale-[0.97] disabled:opacity-60 dark:bg-sky-400/15 dark:text-sky-300 lg:h-auto lg:min-w-[166px] lg:gap-2 lg:bg-pokemon-blue lg:px-5 lg:py-3 lg:text-sm lg:font-bold lg:text-white lg:shadow-sm lg:hover:-translate-y-0.5 lg:hover:bg-blue-700 lg:disabled:translate-y-0 lg:dark:bg-pokemon-blue lg:dark:text-white"
                   @click="handleCollectionToggle"
                 >
                   <div
                     v-if="collectionBusy"
-                    class="h-4 w-4 animate-spin rounded-full border-2 border-current/25 border-t-current"
+                    class="h-3.5 w-3.5 lg:h-4 lg:w-4 animate-spin rounded-full border-2 border-current/25 border-t-current"
                     aria-hidden="true"
                   />
                   <svg
                     v-else
-                    class="w-4 h-4"
+                    class="h-3.5 w-3.5 lg:h-4 lg:w-4"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2.25"
+                    stroke-width="2.5"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     aria-hidden="true"
