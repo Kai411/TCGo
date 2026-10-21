@@ -29,6 +29,20 @@ const { order, phase, view, paying, payNow } = usePaymentResult();
 
 const PURCHASES = { to: "/activity?tab=purchases", label: "All purchases" };
 
+// An auction win lapses if it isn't paid in time, so the deadline is the one
+// thing worth repeating here.
+const keepIt = computed(() => {
+  const o = order.value;
+  if (!o?.auctionId || !o.paymentDueAt) return "";
+  const due = new Date(o.paymentDueAt).toLocaleString("en-MY", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `Pay by ${due} to keep your auction win.`;
+});
+
 const copy = computed<PaymentResultCopy | null>(() => {
   switch (view.value) {
     case "unpaid":
@@ -37,7 +51,7 @@ const copy = computed<PaymentResultCopy | null>(() => {
         title: "Payment not completed",
         eyebrow: "Nothing charged",
         headline: "Payment not completed.",
-        body: "Your bank didn't complete the transfer, so no money was taken. The order is still open — try again whenever you're ready.",
+        body: `The payment was cancelled or your bank didn't complete it, so no money was taken. ${keepIt.value || "The order is still open. Try again whenever you're ready."}`,
         primary: { action: "pay", label: "Try again" },
         secondary: PURCHASES,
       };
@@ -47,7 +61,7 @@ const copy = computed<PaymentResultCopy | null>(() => {
         title: "Awaiting payment",
         eyebrow: "Awaiting payment",
         headline: "This order isn't paid yet.",
-        body: "Nothing has been charged. Pay by FPX to confirm the order with the seller.",
+        body: `Nothing has been charged. ${keepIt.value || "Pay by FPX to confirm the order with the seller."}`,
         primary: { action: "pay", label: "Pay now" },
         secondary: PURCHASES,
       };
