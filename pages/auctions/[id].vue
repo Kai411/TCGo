@@ -320,14 +320,35 @@
                 </p>
                 <p v-else-if="settleError" class="text-xs text-red-600 dark:text-red-400">{{ settleError }}</p>
 
+                <p v-else-if="auctionStatus === 'expired'" class="text-xs text-ink-muted dark:text-zinc-400">
+                  The winner didn't pay in time, so this auction was voided.
+                </p>
+
                 <template v-else-if="settledOrderId">
-                  <NuxtLink
-                    v-if="isWinner"
-                    :to="`/orders/${settledOrderId}`"
-                    class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
-                  >
-                    Pay now (FPX)
-                  </NuxtLink>
+                  <!-- Paid: the order takes it from here. -->
+                  <template v-if="isWinner && winnerPaid">
+                    <p class="text-xs font-medium text-emerald-700 dark:text-emerald-300">Paid. The seller is preparing your order.</p>
+                    <NuxtLink
+                      :to="`/orders/${settledOrderId}`"
+                      class="w-full inline-flex items-center justify-center py-3 rounded-xl text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+                    >
+                      View order
+                    </NuxtLink>
+                  </template>
+                  <template v-else-if="isWinner">
+                    <!-- Desktop button; on phones the fixed bar carries it, so
+                         the deadline line keeps this card from looking empty. -->
+                    <NuxtLink
+                      :to="`/orders/${settledOrderId}`"
+                      class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
+                    >
+                      Pay now (FPX)
+                    </NuxtLink>
+                    <p class="text-xs text-ink-muted dark:text-zinc-400">
+                      <template v-if="paymentDueAt">Pay by {{ formatDue(paymentDueAt) }} to keep it.</template>
+                      <template v-else>Pay within {{ AUCTION_PAYMENT_WINDOW_HOURS }} hours to keep it.</template>
+                    </p>
+                  </template>
                   <NuxtLink
                     v-else-if="isSeller"
                     :to="`/orders/${settledOrderId}`"
@@ -339,10 +360,6 @@
                     You'll be notified when the buyer pays. Funds are released after delivery.
                   </p>
                 </template>
-
-                <p v-else-if="auctionStatus === 'expired'" class="text-xs text-ink-muted dark:text-zinc-400">
-                  The winner didn't pay in time, so this auction was voided.
-                </p>
               </div>
             </div>
 
@@ -474,7 +491,7 @@
           <div class="flex items-center gap-3">
             <div class="min-w-0 flex-1">
               <p class="text-xs text-ink-muted dark:text-zinc-400 truncate tabular-nums">
-                {{ isEnded ? "You won" : `Ends in ${timeLeft}` }}
+                {{ isEnded ? (winnerPaid ? "You won · paid" : "You won") : `Ends in ${timeLeft}` }}
               </p>
               <p class="tabular-price font-extrabold text-ink dark:text-white">
               RM {{ formatRM(auction.currentPrice) }}
@@ -482,7 +499,14 @@
             </p>
             </div>
             <NuxtLink
-              v-if="isEnded"
+              v-if="isEnded && winnerPaid"
+              :to="`/orders/${settledOrderId}`"
+              class="h-12 px-5 shrink-0 inline-flex items-center justify-center rounded-xl text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white transition-transform duration-150 active:scale-[0.97]"
+            >
+              View order
+            </NuxtLink>
+            <NuxtLink
+              v-else-if="isEnded"
               :to="`/orders/${settledOrderId}`"
               class="h-12 px-5 shrink-0 inline-flex items-center justify-center rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-transform duration-150 active:scale-[0.97]"
             >
@@ -631,6 +655,17 @@ const settling = ref(false);
 const settleError = ref("");
 const settledOrderId = ref("");
 const auctionStatus = computed(() => (auction.value as any)?.status ?? "active");
+// The payment webhook marks the auction sold, so the winner stops being
+// asked to pay for something they've paid for.
+const winnerPaid = computed(() => auctionStatus.value === "sold");
+const paymentDueAt = computed(() => Number((auction.value as any)?.paymentDueAt ?? 0));
+const formatDue = (ts: number) =>
+  new Date(ts).toLocaleString("en-MY", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
 const settle = async () => {
   if (settling.value || !user.value || !auction.value) return;
@@ -868,7 +903,10 @@ const bidButtonLabel = computed(() => {
 // once there's an order to pay. The seller manages theirs from the page.
 const showActionBar = computed(() => {
   if (!auction.value) return false;
-  if (isEnded.value) return !!(isWinner.value && settledOrderId.value);
+  // A voided result has nothing left to pay.
+  if (isEnded.value) {
+    return !!(isWinner.value && settledOrderId.value) && auctionStatus.value !== "expired";
+  }
   return !isSeller.value;
 });
 
