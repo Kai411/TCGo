@@ -1,5 +1,16 @@
 <template>
-  <div class="min-h-screen bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 flex flex-col items-center justify-center px-4 py-12">
+  <!-- The code step is short, so on a phone it sits fixed and centred in the
+       visible screen (dvh, not vh: iOS's 100vh is taller than what shows
+       under the browser bars, which is what made it scroll). Centring is done
+       with auto margins rather than justify-center so a very short screen
+       (the reset step adds a password box) scrolls inside the box instead of
+       cutting off the logo. The other steps
+       keep normal page scrolling because the register form can outgrow a
+       phone screen. -->
+  <div
+    class="bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 flex flex-col items-center px-4 [&>*:first-child]:mt-auto [&>*:last-child]:mb-auto"
+    :class="step === 'code' ? 'h-[100dvh] overflow-y-auto overscroll-none py-6' : 'min-h-[100dvh] py-12'"
+  >
     <!-- The real wordmark, cropped exactly as AppNavbar does: a square sprite
          sheet sliced by object-cover, so the height of this box is what
          decides the crop. h-16 matches the navbar's bar height, which is what
@@ -262,6 +273,12 @@ type Step = "credentials" | "code" | "forgot";
 type Purpose = "verify_email" | "reset_password";
 
 const step = ref<Step>("credentials");
+// Lock the document too while the code step shows, or iOS still lets the
+// whole page rubber-band up and down behind the fixed-height screen.
+useHead({
+  htmlAttrs: computed(() => (step.value === "code" ? { class: "overflow-hidden overscroll-none" } : {})),
+  bodyAttrs: computed(() => (step.value === "code" ? { class: "overflow-hidden overscroll-none" } : {})),
+});
 const mode = ref<"signin" | "register">(
   route.query.mode === "register" ? "register" : "signin",
 );
