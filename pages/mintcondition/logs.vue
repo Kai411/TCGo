@@ -10,6 +10,33 @@
       <button class="btn-ghost" :disabled="loading" @click="load()">Reload</button>
     </div>
 
+    <!-- Sign-up codes never say whether mail really went out (that would
+         reveal who has an account), so this is where staff find out. -->
+    <div class="rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4 mb-5">
+      <p class="text-sm font-semibold">Test email</p>
+      <p class="text-[12px] text-ink-muted dark:text-zinc-400 mt-0.5">
+        Sends one email and shows what Mailtrap answered.
+      </p>
+      <form class="mt-3 flex gap-2 flex-wrap" @submit.prevent="sendTest">
+        <input
+          v-model="testTo"
+          type="email"
+          placeholder="you@example.com"
+          autocapitalize="none"
+          class="sel flex-1 min-w-[200px]"
+        />
+        <button class="btn-ghost" :disabled="testBusy || !testTo.trim()">
+          {{ testBusy ? "Sending…" : "Send test" }}
+        </button>
+      </form>
+      <div v-if="testResult" class="mt-3 text-[13px] space-y-1">
+        <p :class="testResult.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+          {{ testResult.headline }}
+        </p>
+        <p v-if="testResult.detail" class="text-ink-muted dark:text-zinc-400">{{ testResult.detail }}</p>
+      </div>
+    </div>
+
     <div class="flex gap-1 mb-4 border-b border-black/[0.06] dark:border-white/[0.08]">
       <button
         v-for="t in tabs"
@@ -167,6 +194,32 @@ const nextBefore = ref<number | null>(null);
 const loading = ref(true);
 const error = ref("");
 const busy = ref("");
+
+// ── Test email ──────────────────────────────────────────────────────────
+const testTo = ref("");
+const testBusy = ref(false);
+const testResult = ref<{ ok: boolean; headline: string; detail?: string } | null>(null);
+
+const sendTest = async () => {
+  testBusy.value = true;
+  testResult.value = null;
+  try {
+    const r = await mcFetch<any>("/api/mc/email/test", { method: "POST", body: { to: testTo.value } });
+    if (!r.tokenSet) {
+      testResult.value = { ok: false, headline: "No Mailtrap token on this site.", detail: "Set NUXT_MAILTRAP_API_TOKEN and redeploy." };
+    } else if (r.sent && r.sandbox) {
+      testResult.value = { ok: false, headline: "Captured in the Mailtrap test inbox, not delivered.", detail: "NUXT_MAILTRAP_INBOX_ID is still set on this site. Delete it and redeploy." };
+    } else if (r.sent) {
+      testResult.value = { ok: true, headline: `Sent from ${r.from}. Check the inbox (and spam).`, detail: "It also shows in Mailtrap > Sending > Email Logs." };
+    } else {
+      testResult.value = { ok: false, headline: `Mailtrap refused it: ${r.reason || "unknown"}`, detail: `Sender ${r.from}. "Unauthorized" means the token is wrong: use the API token from Sending Domains > tcgo.shop > Integration.` };
+    }
+  } catch (e: any) {
+    testResult.value = { ok: false, headline: e?.data?.message || e?.message || "Couldn't send." };
+  } finally {
+    testBusy.value = false;
+  }
+};
 
 const areaLabel = (a: string) => LOG_AREAS.find((x) => x.key === a)?.label ?? a;
 
