@@ -57,8 +57,21 @@ export default defineEventHandler(async (event) => {
     const user = await auth.getUserByEmail(addr);
     exists = true;
     alreadyVerified = user.emailVerified;
-  } catch {
+  } catch (e: any) {
     exists = false;
+    // "No such user" is the normal answer for an unknown address. Anything
+    // else (missing service account, network) would otherwise look exactly
+    // like "no account" and send nothing, with no trace anywhere.
+    if (e?.code !== "auth/user-not-found") {
+      noteError({
+        area: "auth",
+        severity: "error",
+        code: "auth.code_lookup_failed",
+        message: `Couldn't look up the account for a ${purpose} code: ${e?.code || e?.message || "unknown"}`,
+        context: { purpose },
+        hint: "Check the Firebase service account on this site.",
+      });
+    }
   }
 
   // Nothing to send: no account, or a verification code for an address that
@@ -87,6 +100,18 @@ export default defineEventHandler(async (event) => {
     purpose === "verify_email"
       ? await sendVerificationCode(addr, code)
       : await sendPasswordResetCode(addr, code);
+
+  if (mail.sent && mail.sandbox) {
+    // Accepted, but by the Mailtrap test inbox: the person will never see it.
+    noteError({
+      area: "auth",
+      severity: "warning",
+      code: "auth.code_email_test_inbox",
+      message: `A ${purpose} code went to the Mailtrap test inbox, not to the person`,
+      context: { purpose },
+      hint: "Delete NUXT_MAILTRAP_INBOX_ID on this site and redeploy.",
+    });
+  }
 
   if (!mail.sent) {
     // The code exists but the message didn't go. Log it for an operator —
