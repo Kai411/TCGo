@@ -49,9 +49,6 @@
               }}</span>
               <span class="text-sm text-ink-soft">{{ plan.period }}</span>
             </p>
-            <p class="mt-1 text-xs font-medium text-ink-muted">
-              {{ plan.plus }}
-            </p>
             <p class="mt-4 text-[13px] leading-relaxed text-ink-muted">
               {{ plan.who }}
             </p>
@@ -586,7 +583,7 @@ const feeLines = feeComponentRates().map((c) => ({
 
 // Two subscriptions sit on top of the per-sale 4%.
 //
-// Two plans, one rate. Pro (RM4.99) unlocks unlimited AI card scans — the free
+// Two plans, one rate. Pro (MARKETPLACE_MONTHLY) unlocks unlimited AI card scans — the free
 // tier caps at 20 a month. It does NOT change commission, and no plan does:
 // see the note at the top of shared/pricing.ts for why the Vendor tier and its
 // 3% were removed.
@@ -612,7 +609,6 @@ const plans = [
     defaults: { avgSale: 35, salesPerMonth: 12, withdrawals: 1 },
     price: "RM0",
     period: "/month",
-    plus: `+ ${(STANDARD_RATE * 100).toFixed(0)}% per online sale`,
     who: "For collectors clearing shelf space and sellers testing the water.",
     featured: false,
     features: [
@@ -632,7 +628,6 @@ const plans = [
     defaults: { avgSale: 45, salesPerMonth: 70, withdrawals: 2 },
     price: `RM${MARKETPLACE_MONTHLY}`,
     period: "/month",
-    plus: `+ ${(STANDARD_RATE * 100).toFixed(0)}% per online sale — the same rate`,
     who: "For a shop or a serious seller, where the scan cap starts to bite.",
     featured: true,
     features: [
@@ -772,7 +767,7 @@ const faqs = [
   },
   {
     q: "Do I need a subscription to sell online?",
-    a: "No. Selling costs 4% a sale on both plans, the free one included, and the till needs no subscription either. Pro at RM4.99 lifts the 20-a-month cap on card scans — that's the whole difference.",
+    a: `No. Selling costs 4% a sale on both plans, the free one included, and the till needs no subscription either. Pro at RM${MARKETPLACE_MONTHLY} lifts the 20-a-month cap on card scans — that's the whole difference.`,
   },
   {
     q: "What does tap-to-pay cost?",

@@ -2,7 +2,8 @@
   <div>
     <div class="mb-3 flex items-baseline justify-between gap-3">
       <div class="min-w-0">
-        <h2 class="text-base font-bold text-ink dark:text-white">Delivery addresses</h2>
+        <!-- On phones the page header already names the page. -->
+        <h2 class="hidden lg:block text-base font-bold text-ink dark:text-white">Delivery addresses</h2>
         <p class="mt-0.5 text-[13px] text-ink-muted dark:text-zinc-400">
           Shipping is quoted from your default. You can pick a different one at checkout.
         </p>

@@ -5,6 +5,22 @@
 // canonical English form (the Pokemon TCG API is only indexed in
 // English). The actual card lookup happens client-side against
 // api.pokemontcg.io using those two fields.
+//
+// Each call costs money, so it needs a signed-in member with scans left this
+// month (shared/scan-quota.ts). The scan is counted before Gemini is called
+// and given back if Gemini fails.
+
+import type { DocumentReference } from "firebase-admin/firestore";
+import { requireUser } from "~/server/utils/auth";
+import { getAdminFirestore } from "~/server/utils/firebase-admin";
+import {
+  FREE_SCAN_LIMIT,
+  refundScan,
+  spendScan,
+  type ScanProfile,
+  type ScanSpend,
+  type ScanUsage,
+} from "~/shared/scan-quota";
 
 const MODEL = "gemini-3.1-flash-lite";
 const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
@@ -22,6 +38,45 @@ Return ONLY a JSON object with these fields. If you genuinely cannot read a fiel
 - "language": the language of the printed text on the card as a 2-letter ISO code. One of: "EN", "JP", "KR", "CN", "DE", "FR", "IT", "ES", "PT". Default to "EN" if uncertain.
 - "artist": the illustrator name printed in small text at the bottom of the artwork ("Illus. <name>" or "イラスト <name>"). Return just the name, no "Illus." prefix.`;
 
+// The scanner sends a JPEG resized to 1600px, well under 1 MB. Anything far
+// bigger is not our client.
+const MAX_IMAGE_BASE64 = 4 * 1024 * 1024;
+
+const spend = async (uid: string) => {
+  const db = getAdminFirestore();
+  const usageRef = db.collection("scanUsage").doc(uid);
+  const userRef = db.collection("users").doc(uid);
+  return db.runTransaction(async (tx) => {
+    const [usageSnap, userSnap] = await Promise.all([tx.get(usageRef), tx.get(userRef)]);
+    const profile = (userSnap.data() ?? {}) as ScanProfile;
+    const decision = spendScan(usageSnap.data() as Partial<ScanUsage> | undefined, profile, Date.now());
+    if (decision.allowed && decision.spent !== "pro") {
+      tx.set(usageRef, decision.usage);
+      if (userSnap.exists) tx.update(userRef, decision.mirror);
+    }
+    return decision;
+  });
+};
+
+const refund = async (uid: string, spent: ScanSpend | null) => {
+  if (spent !== "bonus" && spent !== "monthly") return;
+  const db = getAdminFirestore();
+  const usageRef: DocumentReference = db.collection("scanUsage").doc(uid);
+  const userRef = db.collection("users").doc(uid);
+  try {
+    await db.runTransaction(async (tx) => {
+      const [usageSnap, userSnap] = await Promise.all([tx.get(usageRef), tx.get(userRef)]);
+      if (!usageSnap.exists) return;
+      const profile = (userSnap.data() ?? {}) as ScanProfile;
+      const { usage, mirror } = refundScan(usageSnap.data() as ScanUsage, spent, profile);
+      tx.set(usageRef, usage);
+      if (userSnap.exists) tx.update(userRef, mirror);
+    });
+  } catch (e) {
+    console.error("[identify-card] refund failed:", e);
+  }
+};
+
 interface RequestBody {
   imageBase64?: string;
   mimeType?: string;
@@ -36,9 +91,23 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  const user = await requireUser(event);
+
   const body = await readBody<RequestBody>(event);
   if (!body?.imageBase64) {
     throw createError({ statusCode: 400, message: "imageBase64 is required." });
+  }
+  if (body.imageBase64.length > MAX_IMAGE_BASE64) {
+    throw createError({ statusCode: 413, message: "Image is too large." });
+  }
+
+  const decision = await spend(user.uid);
+  if (!decision.allowed) {
+    throw createError({
+      statusCode: 429,
+      message: `You've used all ${FREE_SCAN_LIMIT} scans this month.`,
+      data: { reason: "scan-quota", resetAt: decision.usage.resetAt },
+    });
   }
 
   const requestBody = {
@@ -71,13 +140,22 @@ export default defineEventHandler(async (event) => {
     },
   };
 
-  const res = await fetch(`${ENDPOINT}?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(requestBody),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${ENDPOINT}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
+  } catch (e) {
+    await refund(user.uid, decision.spent);
+    console.error("[identify-card] Gemini unreachable:", e);
+    throw createError({ statusCode: 502, message: "Card reader unreachable." });
+  }
 
   if (!res.ok) {
+    // Gemini didn't read anything; the member shouldn't pay a scan for it.
+    await refund(user.uid, decision.spent);
     const errText = await res.text().catch(() => "");
     console.error(
       `[identify-card] Gemini ${res.status}:`,

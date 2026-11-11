@@ -10,14 +10,13 @@
            summary strip — adding ~24px of padding to a block that looked like
            it had none. Symmetric padding now, so the bar sits the same
            distance from the nav as it does from the results. -->
-      <div class="flex items-center gap-2 py-3">
-        <!-- Scanner placeholder — not yet implemented -->
+      <div class="flex items-center gap-1.5 py-3">
+        <!-- Scan cards into the collection: camera, then a review sheet. -->
         <button
           type="button"
-          disabled
-          title="Card scanner — coming soon"
-          class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg border border-gray-200 dark:border-white/[0.10] text-gray-400 dark:text-zinc-600 opacity-60 cursor-not-allowed"
-          aria-label="Scan card (coming soon)"
+          class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-ink dark:text-zinc-200 hover:text-pokemon-red transition-colors"
+          aria-label="Scan cards"
+          @click="openScanner"
         >
           <svg
             class="w-5 h-5"
@@ -38,7 +37,7 @@
         <!-- Search input — Enter dispatches the search -->
         <div class="relative flex-1 min-w-0">
           <svg
-            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-soft dark:text-zinc-500 pointer-events-none"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -51,8 +50,9 @@
             v-model="searchInput"
             type="search"
             enterkeyhint="search"
-            placeholder='Search — e.g. "pikachu 151", "charizard ir"'
-            class="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white focus:border-pokemon-blue focus:outline-none"
+            placeholder="Search cards"
+            aria-label='Search cards to add, e.g. "pikachu 151"'
+            class="w-full h-10 pl-9 pr-3 rounded-full border-0 bg-black/[0.05] dark:bg-white/[0.08] text-sm text-ink dark:text-white collection-search placeholder:text-ink-soft dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-white/15 [&::-webkit-search-cancel-button]:appearance-none"
             @keydown.enter.prevent="runSearch"
           />
         </div>
@@ -61,11 +61,11 @@
         <button
           type="button"
           @click="cyclePrice"
-          class="shrink-0 inline-flex items-center gap-1 h-10 px-2.5 rounded-lg border text-xs font-semibold transition-colors"
+          class="shrink-0 inline-flex items-center gap-0.5 h-10 px-2.5 rounded-full text-sm font-semibold transition-colors"
           :class="
             priceSort
-              ? 'border-pokemon-red text-pokemon-red bg-pokemon-red/5'
-              : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300'
+              ? 'bg-pokemon-red/10 text-pokemon-red'
+              : 'bg-black/[0.05] dark:bg-white/[0.08] text-ink dark:text-zinc-200'
           "
           :aria-label="priceLabel"
           :title="priceLabel"
@@ -100,11 +100,11 @@
         <button
           type="button"
           @click="filtersOpen = !filtersOpen"
-          class="relative shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg border transition-colors"
+          class="relative shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full transition-colors"
           :class="
             filtersOpen || hasActiveFilters
-              ? 'border-pokemon-red text-pokemon-red bg-pokemon-red/5'
-              : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300'
+              ? 'bg-pokemon-red/10 text-pokemon-red'
+              : 'bg-black/[0.05] dark:bg-white/[0.08] text-ink dark:text-zinc-200'
           "
           aria-label="Sort and filter"
         >
@@ -127,38 +127,27 @@
           />
         </button>
 
-        <!-- "Your collection" only exists once there's an account. A guest
+        <!-- "Your Dex" only exists once there's an account. A guest
              gets the same row pointed at sign-in rather than a dead link to
-             /profile/undefined. -->
+             /profile/undefined. Hidden while profiles don't show the Dex. -->
         <NuxtLink
+          v-if="SHOW_DEX_ON_PROFILE"
           :to="user ? `/profile/${user.uid}?tab=collection` : { path: '/login', query: { next: $route.fullPath } }"
-          class="flex items-center justify-between gap-3 py-3 group"
+          class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-ink dark:text-zinc-200 hover:text-pokemon-red transition-colors"
+          aria-label="See your Dex as others do"
+          title="See your Dex as others do"
         >
-          <span
-            class="shrink-0 inline-flex items-center gap-0.5 text-ink-muted dark:text-zinc-400 group-hover:text-pokemon-red transition-colors"
+          <svg
+            class="w-5 h-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
           >
-            <svg
-              class="w-5 h-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-            <svg
-              class="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </span>
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
         </NuxtLink>
       </div>
 
@@ -193,7 +182,7 @@
                       : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300'
                   "
                 >
-                  {{ opt.label }}
+                  {{ sortLabel(opt) }}
                 </button>
               </div>
             </div>
@@ -236,7 +225,7 @@
                   class="px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
                 >
                   <option value="">All sets</option>
-                  <option v-for="s in sets" :key="s.name" :value="s.name">
+                  <option v-for="s in setOptions" :key="s.name" :value="s.name">
                     {{ s.name }} ({{ s.count }})
                   </option>
                 </select>
@@ -245,7 +234,7 @@
                   class="px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"
                 >
                   <option value="">All rarities</option>
-                  <option v-for="r in rarities" :key="r.name" :value="r.name">
+                  <option v-for="r in rarityOptions" :key="r.name" :value="r.name">
                     {{ r.name }} ({{ r.count }})
                   </option>
                 </select>
@@ -282,22 +271,17 @@
           <div>
             <p class="eyebrow">Estimated value</p>
             <p
-              class="mt-2 text-3xl sm:text-4xl font-bold text-ink dark:text-white tabular-price leading-none tracking-tightest"
+              class="mt-1.5 text-2xl sm:text-4xl font-bold text-ink dark:text-white tabular-price leading-none tracking-tightest"
             >
               RM {{ formatMyr(totalValue) }}
             </p>
-            <p class="mt-1.5 text-xs text-ink-soft dark:text-zinc-500">
-              {{ count }} card{{ count === 1 ? "" : "s"
-              }}<template v-if="totalCopies !== count">
-                · {{ totalCopies }} copies</template
-              >
-              <template
-                v-if="
-                  valueTrend.trackedCards && valueTrend.trackedCards < count
-                "
-              >
-                · trend from {{ valueTrend.trackedCards }} with price history
-              </template>
+            <!-- The card count lives beside "Your collection" below; this
+                 line only adds what that one does not say. -->
+            <p
+              v-if="valueNote"
+              class="mt-1.5 text-xs text-ink-soft dark:text-zinc-500"
+            >
+              {{ valueNote }}
             </p>
           </div>
         </div>
@@ -306,7 +290,7 @@
           <PriceTrendChart
             :trend="valueTrend.trend"
             :loading="trendLoading"
-            :height="120"
+            :height="96"
             :show-header="false"
           />
         </div>
@@ -323,49 +307,69 @@
 
       <div v-else-if="!collectionCards.length" class="text-center py-16">
         <p class="text-ink dark:text-white font-semibold">
-          Your collection is empty
+          Your Dex is empty
         </p>
         <p
           class="text-sm text-ink-muted dark:text-zinc-400 mt-1 max-w-sm mx-auto"
         >
-          Search the TCGo catalogue above and tap + on any card to start
+          Search TCGo Dex above and tap + on any card to start
           tracking it.
         </p>
       </div>
 
       <template v-else>
-        <div class="flex items-center justify-between mb-3">
-          <h2
-            class="text-sm font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400"
-          >
-            Your collection
-          </h2>
+        <div class="flex items-baseline justify-between mb-3">
+          <h2 class="eyebrow">Your Dex</h2>
           <span
-            class="text-[11px] text-ink-soft dark:text-zinc-500 tabular-price"
+            class="text-xs text-ink-soft dark:text-zinc-500 tabular-price"
           >
+            <template v-if="hasOwnedFilters">
+              {{ visibleCollectionCards.length }} of
+            </template>
             {{ collectionCards.length }} card{{
               collectionCards.length === 1 ? "" : "s"
             }}
           </span>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <CollectionItemCard
-            v-for="card in collectionCards"
+        <!-- Flat cells divided by hairlines, edge to edge on phones. Each
+             cell draws its own right and bottom line; overflow-hidden clips
+             the ones on the outer right edge. -->
+        <div
+          class="-mx-4 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 overflow-hidden border-t border-black/[0.06] dark:border-white/[0.08] lg:border-x lg:rounded-xl"
+        >
+          <CollectionOwnedTile
+            v-for="card in visibleCollectionCards"
             :key="card.productId"
             :card="card"
-            :in-collection="true"
-            show-quantity
             :quantity="quantityOf(card.productId)"
+            :change="priceChanges.get(card.productId)"
             :busy="busyIds.has(card.productId)"
-            @increment="handleIncrement(card.productId)"
-            @decrement="handleDecrement(card.productId)"
+            class="shadow-[1px_0_0_0_rgba(0,0,0,0.06),0_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.08),0_1px_0_0_rgba(255,255,255,0.08)]"
+            @menu="openManage(card)"
           />
+        </div>
+        <div
+          v-if="!visibleCollectionCards.length"
+          class="text-center py-12 px-6"
+        >
+          <p class="text-sm text-ink-soft dark:text-zinc-500">
+            None of your cards match these filters.
+          </p>
+          <button
+            type="button"
+            @click="resetFilters"
+            class="mt-3 rounded-lg bg-pokemon-red px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            Clear filters
+          </button>
         </div>
       </template>
     </section>
 
     <!-- ── Search results ──────────────────────────────────────────── -->
-    <div v-else class="pt-5">
+    <!-- The title row sits between two hairlines (the search bar's and the
+         grid's), so it gets the same gap above and below. -->
+    <div v-else class="pt-4">
       <div
         v-if="searchLoading && searchResults.length === 0"
         class="flex justify-center py-16"
@@ -382,7 +386,7 @@
         <!-- A DPBP number will never match, so say why rather than leaving
              them to retype it. -->
         <template v-if="looksLikeDpbp">
-          Japanese DP-era cards are in the catalogue, but their DPBP number
+          Japanese DP-era cards are in TCGo Dex, but their DPBP number
           isn't — it isn't published with the card data we use.
           <span class="block mt-2 text-ink dark:text-white font-semibold">
             Search the name and set instead, like “omanyte dp4”.
@@ -406,36 +410,39 @@
       </p>
 
       <template v-else>
-        <div class="flex items-center justify-between mb-3 gap-3">
-          <h2
-            class="text-sm font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400"
-          >
-            Search results
-          </h2>
+        <div class="flex items-center justify-between mb-4 gap-3">
+          <h2 class="eyebrow">Search results</h2>
           <div class="flex items-center gap-3">
             <span
-              class="text-[11px] text-ink-soft dark:text-zinc-500 tabular-price"
+              class="text-xs text-ink-soft dark:text-zinc-500 tabular-price"
             >
               {{ searchResults.length }} of {{ searchTotal }}
             </span>
             <button
               type="button"
               @click="clearSearch"
-              class="text-[11px] font-semibold text-pokemon-red hover:underline"
+              class="text-xs font-semibold text-pokemon-red hover:underline"
             >
-              Back to collection
+              Back to Dex
             </button>
           </div>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <CollectionItemCard
+        <!-- Same flat hairline grid as Your collection: owned results get
+             the ⋮ manage sheet, the rest an add button. -->
+        <div
+          class="-mx-4 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 overflow-hidden border-t border-black/[0.06] dark:border-white/[0.08] lg:border-x lg:rounded-xl"
+        >
+          <CollectionOwnedTile
             v-for="card in searchResults"
             :key="card.productId"
             :card="card"
-            :in-collection="isInCollection(card.productId)"
             :quantity="quantityOf(card.productId)"
+            :change="priceChanges.get(card.productId)"
             :busy="busyIds.has(card.productId)"
-            @toggle="handleToggle(card.productId)"
+            addable
+            class="shadow-[1px_0_0_0_rgba(0,0,0,0.06),0_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.08),0_1px_0_0_rgba(255,255,255,0.08)]"
+            @menu="openManage(card)"
+            @add="handleToggle(card.productId)"
           />
         </div>
         <!-- Scrolling to the bottom IS the request for more. The sentinel sits
@@ -460,6 +467,160 @@
         </p>
       </template>
     </div>
+
+    <!-- Card scanning. The scanner fills the collection's own queue; the
+         review sheet is where matches are checked and added. -->
+    <CardScanner
+      v-if="scannerOpen"
+      scope="collection"
+      @close="onScannerClosed"
+      @finished="onScannerClosed"
+    />
+    <CollectionScanReview
+      v-if="scanReviewOpen"
+      @close="scanReviewOpen = false"
+      @scan-more="openScanner"
+      @search="searchFromScan"
+      @added="onScanAdded"
+    />
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-2"
+      leave-active-class="transition duration-150 ease-out"
+      leave-to-class="opacity-0"
+    >
+      <p
+        v-if="scanAddedNote"
+        role="status"
+        class="fixed left-1/2 -translate-x-1/2 top-[calc(12px+env(safe-area-inset-top))] z-[80] whitespace-nowrap rounded-full bg-ink dark:bg-white px-4 py-2.5 text-sm font-semibold text-white dark:text-ink shadow-lg"
+      >
+        {{ scanAddedNote }}
+      </p>
+    </Transition>
+
+    <!-- Manage sheet for one owned card: the ⋮ on a tile opens it. One
+         sheet, three views: the actions, then a count for "Change amount"
+         or "Mark as sold", or a confirm for "Remove". -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-opacity duration-200 ease-out"
+        enter-from-class="opacity-0"
+        leave-active-class="transition-opacity duration-150 ease-out"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="manageCard"
+          class="fixed inset-0 z-[70] bg-black/40"
+          @click="closeManage"
+        />
+      </Transition>
+      <Transition
+        enter-active-class="transition-transform duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)]"
+        enter-from-class="translate-y-full"
+        leave-active-class="transition-transform duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
+        leave-to-class="translate-y-full"
+      >
+        <div
+          v-if="manageCard"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="`Manage ${manageCard.name}`"
+          class="fixed inset-x-0 bottom-0 z-[71] mx-auto max-w-md surface rounded-t-3xl border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]"
+        >
+          <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15" aria-hidden="true" />
+          <div class="px-2 pb-2">
+            <p class="truncate text-base font-bold text-ink dark:text-white">{{ manageCard.name }}</p>
+            <p class="truncate text-xs text-ink-soft dark:text-zinc-500">
+              {{ manageCard.setName }} · {{ manageOwned }} owned
+            </p>
+          </div>
+
+          <template v-if="manageView === 'actions'">
+            <button
+              v-for="action in manageActions"
+              :key="action.view"
+              type="button"
+              class="tab-press w-full flex items-center gap-3 px-2 min-h-[52px] rounded-xl text-left text-sm font-semibold active:bg-black/[0.04] dark:active:bg-white/[0.06]"
+              :class="action.view === 'remove' ? 'text-pokemon-red' : 'text-ink dark:text-white'"
+              @click="startManage(action.view)"
+            >
+              {{ action.label }}
+            </button>
+          </template>
+
+          <template v-else-if="manageView === 'remove'">
+            <p class="px-2 pb-4 text-sm text-ink-muted dark:text-zinc-400">
+              Remove this card and all {{ manageOwned }}
+              {{ manageOwned === 1 ? "copy" : "copies" }} from your Dex?
+            </p>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="flex-1 h-11 rounded-xl border border-black/[0.08] dark:border-white/[0.12] text-sm font-semibold text-ink dark:text-white"
+                @click="manageView = 'actions'"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="flex-1 h-11 rounded-xl bg-pokemon-red text-sm font-semibold text-white"
+                @click="confirmManage"
+              >
+                Remove
+              </button>
+            </div>
+          </template>
+
+          <template v-else>
+            <p class="px-2 text-sm font-semibold text-ink dark:text-white">
+              {{ manageView === "sold" ? "How many did you sell?" : "How many do you own?" }}
+            </p>
+            <div class="my-4 flex items-center justify-center gap-6">
+              <button
+                type="button"
+                class="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.12] inline-flex items-center justify-center text-ink dark:text-white disabled:opacity-40"
+                :disabled="manageCount <= manageMin"
+                aria-label="One fewer"
+                @click="manageCount--"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14" /></svg>
+              </button>
+              <span class="min-w-[3ch] text-center text-3xl font-bold tabular-price text-ink dark:text-white" aria-live="polite">
+                {{ manageCount }}
+              </span>
+              <button
+                type="button"
+                class="w-11 h-11 rounded-full border border-black/[0.08] dark:border-white/[0.12] inline-flex items-center justify-center text-ink dark:text-white disabled:opacity-40"
+                :disabled="manageCount >= manageMax"
+                aria-label="One more"
+                @click="manageCount++"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+              </button>
+            </div>
+            <p v-if="manageView === 'amount' && manageCount === 0" class="px-2 -mt-2 mb-3 text-center text-xs text-pokemon-red">
+              Saving 0 removes the card from your Dex.
+            </p>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="flex-1 h-11 rounded-xl border border-black/[0.08] dark:border-white/[0.12] text-sm font-semibold text-ink dark:text-white"
+                @click="manageView = 'actions'"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                class="flex-1 h-11 rounded-xl bg-ink dark:bg-white text-sm font-semibold text-white dark:text-ink"
+                @click="confirmManage"
+              >
+                {{ manageView === "sold" ? "Mark sold" : "Save" }}
+              </button>
+            </div>
+          </template>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -475,10 +636,13 @@ import {
   type CollectionPriceTrend,
 } from "~/composables/useCardCatalog";
 import { parseSearchQuery } from "~/shared/search-query";
+import { priceChange, type PriceChange } from "~/shared/price-change";
+import { countBy, filterOwned, sortOwned } from "~/shared/collection-sort";
+import { SHOW_DEX_ON_PROFILE } from "~/shared/dex";
 
-useHead({ title: "Add Cards | TCGo Marketplace" });
+useHead({ title: "TCGo Dex | TCGo Marketplace" });
 
-// Divisible by 2, 3 and 5 — the three grid widths — so the last row is never
+// Divisible by 3 and 5 — the grid widths — so the last row is never
 // left with empty slots at any breakpoint.
 const SEARCH_PAGE_SIZE = 30;
 
@@ -487,20 +651,22 @@ const { requireSignIn } = useSignInGate();
 const {
   searchCatalog,
   getCardsByIds,
+  getReleaseDates,
   listSets,
   listRarities,
   getCollectionPriceTrend,
+  getPriceHistories,
 } = useCardCatalog();
 const {
   entries,
   count,
   totalCopies,
-  isInCollection,
   quantities,
   quantityOf,
-  addCopy,
-  removeCopy,
   toggleInCollection,
+  setQuantity,
+  markSold,
+  removeFromCollection,
   listenMyCollection,
 } = useUserCollection();
 
@@ -577,7 +743,7 @@ const loadDropdowns = (): Promise<void> => {
 // Price is its own axis, not one of these. Sorting by price is the thing
 // people flip back and forth while scanning results, and burying it in a
 // panel meant opening the panel, choosing, and applying every time.
-type BaseSort = Extract<CatalogSort, "best" | "name">;
+type BaseSort = Extract<CatalogSort, "newest" | "best" | "name">;
 
 const languageOptions = [
   { value: "ALL", label: "Both" },
@@ -585,10 +751,16 @@ const languageOptions = [
   { value: "JP", label: "Japanese" },
 ] as const;
 
+// Newest is the set's release date, newest first, and the default (kai,
+// 2026-10-19). The same choice orders the owned grid, where there is no query
+// to match, so Best match reads as the order cards were added.
 const sortOptions: Array<{ value: BaseSort; label: string }> = [
+  { value: "newest", label: "Newest release" },
   { value: "best", label: "Best match" },
   { value: "name", label: "Name A–Z" },
 ];
+const sortLabel = (opt: { value: BaseSort; label: string }) =>
+  opt.value === "best" && !showingSearch.value ? "Recently added" : opt.label;
 
 /** Off, then dearest first, then cheapest first, then off again. */
 const PRICE_CYCLE = [null, "desc", "asc"] as const;
@@ -617,7 +789,7 @@ const rarityFilter = useState("collection:rarity", () => "");
 // a Japanese-only rarity, "067/082" a Japanese-only number, and a Gold Star's
 // Japanese printing sits beside its English one.
 const languageFilter = useState<"ALL" | "EN" | "JP">("collection:language", () => "ALL");
-const baseSort = useState<BaseSort>("collection:sort", () => "best");
+const baseSort = useState<BaseSort>("collection:sort", () => "newest");
 const priceSort = useState<PriceSort>("collection:price-sort", () => null);
 const filtersOpen = ref(false);
 
@@ -669,7 +841,7 @@ const hasActiveFilters = computed(
     !!setFilter.value ||
     !!rarityFilter.value ||
     languageFilter.value !== "ALL" ||
-    baseSort.value !== "best",
+    baseSort.value !== "newest",
 );
 
 // One parser for every search surface — see useCardCatalog. This page used
@@ -755,6 +927,9 @@ const runSearch = async () => {
     !effectiveSetMatch.value &&
     !effectiveRarityMatch.value
   ) {
+    // Nothing left to search for: an emptied box (or reset filters) means
+    // "back to my collection", not "keep the last results on screen".
+    if (hasRunSearch.value) clearSearch();
     return;
   }
   searchPage.value = 0;
@@ -775,6 +950,21 @@ const runSearch = async () => {
   searchTotal.value = total;
   searchLoading.value = false;
 };
+
+// Emptying the box is the way back too. A search with no matches has no
+// "Back to Dex" button, so without this the page stayed on "No
+// matches" after the text and filters were cleared. Not via runSearch: that
+// dismisses the keyboard mid-edit.
+watch(searchInput, (value) => {
+  if (
+    hasRunSearch.value &&
+    !value.trim() &&
+    !setFilter.value &&
+    !rarityFilter.value
+  ) {
+    clearSearch();
+  }
+});
 
 const loadMore = async () => {
   if (searchLoading.value || !hasMoreResults.value) return;
@@ -821,16 +1011,18 @@ watch(loadMoreSentinel, (el) => {
 
 onBeforeUnmount(() => observer?.disconnect());
 
+// On the owned grid the filters already took effect as they were chosen;
+// Apply only searches when there is a search to run.
 const applyFilters = () => {
   filtersOpen.value = false;
-  runSearch();
+  if (hasRunSearch.value || searchInput.value.trim()) runSearch();
 };
 
 const resetFilters = () => {
   setFilter.value = "";
   rarityFilter.value = "";
   languageFilter.value = "ALL";
-  baseSort.value = "best";
+  baseSort.value = "newest";
   priceSort.value = null;
   if (hasRunSearch.value) runSearch();
 };
@@ -855,12 +1047,54 @@ const valueTrend = ref<CollectionPriceTrend>({
   totalCards: 0,
 });
 const trendLoading = ref(false);
+// Each owned card's move over PRICE_CHANGE_DAYS, for the arrow on its tile.
+const priceChanges = ref(new Map<number, PriceChange | null>());
+// Set release dates, for the Newest sort. Empty until they load, which leaves
+// the grid in added order rather than holding it back.
+const releaseDates = ref(new Map<number, string>());
+const valueNote = computed(() =>
+  [
+    totalCopies.value !== count.value ? `${totalCopies.value} copies` : "",
+    valueTrend.value.trackedCards && valueTrend.value.trackedCards < count.value
+      ? `Trend from ${valueTrend.value.trackedCards} with price history`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" · "),
+);
+
+// What the grid shows: the panel's filters, then its sort. Search sends the
+// same choices to the catalogue instead.
+const hasOwnedFilters = computed(
+  () => !!setFilter.value || !!rarityFilter.value || languageFilter.value !== "ALL",
+);
+const visibleCollectionCards = computed(() =>
+  sortOwned(
+    filterOwned(collectionCards.value, {
+      set: setFilter.value,
+      rarity: rarityFilter.value,
+      language: languageFilter.value,
+    }),
+    sortBy.value,
+    releaseDates.value,
+  ),
+);
+// Owned view lists only the sets and rarities the reader has, so every
+// choice finds something. Search keeps the whole catalogue's lists.
+const setOptions = computed(() =>
+  showingSearch.value ? sets.value : countBy(collectionCards.value, (c) => c.setName),
+);
+const rarityOptions = computed(() =>
+  showingSearch.value ? rarities.value : countBy(collectionCards.value, (c) => c.rarity),
+);
 
 watch(
   collectionProductIds,
   async (ids) => {
     if (!ids.length) {
       collectionCards.value = [];
+      priceChanges.value = new Map();
+      releaseDates.value = new Map();
       valueTrend.value = {
         trend: null,
         trackedCards: 0,
@@ -874,7 +1108,11 @@ watch(
     try {
       // getCardsByIds does not guarantee input order, so re-sort into the
       // newest-first order the ids were built in.
-      const cards = await getCardsByIds(ids);
+      const [cards, dates] = await Promise.all([
+        getCardsByIds(ids),
+        getReleaseDates(ids),
+      ]);
+      releaseDates.value = dates;
       const rank = new Map(ids.map((id, i) => [id, i]));
       collectionCards.value = [...cards].sort(
         (a, b) => (rank.get(a.productId) ?? 0) - (rank.get(b.productId) ?? 0),
@@ -883,10 +1121,16 @@ watch(
       collectionLoading.value = false;
     }
     try {
+      // One fetch feeds both the portfolio chart and the tile arrows.
+      const histories = await getPriceHistories(ids);
+      priceChanges.value = new Map(
+        [...histories].map(([id, points]) => [id, priceChange(points)]),
+      );
       valueTrend.value = await getCollectionPriceTrend(
         ids,
         30,
         quantities.value,
+        histories,
       );
     } finally {
       trendLoading.value = false;
@@ -901,6 +1145,41 @@ const totalValue = computed(() =>
     0,
   ),
 );
+
+// ── Card scanning ─────────────────────────────────────────────────────
+const { queue: scanQueue } = useScanQueue("collection");
+const scannerOpen = ref(false);
+const scanReviewOpen = ref(false);
+
+const openScanner = () => {
+  // The scanner has its own sign-in screen, but a guest gets further sooner
+  // with the usual prompt.
+  if (!requireSignIn()) return;
+  scanReviewOpen.value = false;
+  scannerOpen.value = true;
+};
+
+// Closing the camera with scans in hand goes to the review; with none, it
+// just closes.
+const onScannerClosed = () => {
+  scannerOpen.value = false;
+  if (scanQueue.value.length) scanReviewOpen.value = true;
+};
+
+const searchFromScan = (query: string) => {
+  scanReviewOpen.value = false;
+  searchInput.value = query;
+  runSearch();
+};
+
+const scanAddedNote = ref("");
+let scanNoteTimer: ReturnType<typeof setTimeout> | undefined;
+const onScanAdded = (copies: number) => {
+  if (!scanQueue.value.length) scanReviewOpen.value = false;
+  scanAddedNote.value = `Added ${copies} ${copies === 1 ? "card" : "cards"} to your Dex`;
+  clearTimeout(scanNoteTimer);
+  scanNoteTimer = setTimeout(() => (scanAddedNote.value = ""), 2600);
+};
 
 const formatMyr = (n: number) =>
   n.toLocaleString("en-MY", {
@@ -932,9 +1211,63 @@ const handleToggle = (productId: number) => {
   withBusy(productId, () => toggleInCollection(productId));
 };
 
-const handleIncrement = (productId: number) =>
-  withBusy(productId, () => addCopy(productId));
+// ── Manage sheet (⋮ on an owned tile) ─────────────────────────────────
+type ManageView = "actions" | "amount" | "sold" | "remove";
+const manageActions: { view: ManageView; label: string }[] = [
+  { view: "amount", label: "Change amount" },
+  { view: "sold", label: "Mark as sold" },
+  { view: "remove", label: "Remove from Dex" },
+];
+const manageCard = ref<CatalogMatch | null>(null);
+const manageView = ref<ManageView>("actions");
+const manageCount = ref(1);
+const manageOwned = computed(() =>
+  manageCard.value ? quantityOf(manageCard.value.productId) : 0,
+);
+// Amount can go to 0 (removes the card); a sale is at least one copy and
+// at most what is owned. 999 keeps a held-down + from running away.
+const manageMin = computed(() => (manageView.value === "sold" ? 1 : 0));
+const manageMax = computed(() =>
+  manageView.value === "sold" ? manageOwned.value : 999,
+);
 
-const handleDecrement = (productId: number) =>
-  withBusy(productId, () => removeCopy(productId));
+const openManage = (card: CatalogMatch) => {
+  manageCard.value = card;
+  manageView.value = "actions";
+};
+const closeManage = () => {
+  manageCard.value = null;
+};
+const onManageKey = (e: KeyboardEvent) => {
+  if (e.key === "Escape" && manageCard.value) closeManage();
+};
+onMounted(() => window.addEventListener("keydown", onManageKey));
+onBeforeUnmount(() => window.removeEventListener("keydown", onManageKey));
+const startManage = (view: ManageView) => {
+  manageView.value = view;
+  manageCount.value = view === "amount" ? manageOwned.value : 1;
+};
+const confirmManage = () => {
+  const card = manageCard.value;
+  if (!card) return;
+  const view = manageView.value;
+  const n = manageCount.value;
+  closeManage();
+  withBusy(card.productId, () =>
+    view === "remove"
+      ? removeFromCollection(card.productId)
+      : view === "sold"
+        ? markSold(card.productId, n)
+        : setQuantity(card.productId, n),
+  );
+};
 </script>
+
+<style scoped>
+/* Phones force inputs to 16px so iOS doesn't zoom on focus (tailwind.css).
+   That rule is on the input, not its placeholder, so the hint can match the
+   app's 14px search pill while typed text stays 16px. */
+.collection-search::placeholder {
+  font-size: 14px;
+}
+</style>

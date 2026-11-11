@@ -37,7 +37,7 @@
             {{ [item.cardSet, item.condition].filter(Boolean).join(" · ") }}
           </p>
         </div>
-        <p class="text-sm font-semibold tabular-nums text-ink dark:text-white">
+        <p class="shrink-0 text-sm font-semibold tabular-nums text-ink dark:text-white">
           RM {{ item.price.toFixed(2) }}
         </p>
       </div>
@@ -62,10 +62,10 @@
     <!-- Tracking (if shipped) -->
     <div
       v-if="order.trackingNumber"
-      class="mt-3 text-xs text-gray-500 dark:text-zinc-400 break-all"
+      class="mt-3 text-xs text-gray-500 dark:text-zinc-400 break-words"
     >
       Tracking:
-      <span class="font-mono font-semibold text-ink dark:text-white">{{ order.trackingNumber }}</span>
+      <span class="break-all select-text font-mono font-semibold text-ink dark:text-white">{{ order.trackingNumber }}</span>
       <span v-if="order.shippingCarrier"> · {{ order.shippingCarrier }}</span>
     </div>
 
@@ -73,7 +73,7 @@
     <div class="mt-3 flex flex-wrap gap-2">
       <NuxtLink
         :to="`/orders/${order.id}`"
-        class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+        class="inline-flex items-center min-h-[40px] px-4 lg:min-h-0 lg:px-3 lg:py-1.5 rounded-lg text-[13px] lg:text-xs font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200 lg:hover:bg-black/[0.04] lg:dark:hover:bg-white/[0.06] transition-[background-color,transform] duration-150 active:scale-[0.97] lg:active:scale-100"
       >
         View order
       </NuxtLink>

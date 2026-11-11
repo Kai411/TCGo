@@ -14,7 +14,10 @@ import { noteError } from "~/server/utils/oplog";
 import {
   DIDIT_WEBHOOK_MAX_SKEW_SECONDS,
   kycStatusFor,
+  myKadNumberFrom,
 } from "~/shared/didit";
+import { splitProfileWrite } from "~/shared/private-profile";
+import { privateProfileRef } from "~/server/utils/user-profile";
 
 /**
  * Whole-number floats (1.0) → integers (1), recursively, matching Didit's
@@ -159,8 +162,9 @@ export default defineEventHandler(async (event) => {
 
   if (next === "verified") {
     patch.kycVerifiedAt = now;
-    // Store the verified name only. It's genuinely useful — it's what the
-    // payout account holder should match — whereas the document images, IC,
+    // Store the verified name and the IC number only. The name is what the
+    // payout account holder should match, and Billplz needs the IC to send a
+    // payout, so keeping it saves the seller typing it. The document images,
     // race and religion Didit also returns are things we have no business
     // keeping. Didit holds the evidence; we keep the pointer and the decision.
     const idv = parsed.decision?.id_verifications?.[0];
@@ -169,6 +173,8 @@ export default defineEventHandler(async (event) => {
       if (fullName) patch.kycVerifiedName = fullName;
       if (idv.document_type) patch.kycDocumentType = idv.document_type;
       if (idv.issuing_state) patch.kycIssuingState = idv.issuing_state;
+      const ic = myKadNumberFrom(idv);
+      if (ic) patch.identityNumber = ic;
     }
   }
 
@@ -183,7 +189,15 @@ export default defineEventHandler(async (event) => {
 
   // Merge so a webhook for a user who somehow has no profile document can't
   // fail the whole delivery and trigger pointless retries.
-  await db.collection("users").doc(uid).set(patch, { merge: true });
+  //
+  // The verified name and document details are personal data, so they go to
+  // the private half of the profile; the status stays public for the badge
+  // and the seller gate in firestore.rules.
+  const { pub, priv } = splitProfileWrite(patch);
+  await db.collection("users").doc(uid).set(pub, { merge: true });
+  if (Object.keys(priv).length) {
+    await privateProfileRef(db, uid).set(priv, { merge: true });
+  }
 
   // 6. 2xx promptly. Nothing slow happens above; if that changes, queue it.
   return { ok: true, status: next };

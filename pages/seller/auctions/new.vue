@@ -700,23 +700,6 @@
               </div>
             </div>
           </div>
-
-          <!-- Shipping is quoted live from your pickup address at checkout,
-               so there's nothing to set per listing. -->
-          <div
-            class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5"
-          >
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-1">
-              Shipping
-            </h3>
-            <p class="text-xs text-gray-500 dark:text-zinc-400">
-              Buyers are quoted a live courier rate from your pickup address to
-              theirs at checkout — you don't set a price here.
-              <NuxtLink to="/seller/verify" class="text-pokemon-red hover:underline">
-                Check your pickup address →
-              </NuxtLink>
-            </p>
-          </div>
         </div>
 
         <div
@@ -742,7 +725,17 @@
           </div>
         </div>
 
+        <!-- Couriers quote from the pickup address, so there's nothing to
+             submit until it's set. -->
+        <NuxtLink
+          v-if="needsPickupAddress"
+          to="/seller/settings#pickup"
+          class="block w-full text-center bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors"
+        >
+          Set up pickup address
+        </NuxtLink>
         <button
+          v-else
           type="submit"
           :disabled="submitting"
           class="w-full bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -782,18 +775,13 @@ const { uploadAuctionImages } = useStorage();
 const {user} = useAuth();
 const { goToLogin } = useSignInGate();
 const { profile } = useMyProfile();
-
-// Selling requires seller verification (contact + bank + pickup address).
-const { sellerReady, kycLoading } = useSellerKyc();
-watch(
-  [kycLoading, sellerReady],
-  ([loading, ready]) => {
-    if (!loading && !ready && user.value) {
-      navigateTo("/seller/verify");
-    }
-  },
-  { immediate: true },
+const { setup: sellerSetup } = useSellerKyc();
+// Same "contact and pickup address" step the seller setup uses; waits for the
+// profile so the button doesn't flash while it loads.
+const needsPickupAddress = computed(
+  () => !!profile.value && sellerSetup.value.remaining.includes("contact"),
 );
+
 const {
   queue,
   remove: removeFromQueue,
@@ -918,7 +906,7 @@ const retryManualSearch = async (id: string) => {
   } catch {
     updateQueueItem(id, {
       status: "failed",
-      error: "Search couldn't reach the card database. Try again in a moment.",
+      error: "Search couldn't reach TCGo Dex. Try again in a moment.",
     });
   } finally {
     manualSearching.value[id] = false;
@@ -1171,6 +1159,8 @@ const removeFile = (index: number) => {
 
 const handleSubmit = async () => {
   error.value = "";
+  // Enter in a field can still submit while the setup button is showing.
+  if (needsPickupAddress.value) return;
 
   if (!profile.value?.phone && !profile.value?.whatsappNumber) {
     error.value =

@@ -2,7 +2,7 @@
   <NuxtLink
     to="/messages"
     :aria-label="unreadConversations ? `Messages, ${unreadConversations} unread` : 'Messages'"
-    class="relative inline-flex items-center justify-center w-9 h-9 rounded-lg text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+    class="relative inline-flex items-center justify-center w-11 h-11 lg:w-9 lg:h-9 rounded-lg text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
     active-class="!text-pokemon-red"
   >
     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

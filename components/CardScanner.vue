@@ -282,6 +282,16 @@
 </template>
 
 <script setup lang="ts">
+import type { ScanScope } from "~/composables/useScanQueue";
+import { FREE_SCAN_LIMIT } from "~/shared/scan-quota";
+const props = withDefaults(
+  defineProps<{
+    /** Which scan queue to fill: a seller's listing, or the member's collection. */
+    scope?: ScanScope;
+  }>(),
+  { scope: "listing" },
+);
+
 const emit = defineEmits<{
   close: [];
   finished: [];
@@ -290,10 +300,11 @@ const emit = defineEmits<{
 const { uploadImage } = useStorage();
 const { lookupByNameAndNumber } = useCardCatalog();
 const { queue, addProcessing, updateItem, pickMatch, processingCount } =
-  useScanQueue();
+  useScanQueue(props.scope);
 const {user} = useAuth();
 const { goToLogin } = useSignInGate();
 const { isPremium, remaining, used, tryConsumeScan } = useScanQuota();
+const { authedFetch } = useAuthedFetch();
 const { profile } = useMyProfile();
 const { premiumEnabled } = useFeatureFlags();
 
@@ -518,7 +529,7 @@ const processInBackground = async (
   try {
     const resized = await resizeBlob(blob);
     const imageBase64 = await blobToBase64(resized);
-    const res = await $fetch<{
+    const res = await authedFetch<{
       name: string;
       number: string;
       language: string;
@@ -536,12 +547,16 @@ const processInBackground = async (
     // 503 means the model is overloaded (transient, worth a retry); other
     // codes get a generic "couldn't read this card" with a search hint.
     const status = e?.response?.status || e?.statusCode;
-    const friendly =
-      status === 503
-        ? "The card recognizer is busy — try again in a moment."
-        : status === 429
-          ? "Too many scans at once — please slow down."
-          : "Couldn't read this card. Try a clearer photo or search by name below.";
+    const quotaHit = e?.data?.data?.reason === "scan-quota";
+    const friendly = quotaHit
+      ? `You've used all ${FREE_SCAN_LIMIT} scans this month.`
+      : status === 401
+        ? "Your session expired. Sign in again to scan."
+        : status === 503
+          ? "The card recognizer is busy — try again in a moment."
+          : status === 429
+            ? "Too many scans at once — please slow down."
+            : "Couldn't read this card. Try a clearer photo or search by name below.";
     updateItem(id, { status: "failed", error: friendly });
     return;
   }
@@ -552,7 +567,7 @@ const processInBackground = async (
     artist,
   });
 
-  // 3. Languages with no TCGo DB coverage (KR, ZH, …) keep the old behavior:
+  // 3. Languages with no TCGo Dex coverage (KR, ZH, …) keep the old behavior:
   // use the scanned image + Gemini's translated name + printed number, and
   // the seller prices it manually. EN and JP both have catalog coverage —
   // the JP catalog (TCGCSV "Pokemon Japan") uses English product names, so
@@ -569,7 +584,7 @@ const processInBackground = async (
     return;
   }
 
-  // 4. Look up the card in the TCGo DB (Supabase cards_catalog + card_prices),
+  // 4. Look up the card in the TCGo Dex (Supabase cards_catalog + card_prices),
   //    scoped to the detected print language. First tries exact-ish
   //    name + number; falls back to name-only suggestions.
   let lookup: Awaited<ReturnType<typeof lookupByNameAndNumber>>;
@@ -580,7 +595,7 @@ const processInBackground = async (
   } catch {
     updateItem(id, {
       status: "failed",
-      error: "Couldn't reach the card database. Try again or search by name.",
+      error: "Couldn't reach TCGo Dex. Try again or search by name.",
     });
     return;
   }
@@ -610,7 +625,7 @@ const processInBackground = async (
   } else {
     updateItem(id, {
       status: "failed",
-      error: "No matches found in TCGo DB — fill in manually below.",
+      error: "No matches found in TCGo Dex — fill in manually below.",
     });
   }
 };

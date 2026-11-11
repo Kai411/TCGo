@@ -11,7 +11,7 @@
 
 export const SHOP_PAGE_SIZE = 60;
 
-// sessionStorage key for the shop's resume state ({ page, y, tcg }). Read by
+// sessionStorage key for the shop's resume state ({ count, y, tcg }). Read by
 // app/router.options.ts to restore the scroll offset on re-entry.
 export const SHOP_STATE_KEY = "tcgo:shop:state";
 

@@ -1,24 +1,15 @@
-// Seller verification ("KYC") — the gate for selling on TCGo.
+// Whether this member can sell — the one answer every screen uses.
 //
-// Deliberately NOT document KYC (no IC uploads): a seller is "verified" when
-// their profile carries everything the platform needs to pay them and ship
-// for them:
-//   1. a mobile number (order and delivery contact),
-//   2. a Malaysian bank account (Billplz payouts / manual transfer),
-//   3. a pickup address (courier collection / shipment origin).
-//
-// Bank accounts in MY require IC to open, so the bank-account requirement is
-// a real-identity anchor in itself.
-//
-// Since then, document verification has been added on top (Didit — MyKad
-// plus a face scan). Both are required: the bank account is what
-// makes a payout possible at all, and the identity check is what stops
-// someone selling under a name that isn't theirs before any money moves.
+// It is the four-step seller setup (shared/onboarding.ts): a verified
+// identity, contact and pickup address, a bank account with IC number, and
+// how parcels are handed over. Before this, four screens each had their own
+// checklist (this file skipped the handover step, and the Account page looked
+// for a timestamp only the old /seller/verify form wrote), so one account
+// could be a seller on one screen and not on the next.
 
 import { computed } from "vue";
-import { kycGatePassed } from "~/shared/didit";
+import { SELLER_STEPS, sellerOnboardingState } from "~/shared/onboarding";
 export { payoutDetailsComplete } from "~/shared/payout-details";
-import { payoutDetailsComplete } from "~/shared/payout-details";
 
 // State list lives in shared/ so Nitro can use it too (the Delyva quote API
 // wants full state names, not the short codes we store). Re-exported here so
@@ -28,22 +19,16 @@ export { MY_STATES, stateName } from "~/shared/my-states";
 export const useSellerKyc = () => {
   const { profile, loading } = useMyProfile();
 
-  const missing = computed<string[]>(() => {
-    const p = profile.value;
-    if (!p) return ["profile"];
-    const out: string[] = [];
-    // No-op while KYC_REQUIRED is false — see shared/didit.ts.
-    if (!kycGatePassed(p.kycStatus)) out.push("identity verification");
-    if (!p.whatsappNumber && !p.phone) out.push("contact number");
-    if (!payoutDetailsComplete(p)) out.push("bank account");
-    if (!p.pickupAddress1 || !p.pickupPostcode || !p.pickupCity || !p.pickupState)
-      out.push("pickup address");
-    return out;
-  });
+  const setup = computed(() => sellerOnboardingState(profile.value));
 
-  const sellerReady = computed(
-    () => !!profile.value && missing.value.length === 0,
+  /** Titles of the setup steps still to do, in order. */
+  const missing = computed<string[]>(() =>
+    setup.value.remaining.map(
+      (id) => SELLER_STEPS.find((s) => s.id === id)?.title.toLowerCase() ?? id,
+    ),
   );
 
-  return { sellerReady, missing, kycLoading: loading };
+  const sellerReady = computed(() => !!profile.value && setup.value.complete);
+
+  return { sellerReady, missing, setup, kycLoading: loading };
 };

@@ -4,9 +4,15 @@
 // and any screen that wants to show progress — so "you still need X" and the
 // thing that actually stops you can never disagree.
 //
-// BUYING ASKS FOR TWO THINGS
-//   1. Confirm the email      — proves the address can receive the code
-//   2. Delivery address       — nothing can be quoted or shipped without one
+// BUYING ASKS FOR THREE THINGS
+//   1. Personal data consent  — PDPA: no collecting before they agree
+//   2. Confirm the email      — proves the address can receive the code
+//   3. Delivery address       — nothing can be quoted or shipped without one
+//
+// Consent is tied to LEGAL_VERSION, so bumping it asks every member again —
+// existing accounts included, which is how members who joined before this
+// step existed get asked at all. Email sign-up ticks it on the form; Google
+// sign-up has no form, so this step is where those accounts are asked.
 //
 // Identity verification is NOT here. Buying is the low-risk direction: money
 // leaves the buyer and cards come back, and demanding a document scan to spend
@@ -19,8 +25,9 @@
 // on a WhatsApp check that could not actually be performed.
 
 import { isKycVerified, type KycStatus } from "~/shared/didit";
+import { LEGAL_VERSION } from "~/shared/legal";
 
-export type OnboardingStepId = "email" | "address";
+export type OnboardingStepId = "consent" | "email" | "address";
 
 export interface OnboardingStep {
   id: OnboardingStepId;
@@ -30,6 +37,11 @@ export interface OnboardingStep {
 }
 
 export const ONBOARDING_STEPS: OnboardingStep[] = [
+  {
+    id: "consent",
+    title: "Your personal data",
+    blurb: "What we collect, why, and your OK to go ahead.",
+  },
   {
     id: "email",
     title: "Confirm your email",
@@ -44,6 +56,8 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
 
 /** The subset of a profile these checks read. Shape-tolerant like the rest. */
 export interface OnboardingView {
+  /** LEGAL_VERSION the member last consented to. Written by composables/useConsent.ts. */
+  consentVersion?: string | null;
   deliveryName?: string | null;
   deliveryPhone?: string | null;
   deliveryAddress1?: string | null;
@@ -69,6 +83,10 @@ export const hasDeliveryAddress = (p: OnboardingView | null | undefined): boolea
     p?.deliveryState?.trim()
   );
 
+/** Consented to the policies as they stand now, not an older wording. */
+export const hasCurrentConsent = (p: OnboardingView | null | undefined): boolean =>
+  p?.consentVersion === LEGAL_VERSION;
+
 /**
  * Reads through isKycVerified rather than comparing a string here.
  *
@@ -80,11 +98,41 @@ export const hasDeliveryAddress = (p: OnboardingView | null | undefined): boolea
 export const hasIdentity = (p: OnboardingView | null | undefined): boolean =>
   isKycVerified(p?.kycStatus as KycStatus | undefined);
 
+/**
+ * Steps that only matter once someone buys, sells or messages, so they never
+ * block browsing.
+ *
+ * The delivery address used to gate every page, which made signing up lock
+ * the app tighter than staying signed out. The email code did the same: a
+ * code that was late or in spam left a new member unable to open any shop
+ * page. Both are asked for where they are needed instead — checkout, a bid,
+ * the seller area and messages (see needsConfirmedEmail and readyToBuy).
+ * Consent still blocks: the PDPA wants it before anything else is collected.
+ */
+const NEEDED_TO_BUY: readonly OnboardingStepId[] = ["email", "address"];
+
+/** What a purchase or a bid needs: a confirmed email and somewhere to ship. */
+export const readyToBuy = (
+  p: OnboardingView | null | undefined,
+  emailVerified: boolean,
+): boolean => emailVerified && hasDeliveryAddress(p);
+
+/**
+ * Routes that act in someone's name, so the email behind it must be real:
+ * paying, selling and messaging other members. Bids are checked in the page.
+ */
+const CONFIRMED_EMAIL_PREFIXES = ["/checkout", "/seller", "/messages"];
+
+export const needsConfirmedEmail = (path: string): boolean =>
+  CONFIRMED_EMAIL_PREFIXES.some((p) => path === p || path.startsWith(p + "/"));
+
 export interface OnboardingState {
   /** Steps still outstanding, in the order they should be done. */
   remaining: OnboardingStepId[];
   /** The one to show now. Null when there's nothing left. */
   current: OnboardingStepId | null;
+  /** The first outstanding step that keeps someone out of the marketplace. */
+  blocking: OnboardingStepId | null;
   complete: boolean;
   /** 0–100, for a progress bar. */
   percent: number;
@@ -97,19 +145,38 @@ export interface OnboardingState {
 export const onboardingState = (
   p: OnboardingView | null | undefined,
   emailVerified: boolean,
+  /** Limit the flow to these steps, e.g. stepsNeededFor(next). */
+  only?: readonly OnboardingStepId[],
 ): OnboardingState => {
   const done: Record<OnboardingStepId, boolean> = {
+    consent: hasCurrentConsent(p),
     email: emailVerified,
     address: hasDeliveryAddress(p),
   };
-  const remaining = ONBOARDING_STEPS.filter((s) => !done[s.id]).map((s) => s.id);
-  const finished = ONBOARDING_STEPS.length - remaining.length;
+  const steps = only ? ONBOARDING_STEPS.filter((s) => only.includes(s.id)) : ONBOARDING_STEPS;
+  const remaining = steps.filter((s) => !done[s.id]).map((s) => s.id);
+  const finished = steps.length - remaining.length;
   return {
     remaining,
     current: remaining[0] ?? null,
+    blocking: remaining.find((id) => !NEEDED_TO_BUY.includes(id)) ?? null,
     complete: remaining.length === 0,
-    percent: Math.round((finished / ONBOARDING_STEPS.length) * 100),
+    percent: steps.length ? Math.round((finished / steps.length) * 100) : 100,
   };
+};
+
+/**
+ * The steps the page someone was sent from actually needs, so finishing
+ * them returns them there instead of asking for more.
+ *
+ * Selling and messaging need the email only. Anything else (paying,
+ * bidding, or just arriving from the consent screen) gets the whole list,
+ * with "Not now" for the steps that don't block browsing.
+ */
+export const stepsNeededFor = (next: string | null | undefined): OnboardingStepId[] => {
+  const path = (next ?? "").split(/[?#]/)[0];
+  if (path && path !== "/checkout" && needsConfirmedEmail(path)) return ["consent", "email"];
+  return ONBOARDING_STEPS.map((s) => s.id);
 };
 
 /**
@@ -197,14 +264,36 @@ export interface SellerOnboardingView extends OnboardingView {
   handoverPreference?: string | null;
 }
 
+const filled = (v: unknown): boolean => !!String(v ?? "").trim();
+
+/**
+ * What the contact step still needs, in words for the seller: "contact
+ * number", "pickup address", "postcode", "city", "state". Empty when done.
+ *
+ * Named field by field because the step as a whole can look finished when it
+ * isn't: Seller settings shows the pickup address line once there's a street
+ * and postcode, and the setup form prefills the number from the delivery
+ * address, so a missing number or city was invisible everywhere except the
+ * "3 of 4 done" count.
+ */
+export const missingSellerContact = (p: SellerOnboardingView | null | undefined): string[] => {
+  const out: string[] = [];
+  if (!filled(p?.phone) && !filled(p?.whatsappNumber)) out.push("contact number");
+  if (!filled(p?.pickupAddress1)) out.push("pickup address");
+  if (!filled(p?.pickupPostcode)) out.push("postcode");
+  if (!filled(p?.pickupCity)) out.push("city");
+  if (!filled(p?.pickupState)) out.push("state");
+  return out;
+};
+
 export const hasSellerContact = (p: SellerOnboardingView | null | undefined): boolean =>
-  !!(
-    (p?.phone?.trim() || p?.whatsappNumber?.trim()) &&
-    p?.pickupAddress1?.trim() &&
-    p?.pickupPostcode?.trim() &&
-    p?.pickupCity?.trim() &&
-    p?.pickupState?.trim()
-  );
+  missingSellerContact(p).length === 0;
+
+/** "city", "city and state", "contact number, city and state". */
+export const joinWords = (words: string[]): string =>
+  words.length < 2
+    ? (words[0] ?? "")
+    : `${words.slice(0, -1).join(", ")} and ${words[words.length - 1]}`;
 
 /**
  * Everything Billplz needs to send a payout.
@@ -258,7 +347,7 @@ export const sellerOnboardingState = (
  * correct something they already entered should not have to finish a flow to
  * reach the form that fixes it.
  */
-const SELLER_OPEN = ["/seller/onboarding", "/seller/settings", "/seller/verify"];
+const SELLER_OPEN = ["/seller/onboarding", "/seller/settings"];
 
 /**
  * Whether a path is inside the seller dashboard.

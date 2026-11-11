@@ -6,13 +6,15 @@
     </div>
 
     <template v-else>
-      <div class="flex items-center gap-2 mb-1">
-        <NuxtLink to="/seller/items" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          Items
-        </NuxtLink>
-      </div>
-      <h1 class="text-2xl font-bold text-ink dark:text-white mb-1">Bulk add</h1>
+      <SubpageHeader title="Bulk add" back="/seller/items" back-label="Items">
+        <div class="flex items-center gap-2 mb-1">
+          <NuxtLink to="/seller/items" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Items
+          </NuxtLink>
+        </div>
+      </SubpageHeader>
+      <h1 class="hidden lg:block text-2xl font-bold text-ink dark:text-white mb-1">Bulk add</h1>
       <p class="text-sm text-gray-500 dark:text-zinc-400 mb-6">
         Upload a file or paste rows — we'll match each card to the catalog and attach images automatically.
       </p>
@@ -284,6 +286,9 @@
 <script setup lang="ts">
 import type { CatalogMatch } from "~/composables/useCardCatalog";
 
+// /api/identify-card needs the caller's sign-in and counts each photo as a scan.
+const { authedFetch } = useAuthedFetch();
+
 definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Bulk add | TCGo" });
 
@@ -475,7 +480,7 @@ const handleFile = async (e: Event) => {
   }
 };
 
-// ── Photo scan (AI identify → TCGo DB match) ─────────────────────────
+// ── Photo scan (AI identify → TCGo Dex match) ─────────────────────────
 interface PhotoEntry {
   file: File;
   preview: string;
@@ -546,7 +551,7 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
   });
 
 // Each photo: Gemini identify (same /api/identify-card the listing scanner
-// uses) → TCGo DB match by name+number (EN only; the catalog is EN-first).
+// uses) → TCGo Dex match by name+number (EN only; the catalog is EN-first).
 // Failures still produce a row (photo attached, deselected) so the seller
 // can decide rather than lose the card silently.
 const identifyPhotos = async () => {
@@ -570,7 +575,7 @@ const identifyPhotos = async () => {
       try {
         const resized = await resizeImage(entry.file);
         const imageBase64 = await blobToBase64(resized);
-        const res = await $fetch<{ name: string; number: string; language: string }>(
+        const res = await authedFetch<{ name: string; number: string; language: string }>(
           "/api/identify-card",
           { method: "POST", body: { imageBase64, mimeType: "image/jpeg" } },
         );

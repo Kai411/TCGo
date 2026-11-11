@@ -32,7 +32,7 @@
             No cards listed.
             <NuxtLink to="/seller/listings/new" class="text-pokemon-red hover:underline ml-1">List one →</NuxtLink>
           </p>
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 lg:gap-3 items-start">
             <ActivityRow
               v-for="card in activeCards"
               :key="card.id"
@@ -49,14 +49,14 @@
                   <NuxtLink
                     :to="`/seller/listings/${card.id}/edit`"
                     @click.stop
-                    class="text-xs bg-gray-100 dark:bg-white/[0.06] text-gray-700 dark:text-zinc-200 hover:bg-gray-200 dark:hover:bg-white/[0.10] px-3 py-1.5 rounded-lg font-medium"
+                    class="text-xs bg-gray-100 dark:bg-white/[0.06] text-gray-700 dark:text-zinc-200 hover:bg-gray-200 dark:hover:bg-white/[0.10] inline-flex items-center min-h-[36px] px-3 lg:min-h-0 lg:py-1.5 rounded-lg font-medium"
                   >
                     Edit
                   </NuxtLink>
                   <button
                     @click.stop.prevent="handleMarkAsSold(card.id)"
                     :disabled="markingAsSold === card.id"
-                    class="text-xs bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1.5 rounded-lg font-medium disabled:opacity-50"
+                    class="text-xs bg-green-100 text-green-700 hover:bg-green-200 inline-flex items-center min-h-[36px] px-3 lg:min-h-0 lg:py-1.5 rounded-lg font-medium disabled:opacity-50"
                   >
                     {{ markingAsSold === card.id ? "..." : "Mark sold" }}
                   </button>
@@ -71,7 +71,7 @@
           <p v-if="!soldCards.length" class="text-sm text-gray-400 dark:text-zinc-500 py-3">
             No completed sales yet.
           </p>
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 lg:gap-3 items-start">
             <ActivityRow
               v-for="card in soldCards"
               :key="card.id"
@@ -85,7 +85,7 @@
                 <span class="text-gray-500 dark:text-zinc-400">RM {{ card.price.toFixed(2) }}</span>
               </template>
               <template #actions>
-                <span class="text-xs bg-gray-100 dark:bg-white/[0.04] text-gray-500 dark:text-zinc-400 px-3 py-1.5 rounded-lg font-medium">Sold</span>
+                <span class="text-xs bg-gray-100 dark:bg-white/[0.04] text-gray-500 dark:text-zinc-400 inline-flex items-center min-h-[36px] px-3 lg:min-h-0 lg:py-1.5 rounded-lg font-medium">Sold</span>
               </template>
             </ActivityRow>
           </div>

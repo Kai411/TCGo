@@ -1,7 +1,7 @@
 <template>
   <!-- Its own page so the Account row lands on exactly what it names. -->
   <div class="max-w-xl mx-auto">
-    <SubpageHeader />
+    <SubpageHeader title="Shipping addresses" />
     <div v-if="!user" class="text-center py-12">
       <button
         type="button"

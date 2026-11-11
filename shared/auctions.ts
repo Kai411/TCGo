@@ -22,6 +22,22 @@ export const AUCTION_PAYMENT_WINDOW_MS = AUCTION_PAYMENT_WINDOW_HOURS * 60 * 60 
 export const auctionHasEnded = (endsAt: number | undefined, now = Date.now()) =>
   typeof endsAt === "number" && now >= endsAt;
 
+// "Ending soon" order for listing pages: live auctions first, soonest end
+// first; ended ones after them, most recently ended first. A plain ascending
+// sort on endsAt put every ended auction at the top, oldest first.
+export const compareEndingSoon = (
+  a: { endsAt?: number },
+  b: { endsAt?: number },
+  now = Date.now(),
+) => {
+  const aLive = (a.endsAt ?? 0) > now;
+  const bLive = (b.endsAt ?? 0) > now;
+  if (aLive !== bLive) return aLive ? -1 : 1;
+  return aLive
+    ? (a.endsAt ?? 0) - (b.endsAt ?? 0)
+    : (b.endsAt ?? 0) - (a.endsAt ?? 0);
+};
+
 // Terminal states — settlement should never re-run on these.
 export const AUCTION_SETTLED_STATUSES: AuctionStatus[] = ["sold", "cancelled", "expired"];
 

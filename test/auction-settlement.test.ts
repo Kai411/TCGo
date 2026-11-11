@@ -8,6 +8,7 @@ import {
   AUCTION_PAYMENT_WINDOW_MS,
   AUCTION_SETTLED_STATUSES,
   auctionHasEnded,
+  compareEndingSoon,
   outcomeForOrderStatus,
 } from "~/shared/auctions";
 
@@ -44,5 +45,20 @@ describe("the clock", () => {
   it("never re-settles a finished auction", () => {
     assert.deepEqual(AUCTION_SETTLED_STATUSES, ["sold", "cancelled", "expired"]);
     assert.ok(!AUCTION_SETTLED_STATUSES.includes("pending_payment"));
+  });
+});
+
+describe("ending soon order", () => {
+  it("lists live auctions by soonest end, then ended ones newest first", () => {
+    const now = 1_000_000;
+    const items = [
+      { id: "ended-old", endsAt: now - 50_000 },
+      { id: "live-later", endsAt: now + 90_000 },
+      { id: "ended-recent", endsAt: now - 1_000 },
+      { id: "live-soon", endsAt: now + 5_000 },
+      { id: "no-end" },
+    ];
+    const order = [...items].sort((a, b) => compareEndingSoon(a, b, now)).map((i) => i.id);
+    assert.deepEqual(order, ["live-soon", "live-later", "ended-recent", "ended-old", "no-end"]);
   });
 });

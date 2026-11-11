@@ -33,4 +33,5 @@
 # surface. Remote hosts must be listed here or the endpoint returns 404 — the
 # allowlist and shared/card-image.ts have to agree.
 [images]
-  remote_images = ['https://tcgplayer-cdn\.tcgplayer\.com/.*']
+  # i.ebayimg.com: eBay listing photos on the card price page (shared/ebay.ts).
+  remote_images = ['https://tcgplayer-cdn\.tcgplayer\.com/.*', 'https://i\.ebayimg\.com/.*']

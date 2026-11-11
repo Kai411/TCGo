@@ -1,13 +1,13 @@
 <template>
   <span
     class="inline-flex items-center gap-1.5"
-    :title="`${quantity > 1 ? quantity + ' copies' : 'This card'} is in your collection`"
+    :title="`${quantity > 1 ? quantity + ' copies' : 'This card'} is in your Dex`"
   >
     <svg
       :class="sizeClass"
       viewBox="0 0 24 24"
       role="img"
-      :aria-label="quantity > 1 ? `${quantity} copies in your collection` : 'In your collection'"
+      :aria-label="quantity > 1 ? `${quantity} copies in your Dex` : 'In your Dex'"
     >
       <!-- Scalloped rosette, generated on a 12-lobe polar sweep rather than
            hand-tweaked, so every lobe is identical and it stays centred at any
@@ -27,7 +27,7 @@
       />
     </svg>
     <span v-if="label" class="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-      In my collection
+      In my Dex
     </span>
   </span>
 </template>

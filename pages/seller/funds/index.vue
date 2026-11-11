@@ -6,13 +6,15 @@
     </div>
 
     <template v-else>
-      <div class="flex items-center gap-2 mb-1">
-        <NuxtLink to="/seller" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          Dashboard
-        </NuxtLink>
-      </div>
-      <h1 class="text-2xl font-bold text-ink dark:text-white mb-1">Your funds</h1>
+      <SubpageHeader title="Your funds" back="/seller" back-label="Dashboard">
+        <div class="flex items-center gap-2 mb-1">
+          <NuxtLink to="/seller" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Dashboard
+          </NuxtLink>
+        </div>
+      </SubpageHeader>
+      <h1 class="hidden lg:block text-2xl font-bold text-ink dark:text-white mb-1">Your funds</h1>
       <p class="text-sm text-gray-500 dark:text-zinc-400 mb-6">
         Money collected from your online (FPX) sales, held by TCGo until payout. In-person (POS) sales aren't shown here — you receive those directly.
       </p>
@@ -51,7 +53,7 @@
           <div class="mt-4 flex flex-wrap items-center gap-3">
             <button
               @click="doRequestPayout"
-              :disabled="!canWithdraw || requesting"
+              :disabled="!canWithdraw || requesting || !!lockEnds"
               class="px-4 py-2 rounded-lg text-sm font-bold bg-white text-ink hover:bg-white/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
             >
               <span v-if="requesting" class="animate-spin rounded-full h-4 w-4 border-b-2 border-ink" />
@@ -59,8 +61,9 @@
             </button>
             <p v-if="bankLine" class="text-xs text-white/70 min-w-0 truncate">to {{ bankLine }}</p>
           </div>
+          <p v-if="lockText" class="text-xs text-amber-200 mt-2" role="status">{{ lockText }}</p>
           <p v-if="!bankLine" class="text-xs text-white/70 mt-2">
-            <NuxtLink to="/seller/verify" class="underline font-semibold text-white">Add your bank account</NuxtLink>
+            <NuxtLink to="/seller/settings#bank" class="underline font-semibold text-white">Add your bank account</NuxtLink>
             to receive payouts.
           </p>
           <!-- A failed transfer IS a problem, so this one keeps a warning tone. -->
@@ -195,6 +198,7 @@ const {
   lastFailureReason,
   requestPayout,
 } = useSellerFunds();
+const { lockedUntil: lockEnds, lockText } = useSecurityLock();
 
 const holdDays = PAYOUT_HOLD_DAYS;
 
@@ -262,10 +266,10 @@ const bankLine = computed(() => {
 
 const requesting = ref(false);
 const doRequestPayout = async () => {
-  if (requesting.value || !canWithdraw.value) return;
+  if (requesting.value || !canWithdraw.value || lockEnds.value) return;
   if (!bankLine.value) {
-    if (confirm("Add your bank account and IC number first to receive payouts. Go to verification?")) {
-      navigateTo("/seller/verify");
+    if (confirm("Add your bank account and IC number first to receive payouts. Go to Seller settings?")) {
+      navigateTo("/seller/settings#bank");
     }
     return;
   }

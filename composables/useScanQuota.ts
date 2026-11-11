@@ -1,11 +1,8 @@
-import { doc, runTransaction, updateDoc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { computed } from "vue";
+import { BONUS_SCANS, FREE_SCAN_LIMIT } from "~/shared/scan-quota";
 
-export const FREE_SCAN_LIMIT = 20;
-export const BONUS_SCANS = 5;
-
-const firstOfNextMonth = (from: Date) =>
-  new Date(from.getFullYear(), from.getMonth() + 1, 1).getTime();
+export { BONUS_SCANS, FREE_SCAN_LIMIT };
 
 export const useScanQuota = () => {
   const { firestore } = useFirebase();
@@ -59,46 +56,13 @@ export const useScanQuota = () => {
     }
   };
 
-  // Reserves one scan atomically.
-  // Order: premium → bonus → free quota → block.
+  // Whether to let a scan start. The server counts and enforces the real
+  // allowance (/api/identify-card, shared/scan-quota.ts) and writes the
+  // numbers back to the profile; this only saves a doomed upload when the
+  // profile already says there are none left.
   const tryConsumeScan = async (): Promise<boolean> => {
     if (!user.value || !firestore) return false;
-    if (isPremium.value) return true;
-    const ref = doc(firestore, "users", user.value.uid);
-    try {
-      return await runTransaction(firestore, async (tx) => {
-        const snap = await tx.get(ref);
-        if (!snap.exists()) return false;
-        const data = snap.data() as {
-          scansUsed?: number;
-          scansResetAt?: number;
-          tier?: string;
-          bonusScansRemaining?: number;
-        };
-        if (data.tier === "premium") return true;
-
-        // Consume bonus first
-        if ((data.bonusScansRemaining ?? 0) > 0) {
-          tx.update(ref, { bonusScansRemaining: (data.bonusScansRemaining ?? 0) - 1 });
-          return true;
-        }
-
-        const now = Date.now();
-        const needsReset = !data.scansResetAt || now >= data.scansResetAt;
-        const currentUsed = needsReset ? 0 : data.scansUsed ?? 0;
-        if (currentUsed >= FREE_SCAN_LIMIT) return false;
-        tx.update(ref, {
-          scansUsed: currentUsed + 1,
-          scansResetAt: needsReset
-            ? firstOfNextMonth(new Date(now))
-            : data.scansResetAt,
-        });
-        return true;
-      });
-    } catch (e) {
-      console.error("[useScanQuota] tryConsumeScan failed:", e);
-      return false;
-    }
+    return isPremium.value || remaining.value > 0;
   };
 
   return {

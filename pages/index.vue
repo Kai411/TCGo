@@ -10,18 +10,44 @@
 
     <!-- ── Main content ───────────────────────────────────────────────── -->
     <div class="flex-1 min-w-0">
+      <ListingBanner placement="shop" />
       <PremiumBanner />
+
+      <!-- First visit, signed out: one line on what this is and what protects
+           the money, since nothing else on the grid says so. Gone once
+           dismissed or signed in. Rendered after mount so a signed-in member
+           never sees it flash in from the server render. -->
+      <div
+        v-if="showIntro"
+        class="mb-3 flex items-start gap-3 rounded-2xl bg-pokemon-red/[0.06] dark:bg-pokemon-red/[0.12] px-4 py-3"
+      >
+        <p class="min-w-0 flex-1 text-[13px] leading-relaxed text-ink dark:text-zinc-200">
+          Cards from Malaysian collectors. Your payment is held until your card
+          arrives.
+          <NuxtLink to="/refund-policy" class="font-semibold text-pokemon-red hover:underline">How Buyer Protection works</NuxtLink>
+        </p>
+        <button
+          type="button"
+          @click="dismissIntro"
+          class="-m-2 shrink-0 p-2 text-ink-soft hover:text-ink dark:hover:text-white"
+          aria-label="Dismiss"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
       <!-- Mobile filter trigger (hidden on desktop where sidebar is shown) -->
       <div v-if="!loading" class="lg:hidden mb-2">
-        <ListingFilters :filters="filters" :tcg-counts="tcgCounts" />
+        <ListingFilters :filters="filters" :tcg-counts="tcgCounts" :result-count="availableCards.length" />
       </div>
 
       <!-- Loading: skeleton tiles in the same grid, so the page doesn't
            jump when listings arrive. -->
       <div
         v-if="loading"
-        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 xl:gap-5"
+        class="-mx-1.5 lg:mx-0 grid grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-4 xl:gap-5"
         role="status"
         aria-label="Loading listings"
       >
@@ -66,72 +92,37 @@
       <!-- Grid -->
       <template v-else>
         <div
-          class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4 xl:gap-5"
+          class="-mx-1.5 lg:mx-0 grid grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-4 xl:gap-5"
         >
-          <CardTile v-for="card in pageCards" :key="card.id" :card="card" />
+          <CardTile v-for="card in visibleCards" :key="card.id" :card="card" />
         </div>
 
-        <!-- Pagination -->
-        <nav
-          v-if="pageCount > 1"
-          class="mt-8 sm:mt-10 flex flex-col items-center gap-3"
-          aria-label="Pagination"
+        <!-- Infinite scroll: coming near this line shows the next batch.
+             On desktop it pauses every few batches behind a button so the
+             footer (legal links) can still be reached. -->
+        <div ref="sentinel" aria-hidden="true" />
+        <div
+          v-if="hasMore && autoPaused"
+          class="mt-8 sm:mt-10 flex justify-center"
         >
-          <div class="flex items-center gap-1.5">
-            <button
-              :disabled="page <= 1"
-              @click="goToPage(page - 1)"
-              class="pg-btn"
-              aria-label="Previous page"
-            >
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-            </button>
-            <template v-for="(p, i) in pageLinks" :key="i">
-              <span
-                v-if="p === '…'"
-                class="w-9 h-9 inline-flex items-center justify-center text-sm text-ink-soft dark:text-zinc-500"
-              >
-                …
-              </span>
-              <button
-                v-else
-                @click="goToPage(p)"
-                class="pg-btn"
-                :class="p === page && 'pg-btn-active'"
-                :aria-current="p === page ? 'page' : undefined"
-              >
-                {{ p }}
-              </button>
-            </template>
-            <button
-              :disabled="page >= pageCount"
-              @click="goToPage(page + 1)"
-              class="pg-btn"
-              aria-label="Next page"
-            >
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-            </button>
-          </div>
-          <p class="text-xs text-ink-muted dark:text-zinc-400 tabular-nums">
-            Showing {{ rangeStart }}–{{ rangeEnd }} of {{ availableCards.length }}
-          </p>
-        </nav>
+          <button
+            type="button"
+            @click="showMore"
+            class="inline-flex items-center px-5 py-2.5 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
+          >
+            Show more
+          </button>
+        </div>
+        <p
+          v-else-if="!hasMore && availableCards.length > SHOP_PAGE_SIZE"
+          class="mt-8 sm:mt-10 text-center text-xs text-ink-muted dark:text-zinc-400 tabular-nums"
+        >
+          That's all {{ availableCards.length }} listings
+        </p>
       </template>
     </div>
   </div>
 </template>
-
-<style scoped>
-.pg-btn {
-  @apply w-9 h-9 inline-flex items-center justify-center rounded-full text-sm font-semibold tabular-nums transition-colors ease-premium;
-  @apply text-ink-muted hover:text-ink hover:bg-black/[0.04] disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-default;
-  @apply dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/[0.06];
-}
-.pg-btn-active {
-  @apply bg-ink text-white hover:bg-ink hover:text-white;
-  @apply dark:bg-white dark:text-ink dark:hover:bg-white dark:hover:text-ink;
-}
-</style>
 
 <script setup lang="ts">
 import type { Card } from "~/composables/useCards";
@@ -139,7 +130,7 @@ import { isAvailable } from "~/shared/card-availability";
 import { SHOP_PAGE_SIZE, SHOP_STATE_KEY } from "~/composables/useShopOrdering";
 
 useHead({
-  title: "Shop Pokemon Cards | TCGo Marketplace",
+  title: "Marketplace: Buy Pokemon Cards | TCGo",
   meta: [
     {
       name: "description",
@@ -149,7 +140,30 @@ useHead({
   ],
 });
 
-const { user } = useAuth();
+const { user, authLoading } = useAuth();
+
+const INTRO_KEY = "tcgo:intro-dismissed";
+const mounted = ref(false);
+const introDismissed = ref(false);
+onMounted(() => {
+  try {
+    introDismissed.value = localStorage.getItem(INTRO_KEY) === "1";
+  } catch {
+    // Storage blocked: show it; dismissing still hides it for this visit.
+  }
+  mounted.value = true;
+});
+const showIntro = computed(
+  () => mounted.value && !authLoading.value && !user.value && !introDismissed.value,
+);
+const dismissIntro = () => {
+  introDismissed.value = true;
+  try {
+    localStorage.setItem(INTRO_KEY, "1");
+  } catch {
+    // Nothing to do: it stays hidden until the page is reloaded.
+  }
+};
 const { cards, loading } = useCards();
 const filters = useListingFilters();
 
@@ -181,66 +195,65 @@ const availableCards = computed(() => {
   return filters.sort.value === "newest" ? discoveryOrder(sorted) : sorted;
 });
 
-// ── Pagination (60 per page — divides evenly into every grid column count) ──
-const route = useRoute();
-const router = useRouter();
+// ── Infinite scroll (batches of 60 — divides evenly into every grid column count) ──
+// All listings are already in memory, so "loading more" just shows a longer
+// slice. Phones keep loading as long as there's more; desktop (which has the
+// footer) pauses after a few batches and shows a "Show more" button.
+const AUTO_BATCHES_DESKTOP = 3;
 
-const pageCount = computed(() =>
-  Math.max(1, Math.ceil(availableCards.value.length / SHOP_PAGE_SIZE)),
+const visibleCount = ref(SHOP_PAGE_SIZE);
+const autoBatches = ref(0);
+const isDesktop = ref(false);
+const visibleCards = computed(() =>
+  availableCards.value.slice(0, visibleCount.value),
 );
-const page = computed(() => {
-  const raw = Number(route.query.page) || 1;
-  return Math.min(Math.max(1, Math.floor(raw)), pageCount.value);
-});
-const pageCards = computed(() =>
-  availableCards.value.slice(
-    (page.value - 1) * SHOP_PAGE_SIZE,
-    page.value * SHOP_PAGE_SIZE,
-  ),
-);
-const rangeStart = computed(() => (page.value - 1) * SHOP_PAGE_SIZE + 1);
-const rangeEnd = computed(() =>
-  Math.min(page.value * SHOP_PAGE_SIZE, availableCards.value.length),
+const hasMore = computed(() => visibleCount.value < availableCards.value.length);
+const autoPaused = computed(
+  () => isDesktop.value && autoBatches.value >= AUTO_BATCHES_DESKTOP,
 );
 
-// 1 … 4 [5] 6 … 12 — always show first/last, current ±1.
-const pageLinks = computed<(number | "…")[]>(() => {
-  const n = pageCount.value;
-  const cur = page.value;
-  if (n <= 7) return Array.from({ length: n }, (_, i) => i + 1);
-  const set = new Set<number>([1, n, cur - 1, cur, cur + 1]);
-  if (cur <= 3) [2, 3, 4].forEach((p) => set.add(p));
-  if (cur >= n - 2) [n - 1, n - 2, n - 3].forEach((p) => set.add(p));
-  const pages = [...set].filter((p) => p >= 1 && p <= n).sort((a, b) => a - b);
-  const out: (number | "…")[] = [];
-  pages.forEach((p, i) => {
-    if (i && p - pages[i - 1] > 1) out.push("…");
-    out.push(p);
-  });
-  return out;
-});
-
-const goToPage = (p: number) => {
-  const next = Math.min(Math.max(1, p), pageCount.value);
-  if (next === page.value) return;
-  router.push({ query: { ...route.query, page: next === 1 ? undefined : next } });
-  if (import.meta.client) window.scrollTo({ top: 0, behavior: "smooth" });
+const loadMore = () => {
+  if (!hasMore.value) return;
+  visibleCount.value += SHOP_PAGE_SIZE;
+  autoBatches.value++;
+};
+const showMore = () => {
+  autoBatches.value = 0;
+  loadMore();
 };
 
-// Changing filters / TCG / sort jumps back to page one.
+const sentinel = ref<HTMLElement | null>(null);
+let observer: IntersectionObserver | null = null;
+let desktopQuery: MediaQueryList | null = null;
+const onDesktopChange = () => {
+  isDesktop.value = !!desktopQuery?.matches;
+};
+// Re-observing makes the observer report again, so a screen tall enough to
+// still show the sentinel after a batch keeps filling without a scroll.
+const reobserve = () => {
+  if (!observer) return;
+  observer.disconnect();
+  if (sentinel.value) observer.observe(sentinel.value);
+};
+watch([visibleCount, sentinel, autoPaused], () => nextTick(reobserve));
+
+// Changing filters / TCG / sort starts again from the first batch.
+const route = useRoute();
+const router = useRouter();
 watch(
-  [() => filters.sort.value, () => filters.activeCount.value],
+  [() => filters.sort.value, () => filters.tcg.value, () => filters.activeCount.value],
   () => {
-    if (route.query.page) router.replace({ query: { ...route.query, page: undefined } });
+    visibleCount.value = SHOP_PAGE_SIZE;
+    autoBatches.value = 0;
   },
 );
 
 // ── Resume where the buyer left off ─────────────────────────────────────
 // Opening a card, adding to cart and coming back to "/" used to drop the
-// buyer on page 1 at the top. Remember page + scroll + TCG tab for the
-// session. The page/tab are restored here; the scroll offset is applied by
-// app/router.options.ts because Nuxt's own scroll-to-top runs after mount
-// and would otherwise override anything this component does.
+// buyer at the top. Remember how many listings were shown + scroll + TCG tab
+// for the session. The count/tab are restored here; the scroll offset is
+// applied by app/router.options.ts because Nuxt's own scroll-to-top runs
+// after mount and would otherwise override anything this component does.
 const STATE_KEY = SHOP_STATE_KEY;
 let scrollTicking = false;
 let mountedAt = 0;
@@ -251,7 +264,7 @@ const saveState = () => {
   try {
     sessionStorage.setItem(
       STATE_KEY,
-      JSON.stringify({ page: page.value, y: window.scrollY, tcg: filters.tcg.value }),
+      JSON.stringify({ count: visibleCount.value, y: window.scrollY, tcg: filters.tcg.value }),
     );
   } catch {}
 };
@@ -267,21 +280,40 @@ const onScroll = () => {
 onMounted(() => {
   mountedAt = Date.now();
   window.addEventListener("scroll", onScroll, { passive: true });
-  let saved: { page?: number; y?: number; tcg?: string } | null = null;
+  desktopQuery = window.matchMedia("(min-width: 1024px)");
+  onDesktopChange();
+  desktopQuery.addEventListener("change", onDesktopChange);
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting) && !autoPaused.value) loadMore();
+    },
+    { rootMargin: "0px 0px 800px 0px" },
+  );
+
+  // Old ?page=N links: show everything up to that page, then drop the param.
+  const legacyPage = Math.floor(Number(route.query.page)) || 1;
+  if (legacyPage > 1) {
+    visibleCount.value = legacyPage * SHOP_PAGE_SIZE;
+    router.replace({ query: { ...route.query, page: undefined } });
+  }
+
+  let saved: { count?: number; y?: number; tcg?: string } | null = null;
   try {
     saved = JSON.parse(sessionStorage.getItem(STATE_KEY) || "null");
   } catch {}
-  if (!saved || route.query.page) return;
-  if (saved.tcg) filters.tcg.value = saved.tcg;
-  if ((saved.page ?? 1) > 1) {
-    // Same path → router scrollBehavior returns false, so this swap doesn't
-    // disturb the restored scroll offset.
-    router.replace({ query: { ...route.query, page: saved.page } });
+  if (saved && legacyPage <= 1) {
+    if (saved.tcg) filters.tcg.value = saved.tcg;
+    // Wait for the tcg watcher above to reset, then restore the count so the
+    // saved scroll offset lands on the same listings.
+    const count = Math.floor(Number(saved.count));
+    if (count > SHOP_PAGE_SIZE) nextTick(() => (visibleCount.value = count));
   }
+  nextTick(reobserve);
 });
 onBeforeUnmount(() => {
   window.removeEventListener("scroll", onScroll);
+  desktopQuery?.removeEventListener("change", onDesktopChange);
+  observer?.disconnect();
   saveState();
 });
-watch(page, saveState);
 </script>

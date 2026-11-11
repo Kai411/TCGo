@@ -18,12 +18,14 @@ export type NotificationKind =
   | "order_created"
   | "order_merged"
   | "order_cancelled"
+  | "order_problem"
   | "order_shipped"
   | "order_delivered"
   | "new_follower"
   | "auction_outbid"
   | "auction_won"
-  | "auction_sold";
+  | "auction_sold"
+  | "enquiry_reply";
 
 export type NotificationAudience = "buyer" | "seller";
 

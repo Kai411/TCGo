@@ -10,6 +10,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { mailConfigured, sendMail } from "~/server/utils/mail";
+import { getUserProfile } from "~/server/utils/user-profile";
 
 const esc = (v: unknown): string =>
   String(v ?? "")
@@ -22,8 +23,7 @@ const money = (n: unknown) => `RM ${Number(n ?? 0).toFixed(2)}`;
 
 /** The seller's address: their profile first, then their sign-in account. */
 const sellerEmailFor = async (db: Firestore, uid: string): Promise<string> => {
-  const profile = await db.collection("users").doc(uid).get();
-  const fromProfile = (profile.data() as any)?.email;
+  const fromProfile = (await getUserProfile(db, uid))?.email;
   if (fromProfile) return fromProfile;
   try {
     return (await getAuth().getUser(uid)).email || "";
@@ -158,8 +158,7 @@ export const sendSellerOrderEmail = async (
 const buyerEmailFor = async (db: Firestore, order: any): Promise<string> => {
   if (order.buyerEmail) return order.buyerEmail;
   if (!order.buyerUid) return "";
-  const profile = await db.collection("users").doc(order.buyerUid).get();
-  const fromProfile = (profile.data() as any)?.email;
+  const fromProfile = (await getUserProfile(db, order.buyerUid))?.email;
   if (fromProfile) return fromProfile;
   try {
     return (await getAuth().getUser(order.buyerUid)).email || "";

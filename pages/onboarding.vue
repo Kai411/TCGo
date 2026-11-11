@@ -6,12 +6,12 @@
         <img src="/tcgo_sprites_white.png" alt="TCGo" class="h-full w-[96px] object-cover hidden dark:block" />
       </NuxtLink>
 
-      <!-- Progress. Three steps is few enough to show all of them, which is
-           better than "step 2 of 3" — someone can see what's still coming and
-           decide to finish now rather than being surprised twice. -->
+      <!-- Progress. Few enough steps to show all of them, which is better
+           than "step 2 of 3" — someone can see what's still coming and decide
+           to finish now rather than being surprised twice. -->
       <ol class="mb-7 space-y-1">
         <li
-          v-for="(s, i) in ONBOARDING_STEPS"
+          v-for="(s, i) in shownSteps"
           :key="s.id"
           class="flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors"
           :class="s.id === state.current ? 'bg-white dark:bg-white/[0.05] shadow-sm' : ''"
@@ -46,8 +46,57 @@
       </ol>
 
       <div class="panel surface rounded-2xl p-6">
+        <!-- ── PDPA consent ─────────────────────────────────────────── -->
+        <!-- Google sign-ups, members who joined before this step, and
+             everyone again whenever LEGAL_VERSION changes. A short summary
+             with the full policy one tap away: the tick is consent to the
+             policy, so the policy has to be what it links to. -->
+        <template v-if="state.current === 'consent'">
+          <h1 class="text-lg font-bold text-ink dark:text-white">
+            {{ policyUpdated ? "We've updated our policies" : "Your personal data" }}
+          </h1>
+          <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
+            {{
+              policyUpdated
+                ? "Please read the current Privacy Policy and give your consent again to keep using your account."
+                : "Before you use TCGo, we need your consent to handle your personal data."
+            }}
+          </p>
+
+          <ul class="mt-4 space-y-2 text-[13px] leading-relaxed text-ink-muted dark:text-zinc-400">
+            <li class="flex gap-2">
+              <span class="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-pokemon-red" />
+              <span><span class="font-semibold text-ink dark:text-white">What:</span> your account details, delivery address and phone, orders, messages, and for sellers, identity and bank details.</span>
+            </li>
+            <li class="flex gap-2">
+              <span class="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-pokemon-red" />
+              <span><span class="font-semibold text-ink dark:text-white">Why:</span> to run your account and orders, pay sellers, keep the marketplace safe and meet legal duties.</span>
+            </li>
+            <li class="flex gap-2">
+              <span class="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-pokemon-red" />
+              <span><span class="font-semibold text-ink dark:text-white">Who sees it:</span> the member you trade with, and service providers such as payment, courier and hosting companies. We never sell it.</span>
+            </li>
+          </ul>
+
+          <label class="mt-5 flex items-start gap-2.5 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.02] dark:bg-white/[0.03] p-3 text-[13px] leading-relaxed text-ink dark:text-zinc-200">
+            <input v-model="consentTicked" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-pokemon-red" />
+            <span>
+              I consent to TCGo collecting, using and sharing my personal data as described in the
+              <NuxtLink to="/privacy-policy" target="_blank" class="font-semibold text-pokemon-red hover:underline">Privacy Policy</NuxtLink>.
+            </span>
+          </label>
+          <p class="mt-2 text-[12px] text-ink-soft dark:text-zinc-500">
+            You can withdraw consent at any time by contacting us, as the policy explains.
+          </p>
+
+          <p v-if="error" class="mt-3 text-[13px] text-rose-600 dark:text-rose-400">{{ error }}</p>
+          <button :disabled="busy || !consentTicked" @click="giveConsent" class="btn-primary mt-5">
+            <span v-if="busy" class="spinner" />Agree and continue
+          </button>
+        </template>
+
         <!-- ── Email ────────────────────────────────────────────────── -->
-        <template v-if="state.current === 'email'">
+        <template v-else-if="state.current === 'email'">
           <h1 class="text-lg font-bold text-ink dark:text-white">Confirm your email</h1>
           <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
             We sent a 6-digit code to <span class="font-semibold text-ink dark:text-white">{{ email }}</span>.
@@ -80,19 +129,21 @@
           </p>
 
           <div class="mt-5 space-y-3">
-            <div class="grid grid-cols-2 gap-3">
+            <!-- One column on phones: side by side at 360px left the phone
+                 number about ten digits wide. -->
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label class="block">
                 <span class="lbl">Full name</span>
-                <input v-model="addr.deliveryName" autocomplete="name" class="field" />
+                <input v-model="addr.deliveryName" autocomplete="name" class="field" :class="missingClass('deliveryName')" />
               </label>
               <label class="block">
                 <span class="lbl">Phone</span>
-                <input v-model="addr.deliveryPhone" inputmode="tel" autocomplete="tel" placeholder="01x-xxx xxxx" class="field" />
+                <input v-model="addr.deliveryPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="01x-xxx xxxx" class="field" :class="missingClass('deliveryPhone')" />
               </label>
             </div>
             <label class="block">
               <span class="lbl">Address</span>
-              <input v-model="addr.deliveryAddress1" autocomplete="address-line1" class="field" />
+              <input v-model="addr.deliveryAddress1" autocomplete="address-line1" class="field" :class="missingClass('deliveryAddress1')" />
             </label>
             <label class="block">
               <span class="lbl">Unit, floor <span class="font-normal text-ink-soft">— optional</span></span>
@@ -101,16 +152,16 @@
             <div class="grid grid-cols-3 gap-3">
               <label class="block">
                 <span class="lbl">Postcode</span>
-                <input v-model="addr.deliveryPostcode" inputmode="numeric" maxlength="5" autocomplete="postal-code" class="field" />
+                <input v-model="addr.deliveryPostcode" inputmode="numeric" maxlength="5" autocomplete="postal-code" class="field" :class="missingClass('deliveryPostcode')" />
               </label>
               <label class="block col-span-2">
                 <span class="lbl">City</span>
-                <input v-model="addr.deliveryCity" autocomplete="address-level2" class="field" />
+                <input v-model="addr.deliveryCity" autocomplete="address-level2" class="field" :class="missingClass('deliveryCity')" />
               </label>
             </div>
             <label class="block">
               <span class="lbl">State</span>
-              <select v-model="addr.deliveryState" class="field">
+              <select v-model="addr.deliveryState" autocomplete="address-level1" class="field" :class="missingClass('deliveryState')">
                 <option value="" disabled>Choose a state</option>
                 <option v-for="s in MY_STATES" :key="s.code" :value="s.code">{{ s.name }}</option>
               </select>
@@ -123,18 +174,6 @@
           </button>
         </template>
 
-        <!-- ── Identity ─────────────────────────────────────────────── -->
-        <template v-else-if="state.current === 'identity'">
-          <h1 class="text-lg font-bold text-ink dark:text-white">Verify your identity</h1>
-          <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
-            A photo of your MyKad and a selfie. Takes about a minute, and it's
-            what keeps fake accounts off the marketplace.
-          </p>
-          <div class="mt-5">
-            <KycVerifyCard />
-          </div>
-        </template>
-
         <!-- ── Done ─────────────────────────────────────────────────── -->
         <template v-else>
           <div class="text-center py-4">
@@ -143,15 +182,24 @@
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h1 class="text-lg font-bold text-ink dark:text-white">You're all set</h1>
+            <h1 class="text-lg font-bold text-ink dark:text-white">You're ready to buy</h1>
             <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
-              Your account is ready to buy and sell.
+              Taking you back to where you were.
             </p>
-            <button @click="finish" class="btn-primary mt-5">Start browsing</button>
+            <button @click="finish" class="btn-primary mt-5">Continue</button>
           </div>
         </template>
       </div>
 
+      <!-- Only steps that don't block browsing are left (the email code and
+           the address), so stepping back out is allowed. -->
+      <button
+        v-if="!state.complete && !state.blocking"
+        @click="finish"
+        class="mx-auto mt-6 block text-[13px] font-semibold text-ink-muted dark:text-zinc-400 hover:underline"
+      >
+        Not now
+      </button>
       <button @click="signOutAndLeave" class="mx-auto mt-6 block text-[12px] text-ink-soft dark:text-zinc-500 hover:underline">
         Sign out
       </button>
@@ -161,11 +209,13 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted, reactive, ref, watch } from "vue";
-import { MY_STATES } from "~/shared/my-states";
+import { MY_STATES, stateForPostcode } from "~/shared/my-states";
 import { newAddressId } from "~/shared/addresses";
 import {
   ONBOARDING_STEPS,
+  needsConfirmedEmail,
   onboardingState,
+  stepsNeededFor,
   type OnboardingStepId,
 } from "~/shared/onboarding";
 
@@ -178,6 +228,7 @@ const RESEND_COOLDOWN_S = 30;
 
 const { user, requestCode, confirmEmail, signOut } = useAuth();
 const { profile, saveAddresses, loading: loadingProfile } = useMyProfile();
+const { recordConsent } = useConsent();
 const route = useRoute();
 
 const busy = ref(false);
@@ -187,10 +238,20 @@ const code = ref("");
 
 const email = computed(() => user.value?.email ?? "");
 
+// Only what the page they came from needs: confirming the email to send a
+// message shouldn't then ask for a delivery address.
 const state = computed(() =>
-  onboardingState(profile.value, !!user.value?.emailVerified),
+  onboardingState(
+    profile.value,
+    !!user.value?.emailVerified,
+    stepsNeededFor(route.query.next as string | undefined),
+  ),
 );
 const isDone = (id: OnboardingStepId) => !state.value.remaining.includes(id);
+const shownSteps = computed(() => {
+  const ids = stepsNeededFor(route.query.next as string | undefined);
+  return ONBOARDING_STEPS.filter((s) => ids.includes(s.id));
+});
 
 // Seeded from whatever's already saved, so someone who filled half of this in
 // and came back doesn't retype it.
@@ -233,6 +294,8 @@ onUnmounted(() => timer && clearInterval(timer));
 watch(code, (v) => {
   const digits = v.replace(/\D/g, "").slice(0, 6);
   if (digits !== v) code.value = digits;
+  // The sixth digit is the submit: no reaching past the keyboard for a button.
+  else if (digits.length === 6) submitCode();
 });
 
 const run = async (fn: () => Promise<void>) => {
@@ -262,18 +325,53 @@ const resend = () =>
     startCooldown();
   });
 
+// ── Consent step ──────────────────────────────────────────────────────
+const consentTicked = ref(false);
+// Consented once before, to an older wording: say what changed rather than
+// greeting a long-standing member as if they were new.
+const policyUpdated = computed(
+  () => !!(profile.value as { consentVersion?: string } | null)?.consentVersion,
+);
+
+const giveConsent = () =>
+  run(async () => {
+    try {
+      await recordConsent("prompt");
+    } catch {
+      throw new Error("Couldn't save your consent. Check your connection and try again.");
+    }
+    consentTicked.value = false;
+  });
+
 // ── Address step ──────────────────────────────────────────────────────
+
+// A full postcode fills an empty State. Only empty: a choice the member made
+// is never overwritten, since a few border postcodes are shared.
+watch(
+  () => addr.deliveryPostcode,
+  (pc) => {
+    const code = stateForPostcode(pc);
+    if (code && !addr.deliveryState) addr.deliveryState = code;
+  },
+);
+
+const REQUIRED = [
+  "deliveryName",
+  "deliveryPhone",
+  "deliveryAddress1",
+  "deliveryPostcode",
+  "deliveryCity",
+  "deliveryState",
+] as const;
+const triedSave = ref(false);
+const missingClass = (k: (typeof REQUIRED)[number]) =>
+  triedSave.value && !addr[k].trim() ? "!border-rose-500 dark:!border-rose-400" : "";
+
 const saveAddress = () =>
   run(async () => {
-    if (
-      !addr.deliveryName.trim() ||
-      !addr.deliveryPhone.trim() ||
-      !addr.deliveryAddress1.trim() ||
-      !addr.deliveryPostcode.trim() ||
-      !addr.deliveryCity.trim() ||
-      !addr.deliveryState
-    ) {
-      error.value = "Fill in everything except the unit line.";
+    triedSave.value = true;
+    if (REQUIRED.some((k) => !addr[k].trim())) {
+      error.value = "Fill in the fields marked in red. Only the unit line is optional.";
       return;
     }
     // Written as the first card in the address book, which marks it default
@@ -297,7 +395,13 @@ const saveAddress = () =>
   });
 
 // ── Exit ──────────────────────────────────────────────────────────────
-const finish = () => navigateTo((route.query.next as string) || "/");
+// "Not now" can't return someone to a page that needs the step they skipped,
+// or the gate would send them straight back here.
+const finish = () => {
+  const next = (route.query.next as string) || "/";
+  const blockedByEmail = !user.value?.emailVerified && needsConfirmedEmail(next.split(/[?#]/)[0]);
+  return navigateTo(blockedByEmail ? "/" : next);
+};
 
 const signOutAndLeave = async () => {
   await signOut();

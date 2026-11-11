@@ -184,6 +184,11 @@
 }
 
 @layer components {
+  /* Mint Condition form field (content editors). 16px on phones so iOS
+     doesn't zoom into the field. */
+  .mc-inp {
+    @apply w-full px-3 py-2.5 rounded-lg border border-black/[0.10] dark:border-white/[0.12] bg-white dark:bg-white/[0.04] text-base sm:text-sm text-ink dark:text-white placeholder:text-ink-soft dark:placeholder:text-zinc-500;
+  }
   /* Elevated nav surface. backdrop-blur was nuking scroll perf on mid-range
      hardware — every scroll frame recomputed a GPU blur over the entire
      navbar area. Swapped to slightly translucent solid bg; visually almost

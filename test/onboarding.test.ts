@@ -12,6 +12,7 @@ import {
   ONBOARDING_STEPS,
   SELLER_STEPS,
   hasBankDetails,
+  hasCurrentConsent,
   hasDeliveryAddress,
   hasHandover,
   hasIdentity,
@@ -19,11 +20,17 @@ import {
   isOnboardingExempt,
   isSellerArea,
   isSellerOnboardingExempt,
+  joinWords,
+  missingSellerContact,
+  needsConfirmedEmail,
   onboardingState,
+  readyToBuy,
   sellerOnboardingState,
+  stepsNeededFor,
 } from "~/shared/onboarding";
 import { payoutDetailsComplete } from "~/shared/payout-details";
-import { kycStatusFor, KYC_REQUIRED } from "~/shared/didit";
+import { kycStatusFor, KYC_REQUIRED, myKadNumberFrom } from "~/shared/didit";
+import { LEGAL_VERSION } from "~/shared/legal";
 
 const address = {
   deliveryName: "Kai",
@@ -33,6 +40,9 @@ const address = {
   deliveryCity: "Puchong",
   deliveryState: "sgr",
 };
+
+// A member who has given PDPA consent to the current policies.
+const consented = { consentVersion: LEGAL_VERSION };
 
 describe("identity", () => {
   it("accepts the value Didit's Approved actually maps to", () => {
@@ -82,9 +92,37 @@ describe("delivery address", () => {
   });
 });
 
-describe("buyer onboarding state", () => {
-  it("is complete on email plus an address", () => {
+describe("PDPA consent", () => {
+  it("accepts consent to the current policies", () => {
+    assert.equal(hasCurrentConsent(consented), true);
+  });
+
+  it("asks again when the policies change", () => {
+    assert.equal(hasCurrentConsent({ consentVersion: "2000-01-01" }), false);
+  });
+
+  it("treats a member who never consented as not consented", () => {
+    assert.equal(hasCurrentConsent({}), false);
+    assert.equal(hasCurrentConsent(null), false);
+  });
+
+  it("is asked before anything else", () => {
+    assert.equal(ONBOARDING_STEPS[0].id, "consent");
+    assert.equal(onboardingState({}, false).current, "consent");
+  });
+
+  it("stops a finished account until it consents", () => {
+    // Members who joined before the consent step have email and address
+    // done; they must still be asked.
     const s = onboardingState(address, true);
+    assert.deepEqual(s.remaining, ["consent"]);
+    assert.equal(s.complete, false);
+  });
+});
+
+describe("buyer onboarding state", () => {
+  it("is complete on consent, email and an address", () => {
+    const s = onboardingState({ ...consented, ...address }, true);
     assert.equal(s.complete, true);
     assert.equal(s.current, null);
     assert.equal(s.percent, 100);
@@ -93,18 +131,18 @@ describe("buyer onboarding state", () => {
   it("never asks a buyer for identity", () => {
     // Spending money is the low-risk direction; the ID check belongs to
     // selling, where money flows the other way.
-    const s = onboardingState({ ...address, kycStatus: "none" }, true);
+    const s = onboardingState({ ...consented, ...address, kycStatus: "none" }, true);
     assert.equal(s.complete, true);
     assert.ok(!s.remaining.includes("identity" as never));
   });
 
-  it("asks for the email first", () => {
-    const s = onboardingState(address, false);
+  it("asks for the email once consent is given", () => {
+    const s = onboardingState({ ...consented, ...address }, false);
     assert.equal(s.current, "email");
   });
 
   it("asks for the address once the email is done", () => {
-    const s = onboardingState({}, true);
+    const s = onboardingState(consented, true);
     assert.deepEqual(s.remaining, ["address"]);
   });
 
@@ -115,9 +153,33 @@ describe("buyer onboarding state", () => {
     assert.equal(s.complete, false);
   });
 
+  it("lets someone browse before giving an address", () => {
+    const s = onboardingState(consented, true);
+    assert.equal(s.complete, false);
+    assert.equal(s.blocking, null);
+  });
+
+  it("lets someone browse before typing the email code", () => {
+    // A late or spam-filtered code used to lock new members out of every
+    // shop page. The email is asked for where it's needed instead.
+    const s = onboardingState({ ...consented, ...address }, false);
+    assert.equal(s.blocking, null);
+    assert.equal(s.current, "email");
+  });
+
+  it("needs a confirmed email and an address to buy", () => {
+    assert.equal(readyToBuy({ ...consented, ...address }, true), true);
+    assert.equal(readyToBuy({ ...consented, ...address }, false), false);
+    assert.equal(readyToBuy(consented, true), false);
+  });
+
+  it("keeps the personal data consent ahead of everything", () => {
+    assert.equal(onboardingState({}, true).blocking, "consent");
+  });
+
   it("never trusts a profile flag for email — only the token", () => {
     // Passing emailVerified: false must win even if the document claims it.
-    const s = onboardingState({ ...address, emailVerified: true } as never, false);
+    const s = onboardingState({ ...consented, ...address, emailVerified: true } as never, false);
     assert.ok(s.remaining.includes("email"));
   });
 });
@@ -181,7 +243,7 @@ describe("seller onboarding", () => {
   it("requires identity to sell, unlike buying", () => {
     // One profile carrying both sides' details — a delivery address for
     // buying, pickup and bank for selling — and no verified identity.
-    const noId = { ...address, ...seller, kycStatus: "none" };
+    const noId = { ...consented, ...address, ...seller, kycStatus: "none" };
     assert.equal(onboardingState(noId, true).complete, true, "should be able to buy");
     assert.equal(sellerOnboardingState(noId).complete, false, "must not be able to sell");
   });
@@ -202,6 +264,23 @@ describe("seller onboarding", () => {
     for (const k of ["pickupAddress1", "pickupPostcode", "pickupCity", "pickupState"]) {
       assert.equal(hasSellerContact({ ...seller, [k]: "" }), false, `${k} required`);
     }
+  });
+
+  it("names the contact details still missing", () => {
+    assert.deepEqual(missingSellerContact(seller), []);
+    // A delivery number doesn't count: the seller has to save one for selling.
+    const noNumber = { ...seller, phone: "", whatsappNumber: "", deliveryPhone: "0123456789" };
+    assert.deepEqual(missingSellerContact(noNumber), ["contact number"]);
+    assert.deepEqual(
+      missingSellerContact({ ...seller, pickupCity: "", pickupState: " " }),
+      ["city", "state"],
+    );
+    assert.equal(joinWords(["city", "state"]), "city and state");
+    assert.equal(joinWords(["contact number", "city", "state"]), "contact number, city and state");
+  });
+
+  it("doesn't throw on a number stored as a number", () => {
+    assert.equal(hasSellerContact({ ...seller, phone: 60123456789 as never }), true);
   });
 
   it("agrees with payoutDetailsComplete, which is the authority at payout time", () => {
@@ -228,7 +307,7 @@ describe("seller onboarding", () => {
 
 describe("what stays reachable while seller setup is unfinished", () => {
   it("lets a seller reach the flow and the forms that fix it", () => {
-    for (const p of ["/seller/onboarding", "/seller/settings", "/seller/verify"]) {
+    for (const p of ["/seller/onboarding", "/seller/settings"]) {
       assert.equal(isSellerOnboardingExempt(p), true, `${p} must stay open`);
     }
   });
@@ -246,5 +325,45 @@ describe("what stays reachable while seller setup is unfinished", () => {
     for (const p of ["/seller-policy", "/sellers", "/"]) {
       assert.equal(isSellerArea(p), false, `${p} is not the seller area`);
     }
+  });
+});
+
+describe("where a confirmed email is needed", () => {
+  it("covers paying, selling and messaging", () => {
+    for (const p of ["/checkout", "/seller", "/seller/listings/new", "/messages", "/messages/abc"]) {
+      assert.equal(needsConfirmedEmail(p), true, `${p} needs a confirmed email`);
+    }
+  });
+
+  it("leaves browsing open", () => {
+    for (const p of ["/", "/auctions", "/auctions/abc", "/cards/x", "/account", "/seller-policy"]) {
+      assert.equal(needsConfirmedEmail(p), false, `${p} is browsing`);
+    }
+  });
+
+  it("asks only for what the page you came from needs", () => {
+    assert.deepEqual(stepsNeededFor("/messages/abc"), ["consent", "email"]);
+    assert.deepEqual(stepsNeededFor("/seller/listings/new"), ["consent", "email"]);
+    assert.deepEqual(stepsNeededFor("/checkout"), ["consent", "email", "address"]);
+    assert.deepEqual(stepsNeededFor("/auctions/a1"), ["consent", "email", "address"]);
+    assert.deepEqual(stepsNeededFor(undefined), ["consent", "email", "address"]);
+  });
+
+  it("finishes once the needed steps are done, even with others left", () => {
+    const s = onboardingState(consented, true, stepsNeededFor("/messages/abc"));
+    assert.equal(s.complete, true);
+  });
+});
+
+describe("the IC number from the MyKad scan", () => {
+  it("takes a 12-digit number from either field", () => {
+    assert.equal(myKadNumberFrom({ document_number: "900101-10-1234" }), "900101101234");
+    assert.equal(myKadNumberFrom({ personal_number: "900101101234", document_number: "A1234567" }), "900101101234");
+  });
+
+  it("ignores anything that isn't a MyKad number", () => {
+    assert.equal(myKadNumberFrom({ document_number: "A1234567" }), null);
+    assert.equal(myKadNumberFrom({ document_number: 900101101234 }), null);
+    assert.equal(myKadNumberFrom(null), null);
   });
 });

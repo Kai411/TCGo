@@ -31,7 +31,8 @@
           <p class="text-sm text-gray-500 dark:text-zinc-400">
             Add a delivery address to see shipping costs.
           </p>
-          <NuxtLink to="/account/addresses" class="text-xs font-semibold text-pokemon-red hover:underline">
+          <!-- The same short form new members see, returning here after. -->
+          <NuxtLink to="/onboarding?next=/checkout" class="text-xs font-semibold text-pokemon-red hover:underline">
             Add delivery address →
           </NuxtLink>
         </template>
@@ -143,9 +144,10 @@
         </div>
       </div>
 
-      <!-- Grand summary + checkout -->
+      <!-- Grand summary + checkout. With one seller the order total above
+           already is the grand total, so the summary would only repeat it. -->
       <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-        <div class="space-y-1 text-sm mb-4">
+        <div v-if="groupedBySeller.length > 1" class="space-y-1 text-sm mb-4">
           <div class="flex justify-between text-gray-600 dark:text-zinc-300">
             <span>Items ({{ items.length }})</span>
             <span class="tabular-nums">RM {{ checkoutTotal.toFixed(2) }}</span>
@@ -172,8 +174,8 @@
 
         <div v-else>
           <button
-            @click="handlePlaceOrders"
-            :disabled="placing || !canCheckout"
+            @click="hasAddress ? handlePlaceOrders() : addAddress()"
+            :disabled="placing || (hasAddress && !canCheckout)"
             class="w-full bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             <span v-if="placing" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
@@ -181,6 +183,8 @@
           </button>
           <p class="text-xs text-gray-500 dark:text-zinc-400 text-center mt-2">
             You'll pay each seller securely online (FPX) after placing the order.
+            Your payment is held until the card arrives
+            (<NuxtLink to="/refund-policy" class="underline hover:text-ink dark:hover:text-white">Buyer Protection</NuxtLink>).
           </p>
         </div>
       </div>
@@ -383,6 +387,8 @@ const canCheckout = computed(
     groupedBySeller.value.length > 0 &&
     groupedBySeller.value.every((g) => !!quotes.value[g.sellerUid]),
 );
+
+const addAddress = () => navigateTo("/onboarding?next=/checkout");
 
 const checkoutLabel = computed(() => {
   if (placing.value) return "Creating orders...";

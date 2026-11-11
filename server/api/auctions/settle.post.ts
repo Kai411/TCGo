@@ -29,6 +29,7 @@ import {
   outcomeForOrderStatus,
   type AuctionStatus,
 } from "~/shared/auctions";
+import { getUserProfile } from "~/server/utils/user-profile";
 
 export default defineEventHandler(async (event) => {
   const caller = await requireUser(event);
@@ -82,8 +83,7 @@ export default defineEventHandler(async (event) => {
     return { status: "expired", orderId: null, note: "no bids" };
   }
 
-  const winnerSnap = await db.collection("users").doc(winnerUid).get();
-  const winner = winnerSnap.data() as any;
+  const winner = (await getUserProfile(db, winnerUid)) as any;
 
   // A transaction, not a batch. The seller and the winner both open an ended
   // auction — often within the same second, since both were watching the

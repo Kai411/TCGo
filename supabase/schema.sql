@@ -49,6 +49,14 @@ CREATE INDEX IF NOT EXISTS cards_catalog_rarity_trgm
 CREATE INDEX IF NOT EXISTS cards_catalog_group_name_trgm
   ON cards_catalog USING gin (group_name gin_trgm_ops);
 
+-- The set's release date (TCGCSV group publishedOn), for the Newest sort.
+-- Added after launch, so ALTER rather than in the CREATE above; the nightly
+-- seed fills it.
+ALTER TABLE cards_catalog ADD COLUMN IF NOT EXISTS released_on DATE;
+
+CREATE INDEX IF NOT EXISTS cards_catalog_released_on_idx
+  ON cards_catalog (released_on DESC NULLS LAST);
+
 -- Every search filters on language now that both are searched by default.
 CREATE INDEX IF NOT EXISTS cards_catalog_language_idx
   ON cards_catalog (language);
@@ -256,7 +264,8 @@ BEGIN
         (p.prices->'Holofoil'->>'market')::numeric,
         (p.prices->'Normal'->>'market')::numeric,
         (p.prices->'Reverse Holofoil'->>'market')::numeric
-      ) AS market_price
+      ) AS market_price,
+      c.released_on
     FROM cards_catalog c
     LEFT JOIN card_prices p ON p.product_id = c.product_id
     WHERE (NOT has_query OR c.name ILIKE '%' || q_trimmed || '%')
@@ -290,6 +299,10 @@ BEGIN
     CASE WHEN sort_by = 'best'       THEN wc.market_price  END DESC NULLS LAST,
     CASE WHEN sort_by = 'price_asc'  THEN wc.market_price  END ASC  NULLS LAST,
     CASE WHEN sort_by = 'price_desc' THEN wc.market_price  END DESC NULLS LAST,
+    -- "Newest": newest set first, undated sets last; within a set the chase
+    -- cards first, as Best does.
+    CASE WHEN sort_by = 'newest'     THEN wc.released_on   END DESC NULLS LAST,
+    CASE WHEN sort_by = 'newest'     THEN wc.market_price  END DESC NULLS LAST,
     wc.name ASC
   LIMIT page_size OFFSET page * page_size;
 END;

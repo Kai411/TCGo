@@ -38,7 +38,7 @@
         @click="handleHome"
         class="px-5 py-2.5 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
       >
-        Back to shop
+        Back to Marketplace
       </button>
       <button
         @click="goBack"
@@ -90,13 +90,13 @@ const title = computed(() => {
 const description = computed(() => {
   switch (statusCode.value) {
     case 404:
-      return "The page you're looking for either moved or never existed. Head back to the shop and keep collecting.";
+      return "The page you're looking for either moved or never existed. Head back to the Marketplace and keep collecting.";
     case 500:
-      return "We hit an unexpected error. Try again in a moment, or head back to the shop while we look into it.";
+      return "We hit an unexpected error. Try again in a moment, or head back to the Marketplace while we look into it.";
     case 403:
       return "This page is restricted. If you think you should have access, contact support.";
     default:
-      return props.error?.message || "Try heading back to the shop.";
+      return props.error?.message || "Try heading back to the Marketplace.";
   }
 });
 

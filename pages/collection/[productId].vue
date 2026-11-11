@@ -2,7 +2,7 @@
   <div class="max-w-6xl mx-auto">
     <button
       type="button"
-      class="mb-5 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
+      class="mb-3 inline-flex min-h-11 items-center gap-1.5 text-sm lg:mb-5 lg:min-h-0 font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
       @click="goBack"
     >
       <svg
@@ -17,7 +17,7 @@
       >
         <path d="m15 18-6-6 6-6" />
       </svg>
-      Back to collection
+      Back to TCGo Dex
     </button>
 
     <div v-if="loading" class="flex justify-center py-24">
@@ -29,13 +29,13 @@
     <div v-else-if="!card" class="surface rounded-2xl py-20 px-5 text-center">
       <p class="text-lg font-bold text-ink dark:text-white">Card not found</p>
       <p class="mt-1 text-sm text-ink-muted dark:text-zinc-400">
-        This catalogue card may no longer be available.
+        This card may no longer be in TCGo Dex.
       </p>
       <NuxtLink
         to="/collection"
         class="mt-5 inline-flex items-center justify-center rounded-full bg-ink dark:bg-white px-5 py-2.5 text-sm font-semibold text-white dark:text-ink hover:opacity-90 transition-opacity"
       >
-        Browse collection cards
+        Browse TCGo Dex
       </NuxtLink>
     </div>
 
@@ -52,22 +52,30 @@
           aria-hidden="true"
         />
 
+        <!-- Phone: a small card beside the title, chips and collection
+             control, then the price row across the full width. Every item is placed
+             explicitly because the info column below dissolves (`contents`)
+             into this grid. The second row is 1fr so the card's extra height
+             lands under the collection control instead of spreading the title
+             apart. -->
         <div
-          class="panel-body relative grid grid-cols-1 items-center gap-7 p-5 sm:p-7 md:grid-cols-[minmax(230px,310px)_1fr] md:gap-10 lg:p-10"
+          class="panel-body relative grid grid-cols-[7.5rem_minmax(0,1fr)] grid-rows-[auto_auto_1fr_auto] gap-x-4 sm:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[minmax(230px,310px)_1fr] lg:grid-rows-none lg:items-center lg:gap-10 lg:p-10"
         >
-          <div class="relative mx-auto w-full max-w-[310px] md:mx-0">
+          <div
+            class="relative col-start-1 row-span-3 row-start-1 w-full self-start lg:row-span-1 lg:mx-0 lg:max-w-[310px] lg:self-auto"
+          >
             <div
               class="absolute inset-x-5 bottom-0 h-1/2 rounded-full bg-black/15 blur-2xl dark:bg-black/40"
               aria-hidden="true"
             />
             <div
-              class="relative aspect-[2.5/3.5] overflow-hidden rounded-[1.35rem] bg-canvas-sunken ring-1 ring-black/[0.08] shadow-card-hover transition-transform duration-300 ease-premium sm:-rotate-1 sm:hover:rotate-0 dark:bg-white/[0.04] dark:ring-white/[0.10]"
+              class="relative aspect-[2.5/3.5] overflow-hidden bg-canvas-sunken ring-1 ring-black/[0.08] shadow-card-hover transition-transform duration-300 ease-premium rounded-xl lg:rounded-[1.35rem] lg:-rotate-1 lg:hover:rotate-0 dark:bg-white/[0.04] dark:ring-white/[0.10]"
             >
               <CardImage :src="card.imageUrl" :alt="card.name" />
             </div>
           </div>
 
-          <div class="min-w-0 flex flex-col">
+          <div class="contents min-w-0 lg:flex lg:flex-col">
             <!-- Chips left, collection control top-right. It used to sit
                  beside the price at the foot of the column, which buried the
                  one action on the page below the fold on narrow screens. -->
@@ -76,9 +84,11 @@
                  lets order-last move the button past them. From sm up it is an
                  ordinary row again and the desktop layout is untouched. -->
             <div
-              class="contents sm:flex sm:flex-wrap sm:items-start sm:justify-between sm:gap-3"
+              class="contents lg:flex lg:flex-wrap lg:items-start lg:justify-between lg:gap-3"
             >
-              <div class="flex flex-wrap items-center gap-1.5">
+              <div
+                class="col-start-2 row-start-2 mt-2.5 flex flex-wrap items-center gap-1.5 self-start lg:mt-0"
+              >
                 <span v-if="card.rarity" class="chip chip-gold">{{
                   card.rarity
                 }}</span>
@@ -88,33 +98,38 @@
                 }}</span>
               </div>
 
-              <!-- Last on a phone: the name, number and price are what the
-                   reader came for, and the button pushed all of it down. -->
+              <!-- On a phone it sits beside the card under the chips, in space
+                   the card's height leaves empty anyway, so it never pushes
+                   the price down. -->
               <div
-                class="order-last mt-6 flex shrink-0 items-center gap-2 sm:order-none sm:mt-0"
+                class="col-start-2 row-start-3 mt-2.5 flex shrink-0 items-start gap-2 self-start lg:mt-0 lg:items-center lg:self-auto"
               >
                 <!-- Owned: a status mark, not a button. The only action left
                      (changing how many copies) sits with the price below. -->
-                <CollectedBadge v-if="inCollection" :quantity="ownedQuantity" label />
+                <CollectedBadge v-if="inCollection" :quantity="ownedQuantity" size="sm" label />
+                <!-- Phone: a quiet tinted pill the same height as the chips'
+                     row rhythm, so it reads as an option rather than the
+                     page's headline. The pseudo-element keeps a 44px tap
+                     target. Desktop keeps the solid button. -->
                 <button
                   v-if="!inCollection"
                   type="button"
                   :disabled="collectionBusy || (!!user && collectionLoading)"
-                  class="inline-flex min-w-[166px] items-center justify-center gap-2 rounded-full bg-pokemon-blue px-5 py-3 text-sm font-bold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-blue-700 disabled:translate-y-0 disabled:opacity-60"
+                  class="relative inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-pokemon-blue/10 px-3 text-[13px] font-semibold text-pokemon-blue transition-all before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] hover:bg-pokemon-blue/15 active:scale-[0.97] disabled:opacity-60 dark:bg-sky-400/15 dark:text-sky-300 lg:h-auto lg:min-w-[166px] lg:gap-2 lg:bg-pokemon-blue lg:px-5 lg:py-3 lg:text-sm lg:font-bold lg:text-white lg:shadow-sm lg:hover:-translate-y-0.5 lg:hover:bg-blue-700 lg:disabled:translate-y-0 lg:dark:bg-pokemon-blue lg:dark:text-white"
                   @click="handleCollectionToggle"
                 >
                   <div
                     v-if="collectionBusy"
-                    class="h-4 w-4 animate-spin rounded-full border-2 border-current/25 border-t-current"
+                    class="h-3.5 w-3.5 lg:h-4 lg:w-4 animate-spin rounded-full border-2 border-current/25 border-t-current"
                     aria-hidden="true"
                   />
                   <svg
                     v-else
-                    class="w-4 h-4"
+                    class="h-3.5 w-3.5 lg:h-4 lg:w-4"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="2.25"
+                    stroke-width="2.5"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                     aria-hidden="true"
@@ -127,52 +142,58 @@
               </div>
             </div>
 
-            <!-- The set name is the obvious thing to click after reading it,
-                 and it was inert. -->
-            <NuxtLink
-              :to="`/collection?set=${encodeURIComponent(card.setName)}`"
-              class="mt-5 eyebrow inline-flex items-center gap-1 transition-colors hover:text-pokemon-red"
-              :aria-label="`See other cards from ${card.setName}`"
-            >
-              {{ card.setName }}
-              <svg
-                class="w-3 h-3 shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
+            <!-- Card name first, then the set (a link to the rest of the set)
+                 and the printed number in smaller type. The language is a chip
+                 below, not repeated here. -->
+            <div class="col-start-2 row-start-1 flex min-w-0 flex-col lg:mt-5">
+              <h1
+                class="font-display text-xl font-extrabold leading-tight tracking-tight text-ink dark:text-white sm:text-3xl lg:text-5xl lg:leading-none lg:tracking-tightest"
               >
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            </NuxtLink>
-            <h1
-              class="mt-1 font-display text-4xl font-extrabold tracking-tightest text-ink dark:text-white sm:text-5xl"
-            >
-              {{ card.name }}
-            </h1>
-            <p
-              class="mt-2 text-sm text-ink-muted dark:text-zinc-400 sm:text-base"
-            >
-              <span v-if="card.number">{{ card.number }} · </span
-              >{{ card.language }}
-            </p>
+                {{ card.name }}
+              </h1>
+              <NuxtLink
+                :to="`/collection?set=${encodeURIComponent(card.setName)}`"
+                class="mt-1.5 line-clamp-2 self-start text-[13px] font-medium leading-snug text-ink-muted transition-colors hover:text-pokemon-red dark:text-zinc-400 lg:mt-3 lg:text-base"
+                :aria-label="`See other cards from ${card.setName}`"
+              >
+                {{ card.setName }}
+                <svg
+                  class="-mt-0.5 inline-block h-3.5 w-3.5 align-middle"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </NuxtLink>
+              <p
+                v-if="card.number"
+                class="mt-0.5 text-xs text-ink-soft tabular-price dark:text-zinc-500 lg:mt-1 lg:text-sm"
+              >
+                {{ card.number }}
+              </p>
+            </div>
 
-            <!-- Price left, copies stepper flush right — one row, so the
-                 stepper reads as a property of the card rather than a second
-                 call to action stacked under the header. -->
-            <div class="mt-7 flex flex-wrap items-end justify-between gap-4">
-              <div class="min-w-0">
-                <div class="flex flex-wrap items-center gap-2">
+            <!-- Label and confidence across the top, then the price left and
+                 the copies stepper flush right on one row, so the stepper
+                 reads as a property of the card rather than a second call to
+                 action. A hairline on phones separates it from the card's
+                 identity above. -->
+            <div
+              class="col-span-2 row-start-4 mt-4 border-t border-black/[0.06] pt-4 dark:border-white/[0.08] lg:mt-7 lg:border-t-0 lg:pt-0"
+            >
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <p
                     class="text-xs font-semibold text-ink-muted dark:text-zinc-400"
                   >
                     Raw market price
                   </p>
                   <span
-                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                    class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
                     :class="CONFIDENCE_CLASS[confidence.level]"
                   >
                     {{ CONFIDENCE_LABEL[confidence.level] }}
@@ -182,7 +203,7 @@
                   <button
                     type="button"
                     @click="confidenceOpen = !confidenceOpen"
-                    class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-black/[0.15] text-[9px] font-bold text-ink-muted transition-colors hover:border-pokemon-red hover:text-pokemon-red dark:border-white/[0.20] dark:text-zinc-400"
+                    class="relative inline-flex h-[18px] w-[18px] items-center justify-center rounded-full border border-black/[0.15] text-[10px] font-bold before:absolute before:-inset-3 before:content-[''] text-ink-muted transition-colors hover:border-pokemon-red hover:text-pokemon-red dark:border-white/[0.20] dark:text-zinc-400"
                     :aria-expanded="confidenceOpen"
                     aria-controls="price-confidence-why"
                     :aria-label="`Why this is ${CONFIDENCE_LABEL[confidence.level].toLowerCase()}`"
@@ -191,6 +212,22 @@
                   </button>
                 </div>
 
+                <!-- Low or no confidence says why up front: the ? alone is
+                     easy to miss, and this is when the reason matters. -->
+                <p
+                  v-if="!confidenceOpen && lowConfidenceNote"
+                  class="mt-2 max-w-sm text-[12px] leading-relaxed text-amber-700 dark:text-amber-300"
+                >
+                  {{ lowConfidenceNote }}
+                  <button
+                    type="button"
+                    class="font-semibold underline underline-offset-2"
+                    aria-controls="price-confidence-why"
+                    @click="confidenceOpen = true"
+                  >
+                    Why?
+                  </button>
+                </p>
                 <div
                   v-if="confidenceOpen"
                   id="price-confidence-why"
@@ -222,13 +259,15 @@
                     listings agree.
                   </p>
                 </div>
+              <div class="mt-2 flex items-center justify-between gap-4">
+              <div class="min-w-0">
                 <p
                   v-if="card.price"
-                  class="mt-1 text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
+                  class="text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
                 >
                   {{ formatMyr(card.price.market) }}
                   <span
-                    class="mr-1 text-xl font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
+                    class="ml-0.5 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
                     >MYR</span
                   >
                 </p>
@@ -238,11 +277,11 @@
                      from a different angle. -->
                 <template v-else-if="secondary">
                   <p
-                    class="mt-1 text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
+                    class="text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
                   >
                     {{ formatMyr(secondary.market) }}
                     <span
-                      class="mr-1 text-xl font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
+                      class="ml-0.5 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
                       >MYR</span
                     >
                   </p>
@@ -253,21 +292,39 @@
                 </template>
                 <p
                   v-else
-                  class="mt-2 text-xl font-bold text-ink-muted dark:text-zinc-300"
+                  class="text-xl font-bold text-ink-muted dark:text-zinc-300"
                 >
                   Price unavailable
+                </p>
+                <!-- Phone only: the chart's own headline repeats the price, so
+                     on a phone it is hidden and the change sits here, on the
+                     first screen. -->
+                <p
+                  v-if="trend && trend.changePct !== null && trend.points.length >= 2"
+                  class="mt-2 inline-flex items-center gap-1 text-xs font-bold tabular-price lg:hidden"
+                  :class="
+                    trend.changePct >= 0
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-rose-600 dark:text-rose-400'
+                  "
+                >
+                  {{ trend.changePct >= 0 ? "▲" : "▼" }}
+                  {{ Math.abs(trend.changePct).toFixed(1) }}%
+                  <span class="font-semibold text-ink-soft dark:text-zinc-500"
+                    >past {{ selectedRangeLabel }}</span
+                  >
                 </p>
               </div>
               <div
                 v-if="inCollection && user"
-                class="inline-flex items-center gap-0.5 rounded-full border border-black/[0.10] bg-canvas-raised px-0.5 dark:border-white/[0.12] dark:bg-[#1B1B20]"
+                class="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-black/[0.10] bg-canvas-raised px-0.5 dark:border-white/[0.12] dark:bg-[#1B1B20]"
               >
                 <button
                   type="button"
                   :disabled="collectionBusy"
                   @click="handleCollectionDecrement"
-                  class="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-muted transition-colors hover:text-pokemon-red disabled:opacity-50 dark:text-zinc-300"
-                  :aria-label="ownedQuantity <= 1 ? 'Remove from collection' : 'Remove one copy'"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors hover:text-pokemon-red disabled:opacity-50 dark:text-zinc-300"
+                  :aria-label="ownedQuantity <= 1 ? 'Remove from Dex' : 'Remove one copy'"
                 >
                   <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 12h14" /></svg>
                 </button>
@@ -278,17 +335,20 @@
                   type="button"
                   :disabled="collectionBusy"
                   @click="handleCollectionIncrement"
-                  class="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-muted transition-colors hover:text-pokemon-blue disabled:opacity-50 dark:text-zinc-300"
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-muted transition-colors hover:text-pokemon-blue disabled:opacity-50 dark:text-zinc-300"
                   aria-label="Add another copy"
                 >
                   <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
                 </button>
               </div>
+              </div>
 
             </div>
 
+            <!-- Desktop only. On a phone these sit under the chart instead,
+                 so the price and its trend come first. -->
             <div
-              class="mt-7 grid grid-cols-2 gap-3 border-t border-black/[0.06] pt-5 dark:border-white/[0.08] sm:grid-cols-3"
+              class="mt-7 hidden grid-cols-3 gap-3 border-t border-black/[0.06] pt-5 dark:border-white/[0.08] lg:grid"
             >
               <div
                 class="panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
@@ -338,18 +398,18 @@
         </div>
       </section>
 
-      <section class="panel surface rounded-2xl mt-8 p-5 sm:p-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
+      <section class="panel surface rounded-2xl mt-6 p-5 sm:p-6 lg:mt-8">
+        <div class="flex flex-wrap items-center justify-between gap-4 lg:items-start">
           <div>
-            <span class="eyebrow">Price history</span>
+            <span class="eyebrow hidden lg:inline-block">Price history</span>
             <h2
-              class="mt-1 text-xl font-bold tracking-tight text-ink dark:text-white"
+              class="text-lg font-bold tracking-tight text-ink dark:text-white lg:mt-1 lg:text-xl"
             >
               Raw card trend
             </h2>
             <p
               v-if="historyCoverageLabel"
-              class="mt-1.5 text-xs text-ink-muted dark:text-zinc-400"
+              class="mt-1.5 hidden text-xs text-ink-muted dark:text-zinc-400 lg:block"
             >
               {{ historyCoverageLabel }}
             </p>
@@ -405,13 +465,46 @@
           </div>
         </div>
 
-        <div class="mt-6">
+        <div class="mt-4 lg:mt-6">
           <PriceTrendChart
             :trend="trend"
             :loading="trendLoading"
             :height="190"
+            header-class="hidden lg:flex"
           />
         </div>
+
+        <!-- Phone only: the secondary figures from the top panel, moved
+             under the chart. -->
+        <dl
+          class="mt-5 grid grid-cols-3 divide-x divide-black/[0.06] border-t border-black/[0.06] pt-4 text-center dark:divide-white/[0.08] dark:border-white/[0.08] lg:hidden"
+        >
+          <div class="px-2">
+            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+              Market low
+            </dt>
+            <dd class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
+              {{ card.price ? formatMyr(card.price.low) : "—" }}
+            </dd>
+          </div>
+          <div class="px-2">
+            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+              Market high
+            </dt>
+            <dd class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
+              {{ card.price ? formatMyr(card.price.high) : "—" }}
+            </dd>
+          </div>
+          <div class="px-2">
+            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+              Graded
+            </dt>
+            <dd class="mt-1 text-sm font-bold text-ink dark:text-white">
+              {{ activeGradedListings.length }}
+              {{ activeGradedListings.length === 1 ? "listing" : "listings" }}
+            </dd>
+          </div>
+        </dl>
 
         <div
           v-if="fullTrend"
@@ -454,7 +547,7 @@
           <div>
             <span class="eyebrow">Ungraded prices</span>
             <h2
-              class="mt-1 text-xl font-bold tracking-tight text-ink dark:text-white"
+              class="mt-1 text-lg font-bold tracking-tight text-ink dark:text-white lg:text-xl"
             >
               Active listings
             </h2>
@@ -617,7 +710,7 @@
           <div>
             <span class="eyebrow">Graded prices</span>
             <h2
-              class="mt-1 text-xl font-bold tracking-tight text-ink dark:text-white"
+              class="mt-1 text-lg font-bold tracking-tight text-ink dark:text-white lg:text-xl"
             >
               Active graded listings
             </h2>
@@ -782,12 +875,19 @@
         </p>
       </section>
 
+      <!-- Below TCGo's own listings: eBay asking prices, a separate source. -->
+      <EbayListings
+        :name="card.name"
+        :number="card.number"
+        :language="card.language"
+      />
+
       <section v-if="relatedLoading || relatedCards.length" class="mt-10 pb-4">
         <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <span class="eyebrow">Keep exploring</span>
             <h2
-              class="mt-1 text-2xl font-bold tracking-tight text-ink dark:text-white"
+              class="mt-1 text-lg font-bold tracking-tight text-ink dark:text-white lg:text-2xl"
             >
               Cards you may also like
             </h2>
@@ -799,7 +899,7 @@
             :to="`/collection?set=${encodeURIComponent(card.setName)}`"
             class="inline-flex items-center gap-1 text-xs font-bold text-pokemon-red hover:underline"
           >
-            Explore collection
+            Explore set
             <svg
               class="h-3.5 w-3.5"
               viewBox="0 0 24 24"
@@ -996,6 +1096,13 @@ const rangeOptions = computed(() =>
   }),
 );
 
+const RANGE_WORDS: Record<HistoryDays, string> = {
+  30: "month",
+  90: "3 months",
+  365: "year",
+};
+const selectedRangeLabel = computed(() => RANGE_WORDS[selectedRange.value]);
+
 const trend = computed<PriceTrend | null>(
   () =>
     rangeTrends.value.find((option) => option.days === selectedRange.value)
@@ -1082,9 +1189,9 @@ const inCollection = computed(
 // Only rendered when the card is NOT collected — the owned state is the
 // CollectedBadge, not this button.
 const collectionButtonLabel = computed(() => {
-  if (!user.value) return "Sign in to collect";
-  if (collectionLoading.value) return "Checking collection…";
-  return "Add to collection";
+  if (!user.value) return "Sign in to add";
+  if (collectionLoading.value) return "Checking your Dex…";
+  return "Add to Dex";
 });
 
 /** Copies of this card owned, for the badge and stepper. */
@@ -1246,6 +1353,13 @@ const confidence = computed(() => {
 });
 
 const confidenceOpen = ref(false);
+// One line under a low or missing price: the main reason, and what to do.
+const lowConfidenceNote = computed(() => {
+  const { level, reasons } = confidence.value;
+  if (level !== "low" && level !== "none") return "";
+  const lead = reasons[0] ?? "";
+  return `${lead} Check recent sales before you price.`.trim();
+});
 // A different card is a different verdict; leaving it open would attach one
 // card's reasons to another's price.
 watch(card, () => (confidenceOpen.value = false));

@@ -8,10 +8,12 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
   reload,
+  sendPasswordResetEmail,
   type User,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { computed, ref } from "vue";
+import { SIGNED_IN_BEFORE_KEY } from "~/composables/useSignInGate";
 
 const user = ref<User | null>(null);
 const authLoading = ref(true);
@@ -57,6 +59,13 @@ export const useAuth = () => {
     onAuthStateChanged(auth, (u) => {
       user.value = u;
       authLoading.value = false;
+      if (u) {
+        try {
+          localStorage.setItem(SIGNED_IN_BEFORE_KEY, "1");
+        } catch {
+          // Storage blocked: the login page just opens on sign-up next time.
+        }
+      }
     });
   }
 
@@ -70,7 +79,8 @@ export const useAuth = () => {
   };
 
   /**
-   * Create the account, then ask the server to email a code.
+   * Create the account, record the PDPA consent ticked on the form, then
+   * ask the server to email a code.
    *
    * The account exists before it is verified, on purpose: Firebase needs a
    * user to hang `emailVerified` on, and a half-finished signup that the user
@@ -82,6 +92,13 @@ export const useAuth = () => {
     displayName?: string,
   ) => {
     const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+
+    // The form only calls this once the PDPA consent box is ticked, so record
+    // it now, before anything else is collected. A failed write doesn't undo
+    // the account: onboarding sees no consent on file and asks again.
+    await recordConsentFor(cred.user.uid, "signup").catch((e) =>
+      console.warn("[consent] not recorded at sign-up", e),
+    );
 
     const name = displayName?.trim();
     if (name) {
@@ -95,11 +112,14 @@ export const useAuth = () => {
       // name entered at signup the name on the settings page.
       await updateProfile(cred.user, { displayName: name });
       const { firestore } = useFirebase();
+      // Not fatal: if the profile write is refused, the code still has to go
+      // out, or the new account is stuck unverified. useProfile adopts the
+      // Auth name on the next visit.
       await setDoc(
         doc(firestore!, "users", cred.user.uid),
         { displayName: name, customName: name },
         { merge: true },
-      );
+      ).catch((e) => console.error("[registerWithEmail] profile name:", e));
     }
     await requestCode(email, "verify_email");
   };
@@ -129,6 +149,32 @@ export const useAuth = () => {
       body: { email: email.trim(), code: code.trim(), password },
     });
 
+  /**
+   * Email and password accounts only. Sends Firebase's own reset email to
+   * the signed-in address; the new password is chosen on the page the link
+   * opens, so only whoever reads that mailbox can change it. Doesn't depend
+   * on Mailtrap. The change starts the 24-hour hold on payouts and bank
+   * details (shared/security-lock.ts), which the server notices from
+   * Firebase's tokensValidAfterTime.
+   */
+  const sendPasswordLink = async () => {
+    const u = auth.currentUser;
+    if (!u?.email) throw new Error("Sign in again to change your password.");
+    try {
+      // Brings them back to Account settings after the reset.
+      await sendPasswordResetEmail(auth, u.email, {
+        url: `${window.location.origin}/profile`,
+      });
+    } catch (e) {
+      // A host missing from Firebase's authorized domains can't be the
+      // return address; the email still works without it.
+      const code = (e as { code?: string })?.code ?? "";
+      if (code !== "auth/unauthorized-continue-uri" && code !== "auth/invalid-continue-uri") throw e;
+      await sendPasswordResetEmail(auth, u.email);
+    }
+    return u.email;
+  };
+
   const signOut = async () => {
     // While still signed in: the server needs the token to drop this
     // device's push subscription, so the next person on it doesn't get ours.
@@ -152,6 +198,7 @@ export const useAuth = () => {
     requestCode,
     confirmEmail,
     resetPassword,
+    sendPasswordLink,
     signOut,
   };
 };

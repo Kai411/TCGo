@@ -11,6 +11,7 @@ import { delyvaQuote } from "~/server/utils/delyva";
 import { parcelWeightKg } from "~/shared/parcel";
 import { stateName } from "~/shared/my-states";
 import { quoteForOrder, type HandoverPreference } from "~/shared/shipping-quote";
+import { getUserProfile } from "~/server/utils/user-profile";
 
 export interface QuotedShipping {
   shipping: number;
@@ -37,8 +38,7 @@ export const quoteOrderShipping = async (
   const addr = order.deliveryAddress;
   if (!addr?.postcode || !addr?.state) return null;
 
-  const sellerSnap = await db.collection("users").doc(order.sellerUid).get();
-  const seller = sellerSnap.data() as any;
+  const seller = (await getUserProfile(db, order.sellerUid)) as any;
   if (!seller?.pickupPostcode || !seller?.pickupState) return null;
 
   const weightKg = parcelWeightKg({ items: order.items ?? [] });

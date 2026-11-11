@@ -12,7 +12,7 @@
 // and it was wrong in two ways at once. It was never actually charged —
 // `sellerPlan` is read in three places and written in none, so effectiveRate()
 // fell through to the standard rate for everyone — and the arithmetic didn't
-// work either: against a flat 4% plus the RM 4.99 plan, Vendor only earned
+// work either: against a flat 4% plus the RM 4.99 plan of the time, Vendor only earned
 // TCGo more from sellers under ~RM 6,500 of online sales a month, which are
 // exactly the sellers who would never pay RM 69.99. It made its money from
 // people who wouldn't buy it.
@@ -39,7 +39,7 @@ export interface Plan {
 
 export const STANDARD_RATE = 0.04;
 
-export const MARKETPLACE_MONTHLY = 4.99;
+export const MARKETPLACE_MONTHLY = 5.99;
 
 // ── The counter ───────────────────────────────────────────────────────
 //
@@ -82,7 +82,7 @@ export const posPlatformFee = (total: number): number =>
 export const WITHDRAWAL_FEE = 1.25;
 
 // Free scans a month before Pro is worth buying. Mirrors FREE_SCAN_LIMIT in
-// composables/useScanQuota.ts, which is what actually enforces it — this copy
+// shared/scan-quota.ts, which the server enforces — this copy
 // exists so the pricing page can quote the number without importing a Vue
 // composable into the Nitro build.
 export const FREE_SCANS_MONTHLY = 20;

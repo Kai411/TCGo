@@ -5,13 +5,19 @@
     class="sticky top-0 z-40 glass shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.6)]"
   >
     <div
-      class="container mx-auto px-4 h-16 lg:h-[72px] lg:pt-3 flex items-center justify-between gap-4"
+      class="container mx-auto px-4 h-16 lg:h-[72px] lg:pt-3 flex items-center justify-between gap-1.5 lg:gap-4"
     >
       <!-- Logo (matches LandingNavbar: square sprite cropped to wordmark slice).
            Links to /landing (marketing) — user prefers this over the shop
            home since the marketing surface is where new visitors land.
-           Beta tag sits beside the wordmark, baseline-aligned to its bottom. -->
-      <div class="flex items-end h-full shrink-0 gap-1.5">
+           Beta tag sits beside the wordmark, baseline-aligned to its bottom.
+           On phones it only shows where there's no search field (Account,
+           Collection, Messages); elsewhere the search gets the room and the
+           bottom nav's Shop tab is the way home. -->
+      <div
+        class="items-end h-full shrink-0 gap-1.5 lg:flex"
+        :class="showMobileSearch ? 'hidden' : 'flex'"
+      >
         <NuxtLink to="/landing" class="flex items-center h-full">
           <img
             src="~/assets/images/tcgo_sprites.png"
@@ -63,8 +69,51 @@
         </button>
       </form>
 
+      <!-- Phone back arrow on product pages (a shop listing or an auction).
+           Those pages drop their breadcrumb and the bottom nav, so this is
+           the way back to where the person came from. -->
+      <button
+        v-if="isProductPage"
+        type="button"
+        @click="goBackFromProduct"
+        :aria-label="route.path.startsWith('/auctions/') ? 'Back to auctions' : 'Back to marketplace'"
+        class="lg:hidden -ml-3 w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-full text-ink dark:text-white transition-transform duration-150 active:scale-90"
+      >
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+      </button>
+
+      <!-- Mobile search, in line with the icons. A field rather than an
+           icon: it reads as "search here" at a glance. Tapping it opens the
+           same search popup, which owns results and history. Not on the
+           Account pages (settings screens, not places to shop), Collection
+           (its own search bar sits right beneath the nav) or Messages. -->
+      <button
+        type="button"
+        @click="openSearch"
+        v-if="showMobileSearch"
+        aria-label="Search cards, auctions, sets, sellers"
+        class="lg:hidden flex-1 min-w-0 h-10 flex items-center gap-1.5 px-3 rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-left text-sm text-ink-soft dark:text-zinc-500 transition-colors active:bg-black/[0.08] dark:active:bg-white/[0.12]"
+      >
+        <svg
+          class="w-4 h-4 shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <span class="truncate">Search cards, sellers</span>
+      </button>
+
       <!-- Right cluster -->
-      <div class="flex items-center gap-1.5 lg:gap-2 shrink-0">
+      <div class="ml-auto flex items-center lg:gap-2 shrink-0">
         <!-- Desktop sell CTAs → enter the inventory system -->
         <div v-if="user" class="hidden lg:flex items-center gap-2 ml-1">
           <!-- Single glowing Sell CTA; the menu asks card vs auction. -->
@@ -140,7 +189,7 @@
           @click="cartOpen = true"
           aria-label="Cart"
           data-cart-target
-          class="relative inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
+          class="relative inline-flex items-center justify-center w-11 h-11 lg:w-10 lg:h-10 rounded-full hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-ink dark:text-white transition-colors"
         >
           <svg
             class="w-5 h-5"
@@ -196,35 +245,7 @@
       </div>
     </div>
 
-    <!-- Mobile search row. A field rather than an icon: it reads as "search
-         here" at a glance. Tapping it opens the same search popup, which owns
-         results and history. Inside the nav so --app-nav-h grows with it.
-         Not on the Account pages: they are settings screens, not places to shop. -->
-    <div v-if="!route.path.startsWith('/account')" class="lg:hidden container mx-auto px-4 pb-3">
-      <button
-        type="button"
-        @click="openSearch"
-        aria-label="Search cards, auctions, sets, sellers"
-        class="w-full h-10 flex items-center gap-2 px-4 rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-left text-sm text-ink-soft dark:text-zinc-500 transition-colors active:bg-black/[0.08] dark:active:bg-white/[0.12]"
-      >
-        <svg
-          class="w-4 h-4 shrink-0"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="11" cy="11" r="7" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <span class="truncate">Search cards, auctions, sets, sellers...</span>
-      </button>
-    </div>
-
-    <!-- Second row (desktop): section nav — Shop / Auctions / Collection /
+    <!-- Second row (desktop): section nav — Marketplace / Auctions / Collection /
          Orders. Dark strip under the glassy top bar, TCGplayer-style. -->
     <div class="hidden lg:block">
       <div
@@ -252,10 +273,14 @@
     </div>
   </nav>
 
-  <!-- Mobile bottom tab bar: Shop / Auctions / Sell / Collection / Account.
+  <!-- Mobile bottom tab bar: Marketplace / Auctions / Sell / Dex / Account.
        Sell sits in the middle as the one raised action; Orders moved into the
-       Account page. Pads for the iPhone home bar, keeping the old 16px as the floor. -->
+       Account page. Labels never wrap: "Marketplace", the longest, just fits
+       a 360px phone. Pads for the iPhone home bar, keeping the old 16px as the floor. -->
+  <!-- Not on product pages: their own fixed bar (Buy now / Add to cart, or
+       the bid button) takes this place. -->
   <nav
+    v-if="!isProductPage"
     class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] pb-[max(16px,env(safe-area-inset-bottom))]"
     aria-label="Main"
   >
@@ -265,16 +290,21 @@
           v-if="tab.sell"
           type="button"
           @click.stop="onSellTap"
-          class="tab-press flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-wide text-ink dark:text-white"
+          class="tab-press relative flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500"
+          :class="sellSheetOpen ? '!text-pokemon-red' : ''"
           aria-haspopup="dialog"
           :aria-expanded="sellSheetOpen"
         >
+          <!-- The raised circle floats above the bar on its own, while an empty
+               28px slot keeps "Sell" on the same baseline and in the same grey
+               as the other four labels. -->
           <span
-            class="-mt-5 w-12 h-12 rounded-full bg-pokemon-red text-white shadow-glow ring-4 ring-canvas dark:ring-canvas-inverse flex items-center justify-center"
+            class="absolute left-1/2 -top-[18px] -translate-x-1/2 w-12 h-12 rounded-full bg-pokemon-red text-white ring-4 ring-canvas dark:ring-canvas-inverse shadow-[0_6px_14px_-4px_rgba(227,53,13,0.55)] flex items-center justify-center"
           >
             <component :is="tab.icon" class="w-6 h-6" />
           </span>
-          <span>{{ tab.label }}</span>
+          <span class="h-7" aria-hidden="true" />
+          <span class="whitespace-nowrap">{{ tab.label }}</span>
         </button>
         <NuxtLink
           v-else
@@ -283,7 +313,7 @@
           :class="isTabActive(tab.to!) ? '!text-pokemon-red' : ''"
           :aria-current="isTabActive(tab.to!) ? 'page' : undefined"
         >
-          <span class="relative">
+          <span class="relative h-7 flex items-center">
             <component :is="tab.icon" class="w-6 h-6" />
             <span
               v-if="tab.dot"
@@ -291,7 +321,7 @@
               aria-label="Unread seller notifications"
             />
           </span>
-          <span>{{ tab.label }}</span>
+          <span class="whitespace-nowrap">{{ tab.label }}</span>
         </NuxtLink>
       </template>
     </div>
@@ -327,6 +357,10 @@
       >
         <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15" aria-hidden="true" />
         <p class="px-2 pb-2 text-base font-bold text-ink dark:text-white">What are you selling?</p>
+        <p v-if="needsSellerSetup" class="px-2 pb-3 -mt-1 text-[13px] leading-relaxed text-ink-muted dark:text-zinc-400">
+          First time? Setup comes first and takes a few minutes: your MyKad,
+          a bank account and a pickup address.
+        </p>
         <NuxtLink
           v-for="item in sellItems"
           :key="item.to"
@@ -358,6 +392,7 @@
 
 <script setup lang="ts">
 import { h, computed } from "vue";
+import { sellerOnboardingState } from "~/shared/onboarding";
 
 const {user, authLoading} = useAuth();
 const { goToLogin } = useSignInGate();
@@ -369,12 +404,12 @@ const { premiumEnabled } = useFeatureFlags();
 
 const desktopLinks = computed(() => {
   const links = [
-    { to: "/", label: "Shop" },
+    { to: "/", label: "Marketplace" },
     { to: "/auctions", label: "Auctions" },
   ];
   if (premiumEnabled) links.push({ to: "/membership", label: "Pricing" });
   if (user.value) {
-    links.push({ to: "/collection", label: "Collection" });
+    links.push({ to: "/collection", label: "Dex" });
     links.push({ to: "/activity", label: "Orders" });
     links.push({ to: "/seller", label: "Seller Dashboard" });
   }
@@ -394,22 +429,33 @@ const IconShop = () =>
     h("path", { d: "M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9" }),
     h("path", { d: "M9 13h6" }),
   ]);
+// A gavel tilted over its sound block (head on the right, striking end over the block): a barrel head with end caps, so it
+// can't be mistaken for an axe or hammer.
 const IconGavel = () =>
-  h("svg", { viewBox: "0 0 24 24", ...stroke }, [
-    h("path", { d: "M14 4l6 6-3 3-6-6 3-3z" }),
-    h("path", { d: "M11 7l-7 7 3 3 7-7" }),
-    h("path", { d: "M3 21h12" }),
+  h("svg", { viewBox: "0 0 24 24", ...stroke }, [h("g", { transform: "translate(21 0.5) scale(-1 1) rotate(-45 10 10)" }, [
+      h("path", { d: "M7 4.5h6M7 7.5h6" }),
+      h("rect", { x: "4", y: "2.5", width: "3", height: "7", rx: "1" }),
+      h("rect", { x: "13", y: "2.5", width: "3", height: "7", rx: "1" }),
+      h("path", { d: "M10 7.5v10" }),
+    ]),
+    h("path", { d: "M12.5 21h8" }),
   ]);
 const IconPlus = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke, "stroke-width": "2.5" }, [
     h("path", { d: "M12 5v14M5 12h14" }),
   ]);
-const IconCollection = () =>
+// TCGo Dex: a card with a rising price line and the logo's sparkle. The
+// card sits a little right of centre so it lines up under the label, with
+// the sparkle hanging off its top corner.
+const IconDex = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [
-    h("rect", { x: "3", y: "3", width: "7", height: "7", rx: "1" }),
-    h("rect", { x: "14", y: "3", width: "7", height: "7", rx: "1" }),
-    h("rect", { x: "3", y: "14", width: "7", height: "7", rx: "1" }),
-    h("rect", { x: "14", y: "14", width: "7", height: "7", rx: "1" }),
+    h("rect", { x: "5.5", y: "3.5", width: "12", height: "17", rx: "2.5" }),
+    h("path", { d: "M8.4 15.4 10.8 12.6l2 1.6 2.4-3.4" }),
+    h("path", {
+      d: "M20.4 1.7Q20.886 3.914 23.1 4.4Q20.886 4.886 20.4 7.1Q19.914 4.886 17.7 4.4Q19.914 3.914 20.4 1.7Z",
+      fill: "currentColor",
+      stroke: "none",
+    }),
   ]);
 
 const IconStore = () =>
@@ -418,7 +464,7 @@ const IconStore = () =>
     h("path", { d: "M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9" }),
     h("path", { d: "M9 13h6" }),
   ]);
-// A person in a circle: the account, distinct from Collection's grid.
+// A person in a circle: the account.
 const IconAccount = () =>
   h("svg", { viewBox: "0 0 24 24", ...stroke }, [
     h("circle", { cx: "12", cy: "12", r: "9.5" }),
@@ -438,16 +484,16 @@ interface MobileTab {
 // too (sign in plus the policy pages that used to live in the footer), so
 // the bar is the same five tabs for everyone.
 const mobileTabs = computed<MobileTab[]>(() => [
-  { to: "/", label: "Shop", icon: IconShop },
+  { to: "/", label: "Marketplace", icon: IconShop },
   { to: "/auctions", label: "Auctions", icon: IconGavel },
   { label: "Sell", icon: IconPlus, sell: true },
-  { to: "/collection", label: "Collection", icon: IconCollection },
+  { to: "/collection", label: "Dex", icon: IconDex },
   // The seller dot used to ride on the top-bar Sell menu; the dashboard
   // link now lives on the Account page, so the dot follows it there.
   { to: "/account", label: "Account", icon: IconAccount, dot: sellerHasUnread.value },
 ]);
 
-// Exact match for Shop, prefix match for the rest, so /auctions/123 keeps
+// Exact match for Marketplace, prefix match for the rest, so /auctions/123 keeps
 // Auctions lit. The account page's own sub-pages (orders, settings, your
 // profile) count as Account, since that is where they're reached from now.
 const isTabActive = (to: string) => {
@@ -465,6 +511,10 @@ const isTabActive = (to: string) => {
 };
 
 const sellSheetOpen = ref(false);
+// Said up front, so the setup screens after a tap aren't a surprise.
+const needsSellerSetup = computed(
+  () => !!profile.value && !sellerOnboardingState(profile.value).complete,
+);
 const onSellTap = () => {
   if (!user.value) {
     goToLogin();
@@ -568,6 +618,19 @@ onBeforeUnmount(() => {
 
 // Close transient menus on route change.
 const route = useRoute();
+const showMobileSearch = computed(
+  () => !["/account", "/collection", "/messages"].some((p) => route.path === p || route.path.startsWith(p + "/")),
+);
+// A single shop listing or auction: /cards/{id} or /auctions/{id}, but not
+// the create pages or a listing's edit page.
+const isProductPage = computed(() => {
+  const m = route.path.match(/^\/(cards|auctions)\/([^/]+)\/?$/);
+  return !!m && m[2] !== "create";
+});
+const goBackToShop = useGoBack("/");
+const goBackToAuctions = useGoBack("/auctions");
+const goBackFromProduct = () =>
+  route.path.startsWith("/auctions/") ? goBackToAuctions() : goBackToShop();
 watch(
   () => route.fullPath,
   () => {

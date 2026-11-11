@@ -1,4 +1,5 @@
 import { numberCandidates } from "~/shared/card-number";
+import { parsePrintedNumber, printedNumberForms, rankScanMatches } from "~/shared/scan-match";
 
 // Query parsing lives in shared/ so it can be tested without a Nuxt runtime.
 // Re-exported here because both search surfaces reach it through this module.
@@ -134,7 +135,7 @@ export interface CollectionPriceTrend {
   totalCards: number;
 }
 
-export type CatalogSort = "best" | "name" | "price_asc" | "price_desc";
+export type CatalogSort = "newest" | "best" | "name" | "price_asc" | "price_desc";
 
 // What we return to callers: the catalog row + a derived MYR price.
 export interface CatalogMatch {
@@ -364,43 +365,60 @@ export const useCardCatalog = () => {
     const rarities = (opts.rarityMatches ?? []).filter(Boolean);
     if (opts.numberMatch || rarities.length > 1) {
       const forms = opts.numberMatch ? numberCandidates(opts.numberMatch) : [];
-      let q = supabase
-        .from("cards_catalog")
-        .select(SELECT_COLUMNS, { count: "exact" });
+      // A function, because a query can only run once and the Newest order
+      // may need a second try (see below).
+      const build = () => {
+        let q = supabase
+          .from("cards_catalog")
+          .select(SELECT_COLUMNS, { count: "exact" });
 
-      // The whole number, or the printed part before the slash — 012 finds
-      // 012/202 without the searcher knowing the set size, gg44 finds
-      // GG44/GG70, swsh020 matches outright.
-      //
-      // NOT a bare prefix match. numberCandidates also yields the unpadded
-      // form, and `12%` pulls in 122/106 and every other number that merely
-      // starts with those digits.
-      const numberOr = [
-        ...forms.flatMap((f) => [`number.ilike.${f}`, `number.ilike.${f}/*`]),
-        // The same token read as a set name, when it is both. This joins the
-        // OR group rather than narrowing it, so "pikachu 151" returns the
-        // 151-set Pikachus alongside any numbered 151.
-        ...(opts.setOrNumber && setMatch ? [`group_name.ilike.*${setMatch}*`] : []),
-      ];
-      if (numberOr.length) q = q.or(numberOr.join(","));
+        // The whole number, or the printed part before the slash — 012 finds
+        // 012/202 without the searcher knowing the set size, gg44 finds
+        // GG44/GG70, swsh020 matches outright.
+        //
+        // NOT a bare prefix match. numberCandidates also yields the unpadded
+        // form, and `12%` pulls in 122/106 and every other number that merely
+        // starts with those digits.
+        const numberOr = [
+          ...forms.flatMap((f) => [`number.ilike.${f}`, `number.ilike.${f}/*`]),
+          // The same token read as a set name, when it is both. This joins the
+          // OR group rather than narrowing it, so "pikachu 151" returns the
+          // 151-set Pikachus alongside any numbered 151.
+          ...(opts.setOrNumber && setMatch ? [`group_name.ilike.*${setMatch}*`] : []),
+        ];
+        if (numberOr.length) q = q.or(numberOr.join(","));
 
-      // A second .or() is ANDed against the first, which is what we want:
-      // (this number or set) AND (any of these rarities).
-      if (rarities.length > 1) {
-        q = q.or(rarities.map((r) => `rarity.ilike.${r}`).join(","));
-      } else if (rarityMatch) {
-        q = q.ilike("rarity", `%${rarityMatch}%`);
-      }
+        // A second .or() is ANDed against the first, which is what we want:
+        // (this number or set) AND (any of these rarities).
+        if (rarities.length > 1) {
+          q = q.or(rarities.map((r) => `rarity.ilike.${r}`).join(","));
+        } else if (rarityMatch) {
+          q = q.ilike("rarity", `%${rarityMatch}%`);
+        }
 
-      if (trimmed.length >= 2) q = q.ilike("name", `%${trimmed}%`);
-      if (setMatch && !opts.setOrNumber) q = q.ilike("group_name", `%${setMatch}%`);
-      if (opts.language && opts.language !== "ALL") q = q.eq("language", opts.language);
+        if (trimmed.length >= 2) q = q.ilike("name", `%${trimmed}%`);
+        if (setMatch && !opts.setOrNumber) q = q.ilike("group_name", `%${setMatch}%`);
+        if (opts.language && opts.language !== "ALL") q = q.eq("language", opts.language);
+        return q;
+      };
 
       const size = opts.limit ?? 28;
       const from = (opts.page ?? 0) * size;
-      const { data, error, count } = await q
-        .order("number", { ascending: true })
-        .range(from, from + size - 1);
+      // Newest and Name A–Z apply here too; this path used to keep number
+      // order whatever was chosen. Price still can't, as it sits in the
+      // joined card_prices row.
+      const ordered = (newest: boolean) => {
+        let q = build();
+        if (newest) q = q.order("released_on", { ascending: false, nullsFirst: false });
+        if (opts.sort === "name") q = q.order("name", { ascending: true });
+        return q.order("number", { ascending: true }).range(from, from + size - 1);
+      };
+      let { data, error, count } = await ordered(opts.sort === "newest");
+      // released_on is added by hand; until it is, keep number order rather
+      // than returning nothing.
+      if (error && opts.sort === "newest" && /released_on/.test(error.message)) {
+        ({ data, error, count } = await ordered(false));
+      }
 
       if (error) {
         console.error("[useCardCatalog] number search error:", error.message);
@@ -554,50 +572,57 @@ export const useCardCatalog = () => {
   ): Promise<{ exact: CatalogMatch[]; suggestions: CatalogMatch[] }> => {
     if (!supabase) return { exact: [], suggestions: [] };
     const trimmedName = name.trim();
-    if (trimmedName.length < 2) return { exact: [], suggestions: [] };
+    const printed = parsePrintedNumber(number);
+    if (trimmedName.length < 2 && !printed) return { exact: [], suggestions: [] };
 
     // Fetch the FX rate concurrently with the lookup.
     const fxReady = ensureRate();
 
-    const numericOnly = number?.includes("/") ? number.split("/")[0].trim() : number?.trim();
-
-    // Step 1: exact-ish match (name ILIKE + matching number form).
-    if (numericOnly) {
-      let q = supabase
+    // Two queries, ranked together in shared/scan-match.ts. By number: the
+    // stronger signal, and it still finds the card when the name came back
+    // translated or misspelt. The stored number is zero-padded ("065/202")
+    // and the scanner's isn't ("65/202"), so every padded form is asked for.
+    // By name: for cards with no readable number.
+    const byNumber = async () => {
+      if (!printed) return [];
+      const forms = printedNumberForms(printed.printed);
+      // With a set size, only that set's card: "65" alone is in every set.
+      const totals = printed.total ? printedNumberForms(printed.total) : [];
+      const or = forms.flatMap((f) =>
+        totals.length
+          ? totals.map((t) => `number.ilike.${f}/${t}`)
+          : [`number.ilike.${f}`, `number.ilike.${f}/*`],
+      );
+      let q = supabase!.from("cards_catalog").select(SELECT_COLUMNS).or(or.join(",")).limit(30);
+      if (opts.language) q = q.eq("language", opts.language);
+      const { data, error } = await q;
+      if (error) console.error("[useCardCatalog] scan number lookup error:", error.message);
+      return data ?? [];
+    };
+    const byName = async () => {
+      if (trimmedName.length < 2) return [];
+      let q = supabase!
         .from("cards_catalog")
         .select(SELECT_COLUMNS)
-        .ilike("name", `${trimmedName}%`)
-        .or(`number.eq.${number},number.like.${numericOnly}/%,number.eq.${numericOnly}`)
-        .limit(8);
-
+        .ilike("name", `%${trimmedName.replace(/[%_]/g, "")}%`)
+        .order("name", { ascending: true })
+        .limit(40);
       if (opts.language) q = q.eq("language", opts.language);
-
       const { data, error } = await q;
-      if (error) {
-        console.error("[useCardCatalog] exact lookup error:", error.message);
-      } else if (data && data.length > 0) {
-        await fxReady;
-        return { exact: data.map(rowToMatch), suggestions: [] };
-      }
-    }
+      if (error) console.error("[useCardCatalog] scan name lookup error:", error.message);
+      return data ?? [];
+    };
 
-    // Step 2: name-only fallback — show suggestions in the scanner.
-    let fallback = supabase
-      .from("cards_catalog")
-      .select(SELECT_COLUMNS)
-      .ilike("name", `${trimmedName}%`)
-      .order("name", { ascending: true })
-      .limit(12);
-
-    if (opts.language) fallback = fallback.eq("language", opts.language);
-
-    const { data: fbData, error: fbErr } = await fallback;
-    if (fbErr) {
-      console.error("[useCardCatalog] suggestion lookup error:", fbErr.message);
-      return { exact: [], suggestions: [] };
-    }
+    const [numberRows, nameRows] = await Promise.all([byNumber(), byName()]);
     await fxReady;
-    return { exact: [], suggestions: (fbData ?? []).map(rowToMatch) };
+    const seen = new Set<number>();
+    const rows: CatalogMatch[] = [];
+    for (const r of [...numberRows, ...nameRows]) {
+      if (seen.has(r.product_id)) continue;
+      seen.add(r.product_id);
+      rows.push(rowToMatch(r));
+    }
+    return rankScanMatches({ name: trimmedName, number }, rows);
   };
 
   // Detail-page lookup — fetch a single catalog row + its current price.
@@ -641,6 +666,38 @@ export const useCardCatalog = () => {
     // Re-order to match the caller's input.
     const byId = new Map(all.map((m) => [m.productId, m]));
     return productIds.map((id) => byId.get(id)).filter(Boolean) as CatalogMatch[];
+  };
+
+  /**
+   * Each card's set release date (YYYY-MM-DD), for the Newest sort.
+   *
+   * Its own query rather than a column in SELECT_COLUMNS: released_on is
+   * added to the schema by hand, and a deploy that runs ahead of it must not
+   * break every catalogue read. Until then this returns an empty map and
+   * Newest falls back to the order cards were added.
+   */
+  const getReleaseDates = async (
+    productIds: number[],
+  ): Promise<Map<number, string>> => {
+    const dates = new Map<number, string>();
+    if (!supabase || productIds.length === 0) return dates;
+    const CHUNK = 200;
+    for (let i = 0; i < productIds.length; i += CHUNK) {
+      const { data, error } = await supabase
+        .from("cards_catalog")
+        .select("product_id, released_on")
+        .in("product_id", productIds.slice(i, i + CHUNK));
+      if (error) {
+        if (!/does not exist|schema cache/i.test(error.message)) {
+          console.error("[useCardCatalog] getReleaseDates error:", error.message);
+        }
+        return dates;
+      }
+      for (const row of data ?? []) {
+        if (row.released_on) dates.set(Number(row.product_id), String(row.released_on));
+      }
+    }
+    return dates;
   };
 
   /**
@@ -733,6 +790,8 @@ export const useCardCatalog = () => {
      * missing entries count as one, so existing callers are unaffected.
      */
     quantities?: Map<number, number> | Record<number, number>,
+    /** Already fetched with getPriceHistories, to skip a second round-trip. */
+    prefetched?: Map<number, PricePoint[]>,
   ): Promise<CollectionPriceTrend> => {
     const uniqueIds = [...new Set(productIds)];
     const copiesOf = (id: number): number => {
@@ -741,7 +800,7 @@ export const useCardCatalog = () => {
         quantities instanceof Map ? quantities.get(id) : (quantities as any)[id];
       return Math.max(1, Number(q ?? 1));
     };
-    const histories = await getPriceHistories(uniqueIds);
+    const histories = prefetched ?? (await getPriceHistories(uniqueIds));
     const usable = uniqueIds
       .map((productId) => ({ productId, points: histories.get(productId) ?? [] }))
       .filter((item) => item.points.length >= 2);
@@ -882,6 +941,7 @@ export const useCardCatalog = () => {
     lookupByNameAndNumber,
     getCardWithPrice,
     getCardsByIds,
+    getReleaseDates,
     getSecondaryPrice,
     listSets,
     listRarities,

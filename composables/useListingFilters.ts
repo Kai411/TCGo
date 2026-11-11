@@ -9,6 +9,8 @@
 // own with `useListingFilters({...})` so the shop and auctions pages don't
 // share selections.
 
+import { compareEndingSoon } from "~/shared/auctions";
+
 export type ProductTypeFilter = "Ungraded" | "Graded" | "Sealed";
 export type StatusFilter = "live" | "ended";
 export type TimeLeftBucket = "ending-soon" | "today" | "longer";
@@ -146,8 +148,10 @@ export const useListingFilters = (options?: {
         return copy.sort((a, b) => priceOf(a) - priceOf(b));
       case "price-desc":
         return copy.sort((a, b) => priceOf(b) - priceOf(a));
-      case "ending-soon":
-        return copy.sort((a, b) => (a.endsAt ?? 0) - (b.endsAt ?? 0));
+      case "ending-soon": {
+        const now = Date.now();
+        return copy.sort((a, b) => compareEndingSoon(a, b, now));
+      }
       case "most-bids":
         return copy.sort((a, b) => (b.bidCount ?? 0) - (a.bidCount ?? 0));
       case "most-viewed":

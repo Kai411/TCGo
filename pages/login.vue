@@ -1,5 +1,16 @@
 <template>
-  <div class="min-h-screen bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 flex flex-col items-center justify-center px-4 py-12">
+  <!-- The code step is short, so on a phone it sits fixed and centred in the
+       visible screen (dvh, not vh: iOS's 100vh is taller than what shows
+       under the browser bars, which is what made it scroll). Centring is done
+       with auto margins rather than justify-center so a very short screen
+       (the reset step adds a password box) scrolls inside the box instead of
+       cutting off the logo. The other steps
+       keep normal page scrolling because the register form can outgrow a
+       phone screen. -->
+  <div
+    class="bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 flex flex-col items-center px-4 [&>*:first-child]:mt-auto [&>*:last-child]:mb-auto"
+    :class="step === 'code' ? 'h-[100dvh] overflow-y-auto overscroll-none py-6' : 'min-h-[100dvh] py-12'"
+  >
     <!-- The real wordmark, cropped exactly as AppNavbar does: a square sprite
          sheet sliced by object-cover, so the height of this box is what
          decides the crop. h-16 matches the navbar's bar height, which is what
@@ -30,6 +41,24 @@
       <div class="panel surface rounded-2xl p-6 sm:p-7">
         <!-- ── Sign in / register ─────────────────────────────────── -->
         <form v-if="step === 'credentials'" @submit.prevent="submitCredentials" novalidate>
+          <!-- Google first: on a phone it is one tap against a form, and it
+               skips the email code. -->
+          <button type="button" @click="withGoogle" :disabled="busy" class="btn-secondary">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z"/>
+              <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24z"/>
+              <path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.6V6.7H1.4a12 12 0 0 0 0 10.8l4-3.1z"/>
+              <path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.5 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0A12 12 0 0 0 1.4 6.7l4 3.1C6.3 6.9 8.9 4.8 12 4.8z"/>
+            </svg>
+            Continue with Google
+          </button>
+
+          <div class="flex items-center gap-3 my-5">
+            <span class="h-px flex-1 bg-black/[0.08] dark:bg-white/[0.10]" />
+            <span class="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">or</span>
+            <span class="h-px flex-1 bg-black/[0.08] dark:bg-white/[0.10]" />
+          </div>
+
           <div v-if="mode === 'register'" class="mb-4">
             <label for="name" class="block text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-1.5">
               Display name
@@ -39,7 +68,7 @@
               v-model="displayName"
               type="text"
               autocomplete="name"
-              placeholder="What buyers will see"
+              placeholder="Shown on your profile and in messages"
               class="field"
             />
           </div>
@@ -57,6 +86,7 @@
               autocapitalize="none"
               spellcheck="false"
               class="field"
+              :class="tried && !email.trim() ? 'field-missing' : ''"
             />
           </div>
 
@@ -82,6 +112,7 @@
                 required
                 :autocomplete="mode === 'register' ? 'new-password' : 'current-password'"
                 class="field pr-16"
+                :class="tried && !password ? 'field-missing' : ''"
               />
               <button
                 type="button"
@@ -97,37 +128,32 @@
             </p>
           </div>
 
-          <label v-if="mode === 'register'" class="mt-4 flex items-start gap-2.5 text-[12px] leading-relaxed text-ink-muted dark:text-zinc-400">
-            <input v-model="acceptedTerms" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-pokemon-red" />
-            <span>
-              I agree to the
-              <NuxtLink to="/terms" target="_blank" class="font-semibold text-pokemon-red hover:underline">Terms of Use</NuxtLink>
-              and have read the
-              <NuxtLink to="/privacy-policy" target="_blank" class="font-semibold text-pokemon-red hover:underline">Privacy Policy</NuxtLink>.
-            </span>
-          </label>
+          <template v-if="mode === 'register'">
+            <label class="mt-4 flex items-start gap-2.5 text-[12px] leading-relaxed text-ink-muted dark:text-zinc-400">
+              <input v-model="acceptedTerms" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-pokemon-red" />
+              <span>
+                I agree to the
+                <NuxtLink to="/terms" target="_blank" class="font-semibold text-pokemon-red hover:underline">Terms of Use</NuxtLink>.
+              </span>
+            </label>
+            <!-- PDPA consent. Its own box, set apart from the Terms line: the
+                 PDPA Regulations 2013 (reg. 3) want a consent request that
+                 sits beside another matter to look distinct from it. -->
+            <label class="mt-3 flex items-start gap-2.5 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.02] dark:bg-white/[0.03] p-3 text-[12px] leading-relaxed text-ink dark:text-zinc-200">
+              <input v-model="acceptedPrivacy" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-pokemon-red" />
+              <span>
+                <span class="font-semibold">Personal data consent.</span>
+                I consent to TCGo collecting, using and sharing my personal data as described in the
+                <NuxtLink to="/privacy-policy" target="_blank" class="font-semibold text-pokemon-red hover:underline">Privacy Policy</NuxtLink>.
+              </span>
+            </label>
+          </template>
 
           <p v-if="error" class="mt-3 text-[13px] text-rose-600 dark:text-rose-400">{{ error }}</p>
 
           <button type="submit" :disabled="busy" class="btn-primary mt-5">
             <span v-if="busy" class="spinner" />
             {{ mode === "register" ? "Create account" : "Sign in" }}
-          </button>
-
-          <div class="flex items-center gap-3 my-5">
-            <span class="h-px flex-1 bg-black/[0.08] dark:bg-white/[0.10]" />
-            <span class="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">or</span>
-            <span class="h-px flex-1 bg-black/[0.08] dark:bg-white/[0.10]" />
-          </div>
-
-          <button type="button" @click="withGoogle" :disabled="busy" class="btn-secondary">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z"/>
-              <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24z"/>
-              <path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.6V6.7H1.4a12 12 0 0 0 0 10.8l4-3.1z"/>
-              <path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.5 1.8l3.4-3.4C17.9 1.2 15.2 0 12 0A12 12 0 0 0 1.4 6.7l4 3.1C6.3 6.9 8.9 4.8 12 4.8z"/>
-            </svg>
-            Continue with Google
           </button>
 
           <p class="mt-6 text-center text-[13px] text-ink-muted dark:text-zinc-400">
@@ -211,10 +237,10 @@
 
       <p class="mt-5 text-center text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500">
         By continuing, including with Google, you agree to TCGo's
-        <NuxtLink to="/terms" target="_blank" class="underline hover:text-pokemon-red">Terms of Use</NuxtLink>
-        and acknowledge the
-        <NuxtLink to="/privacy-policy" target="_blank" class="underline hover:text-pokemon-red">Privacy Policy</NuxtLink>.
-        We never post anything on your behalf.
+        <NuxtLink to="/terms" target="_blank" class="underline hover:text-pokemon-red">Terms of Use</NuxtLink>.
+        New Google accounts are asked to consent to the
+        <NuxtLink to="/privacy-policy" target="_blank" class="underline hover:text-pokemon-red">Privacy Policy</NuxtLink>
+        before going further. We never post anything on your behalf.
       </p>
     </div>
   </div>
@@ -247,6 +273,12 @@ type Step = "credentials" | "code" | "forgot";
 type Purpose = "verify_email" | "reset_password";
 
 const step = ref<Step>("credentials");
+// Lock the document too while the code step shows, or iOS still lets the
+// whole page rubber-band up and down behind the fixed-height screen.
+useHead({
+  htmlAttrs: computed(() => (step.value === "code" ? { class: "overflow-hidden overscroll-none" } : {})),
+  bodyAttrs: computed(() => (step.value === "code" ? { class: "overflow-hidden overscroll-none" } : {})),
+});
 const mode = ref<"signin" | "register">(
   route.query.mode === "register" ? "register" : "signin",
 );
@@ -255,9 +287,14 @@ const purpose = ref<Purpose>("verify_email");
 const email = ref("");
 const password = ref("");
 const displayName = ref("");
-// Email sign-up asks for an explicit tick. Google sign-in can create an
-// account too, so the line under the card states the same terms for it.
+// Email sign-up asks for explicit ticks. Google sign-in can create an
+// account too: the line under the card states the Terms for it, and
+// onboarding asks for the PDPA consent there is no form to tick here.
 const acceptedTerms = ref(false);
+// Set on the first submit, so empty fields are outlined only after someone
+// has tried, not while they are still filling the form in.
+const tried = ref(false);
+const acceptedPrivacy = ref(false);
 const code = ref("");
 const showPassword = ref(false);
 
@@ -300,6 +337,9 @@ onUnmounted(() => timer && clearInterval(timer));
 watch(code, (v) => {
   const digits = v.replace(/\D/g, "").slice(0, 6);
   if (digits !== v) code.value = digits;
+  // The sixth digit submits, except for a reset, which still needs the new
+  // password typed below it.
+  else if (digits.length === 6 && purpose.value === "verify_email") submitCode();
 });
 
 const clear = () => {
@@ -332,6 +372,7 @@ const destination = () => (route.query.next as string) || "/";
 
 const submitCredentials = () =>
   run(async () => {
+    tried.value = true;
     if (!email.value.trim() || !password.value) {
       error.value = "Enter your email and password.";
       return;
@@ -339,6 +380,10 @@ const submitCredentials = () =>
     if (mode.value === "register") {
       if (!acceptedTerms.value) {
         error.value = "Please agree to the Terms of Use to create an account.";
+        return;
+      }
+      if (!acceptedPrivacy.value) {
+        error.value = "Please give your personal data consent to create an account.";
         return;
       }
       if (password.value.length < MIN_PASSWORD) {
@@ -350,7 +395,16 @@ const submitCredentials = () =>
       // on the credentials step.
       purpose.value = "verify_email";
       step.value = "code";
-      await registerWithEmail(email.value, password.value, displayName.value);
+      try {
+        await registerWithEmail(email.value, password.value, displayName.value);
+      } catch (e: any) {
+        // No account was made, so there is no code coming: back to the form
+        // the error is about. (If the account exists and only the email
+        // failed, stay on the code step, where Resend is.)
+        if (!user.value) step.value = "credentials";
+        if (e?.code === "auth/email-already-in-use") mode.value = "signin";
+        throw e;
+      }
       startCooldown();
       return;
     }
@@ -373,11 +427,10 @@ const submitCode = () =>
       return;
     }
     await confirmEmail(email.value, code.value);
-    // Onboarding knows what else is outstanding; it sends them on when done.
-    await navigateTo({
-      path: "/onboarding",
-      query: route.query.next ? { next: route.query.next as string } : undefined,
-    });
+    // Straight back to what they came for. The address is asked for at
+    // checkout or the first bid; anything that does guard the marketplace
+    // is caught by the onboarding middleware on the way.
+    await navigateTo(destination());
   });
 
 const submitForgot = () =>
@@ -453,6 +506,9 @@ watch(
          bg-white dark:bg-white/[0.04] px-3.5 py-2.5 text-[15px] text-ink dark:text-white
          placeholder:text-ink-soft outline-none transition-colors
          focus:border-pokemon-red focus:ring-2 focus:ring-pokemon-red/20;
+}
+.field-missing {
+  @apply border-rose-500 dark:border-rose-400;
 }
 .btn-primary {
   @apply w-full inline-flex items-center justify-center gap-2 rounded-xl bg-pokemon-red

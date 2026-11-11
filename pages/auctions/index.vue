@@ -10,9 +10,10 @@
 
     <!-- ── Main content ───────────────────────────────────────────────── -->
     <div class="flex-1 min-w-0">
+      <ListingBanner placement="auctions" />
       <!-- Mobile filter trigger (hidden on desktop) -->
       <div v-if="!loading" class="lg:hidden mb-2">
-        <ListingFilters :filters="filters" :show-auction-sort="true" />
+        <ListingFilters :filters="filters" :show-auction-sort="true" :result-count="publicAuctions.length" noun="auction" />
       </div>
 
       <!-- Loading -->
@@ -38,7 +39,7 @@
       <!-- Grid -->
       <div
         v-else
-        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5"
+        class="-mx-1.5 lg:mx-0 grid grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-5"
       >
         <CardTile
           v-for="auction in publicAuctions"

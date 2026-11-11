@@ -55,99 +55,27 @@
       <div class="panel surface rounded-2xl p-6">
         <!-- ── Identity ─────────────────────────────────────────────── -->
         <template v-if="state.current === 'identity'">
-          <h2 class="text-lg font-bold text-ink dark:text-white">Verify your identity</h2>
-          <p class="mt-1.5 text-[13px] leading-relaxed text-ink-muted dark:text-zinc-400">
-            Your MyKad and a selfie — about a minute. Buyers see a Verified
-            badge on your listings, and it's what lets money move to your
-            account.
-          </p>
-          <div class="mt-5"><KycVerifyCard /></div>
+          <!-- The checklist above and the card already say what this is and
+               why; a third explanation here pushed the button off screen. -->
+          <KycVerifyCard />
         </template>
 
         <!-- ── Contact + pickup ─────────────────────────────────────── -->
         <template v-else-if="state.current === 'contact'">
           <h2 class="text-lg font-bold text-ink dark:text-white">Contact and pickup</h2>
-          <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
+          <p class="mt-1.5 mb-5 text-[13px] text-ink-muted dark:text-zinc-400">
             Where couriers collect your parcels. Buyers never see this address.
           </p>
-
-          <div class="mt-5 space-y-3">
-            <label class="block">
-              <span class="lbl">Mobile number</span>
-              <input v-model="form.phone" inputmode="tel" autocomplete="tel" placeholder="e.g. 0123456789" class="field" />
-              <span class="hint">For delivery updates. Not shown publicly.</span>
-            </label>
-            <label class="block">
-              <span class="lbl">Pickup address</span>
-              <input v-model="form.pickupAddress1" autocomplete="address-line1" class="field" />
-            </label>
-            <label class="block">
-              <span class="lbl">Unit, floor <span class="font-normal text-ink-soft">— optional</span></span>
-              <input v-model="form.pickupAddress2" autocomplete="address-line2" class="field" />
-            </label>
-            <div class="grid grid-cols-3 gap-3">
-              <label class="block">
-                <span class="lbl">Postcode</span>
-                <input v-model="form.pickupPostcode" inputmode="numeric" maxlength="5" class="field" />
-              </label>
-              <label class="col-span-2 block">
-                <span class="lbl">City</span>
-                <input v-model="form.pickupCity" class="field" />
-              </label>
-            </div>
-            <label class="block">
-              <span class="lbl">State</span>
-              <select v-model="form.pickupState" class="field">
-                <option value="" disabled>Choose a state</option>
-                <option v-for="s in MY_STATES" :key="s.code" :value="s.code">{{ s.name }}</option>
-              </select>
-            </label>
-          </div>
-
-          <p v-if="error" class="err">{{ error }}</p>
-          <button :disabled="busy" @click="saveContact" class="btn-primary mt-5">
-            <span v-if="busy" class="spinner" />Save and continue
-          </button>
+          <SellerContactForm />
         </template>
 
         <!-- ── Bank ─────────────────────────────────────────────────── -->
         <template v-else-if="state.current === 'bank'">
           <h2 class="text-lg font-bold text-ink dark:text-white">Where you get paid</h2>
-          <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
-            Sales are paid out to this account. The name must match the bank's
-            records, or the transfer bounces.
+          <p class="mt-1.5 mb-5 text-[13px] text-ink-muted dark:text-zinc-400">
+            Sales are paid out to this account after the buyer receives the card.
           </p>
-
-          <div class="mt-5 space-y-3">
-            <label class="block">
-              <span class="lbl">Bank</span>
-              <select v-model="form.bankCode" class="field">
-                <option value="" disabled>Choose your bank</option>
-                <option v-for="b in bankOptions" :key="b.code" :value="b.code">{{ b.name }}</option>
-              </select>
-            </label>
-            <label class="block">
-              <span class="lbl">Account number</span>
-              <input v-model="form.bankAccountNumber" inputmode="numeric" class="field tabular-nums" />
-              <span v-if="accountHint" :class="accountOk ? 'hint' : 'err mt-1.5 block text-[11px]'">
-                {{ accountHint }}
-              </span>
-            </label>
-            <label class="block">
-              <span class="lbl">Account holder</span>
-              <input v-model="form.bankAccountHolder" placeholder="As per bank records" class="field" />
-            </label>
-            <label class="block">
-              <span class="lbl">IC number</span>
-              <input v-model="form.identityNumber" inputmode="numeric" placeholder="e.g. 900101101234" class="field tabular-nums" />
-              <span class="hint">Required by the bank to release a transfer.</span>
-            </label>
-          </div>
-
-          <p v-if="error" class="err">{{ error }}</p>
-          <button :disabled="busy" @click="saveBank" class="btn-primary mt-5">
-            <span v-if="busy" class="spinner" />Save and continue
-          </button>
+          <SellerBankForm />
         </template>
 
         <!-- ── Handover ─────────────────────────────────────────────── -->
@@ -202,7 +130,7 @@
             <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
               List your first card whenever you're ready.
             </p>
-            <button @click="finish" class="btn-primary mt-5">Go to the dashboard</button>
+            <button @click="finish" class="btn-primary mt-5">{{ finishLabel }}</button>
           </div>
         </template>
       </div>
@@ -223,19 +151,11 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from "vue";
-import { MY_STATES } from "~/shared/my-states";
 import {
   SELLER_STEPS,
   sellerOnboardingState,
   type SellerStepId,
 } from "~/shared/onboarding";
-import {
-  MY_BANKS,
-  banksFor,
-  checkBankAccount,
-  normaliseAccountNumber,
-  bankByCode,
-} from "~/shared/banks";
 
 definePageMeta({ layout: false });
 useHead({ title: "Set up selling | TCGo" });
@@ -255,7 +175,6 @@ const HANDOVER_OPTIONS = [
 
 const { profile, updateProfile, loading: loadingProfile } = useMyProfile();
 const route = useRoute();
-const config = useRuntimeConfig();
 
 const busy = ref(false);
 const error = ref("");
@@ -263,58 +182,19 @@ const error = ref("");
 const state = computed(() => sellerOnboardingState(profile.value));
 const isDone = (id: SellerStepId) => !state.value.remaining.includes(id);
 
-const bankOptions = computed(() =>
-  banksFor(!!config.public.billplzSandbox || MY_BANKS.length === 0),
-);
-
-// Seeded from the profile so a half-finished setup comes back filled in —
-// which, with the step derived from what's missing, is the whole of "resume".
 const form = reactive({
-  phone: "",
-  pickupAddress1: "",
-  pickupAddress2: "",
-  pickupPostcode: "",
-  pickupCity: "",
-  pickupState: "",
-  bankCode: "",
-  bankAccountNumber: "",
-  bankAccountHolder: "",
-  identityNumber: "",
   handoverPreference: "" as "" | "dropoff" | "pickup",
 });
 
 watch(
   profile,
   (p) => {
-    if (!p) return;
-    for (const k of Object.keys(form) as (keyof typeof form)[]) {
-      if (!form[k] && p[k as keyof typeof p]) {
-        (form as Record<string, unknown>)[k] = String(p[k as keyof typeof p]);
-      }
-    }
-    if (!form.phone && p.whatsappNumber) form.phone = p.whatsappNumber;
-    if (!form.bankAccountHolder && p.kycVerifiedName) {
-      // The name Didit read off their document is the one the bank will have.
-      form.bankAccountHolder = p.kycVerifiedName;
+    if (p && !form.handoverPreference && (p.handoverPreference === "dropoff" || p.handoverPreference === "pickup")) {
+      form.handoverPreference = p.handoverPreference;
     }
   },
   { immediate: true },
 );
-
-const accountCheck = computed(() =>
-  form.bankCode && form.bankAccountNumber
-    ? checkBankAccount(form.bankAccountNumber, form.bankCode)
-    : null,
-);
-const accountOk = computed(() => accountCheck.value?.ok !== false);
-const accountHint = computed(() => {
-  if (!accountCheck.value) return "";
-  if (accountCheck.value.ok) {
-    const b = bankByCode(form.bankCode);
-    return b ? `Looks like a ${b.name} account.` : "";
-  }
-  return accountCheck.value.message ?? "That account number doesn't look right.";
-});
 
 const run = async (fn: () => Promise<void>) => {
   if (busy.value) return;
@@ -329,54 +209,6 @@ const run = async (fn: () => Promise<void>) => {
   }
 };
 
-const saveContact = () =>
-  run(async () => {
-    if (
-      !form.phone.trim() ||
-      !form.pickupAddress1.trim() ||
-      !form.pickupPostcode.trim() ||
-      !form.pickupCity.trim() ||
-      !form.pickupState
-    ) {
-      error.value = "Fill in everything except the unit line.";
-      return;
-    }
-    await updateProfile({
-      phone: form.phone.trim(),
-      // Kept in step so the contact number is one value, not two that drift.
-      whatsappNumber: form.phone.trim(),
-      pickupAddress1: form.pickupAddress1.trim(),
-      pickupAddress2: form.pickupAddress2.trim(),
-      pickupPostcode: form.pickupPostcode.trim(),
-      pickupCity: form.pickupCity.trim(),
-      pickupState: form.pickupState,
-    });
-  });
-
-const saveBank = () =>
-  run(async () => {
-    if (
-      !form.bankCode ||
-      !form.bankAccountNumber.trim() ||
-      !form.bankAccountHolder.trim() ||
-      !form.identityNumber.trim()
-    ) {
-      error.value = "All four are needed before a payout can be sent.";
-      return;
-    }
-    if (!accountOk.value) {
-      error.value = accountHint.value;
-      return;
-    }
-    await updateProfile({
-      bankCode: form.bankCode,
-      bankName: bankByCode(form.bankCode)?.name ?? "",
-      bankAccountNumber: normaliseAccountNumber(form.bankAccountNumber),
-      bankAccountHolder: form.bankAccountHolder.trim(),
-      identityNumber: form.identityNumber.replace(/[\s-]/g, ""),
-    });
-  });
-
 const saveHandover = () =>
   run(async () => {
     if (!form.handoverPreference) return;
@@ -384,6 +216,13 @@ const saveHandover = () =>
   });
 
 const finish = () => navigateTo((route.query.next as string) || "/seller");
+// Named by where it goes: setup started from "Sell a card" ends at the form.
+const finishLabel = computed(() => {
+  const next = (route.query.next as string) || "";
+  if (next.startsWith("/seller/listings/new")) return "List your first card";
+  if (next.startsWith("/seller/auctions/new")) return "Start your first auction";
+  return next ? "Continue" : "Go to the dashboard";
+});
 
 // Same rule as buyer onboarding: celebrate finishing, never having finished.
 const sawIncomplete = ref(false);

@@ -47,6 +47,10 @@ const applyTheme = (t: Theme) => {
 
   resolved.value = next;
   document.documentElement.classList.toggle("dark", next === "dark");
+  // Android status bar follows the header: white, or the dark header colour.
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", next === "dark" ? "#111114" : "#ffffff");
 };
 
 const init = () => {

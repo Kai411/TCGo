@@ -42,7 +42,7 @@
           <!-- Must match the Stripe Price object behind
                NUXT_STRIPE_PRICE_ID_PREMIUM_MONTHLY. Changing this number alone
                shows one price and charges another — update Stripe first. -->
-          <p class="text-3xl font-extrabold mt-1 text-ink dark:text-white">RM 4.99</p>
+          <p class="text-3xl font-extrabold mt-1 text-ink dark:text-white">RM {{ MARKETPLACE_MONTHLY }}</p>
           <p class="text-sm text-gray-400 dark:text-zinc-500">/ month</p>
         </div>
         <ul class="space-y-2.5 flex-1 mb-6">
@@ -116,6 +116,7 @@
 
 <script setup lang="ts">
 import { PREMIUM_ENABLED } from "~/composables/useFeatureFlags";
+import { MARKETPLACE_MONTHLY } from "~/shared/pricing";
 
 // Premium is hidden for now — keep the page unreachable while the flag is off.
 definePageMeta({
@@ -149,18 +150,13 @@ const premiumFeatures = [
   'Early access to new features',
 ];
 
+const { authedFetch } = useAuthedFetch();
+
 const handleUpgrade = async () => {
   if (!user.value) return;
   checkoutLoading.value = true;
   try {
-    const res = await $fetch<{ url: string }>('/api/stripe/checkout', {
-      method: 'POST',
-      body: {
-        type: 'subscription',
-        uid: user.value.uid,
-        email: user.value.email,
-      },
-    });
+    const res = await authedFetch<{ url: string }>('/api/stripe/checkout', { method: 'POST' });
     if (res.url) window.location.href = res.url;
   } catch (e: any) {
     alert(e?.data?.message || 'Failed to start checkout. Please try again.');
@@ -173,10 +169,7 @@ const openPortal = async () => {
   if (!profile.value?.stripeCustomerId) return;
   portalLoading.value = true;
   try {
-    const res = await $fetch<{ url: string }>('/api/stripe/portal', {
-      method: 'POST',
-      body: { customerId: profile.value.stripeCustomerId },
-    });
+    const res = await authedFetch<{ url: string }>('/api/stripe/portal', { method: 'POST' });
     if (res.url) window.location.href = res.url;
   } catch (e: any) {
     alert(e?.data?.message || 'Failed to open portal. Please try again.');

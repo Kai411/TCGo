@@ -102,6 +102,18 @@ export const validateRefundForm = (f: Partial<RefundForm> | null | undefined) =>
     else if (note.length > OTHER_REASON_MAX) errors.reasonNote = `Keep it under ${OTHER_REASON_MAX} characters`;
   }
 
+  return { ...errors, ...validateRefundRecipient(form) };
+};
+
+/**
+ * Just the "where does the money go" half of the form. Used on its own when
+ * a buyer reports a problem: there's no cancel reason, but a refund may
+ * follow and it needs somewhere to land.
+ */
+export const validateRefundRecipient = (f: Partial<RefundForm> | null | undefined) => {
+  const errors: Partial<Record<keyof RefundForm, string>> = {};
+  const form = { ...emptyRefundForm(), ...(f ?? {}) };
+
   const name = form.holderName.trim();
   if (!name) errors.holderName = "Account holder name is required";
   else if (name.length < 3) errors.holderName = "Enter the full name on the bank account";

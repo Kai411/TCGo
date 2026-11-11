@@ -9,6 +9,8 @@ export default {
     "./composables/**/*.{js,ts}",
     "./plugins/**/*.{js,ts}",
     "./app.vue",
+    // Status chip colours (delivery-stage etc.) are class strings in shared/.
+    "./shared/**/*.ts",
   ],
   theme: {
     extend: {

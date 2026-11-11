@@ -8,7 +8,7 @@ useHead({ title: "Refund Policy · TCGo" });
 <template>
   <LegalDoc
     title="Refund Policy"
-    :summary="`You can cancel within ${N.cancelMinutes} minutes of paying. After delivery you have ${D.claimWindowDays} days to tell us if your order didn't arrive, isn't as described, or is fake. The seller isn't paid until that time has passed, so a valid claim gets your money back.`"
+    :summary="`You can cancel within ${N.cancelMinutes} minutes of paying. After delivery you have ${D.claimWindowDays} days to report a problem if your order didn't arrive, isn't as described, or is fake. Sort it out with the seller first; if you can't agree, TCGo decides. The seller isn't paid until it's settled.`"
   >
     <p>
       This policy explains when buyers get money back for orders paid through
@@ -20,8 +20,10 @@ useHead({ title: "Refund Policy · TCGo" });
 
     <h2>1. What this policy covers</h2>
     <p>
-      Orders and auction wins paid through TCGo checkout (Billplz). It does
-      not cover:
+      Orders and auction wins paid through TCGo checkout (Billplz). The full
+      cancellation rules, including unpaid orders, are in section 5 of the
+      <NuxtLink to="/terms">Terms of Use</NuxtLink>. This policy does not
+      cover:
     </p>
     <ul>
       <li>deals arranged or paid outside TCGo;</li>
@@ -48,7 +50,7 @@ useHead({ title: "Refund Policy · TCGo" });
             The seller hasn't shipped within {{ D.shipWithinBusinessDays }}
             business days after the cancellation window closes
           </td>
-          <td>Full refund, no fee. Contact us to cancel</td>
+          <td>Full refund, no fee. Use Report a problem on the order</td>
         </tr>
         <tr>
           <td>The seller cancels, or the item turns out to be unavailable</td>
@@ -57,6 +59,10 @@ useHead({ title: "Refund Policy · TCGo" });
         <tr>
           <td>You change your mind after shipping is booked</td>
           <td>No refund, unless the seller agrees</td>
+        </tr>
+        <tr>
+          <td>Auction wins</td>
+          <td>Can't be cancelled. See section 6</td>
         </tr>
       </tbody>
     </table>
@@ -92,26 +98,31 @@ useHead({ title: "Refund Policy · TCGo" });
     <h2>4. How to make a claim</h2>
     <ol>
       <li>
-        Email {{ OPERATOR.supportEmail }} within {{ D.claimWindowDays }} days
-        of delivery with your order number, what's wrong, and photos or video.
-        A video of opening the parcel is the strongest evidence; please record
-        one for valuable orders.
-      </li>
-      <li>Keep the item, packaging and label as you received them.</li>
-      <li>
-        We ask the seller to respond, usually within 2 business days, and may
-        ask either of you for more information.
+        Open the order and tap <b>Report a problem</b> within
+        {{ D.claimWindowDays }} days of delivery. Say what's wrong and add
+        links to photos or video if you have them. A video of opening the
+        parcel is the strongest evidence; please record one for valuable
+        orders. You'll also give the bank account a refund should go to, in
+        case one is agreed.
       </li>
       <li>
-        We decide the claim based on the listing, photos, tracking and what
-        both sides tell us. We may approve a full refund, a partial refund
-        (where you keep the item), or a return.
+        The seller is told straight away, and the payment for that order stays
+        on hold. Keep the item, packaging and label as you received them.
       </li>
       <li>
-        If we ask for a return, send it with tracking within
-        {{ D.returnShipDays }} days. The seller pays return postage when the
-        claim is the seller's fault. Your refund is sent when the return is
-        delivered back.
+        <b>Sort it out together first.</b> Talk it through with the seller on
+        the order page. The seller is asked to reply within
+        {{ N.sellerReplyBusinessDays }} business days and can agree to a full
+        refund there and then. If it turns out fine, mark it resolved and the
+        seller is paid as normal.
+      </li>
+      <li>
+        <b>If you can't agree</b>, either of you can ask TCGo to step in. We
+        look at the listing, photos, tracking and what you've both said, and
+        decide whether the held payment goes back to you or on to the seller.
+        We may ask either of you for more information, or for the item to be
+        returned with tracking within {{ D.returnShipDays }} days (at the
+        seller's cost when the seller is at fault).
       </li>
     </ol>
     <p>
@@ -155,10 +166,11 @@ useHead({ title: "Refund Policy · TCGo" });
 
     <h2>8. If you disagree with our decision</h2>
     <p>
-      Reply to our decision email with any new information and we'll take
-      another look. Our decision under Buyer Protection doesn't stop you or
-      the seller taking the matter to the Tribunal for Consumer Claims
-      Malaysia or to court.
+      Reply on the order page with any new information and we'll take another
+      look. TCGo only decides where the money it is holding goes; the sale
+      itself is between buyer and seller, so either of you can still take the
+      matter up with the other, for example at the Tribunal for Consumer
+      Claims Malaysia.
     </p>
   </LegalDoc>
 </template>

@@ -34,12 +34,19 @@
           {{ displayName.charAt(0).toUpperCase() }}
         </span>
         <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-1">
-            <p class="text-lg font-bold text-ink dark:text-white truncate">
-              {{ displayName }}
-            </p>
+          <p class="text-lg font-bold text-ink dark:text-white truncate">
+            {{ displayName }}
+          </p>
+          <p class="flex items-center text-xs text-ink-soft dark:text-zinc-500 mt-0.5">
+            <span
+              v-if="profile?.kycStatus === 'verified'"
+              class="font-semibold text-emerald-700 dark:text-emerald-300 mr-1"
+            >
+              Verified ·
+            </span>
+            View your profile
             <svg
-              class="w-5 h-5 shrink-0 text-ink-soft dark:text-zinc-500"
+              class="w-3.5 h-3.5 shrink-0 ml-0.5"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -50,15 +57,6 @@
             >
               <path d="m9 18 6-6-6-6" />
             </svg>
-          </div>
-          <p class="text-xs text-ink-soft dark:text-zinc-500 mt-0.5">
-            <span
-              v-if="profile?.kycStatus === 'verified'"
-              class="font-semibold text-emerald-700 dark:text-emerald-300"
-            >
-              Verified ·
-            </span>
-            View your profile
           </p>
         </div>
       </NuxtLink>
@@ -83,18 +81,28 @@
       <p class="text-sm text-ink-muted dark:text-zinc-400 mt-1">
         Sign in to see your orders, messages and selling.
       </p>
-      <button
-        type="button"
-        @click="goToLogin"
-        class="press mt-4 min-h-[44px] px-5 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink"
-      >
-        Sign in
-      </button>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          @click="goToLogin('register')"
+          class="press min-h-[44px] px-5 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink"
+        >
+          Create account
+        </button>
+        <button
+          type="button"
+          @click="goToLogin('signin')"
+          class="press min-h-[44px] px-5 rounded-full text-sm font-semibold border border-black/[0.12] dark:border-white/[0.16] text-ink dark:text-white"
+        >
+          Sign in
+        </button>
+      </div>
     </div>
 
     <template v-if="user">
-      <!-- Quick shortcuts -->
-      <div class="grid grid-cols-4">
+      <!-- Quick shortcuts. The last column is wider: "Manage Listings" is
+           the longest label. -->
+      <div class="grid grid-cols-[1fr_1fr_1fr_1.3fr]">
         <NuxtLink
           v-for="s in shortcuts"
           :key="s.label"
@@ -112,27 +120,37 @@
           </span>
           {{ s.label }}
         </NuxtLink>
+        <ManageListingsShortcut />
       </div>
 
       <!-- Selling. New sellers get the invitation; set-up sellers get their
            dashboard, with the same unread dot the nav used to carry. -->
       <NuxtLink
-        v-if="!isSeller"
+        v-if="!sellerLoading && !isSeller"
         to="/seller/onboarding"
         class="press block rounded-2xl p-5 bg-pokemon-red text-white shadow-glow"
       >
-        <p class="text-lg font-bold">Start selling on TCGo</p>
-        <p class="text-sm text-white/85 mt-1">
-          List your cards or start an auction. Setting up takes a few minutes.
-        </p>
+        <template v-if="sellerSetup.percent === 0">
+          <p class="text-lg font-bold">Start selling on TCGo</p>
+          <p class="text-sm text-white/85 mt-1">
+            List your cards or start an auction. Setting up takes a few minutes.
+          </p>
+        </template>
+        <template v-else>
+          <p class="text-lg font-bold">Finish setting up your shop</p>
+          <p class="text-sm text-white/85 mt-1">
+            {{ SELLER_STEPS.length - sellerSetup.remaining.length }} of {{ SELLER_STEPS.length }} done.
+            Next: {{ nextSellerStep }}.
+          </p>
+        </template>
         <span
           class="mt-4 inline-flex items-center min-h-[40px] px-4 rounded-full bg-white text-pokemon-red text-sm font-semibold"
         >
-          Set up selling
+          {{ sellerSetup.percent === 0 ? "Set up selling" : "Continue setup" }}
         </span>
       </NuxtLink>
       <NuxtLink
-        v-else
+        v-else-if="!sellerLoading"
         to="/seller"
         class="press surface flex items-center gap-4 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4 min-h-[64px]"
       >
@@ -194,8 +212,11 @@
 
       <!-- Settings list -->
       <section
-        class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] overflow-hidden"
+        class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] lg:overflow-hidden [&>:first-child+*]:!border-t-transparent"
       >
+        <!-- Not clipped on phones: the Pro row's tint bleeds into the gutter.
+             Its own tint separates it, so no divider under it. -->
+        <AccountProRow />
         <NuxtLink
           v-for="row in settingsRows"
           :key="row.to"
@@ -220,11 +241,59 @@
           <span class="flex-1 text-sm font-medium text-ink dark:text-white">Dark mode</span>
           <ThemeToggle />
         </label>
+        <AccountPolicyRow />
+        <NuxtLink to="/account/help" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
+          <span
+            class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] text-ink dark:text-zinc-200 flex items-center justify-center"
+          >
+            <IconHelp class="w-[18px] h-[18px]" />
+          </span>
+          <span class="flex-1 text-sm font-medium text-ink dark:text-white">Help Center</span>
+          <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
+        </NuxtLink>
+        <NuxtLink to="/landing" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
+          <span
+            class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] flex items-center justify-center overflow-hidden"
+          >
+            <img src="/tcgo_sprites.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain dark:hidden" />
+            <img src="/tcgo_sprites_white.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain hidden dark:block" />
+          </span>
+          <span class="flex-1 text-sm font-medium text-ink dark:text-white">About TCGo</span>
+          <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
+        </NuxtLink>
       </section>
     </template>
 
-    <!-- About and policies: what the footer used to hold. Shown signed out
-         too, so the policy pages stay one tap away for visitors. -->
+    <!-- Signed out there is no settings list, so these rows stand alone,
+         in the same order as signed in. -->
+    <section
+      v-else-if="!authLoading"
+      class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] lg:overflow-hidden"
+    >
+      <AccountPolicyRow />
+      <NuxtLink to="/account/help" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
+        <span
+          class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] text-ink dark:text-zinc-200 flex items-center justify-center"
+        >
+          <IconHelp class="w-[18px] h-[18px]" />
+        </span>
+        <span class="flex-1 text-sm font-medium text-ink dark:text-white">Help Center</span>
+        <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
+      </NuxtLink>
+      <NuxtLink to="/landing" class="press flex items-center gap-4 lg:px-4 min-h-[56px]">
+        <span
+          class="w-9 h-9 shrink-0 rounded-xl border border-black/[0.08] dark:border-white/[0.10] flex items-center justify-center overflow-hidden"
+        >
+          <img src="/tcgo_sprites.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain dark:hidden" />
+          <img src="/tcgo_sprites_white.png" alt="" class="w-8 h-8 max-w-none scale-[1.25] object-contain hidden dark:block" />
+        </span>
+        <span class="flex-1 text-sm font-medium text-ink dark:text-white">About TCGo</span>
+        <IconChevron class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" />
+      </NuxtLink>
+    </section>
+
+    <!-- What's left of the old footer links. The policy pages and About TCGo
+         are rows above. -->
     <section
       class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06] overflow-hidden"
     >
@@ -258,7 +327,7 @@
 
 <script setup lang="ts">
 import { h, computed, ref, watch } from "vue";
-import { LEGAL_LINKS } from "~/shared/legal";
+import { SELLER_STEPS, joinWords, missingSellerContact } from "~/shared/onboarding";
 import { badgeLabel } from "~/shared/notifications";
 import { withoutMergedChildren } from "~/shared/delivery-stage";
 import {
@@ -270,8 +339,6 @@ import {
 const { user, authLoading, signOut } = useAuth();
 const { goToLogin } = useSignInGate();
 const { profile } = useMyProfile();
-const { premiumEnabled } = useFeatureFlags();
-const { unreadConversations, listenInbox } = useChat();
 const { hasUnreadSeller: sellerHasUnread, listen: listenNotifications } =
   useNotifications();
 const { buyerCompiledOrders, listenBuyerCompiledOrders } = useCompiledOrders();
@@ -279,7 +346,6 @@ const { buyerCompiledOrders, listenBuyerCompiledOrders } = useCompiledOrders();
 watch(
   () => user.value?.uid,
   (uid) => {
-    listenInbox();
     listenNotifications();
     if (uid) listenBuyerCompiledOrders();
   },
@@ -294,8 +360,17 @@ const showBuyerQr = ref(false);
 
 const avatarUrl = computed(() => profile.value?.photoURL || user.value?.photoURL || "");
 
-// Set when the seller finishes onboarding (pages/seller/verify.vue).
-const isSeller = computed(() => !!profile.value?.sellerKycCompletedAt);
+// The same four-step setup the seller area is gated on (useSellerKyc).
+const { sellerReady: isSeller, setup: sellerSetup, kycLoading: sellerLoading } = useSellerKyc();
+const nextSellerStep = computed(() => {
+  const id = sellerSetup.value.current;
+  // The contact step can look done everywhere else, so name the detail.
+  if (id === "contact") {
+    const gaps = missingSellerContact(profile.value);
+    if (gaps.length && gaps.length < 5) return `add your ${joinWords(gaps)}`;
+  }
+  return (SELLER_STEPS.find((s) => s.id === id)?.title ?? "").toLowerCase();
+});
 
 // ── Icons ────────────────────────────────────────────────────────────
 const stroke = {
@@ -312,7 +387,15 @@ const p = (d: string) => h("path", { d });
 
 const IconChevron = () =>
   h("svg", { ...stroke, "stroke-width": "2.5" }, [p("m9 18 6-6-6-6")]);
-const IconGavel = icon(p("M14 4l6 6-3 3-6-6 3-3z"), p("M11 7l-7 7 3 3 7-7"), p("M3 21h12"));
+const IconGavel = icon(
+  h("g", { transform: "translate(21 0.5) scale(-1 1) rotate(-45 10 10)" }, [
+    p("M7 4.5h6M7 7.5h6"),
+    h("rect", { x: "4", y: "2.5", width: "3", height: "7", rx: "1" }),
+    h("rect", { x: "13", y: "2.5", width: "3", height: "7", rx: "1" }),
+    p("M10 7.5v10"),
+  ]),
+  p("M12.5 21h8"),
+);
 const IconTrophy = icon(
   p("M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"),
   p("M17 6h3v2a3 3 0 0 1-3 3M7 6H4v2a3 3 0 0 0 3 3"),
@@ -320,17 +403,18 @@ const IconTrophy = icon(
 const IconHeart = icon(
   p("M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"),
 );
-const IconChat = icon(p("M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"));
 const IconStore = icon(p("M3 9l1.5-5h15L21 9"), p("M3 9v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9"), p("M9 13h6"));
 const IconWallet = icon(p("M3 7a2 2 0 0 1 2-2h14v4"), p("M3 7v12a2 2 0 0 0 2 2h16V9H5a2 2 0 0 1-2-2z"), p("M16 15h2"));
 const IconTruck = icon(p("M1 4h14v12H1z"), p("M15 9h4l3 3v4h-7"), h("circle", { cx: "5.5", cy: "18.5", r: "2" }), h("circle", { cx: "18.5", cy: "18.5", r: "2" }));
 const IconCheck = icon(h("circle", { cx: "12", cy: "12", r: "9" }), p("m8 12 3 3 5-6"));
 const IconX = icon(h("circle", { cx: "12", cy: "12", r: "9" }), p("m15 9-6 6M9 9l6 6"));
 const IconPin = icon(p("M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"), h("circle", { cx: "12", cy: "9", r: "2.5" }));
-const IconBell = icon(p("M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"), p("M13.7 21a2 2 0 0 1-3.4 0"));
-const IconUserCog = icon(h("circle", { cx: "10", cy: "8", r: "4" }), p("M3 21a7 7 0 0 1 11-5.7"), h("circle", { cx: "18", cy: "17", r: "2.5" }));
-const IconStar = icon(p("M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"));
-const IconSpark = icon(p("M12 2v4M12 18v4M4.9 4.9l2.9 2.9M16.2 16.2l2.9 2.9M2 12h4M18 12h4M4.9 19.1l2.9-2.9M16.2 7.8l2.9-2.9"));
+const IconUserCog = icon(
+  h("circle", { cx: "9", cy: "7", r: "4" }),
+  p("M10 15H6a4 4 0 0 0-4 4v2"),
+  h("circle", { cx: "18", cy: "15", r: "3" }),
+  p("m14.3 16.5.9-.4M15.2 13.9l-.9-.4M16.9 12.2l-.4-.9M16.9 17.8l-.4.9M19.1 12.2l.4-.9M19.5 18.7l-.4-.9M20.8 13.9l.9-.4M20.8 16.1l.9.4"),
+);
 const IconQr = icon(
   h("rect", { x: "3", y: "3", width: "7", height: "7", rx: "1" }),
   h("rect", { x: "14", y: "3", width: "7", height: "7", rx: "1" }),
@@ -338,6 +422,7 @@ const IconQr = icon(
   p("M14 14h3v3h-3zM19 19h2v2h-2z"),
 );
 const IconMoon = icon(p("M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"));
+const IconHelp = icon(h("circle", { cx: "12", cy: "12", r: "9" }), p("M9.5 9.5a2.5 2.5 0 0 1 4.9.7c0 1.7-2.4 2.3-2.4 3.8"), p("M12 17h.01"));
 
 // ── Shortcuts ────────────────────────────────────────────────────────
 const shortcuts = computed(() => [
@@ -345,11 +430,10 @@ const shortcuts = computed(() => [
   { label: "Won", to: "/activity?tab=won", icon: IconTrophy, badge: 0 },
   {
     label: "Favourites",
-    to: `/profile/${user.value?.uid}?tab=favourites`,
+    to: "/account/favourites",
     icon: IconHeart,
     badge: 0,
   },
-  { label: "Messages", to: "/messages", icon: IconChat, badge: unreadConversations.value },
 ]);
 
 // ── Orders by status ─────────────────────────────────────────────────
@@ -373,16 +457,15 @@ const orderGroups = computed(() => [
 const settingsRows = computed(() => {
   const rows = [
     { label: "Shipping addresses", to: "/account/addresses", icon: IconPin },
-    { label: "Notifications", to: "/account/notifications", icon: IconBell },
-    // Name, photo, contact details, membership and privacy.
+    // Name, photo, contact details, notifications and privacy. Pro is its own row above.
     { label: "Account settings", to: "/profile", icon: IconUserCog },
   ];
-  if (premiumEnabled) rows.push({ label: "TCGo Premium", to: "/membership", icon: IconStar });
-  rows.push({ label: "What's new", to: "/update-notice", icon: IconSpark });
   return rows;
 });
 
-const aboutLinks = [{ to: "/landing", label: "About TCGo" }, ...LEGAL_LINKS];
+const aboutLinks = [
+  { to: "/pricing", label: "Plans & pricing" },
+];
 
 const handleSignOut = async () => {
   await signOut();

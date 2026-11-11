@@ -9,7 +9,8 @@
 
     <template v-else>
       <div class="flex items-center justify-between gap-3 mb-5">
-        <div>
+        <SubpageHeader inline title="Payouts" back="/seller/funds" back-label="Funds" class="lg:hidden" />
+        <div class="hidden lg:block">
           <NuxtLink
             to="/seller/funds"
             class="inline-flex items-center gap-1 text-sm text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
