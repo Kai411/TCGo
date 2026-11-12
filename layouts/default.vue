@@ -17,9 +17,13 @@
          its own max(16px, safe-area) bottom padding, the Sell circle that
          sticks ~22px above the bar, and an 18px gap. A flat pb-28 ignored
          the safe area, so on phones with a home indicator the circle sat on
-         the last link of a page (Back to cart on checkout). -->
+         the last link of a page (Back to cart on checkout).
+
+         On lg the footer below is pinned to the bottom of the screen (36px
+         tall), so the bottom padding is the old 3rem plus that height, and the
+         last row of a page scrolls clear of it. -->
     <main
-      class="container mx-auto px-4 pb-[calc(6.5rem+max(16px,env(safe-area-inset-bottom)))] lg:pb-12"
+      class="container mx-auto px-4 pb-[calc(6.5rem+max(16px,env(safe-area-inset-bottom)))] lg:pb-[5.25rem]"
       :class="route.meta.flushTop ? 'pt-0' : 'pt-4 lg:pt-8'"
     >
       <!-- Keyed on path so each page replays the enter animation. -->
@@ -28,19 +32,22 @@
       </div>
     </main>
     <!-- Desktop only. On phones these links live on the Account tab
-         (pages/account.vue), which the bottom nav reaches. -->
+         (pages/account.vue), which the bottom nav reaches. Pinned to the
+         bottom of the screen on lg so the links stay in sight; one 36px row
+         with a translucent canvas behind it. Anything else fixed to the
+         bottom on desktop (toasts, install prompt) sits above it. -->
     <footer
-      class="hidden lg:block select-none container mx-auto px-4 pb-8 text-xs text-ink-soft dark:text-zinc-500"
+      class="hidden lg:flex fixed inset-x-0 bottom-0 z-30 h-9 select-none items-center bg-canvas/90 dark:bg-canvas-inverse/90 backdrop-blur border-t border-black/[0.05] dark:border-white/[0.06] text-[11px] text-ink-soft dark:text-zinc-500"
     >
       <div
-        class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-6 border-t border-black/[0.05] dark:border-white/[0.06]"
+        class="container mx-auto px-4 flex items-center justify-center gap-x-4 whitespace-nowrap"
       >
-        <NuxtLink to="/landing" class="hover:text-pokemon-red">About TCGo</NuxtLink>
+        <NuxtLink to="/landing" class="hover:text-pokemon-red transition-colors">About TCGo</NuxtLink>
         <NuxtLink
           v-for="link in LEGAL_LINKS"
           :key="link.to"
           :to="link.to"
-          class="hover:text-pokemon-red"
+          class="hover:text-pokemon-red transition-colors"
         >
           {{ link.label }}
         </NuxtLink>

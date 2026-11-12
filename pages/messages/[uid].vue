@@ -603,7 +603,7 @@ watch([() => user.value?.uid, otherUid], () => {
 }
 @media (min-width: 1024px) {
   .chat-pane {
-    height: calc(100dvh - var(--app-nav-h, 7rem) - 5rem);
+    height: calc(100dvh - var(--app-nav-h, 7rem) - 7.25rem);
   }
 }
 </style>
