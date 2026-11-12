@@ -22,7 +22,7 @@
         <p
           v-if="saveSuccess"
           role="status"
-          class="fixed z-50 left-1/2 -translate-x-1/2 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-8 px-4 py-2.5 rounded-full text-sm font-medium bg-ink text-white dark:bg-white dark:text-ink shadow-lg"
+          class="fixed z-50 left-1/2 -translate-x-1/2 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] lg:bottom-14 px-4 py-2.5 rounded-full text-sm font-medium bg-ink text-white dark:bg-white dark:text-ink shadow-lg"
         >
           Saved
         </p>

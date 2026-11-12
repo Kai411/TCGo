@@ -512,7 +512,7 @@
     >
       <div
         v-if="reportSubmitted"
-        class="fixed bottom-24 lg:bottom-6 right-4 sm:right-6 z-50 surface rounded-full pl-3 pr-4 py-2 flex items-center gap-2 shadow-card-hover"
+        class="fixed bottom-24 lg:bottom-14 right-4 sm:right-6 z-50 surface rounded-full pl-3 pr-4 py-2 flex items-center gap-2 shadow-card-hover"
       >
         <span class="w-2 h-2 rounded-full bg-emerald-500" />
         <span class="text-sm font-medium text-ink dark:text-white">
