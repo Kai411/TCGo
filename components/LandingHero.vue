@@ -3,15 +3,15 @@
     ref="root"
     class="relative overflow-hidden px-4 pt-24 sm:pt-32 pb-16 sm:pb-24"
   >
-    <div class="container relative mx-auto max-w-3xl text-center">
+    <div class="container relative mx-auto max-w-4xl text-center">
       <h1
         class="font-bold text-ink text-[2.5rem] sm:text-[3.5rem] lg:text-hero leading-[1.04] tracking-hero"
       >
         <span class="block overflow-hidden pb-1">
-          <span ref="line1" class="block">Sell at the counter.</span>
+          <span ref="line1" class="block [text-wrap:balance]">Sell at the counter.</span>
         </span>
         <span class="block overflow-hidden pb-1">
-          <span ref="line2" class="block">Sell online. Count once.</span>
+          <span ref="line2" class="block [text-wrap:balance]">Sell online. Count once.</span>
         </span>
       </h1>
 
@@ -48,7 +48,7 @@
            word (2026-11 design audit). -->
       <p ref="facts" class="mx-auto mt-8 max-w-md text-sm text-ink-soft [text-wrap:balance]">
         Now in beta, built in Malaysia. Works with Pokémon, One Piece,
-        Lorcana, Yu-Gi-Oh! and Digimon cards, graded or raw.
+        Lorcana, <span class="whitespace-nowrap">Yu-Gi-Oh!</span> and Digimon cards, graded or raw.
       </p>
     </div>
   </section>

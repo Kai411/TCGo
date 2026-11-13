@@ -6,7 +6,7 @@
     <section id="features" class="scroll-mt-20 px-4 pt-8 pb-4">
       <div ref="intro" class="container mx-auto max-w-3xl text-center">
         <h2
-          class="reveal-init text-display font-bold tracking-tightest text-ink"
+          class="reveal-init text-display font-bold tracking-tightest [text-wrap:balance] text-ink"
         >
           Everything a card shop runs on
         </h2>
@@ -101,7 +101,7 @@
       <div ref="secondary" class="container mx-auto max-w-5xl">
         <div class="text-center">
           <h2
-            class="reveal-init text-display font-bold tracking-tightest text-ink"
+            class="reveal-init text-display font-bold tracking-tightest [text-wrap:balance] text-ink"
           >
             Your shop, in front of every collector
           </h2>
@@ -130,7 +130,7 @@
           class="reveal-init surface rounded-3xl px-6 py-12 text-center sm:px-10 sm:py-14"
         >
           <h2
-            class="text-display font-bold tracking-tightest text-ink"
+            class="text-display font-bold tracking-tightest [text-wrap:balance] text-ink"
           >
             4% a sale. 3% with Vendor.
           </h2>
@@ -180,7 +180,7 @@
         class="container mx-auto max-w-4xl rounded-3xl bg-ink px-6 py-16 sm:py-20 text-center"
       >
         <h2
-          class="reveal-init text-display font-bold tracking-tightest text-white"
+          class="reveal-init text-display font-bold tracking-tightest [text-wrap:balance] text-white"
         >
           Ready to run it all in one place?
         </h2>
