@@ -98,7 +98,7 @@
                 </div>
                 <div
                   v-else-if="item.status === 'failed'"
-                  class="absolute top-1 right-1 w-5 h-5 rounded-full bg-pokemon-red text-white text-[10px] flex items-center justify-center"
+                  class="absolute top-1 right-1 w-5 h-5 rounded-full bg-pokemon-red text-white text-2xs flex items-center justify-center"
                   title="Identification failed"
                 >
                   !
@@ -130,7 +130,7 @@
                     >
                       <span
                         v-if="item.language && item.language !== 'EN'"
-                        class="inline-block bg-black/85 text-white text-[10px] font-bold px-1.5 py-0.5 rounded"
+                        class="inline-block bg-black/85 text-white text-2xs font-bold px-1.5 py-0.5 rounded"
                       >
                         {{ item.language }}
                       </span>
@@ -187,11 +187,11 @@
                         :alt="m.name"
                         class="w-full aspect-[2.5/3.5] object-cover"
                       />
-                      <p class="px-1 py-0.5 text-[10px] font-semibold truncate">
+                      <p class="px-1 py-0.5 text-2xs font-semibold truncate">
                         {{ m.name }}
                       </p>
                       <p
-                        class="px-1 pb-1 text-[9px] text-gray-500 dark:text-zinc-400 truncate"
+                        class="px-1 pb-1 text-2xs text-gray-500 dark:text-zinc-400 truncate"
                       >
                         {{ m.set.name }} · {{ m.number }}
                       </p>
@@ -426,7 +426,7 @@
                   <!-- Extra photos -->
                   <div>
                     <p
-                      class="text-[11px] font-medium text-gray-600 dark:text-zinc-300 mb-1.5"
+                      class="text-micro font-medium text-gray-600 dark:text-zinc-300 mb-1.5"
                     >
                       Extra photos (optional) — your scan is already attached
                     </p>
@@ -463,7 +463,7 @@
                         <button
                           type="button"
                           @click="removeDraftFile(item.id, i)"
-                          class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pokemon-red text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pokemon-red text-white text-2xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           ✕
                         </button>

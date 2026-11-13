@@ -30,7 +30,7 @@
         <header class="flex items-start justify-between gap-6 pb-5 border-b border-gray-200">
           <div>
             <p class="text-xl font-extrabold tracking-tight">TCGo</p>
-            <p class="text-[11px] text-gray-500 mt-0.5">TCGo Marketplace · tcgo.shop</p>
+            <p class="text-micro text-gray-500 mt-0.5">TCGo Marketplace · tcgo.shop</p>
           </div>
           <div class="text-right">
             <p class="text-lg font-bold">INVOICE</p>
@@ -101,7 +101,7 @@
           </div>
         </section>
 
-        <footer class="pt-6 mt-6 border-t border-gray-200 text-[11px] text-gray-500 leading-relaxed">
+        <footer class="pt-6 mt-6 border-t border-gray-200 text-micro text-gray-500 leading-relaxed">
           <p>Paid online via FPX{{ order.billplzBillId ? ` · ref ${order.billplzBillId}` : "" }}.</p>
           <p class="mt-1">
             This document is computer generated and valid without a signature.

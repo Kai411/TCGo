@@ -1,6 +1,6 @@
 <template>
-  <p class="text-[11px] text-ink-soft dark:text-zinc-500">
-    <span :class="online ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''">{{ seen }}</span>
+  <p class="text-micro text-ink-soft dark:text-zinc-500">
+    <span :class="online ? 'text-emerald-600 dark:text-emerald-400 font-semibold'  ''">{{ seen }}</span>
     <span aria-hidden="true"> · </span>
     <span>{{ reply }}</span>
   </p>

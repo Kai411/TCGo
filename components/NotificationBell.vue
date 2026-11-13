@@ -26,7 +26,7 @@
          Desktop keeps the dropdown. -->
     <Teleport to="body" :disabled="!isPhone">
     <Transition
-      :enter-active-class="isPhone ? 'notif-slide-enter' : 'transition duration-150 ease-out'"
+      :enter-active-class="isPhone ? 'notif-slide-enter'  'transition duration-150 ease-out'"
       :leave-active-class="isPhone ? 'notif-slide-leave' : 'transition duration-100 ease-in'"
       :enter-from-class="isPhone ? 'translate-x-full' : 'opacity-0 -translate-y-1'"
       :leave-to-class="isPhone ? 'translate-x-full' : 'opacity-0 -translate-y-1'"
@@ -38,7 +38,7 @@
         aria-label="Notifications"
         :class="isPhone
           ? 'notif-screen flex flex-col bg-canvas dark:bg-canvas-inverse'
-          : 'absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] z-50 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-[#1b1b21] shadow-xl overflow-hidden'"
+           'absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] z-50 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-[#1b1b21] shadow-xl overflow-hidden'"
       >
         <div
           class="flex items-center justify-between border-b border-black/[0.06] dark:border-white/[0.08]"
@@ -59,15 +59,15 @@
             type="button"
             @click="markAllRead"
             class="font-semibold text-pokemon-red"
-            :class="isPhone ? 'min-h-[44px] px-3 rounded-full text-[13px] active:bg-pokemon-red/10' : 'text-[11px] hover:underline'"
+            :class="isPhone ? 'min-h-[44px] px-3 rounded-full text-label active:bg-pokemon-red/10' : 'text-micro hover:underline'"
           >
             Mark all read
           </button>
         </div>
 
         <div class="overflow-y-auto overscroll-contain" :class="isPhone ? 'flex-1 min-h-0' : 'max-h-[22rem]'">
-          <p v-if="loading" class="px-4 py-8 text-center text-[13px] text-ink-soft">Loading…</p>
-          <p v-else-if="!notifications.length" class="px-4 py-8 text-center text-[13px] text-ink-soft dark:text-zinc-500">
+          <p v-if="loading" class="px-4 py-8 text-center text-label text-ink-soft">Loading…</p>
+          <p v-else-if="!notifications.length" class="px-4 py-8 text-center text-label text-ink-soft dark:text-zinc-500">
             Nothing yet. Orders you buy and sell will show up here.
           </p>
           <component
@@ -86,16 +86,16 @@
                 aria-hidden="true"
               />
               <div class="min-w-0">
-                <p class="text-[13px] font-semibold text-ink dark:text-white leading-snug">
+                <p class="text-label font-semibold text-ink dark:text-white leading-snug">
                   {{ n.title }}
                 </p>
-                <p class="text-[12px] text-ink-muted dark:text-zinc-400 leading-relaxed mt-0.5">
+                <p class="text-caption text-ink-muted dark:text-zinc-400 leading-relaxed mt-0.5">
                   {{ n.body }}
                 </p>
-                <p class="flex items-center gap-1.5 text-[11px] text-ink-soft dark:text-zinc-500 mt-1">
+                <p class="flex items-center gap-1.5 text-micro text-ink-soft dark:text-zinc-500 mt-1">
                   <span
                     v-if="n.audience"
-                    class="rounded px-1.5 py-px text-[10px] font-semibold"
+                    class="rounded px-1.5 py-px text-2xs font-semibold"
                     :class="n.audience === 'seller'
                       ? 'bg-pokemon-red/10 text-pokemon-red'
                       : 'bg-black/[0.06] text-ink-muted dark:bg-white/[0.08] dark:text-zinc-300'"
@@ -112,14 +112,14 @@
           v-if="pushState === 'off' || pushState === 'needs-install'"
           class="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.03]"
         >
-          <p class="text-[12px] text-ink-muted dark:text-zinc-400">Get these on your phone too.</p>
+          <p class="text-caption text-ink-muted dark:text-zinc-400">Get these on your phone too.</p>
           <button
             v-if="pushState === 'off'"
             type="button"
             :disabled="pushBusy"
             @click="enablePush"
-            :class="isPhone ? 'min-h-[44px]' : 'min-h-[36px]'"
-            class="shrink-0 px-3 rounded-lg text-[12px] font-semibold text-pokemon-red hover:bg-pokemon-red/10 disabled:opacity-60"
+            :class="isPhone ? 'min-h-[44px]'  'min-h-[36px]'"
+            class="shrink-0 px-3 rounded-lg text-caption font-semibold text-pokemon-red hover:bg-pokemon-red/10 disabled:opacity-60"
           >
             {{ pushBusy ? "Turning on…" : "Turn on" }}
           </button>
@@ -127,8 +127,8 @@
             v-else
             to="/profile#notifications"
             @click="open = false"
-            :class="isPhone ? 'min-h-[44px]' : 'min-h-[36px]'"
-            class="shrink-0 inline-flex items-center px-3 rounded-lg text-[12px] font-semibold text-pokemon-red hover:bg-pokemon-red/10"
+            :class="isPhone ? 'min-h-[44px]'  'min-h-[36px]'"
+            class="shrink-0 inline-flex items-center px-3 rounded-lg text-caption font-semibold text-pokemon-red hover:bg-pokemon-red/10"
           >
             How
           </NuxtLink>

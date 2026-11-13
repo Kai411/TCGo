@@ -9,7 +9,7 @@
       <span class="sb-label !mb-0 flex-1">{{ label }}</span>
       <span
         v-if="count > 0"
-        class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-[10px] font-bold tabular-nums"
+        class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-2xs font-bold tabular-nums"
       >
         {{ count }}
       </span>

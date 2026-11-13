@@ -15,7 +15,7 @@
     :title="label"
   >
     <svg
-      :class="size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'"
+      :class="size === 'sm' ? 'w-4 h-4'  'w-5 h-5'"
       :fill="isFav ? '#E3350D' : 'none'"
       :stroke="isFav ? '#E3350D' : 'currentColor'"
       stroke-width="2"
@@ -31,7 +31,7 @@
     <span
       v-if="count > 0"
       class="text-gray-500 dark:text-zinc-400"
-      :class="size === 'sm' ? 'text-[10px]' : 'text-xs'"
+      :class="size === 'sm' ? 'text-2xs' : 'text-xs'"
     >
       {{ count }}
     </span>

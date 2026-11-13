@@ -1,6 +1,6 @@
 <template>
   <div class="max-w-5xl">
-    <h1 class="text-xl font-bold text-ink dark:text-white">Content</h1>
+    <h1 class="text-2xl font-bold text-ink dark:text-white">Content</h1>
     <p class="mb-4 text-sm text-ink-muted dark:text-zinc-400">
       The banners above the Marketplace and Auctions listings, and pages of your own.
     </p>
@@ -69,7 +69,7 @@
                   <img v-if="s.imageUrl" :src="cdnUrl(s.imageUrl, 160)" alt="" class="h-full w-full object-cover" />
                 </span>
                 <span class="min-w-0">
-                  <span class="block text-[11px] font-semibold text-ink-soft dark:text-zinc-500">Banner {{ i + 1 }}</span>
+                  <span class="block text-micro font-semibold text-ink-soft dark:text-zinc-500">Banner {{ i + 1 }}</span>
                   <span class="block truncate text-sm font-semibold text-ink dark:text-white">
                     {{ s.headline || (s.imageUrl ? "Image only" : "Empty") }}
                   </span>
@@ -112,14 +112,14 @@
               <div>
                 <div class="mb-1.5 flex items-baseline justify-between">
                   <label class="text-xs font-semibold text-ink dark:text-white" :for="`${s.id}-headline`">Headline (optional)</label>
-                  <span class="text-[11px] tabular-nums text-ink-soft">{{ s.headline.length }}/{{ BANNER_HEADLINE_MAX }}</span>
+                  <span class="text-micro tabular-nums text-ink-soft">{{ s.headline.length }}/{{ BANNER_HEADLINE_MAX }}</span>
                 </div>
                 <input :id="`${s.id}-headline`" v-model="s.headline" :maxlength="BANNER_HEADLINE_MAX" type="text" class="mc-inp" placeholder="Weekend auction drop" />
               </div>
               <div>
                 <div class="mb-1.5 flex items-baseline justify-between">
                   <label class="text-xs font-semibold text-ink dark:text-white" :for="`${s.id}-subtext`">Subtext (optional)</label>
-                  <span class="text-[11px] tabular-nums text-ink-soft">{{ s.subtext.length }}/{{ BANNER_SUBTEXT_MAX }}</span>
+                  <span class="text-micro tabular-nums text-ink-soft">{{ s.subtext.length }}/{{ BANNER_SUBTEXT_MAX }}</span>
                 </div>
                 <input :id="`${s.id}-subtext`" v-model="s.subtext" :maxlength="BANNER_SUBTEXT_MAX" type="text" class="mc-inp" placeholder="Graded slabs from RM 50" />
               </div>

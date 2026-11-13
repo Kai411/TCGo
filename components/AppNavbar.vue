@@ -208,7 +208,7 @@
           </svg>
           <span
             v-if="cartCount > 0"
-            class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-[10px] font-bold flex items-center justify-center tabular-nums"
+            class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-2xs font-bold flex items-center justify-center tabular-nums"
           >
             {{ cartCount > 99 ? "99+" : cartCount }}
           </span>
@@ -300,7 +300,7 @@
           v-if="tab.sell"
           type="button"
           @click.stop="onSellTap"
-          class="tab-press relative flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold text-ink-soft dark:text-zinc-500"
+          class="tab-press relative flex flex-col items-center justify-center gap-0.5 text-micro font-semibold text-ink-soft dark:text-zinc-500"
           :class="sellSheetOpen ? '!text-pokemon-red' : ''"
           aria-haspopup="dialog"
           :aria-expanded="sellSheetOpen"
@@ -319,7 +319,7 @@
         <NuxtLink
           v-else
           :to="tab.to!"
-          class="tab-press relative flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold text-ink-soft dark:text-zinc-500"
+          class="tab-press relative flex flex-col items-center justify-center gap-0.5 text-micro font-semibold text-ink-soft dark:text-zinc-500"
           :class="isTabActive(tab.to!) ? '!text-pokemon-red' : ''"
           :aria-current="isTabActive(tab.to!) ? 'page' : undefined"
         >
@@ -367,7 +367,7 @@
       >
         <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15" aria-hidden="true" />
         <p class="px-2 pb-2 text-base font-bold text-ink dark:text-white">What are you selling?</p>
-        <p v-if="needsSellerSetup" class="px-2 pb-3 -mt-1 text-[13px] leading-relaxed text-ink-muted dark:text-zinc-400">
+        <p v-if="needsSellerSetup" class="px-2 pb-3 -mt-1 text-label leading-relaxed text-ink-muted dark:text-zinc-400">
           First time? Setup comes first and takes a few minutes: your MyKad,
           a bank account and a pickup address.
         </p>

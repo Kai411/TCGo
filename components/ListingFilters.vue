@@ -7,7 +7,7 @@
         <button
           v-if="filters.activeCount.value > 0"
           @click="filters.reset()"
-          class="text-[11px] font-semibold text-ink-muted dark:text-zinc-400 hover:text-pokemon-red transition-colors"
+          class="text-micro font-semibold text-ink-muted dark:text-zinc-400 hover:text-pokemon-red transition-colors"
         >
           Clear all
         </button>
@@ -23,7 +23,7 @@
             :key="opt.value"
             type="button"
             @click="filters.sort.value = opt.value"
-            class="text-left text-[13px] px-2.5 py-1.5 rounded-lg font-medium transition-colors"
+            class="text-left text-label px-2.5 py-1.5 rounded-lg font-medium transition-colors"
             :class="
               filters.sort.value === opt.value
                 ? 'bg-ink text-white dark:bg-white dark:text-ink'
@@ -92,14 +92,14 @@
             type="number" inputmode="decimal" placeholder="Min"
             :value="filters.priceMin.value ?? ''"
             @input="onPriceInput($event, 'min')"
-            class="no-spin flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[13px] text-ink dark:text-white"
+            class="no-spin flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-label text-ink dark:text-white"
           />
           <span class="text-xs text-ink-soft dark:text-zinc-500">—</span>
           <input
             type="number" inputmode="decimal" placeholder="Max"
             :value="filters.priceMax.value ?? ''"
             @input="onPriceInput($event, 'max')"
-            class="no-spin flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[13px] text-ink dark:text-white"
+            class="no-spin flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-label text-ink dark:text-white"
           />
         </div>
 
@@ -107,7 +107,7 @@
         <input
           v-else-if="g.id === 'set'"
           type="text" v-model="filters.setQuery.value" placeholder="Search set…"
-          class="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[13px] text-ink dark:text-white"
+          class="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-label text-ink dark:text-white"
         />
 
         <!-- Product type -->
@@ -163,7 +163,7 @@
           Filters
           <span
             v-if="filters.activeCount.value > 0"
-            class="inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-pokemon-red text-white text-[10px] font-bold tabular-nums"
+            class="inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-pokemon-red text-white text-2xs font-bold tabular-nums"
             aria-hidden="true"
           >
             {{ filters.activeCount.value }}
@@ -242,7 +242,7 @@
                 <button
                   type="button"
                   @click="pickSort(opt.value)"
-                  class="w-full flex items-center justify-between gap-3 px-4 min-h-[48px] text-left text-[15px] transition-colors active:bg-black/[0.04] dark:active:bg-white/[0.06]"
+                  class="w-full flex items-center justify-between gap-3 px-4 min-h-[48px] text-left text-body-ui transition-colors active:bg-black/[0.04] dark:active:bg-white/[0.06]"
                   :class="filters.sort.value === opt.value ? 'font-semibold text-ink dark:text-white' : 'text-ink-muted dark:text-zinc-300'"
                   :aria-pressed="filters.sort.value === opt.value"
                 >

@@ -10,7 +10,7 @@
     </div>
 
     <section v-else-if="phase === 'signed-out'" class="surface rounded-2xl px-6 py-14 text-center">
-      <h1 class="text-2xl font-extrabold tracking-tight text-ink dark:text-white">
+      <h1 class="text-2xl font-bold tracking-tight text-ink dark:text-white">
         Sign in to see your order
       </h1>
       <p class="mt-2 text-sm text-gray-500 dark:text-zinc-400 max-w-sm mx-auto">
@@ -22,7 +22,7 @@
     </section>
 
     <section v-else-if="phase === 'not-found'" class="surface rounded-2xl px-6 py-14 text-center">
-      <h1 class="text-2xl font-extrabold tracking-tight text-ink dark:text-white">
+      <h1 class="text-2xl font-bold tracking-tight text-ink dark:text-white">
         We couldn't find this order
       </h1>
       <p class="mt-2 text-sm text-gray-500 dark:text-zinc-400 max-w-sm mx-auto">
@@ -38,7 +38,7 @@
         <PaymentCardFan :items="order.items" :badge="copy.badge" />
 
         <p class="eyebrow mt-7">{{ copy.eyebrow }}</p>
-        <h1 class="mt-2 text-display font-extrabold text-ink dark:text-white">
+        <h1 class="mt-2 text-display font-bold text-ink dark:text-white">
           {{ copy.headline }}
         </h1>
 

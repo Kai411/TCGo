@@ -15,7 +15,7 @@
       <label class="block">
         <span class="lbl">Account number</span>
         <input v-model="form.bankAccountNumber" inputmode="numeric" class="field tabular-nums" />
-        <span v-if="accountHint" :class="accountOk ? 'hint' : 'err mt-1.5 block text-[11px]'">
+        <span v-if="accountHint" :class="accountOk ? 'hint'  'err mt-1.5 block text-micro'">
           {{ accountHint }}
         </span>
       </label>
@@ -27,12 +27,12 @@
         class="rounded-xl border border-black/[0.08] dark:border-white/[0.10] px-3.5 py-3"
       >
         <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400">From your MyKad</p>
-        <p class="mt-1 text-[14px] text-ink dark:text-white">{{ form.bankAccountHolder }}</p>
-        <p class="text-[13px] text-ink-muted dark:text-zinc-400 tabular-nums">IC ending {{ form.identityNumber.slice(-4) }}</p>
-        <p class="mt-1.5 text-[11px] text-ink-soft dark:text-zinc-500">
+        <p class="mt-1 text-body-sm text-ink dark:text-white">{{ form.bankAccountHolder }}</p>
+        <p class="text-label text-ink-muted dark:text-zinc-400 tabular-nums">IC ending {{ form.identityNumber.slice(-4) }}</p>
+        <p class="mt-1.5 text-micro text-ink-soft dark:text-zinc-500">
           The account must be in this name, or the bank returns the transfer.
         </p>
-        <button type="button" class="mt-2 text-[13px] font-semibold text-pokemon-red hover:underline" @click="fromScan = false">
+        <button type="button" class="mt-2 text-label font-semibold text-pokemon-red hover:underline" @click="fromScan = false">
           Change
         </button>
       </div>
@@ -181,17 +181,17 @@ const save = async () => {
   @apply mb-1.5 block text-xs font-semibold text-ink-muted dark:text-zinc-400;
 }
 .hint {
-  @apply mt-1.5 block text-[11px] text-ink-soft dark:text-zinc-500;
+  @apply mt-1.5 block text-micro text-ink-soft dark:text-zinc-500;
 }
 .lock {
-  @apply mb-4 rounded-xl bg-amber-50 px-3.5 py-2.5 text-[13px] text-amber-800
+  @apply mb-4 rounded-xl bg-amber-50 px-3.5 py-2.5 text-label text-amber-800
          dark:bg-amber-400/10 dark:text-amber-300;
 }
 .err {
-  @apply mt-3 text-[13px] text-rose-600 dark:text-rose-400;
+  @apply mt-3 text-label text-rose-600 dark:text-rose-400;
 }
 .field {
-  @apply w-full rounded-xl border border-black/[0.10] bg-white px-3.5 py-2.5 text-[15px]
+  @apply w-full rounded-xl border border-black/[0.10] bg-white px-3.5 py-2.5 text-body-ui
          text-ink outline-none transition-colors placeholder:text-ink-soft
          focus:border-pokemon-red focus:ring-2 focus:ring-pokemon-red/20
          dark:border-white/[0.12] dark:bg-white/[0.04] dark:text-white;

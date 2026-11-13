@@ -47,14 +47,14 @@
             </span>
             <div class="min-w-0">
               <h1
-                class="font-display text-xl sm:text-3xl font-extrabold tracking-tightest text-ink dark:text-white truncate"
+                class="font-display text-2xl sm:text-3xl font-bold tracking-tight text-ink dark:text-white truncate"
               >
                 {{ profile.customName || profile.displayName }}
               </h1>
               <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <span
                   v-if="premiumEnabled && profile.tier === 'premium'"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-400/20 text-amber-700 dark:text-amber-300"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-micro font-semibold bg-amber-400/20 text-amber-700 dark:text-amber-300"
                 >
                   <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
                     <path
@@ -78,7 +78,7 @@
                   {{ getScoreBadge(profile.trustScore ?? 100)?.label }}
                 </span>
               </div>
-              <p class="mt-1 text-[11px] text-ink-soft dark:text-zinc-500">
+              <p class="mt-1 text-micro text-ink-soft dark:text-zinc-500">
                 Member since {{ formatDate(profile.createdAt) }}
               </p>
               <ChatResponsiveness
@@ -161,11 +161,11 @@
             Trust
           </span>
           <span
-            class="tabular-price text-[13px] font-bold leading-none"
+            class="tabular-price text-label font-bold leading-none"
             :class="trustScoreColor(profile.trustScore ?? 100)"
           >
             {{ profile.trustScore ?? 100
-            }}<span class="text-[11px] text-ink-soft dark:text-zinc-500 font-medium"
+            }}<span class="text-micro text-ink-soft dark:text-zinc-500 font-medium"
               >/100</span
             >
           </span>
@@ -267,12 +267,12 @@
           >
             <span
               :ref="(el) => setTabRef(tab.id, el)"
-              class="inline-flex items-baseline gap-1.5 text-[15px] sm:text-lg font-semibold sm:font-bold tracking-tightest"
+              class="inline-flex items-baseline gap-1.5 text-body-ui sm:text-lg font-semibold sm:font-bold tracking-tightest"
             >
               {{ tab.label }}
               <span
                 v-if="tab.count !== undefined"
-                class="tabular-nums text-[12px] sm:text-sm font-medium text-ink-soft dark:text-zinc-500"
+                class="tabular-nums text-caption sm:text-sm font-medium text-ink-soft dark:text-zinc-500"
                 >{{ tab.count }}<span class="sr-only"> listed</span></span
               >
             </span>

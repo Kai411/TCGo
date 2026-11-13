@@ -4,7 +4,7 @@
       <div class="min-w-0">
         <!-- On phones the page header already names the page. -->
         <h2 class="hidden lg:block text-base font-bold text-ink dark:text-white">Delivery addresses</h2>
-        <p class="mt-0.5 text-[13px] text-ink-muted dark:text-zinc-400">
+        <p class="mt-0.5 text-label text-ink-muted dark:text-zinc-400">
           Shipping is quoted from your default. You can pick a different one at checkout.
         </p>
       </div>
@@ -12,7 +12,7 @@
         v-if="addresses.length && addresses.length < MAX_ADDRESSES && !editing"
         type="button"
         @click="startAdd"
-        class="shrink-0 text-[13px] font-semibold text-pokemon-red hover:underline"
+        class="shrink-0 text-label font-semibold text-pokemon-red hover:underline"
       >
         Add address
       </button>
@@ -33,36 +33,36 @@
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="text-[14px] font-bold text-ink dark:text-white">{{ a.name }}</span>
+              <span class="text-body-sm font-bold text-ink dark:text-white">{{ a.name }}</span>
               <span
                 v-if="a.isDefault"
-                class="rounded-md bg-pokemon-red/10 px-1.5 py-0.5 text-[11px] font-semibold text-pokemon-red"
+                class="rounded-md bg-pokemon-red/10 px-1.5 py-0.5 text-micro font-semibold text-pokemon-red"
               >
                 Default
               </span>
               <span
                 v-if="a.label"
-                class="rounded-md bg-black/[0.05] px-1.5 py-0.5 text-[10px] font-semibold text-ink-muted dark:bg-white/[0.08] dark:text-zinc-400"
+                class="rounded-md bg-black/[0.05] px-1.5 py-0.5 text-2xs font-semibold text-ink-muted dark:bg-white/[0.08] dark:text-zinc-400"
               >
                 {{ a.label }}
               </span>
             </div>
-            <p class="mt-1 text-[13px] tabular-nums text-ink-muted dark:text-zinc-400">{{ a.phone }}</p>
-            <p class="mt-1 text-[13px] leading-relaxed text-ink-muted dark:text-zinc-400">
+            <p class="mt-1 text-label tabular-nums text-ink-muted dark:text-zinc-400">{{ a.phone }}</p>
+            <p class="mt-1 text-label leading-relaxed text-ink-muted dark:text-zinc-400">
               {{ formatAddress(a) }}<br />{{ stateName(a.state) }}
             </p>
           </div>
         </div>
 
         <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-black/[0.05] pt-3 dark:border-white/[0.06]">
-          <button type="button" @click="startEdit(a)" class="text-[12.5px] font-semibold text-ink-muted hover:text-ink dark:text-zinc-400 dark:hover:text-white">
+          <button type="button" @click="startEdit(a)" class="text-label font-semibold text-ink-muted hover:text-ink dark:text-zinc-400 dark:hover:text-white">
             Edit
           </button>
           <button
             v-if="!a.isDefault"
             type="button"
             @click="makeDefault(a.id)"
-            class="text-[12.5px] font-semibold text-ink-muted hover:text-ink dark:text-zinc-400 dark:hover:text-white"
+            class="text-label font-semibold text-ink-muted hover:text-ink dark:text-zinc-400 dark:hover:text-white"
           >
             Set as default
           </button>
@@ -73,7 +73,7 @@
             v-if="addresses.length > 1"
             type="button"
             @click="confirmRemove(a)"
-            class="ml-auto text-[12.5px] font-semibold text-rose-600 hover:underline dark:text-rose-400"
+            class="ml-auto text-label font-semibold text-rose-600 hover:underline dark:text-rose-400"
           >
             Delete
           </button>
@@ -86,17 +86,17 @@
       v-else-if="!editing"
       class="rounded-xl border border-dashed border-black/[0.14] p-6 text-center dark:border-white/[0.16]"
     >
-      <p class="text-[13px] text-ink-muted dark:text-zinc-400">
+      <p class="text-label text-ink-muted dark:text-zinc-400">
         No delivery address yet.
       </p>
-      <button type="button" @click="startAdd" class="mt-3 text-[13px] font-semibold text-pokemon-red hover:underline">
+      <button type="button" @click="startAdd" class="mt-3 text-label font-semibold text-pokemon-red hover:underline">
         Add one
       </button>
     </div>
 
     <!-- ── Form ───────────────────────────────────────────────────── -->
     <div v-if="editing" class="rounded-xl border border-black/[0.08] p-4 dark:border-white/[0.10]">
-      <p class="mb-3 text-[14px] font-bold text-ink dark:text-white">
+      <p class="mb-3 text-body-sm font-bold text-ink dark:text-white">
         {{ form.id ? "Edit address" : "New address" }}
       </p>
 
@@ -143,11 +143,11 @@
 
         <label v-if="addresses.length" class="flex items-center gap-2.5 pt-0.5">
           <input v-model="form.isDefault" type="checkbox" class="h-4 w-4 accent-pokemon-red" />
-          <span class="text-[13px] text-ink dark:text-zinc-200">Use as my default</span>
+          <span class="text-label text-ink dark:text-zinc-200">Use as my default</span>
         </label>
       </div>
 
-      <p v-if="error" class="mt-3 text-[13px] text-rose-600 dark:text-rose-400">{{ error }}</p>
+      <p v-if="error" class="mt-3 text-label text-rose-600 dark:text-rose-400">{{ error }}</p>
 
       <div class="mt-4 flex gap-2">
         <button type="button" :disabled="busy" @click="save" class="btn-primary">
@@ -157,7 +157,7 @@
       </div>
     </div>
 
-    <p v-if="addresses.length >= MAX_ADDRESSES && !editing" class="mt-3 text-[12px] text-ink-soft dark:text-zinc-500">
+    <p v-if="addresses.length >= MAX_ADDRESSES && !editing" class="mt-3 text-caption text-ink-soft dark:text-zinc-500">
       That's the maximum of {{ MAX_ADDRESSES }}. Delete one to add another.
     </p>
   </div>
@@ -269,19 +269,19 @@ const confirmRemove = (a: Address) => {
   @apply mb-1.5 block text-xs font-semibold text-ink-muted dark:text-zinc-400;
 }
 .field {
-  @apply w-full rounded-lg border border-black/[0.10] bg-white px-3.5 py-2.5 text-[15px]
+  @apply w-full rounded-lg border border-black/[0.10] bg-white px-3.5 py-2.5 text-body-ui
          text-ink outline-none transition-colors placeholder:text-ink-soft
          focus:border-pokemon-red focus:ring-2 focus:ring-pokemon-red/20
          dark:border-white/[0.12] dark:bg-white/[0.04] dark:text-white;
 }
 .btn-primary {
   @apply inline-flex items-center justify-center gap-2 rounded-lg bg-pokemon-red px-4 py-2
-         text-[13px] font-bold text-white transition-opacity hover:opacity-90
+         text-label font-bold text-white transition-opacity hover:opacity-90
          disabled:cursor-not-allowed disabled:opacity-50;
 }
 .btn-ghost {
   @apply inline-flex items-center justify-center rounded-lg border border-black/[0.10]
-         px-4 py-2 text-[13px] font-semibold text-ink transition-colors
+         px-4 py-2 text-label font-semibold text-ink transition-colors
          hover:bg-black/[0.03] disabled:opacity-50
          dark:border-white/[0.12] dark:text-white dark:hover:bg-white/[0.05];
 }

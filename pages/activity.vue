@@ -93,7 +93,7 @@
                 v-for="f in orderFilters"
                 :key="f.id"
                 @click="orderFilter = f.id"
-                class="shrink-0 inline-flex items-center min-h-[36px] px-4 text-[13px] lg:min-h-0 lg:px-3 lg:py-1.5 lg:text-xs rounded-full font-semibold border transition-colors"
+                class="shrink-0 inline-flex items-center min-h-[36px] px-4 text-label lg:min-h-0 lg:px-3 lg:py-1.5 lg:text-xs rounded-full font-semibold border transition-colors"
                 :class="orderFilter === f.id
                   ? 'bg-ink text-white border-ink dark:bg-white dark:text-ink dark:border-white'
                   : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 lg:hover:border-gray-300'"
@@ -174,7 +174,7 @@
                 <!-- Phones: where you stand and how long is left, as one line
                      under the price. -->
                 <span
-                  class="lg:hidden text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                  class="lg:hidden text-micro font-semibold px-2 py-0.5 rounded-full"
                   :class="item.isLeading
                     ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
                     : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'"

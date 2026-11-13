@@ -46,7 +46,7 @@
             <rect x="3" y="14" width="7" height="7" rx="1" />
             <path d="M14 14h3v3h-3zM19 19h2M17 21h4" />
           </svg>
-          <p class="mt-1.5 text-[10px] font-semibold text-ink">Your QR</p>
+          <p class="mt-1.5 text-2xs font-semibold text-ink">Your QR</p>
         </div>
         <div
           ref="tapBtn"
@@ -56,7 +56,7 @@
             <path d="M6 8.5a8 8 0 0 1 0 7M9.5 5.5a13 13 0 0 1 0 13" />
             <rect x="12" y="4" width="9" height="16" rx="2" />
           </svg>
-          <p class="mt-1.5 text-[10px] font-semibold text-ink">Tap to pay*</p>
+          <p class="mt-1.5 text-2xs font-semibold text-ink">Tap to pay*</p>
         </div>
       </div>
 
@@ -64,10 +64,10 @@
         ref="paid"
         class="mt-3 rounded-lg bg-emerald-500/10 py-2 text-center opacity-0"
       >
-        <p class="text-[11px] font-bold text-emerald-700">Paid · receipt sent</p>
+        <p class="text-micro font-bold text-emerald-700">Paid · receipt sent</p>
       </div>
 
-      <p class="mt-3 text-[10px] text-ink-soft text-center">
+      <p class="mt-3 text-2xs text-ink-soft text-center">
         *Tap-to-pay carries an additional charge
       </p>
     </div>

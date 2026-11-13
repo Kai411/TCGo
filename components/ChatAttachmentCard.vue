@@ -9,7 +9,7 @@
       <CardImage v-if="attachment.imageUrl" :src="attachment.imageUrl" :alt="title" :width="96" />
     </div>
     <div class="min-w-0 flex-1">
-      <p class="text-[11px] font-semibold text-ink-soft dark:text-zinc-500">
+      <p class="text-micro font-semibold text-ink-soft dark:text-zinc-500">
         {{ kindLabel }}
       </p>
       <p class="text-sm font-semibold text-ink dark:text-white truncate">{{ title }}</p>
@@ -17,7 +17,7 @@
     </div>
     <div class="shrink-0 text-right">
       <p class="text-sm font-bold tabular-nums text-ink dark:text-white">RM {{ price.toFixed(2) }}</p>
-      <p v-if="link" class="text-[11px] font-semibold text-pokemon-red">View →</p>
+      <p v-if="link" class="text-micro font-semibold text-pokemon-red">View →</p>
     </div>
   </component>
 </template>

@@ -8,7 +8,7 @@
     </div>
 
     <template v-else>
-      <h1 class="text-xl font-bold text-ink dark:text-white mb-4">Messages</h1>
+      <h1 class="text-2xl font-bold text-ink dark:text-white mb-4">Messages</h1>
       <div class="grid lg:grid-cols-[22rem_minmax(0,1fr)] gap-4 items-start">
         <div class="surface rounded-2xl overflow-hidden">
           <ChatInboxList />

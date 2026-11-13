@@ -2,7 +2,7 @@
   <div class="max-w-5xl">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
-        <h1 class="text-xl font-bold text-ink dark:text-white">Order problems</h1>
+        <h1 class="text-2xl font-bold text-ink dark:text-white">Order problems</h1>
         <p class="text-sm text-ink-muted dark:text-zinc-400">
           Problems buyers reported. Buyer and seller sort out open ones themselves; decide only the escalated ones.
           A refund goes to the refund queue.
@@ -42,7 +42,7 @@
             </p>
           </div>
           <span
-            class="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+            class="px-2 py-0.5 rounded-full text-micro font-semibold"
             :class="p.status === 'escalated' ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400' : 'bg-black/[0.05] dark:bg-white/[0.08] text-ink-muted dark:text-zinc-300'"
           >
             {{ p.status === "escalated" ? `Escalated by ${p.escalatedBy}` : "Open" }}
@@ -53,7 +53,7 @@
           <li v-for="(m, i) in p.messages" :key="i" class="text-ink dark:text-zinc-200">
             <span class="font-semibold capitalize">{{ m.by === "tcgo" ? "TCGo" : m.by }}:</span>
             {{ m.text }}
-            <span class="text-[11px] text-ink-soft dark:text-zinc-500">{{ fmt(m.at) }}</span>
+            <span class="text-micro text-ink-soft dark:text-zinc-500">{{ fmt(m.at) }}</span>
           </li>
         </ul>
 

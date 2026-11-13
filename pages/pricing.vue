@@ -5,7 +5,7 @@
       <div ref="hero" class="container mx-auto max-w-3xl text-center">
         <span class="reveal-init eyebrow">Pricing</span>
         <h1
-          class="reveal-init mt-4 text-display font-bold tracking-tightest text-ink"
+          class="reveal-init mt-4 text-display font-bold tracking-tight text-ink"
         >
           4% a sale. Every plan.
         </h1>
@@ -18,7 +18,7 @@
         </p>
         <p
           v-if="BETA_PRICING"
-          class="reveal-init mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-[13px] font-semibold text-emerald-700"
+          class="reveal-init mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-label font-semibold text-emerald-700"
         >
           <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
           {{ (BETA_RATE * 100).toFixed(0) }}% while we're in beta —
@@ -39,7 +39,7 @@
           >
             <span
               v-if="plan.featured"
-              class="absolute -top-2.5 left-6 rounded-md bg-pokemon-red px-2 py-0.5 text-[11px] font-semibold text-white"
+              class="absolute -top-2.5 left-6 rounded-md bg-pokemon-red px-2 py-0.5 text-micro font-semibold text-white"
               >Most shops</span
             >
             <h2 class="text-sm font-semibold text-ink">{{ plan.name }}</h2>
@@ -49,14 +49,14 @@
               }}</span>
               <span class="text-sm text-ink-soft">{{ plan.period }}</span>
             </p>
-            <p class="mt-4 text-[13px] leading-relaxed text-ink-muted">
+            <p class="mt-4 text-label leading-relaxed text-ink-muted">
               {{ plan.who }}
             </p>
             <ul class="mt-5 flex-1 space-y-2.5">
               <li
                 v-for="f in plan.features"
                 :key="f"
-                class="flex items-start gap-2 text-[13px] leading-snug text-ink"
+                class="flex items-start gap-2 text-label leading-snug text-ink"
               >
                 <svg
                   class="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500"
@@ -93,7 +93,7 @@
           <h3 class="text-sm font-semibold text-ink">
             Money taken at your counter
           </h3>
-          <p class="mt-1.5 text-[13px] leading-relaxed text-ink-muted">
+          <p class="mt-1.5 text-label leading-relaxed text-ink-muted">
             No subscription and nothing to install — sell nothing over the
             counter and you pay nothing. Takings settle straight into your own
             bank account; we never hold them. On a QR sale the rate below is
@@ -107,7 +107,7 @@
               class="rounded-2xl bg-ink/[0.03] p-4"
             >
               <p class="text-sm font-semibold text-ink">{{ m.rate }}</p>
-              <p class="mt-0.5 text-[13px] font-medium text-ink">
+              <p class="mt-0.5 text-label font-medium text-ink">
                 {{ m.name }}
               </p>
               <p class="mt-1.5 text-xs leading-relaxed text-ink-soft">
@@ -204,7 +204,7 @@
                     v-for="p in plans"
                     :key="p.name"
                     type="button"
-                    class="rounded-xl border px-3.5 py-2 text-[13px] font-semibold transition-colors"
+                    class="rounded-xl border px-3.5 py-2 text-label font-semibold transition-colors"
                     :class="
                       selectedPlan === p.id
                         ? 'border-pokemon-red bg-pokemon-red/[0.06] text-pokemon-red'
@@ -230,7 +230,7 @@
                 from RM {{ money(revenue) }} in online sales
               </p>
 
-              <dl class="mt-6 space-y-2.5 border-t border-white/10 pt-5 text-[13px]">
+              <dl class="mt-6 space-y-2.5 border-t border-white/10 pt-5 text-label">
                 <div class="flex justify-between gap-3">
                   <dt class="text-white/60">
                     Commission ({{ (feeRate * 100).toFixed(0) }}%)
@@ -414,7 +414,7 @@
             <h3 class="mt-3.5 text-sm font-semibold text-ink">
               {{ item.title }}
             </h3>
-            <p class="mt-1.5 text-[13px] leading-relaxed text-ink-muted">
+            <p class="mt-1.5 text-label leading-relaxed text-ink-muted">
               {{ item.body }}
             </p>
           </div>
@@ -452,7 +452,7 @@
                     {{ row.name }}
                     <span
                       v-if="row.us"
-                      class="ml-1.5 rounded-md bg-pokemon-red/10 px-1.5 py-0.5 text-[11px] font-semibold text-pokemon-red"
+                      class="ml-1.5 rounded-md bg-pokemon-red/10 px-1.5 py-0.5 text-micro font-semibold text-pokemon-red"
                       >You</span
                     >
                   </td>
@@ -488,7 +488,7 @@
             class="reveal-init surface rounded-2xl p-5 sm:p-6"
           >
             <dt class="text-sm font-semibold text-ink">{{ item.q }}</dt>
-            <dd class="mt-2 text-[13px] leading-relaxed text-ink-muted">
+            <dd class="mt-2 text-label leading-relaxed text-ink-muted">
               {{ item.a }}
             </dd>
           </div>

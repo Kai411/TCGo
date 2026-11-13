@@ -18,7 +18,7 @@
           </span>
           <span
             v-else-if="user"
-            class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/10 text-white/80"
+            class="text-micro font-semibold px-2 py-0.5 rounded-full bg-white/10 text-white/80"
             :class="{ 'text-red-300 bg-red-500/20': remaining === 0 }"
           >
             {{ used }}/{{ FREE_SCAN_LIMIT }} this month
@@ -168,7 +168,7 @@
           <!-- Live queue status -->
           <div
             v-if="queue.length"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/70 text-white text-[11px] font-semibold backdrop-blur"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/70 text-white text-micro font-semibold backdrop-blur"
           >
             <span
               v-if="processingCount() > 0"

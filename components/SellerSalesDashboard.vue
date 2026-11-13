@@ -29,7 +29,7 @@
           >
             {{ tile.count }}
           </p>
-          <p class="mt-1 text-[11px] font-medium text-ink-muted dark:text-zinc-400 leading-tight">
+          <p class="mt-1 text-micro font-medium text-ink-muted dark:text-zinc-400 leading-tight">
             {{ tile.label }}
           </p>
         </button>
@@ -70,18 +70,18 @@
         <!-- Secondary figures: supporting, not competing with the headline -->
         <dl class="flex gap-5 sm:gap-7">
           <div>
-            <dt class="text-[11px] text-ink-muted dark:text-zinc-400">Items sold</dt>
+            <dt class="text-micro text-ink-muted dark:text-zinc-400">Items sold</dt>
             <dd class="mt-1 text-lg font-bold text-ink dark:text-white tabular-price">{{ itemsSold }}</dd>
           </div>
           <div>
-            <dt class="text-[11px] text-ink-muted dark:text-zinc-400">Avg order</dt>
+            <dt class="text-micro text-ink-muted dark:text-zinc-400">Avg order</dt>
             <dd class="mt-1 text-lg font-bold text-ink dark:text-white tabular-price">RM {{ formatMyr(avgOrder) }}</dd>
           </div>
           <div>
-            <dt class="text-[11px] text-ink-muted dark:text-zinc-400">Orders</dt>
+            <dt class="text-micro text-ink-muted dark:text-zinc-400">Orders</dt>
             <dd class="mt-1 text-lg font-bold text-ink dark:text-white tabular-price">
               {{ completedCount }}
-              <span v-if="posCount > 0" class="block text-[10px] font-normal text-ink-soft dark:text-zinc-500">
+              <span v-if="posCount > 0" class="block text-2xs font-normal text-ink-soft dark:text-zinc-500">
                 incl. {{ posCount }} in-person
               </span>
             </dd>
@@ -90,10 +90,10 @@
                sold at RM 80 off list still books as a sale. This is the
                margin actually given away. -->
           <div v-if="counterDiscount.total > 0">
-            <dt class="text-[11px] text-ink-muted dark:text-zinc-400">Discounts</dt>
+            <dt class="text-micro text-ink-muted dark:text-zinc-400">Discounts</dt>
             <dd class="mt-1 text-lg font-bold text-amber-600 dark:text-amber-400 tabular-price">
               RM {{ formatMyr(counterDiscount.total) }}
-              <span class="block text-[10px] font-normal text-ink-soft dark:text-zinc-500">
+              <span class="block text-2xs font-normal text-ink-soft dark:text-zinc-500">
                 on {{ counterDiscount.count }}
                 {{ counterDiscount.count === 1 ? "item" : "items" }}
               </span>
@@ -121,7 +121,7 @@
               class="absolute left-0 right-0 flex items-center gap-2"
               :style="{ bottom: `${(tick / axisMax) * 100}%` }"
             >
-              <span class="w-10 shrink-0 text-right text-[9px] tabular-price text-ink-soft dark:text-zinc-600">
+              <span class="w-10 shrink-0 text-right text-2xs tabular-price text-ink-soft dark:text-zinc-600">
                 {{ shortMyr(tick) }}
               </span>
               <span class="flex-1 border-t border-dashed border-black/[0.07] dark:border-white/[0.07]" />
@@ -150,7 +150,7 @@
               <!-- Selective direct label: only the peak week, never every bar -->
               <span
                 v-if="b.value > 0 && b.value === chartMax && hovered === null"
-                class="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold tabular-price text-ink dark:text-white pointer-events-none"
+                class="absolute left-1/2 -translate-x-1/2 text-2xs font-bold tabular-price text-ink dark:text-white pointer-events-none"
                 :style="{ bottom: `calc(${barHeight(b.value)} + 6px)` }"
               >
                 {{ shortMyr(b.value) }}
@@ -161,8 +161,8 @@
                 v-if="hovered === i"
                 class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap rounded-lg bg-ink dark:bg-white px-2.5 py-1.5 shadow-card-hover pointer-events-none"
               >
-                <p class="text-[10px] font-semibold text-white dark:text-ink">{{ b.label }}</p>
-                <p class="text-[11px] font-bold text-white dark:text-ink tabular-price">
+                <p class="text-2xs font-semibold text-white dark:text-ink">{{ b.label }}</p>
+                <p class="text-micro font-bold text-white dark:text-ink tabular-price">
                   RM {{ formatMyr(b.value) }}
                 </p>
               </div>
@@ -175,7 +175,7 @@
             <span
               v-for="(b, i) in weeklyBuckets"
               :key="i"
-              class="flex-1 text-center text-[9px] tabular-price"
+              class="flex-1 text-center text-2xs tabular-price"
               :class="hovered === i ? 'text-ink dark:text-white font-semibold' : 'text-ink-soft dark:text-zinc-600'"
             >
               {{ b.short }}
@@ -201,7 +201,7 @@
           RM {{ formatMyr(fundsAvailable) }}
           <span class="text-xs font-semibold text-ink-soft dark:text-zinc-500">available</span>
         </p>
-        <p v-if="fundsHeld > 0" class="text-[11px] text-ink-soft dark:text-zinc-500">
+        <p v-if="fundsHeld > 0" class="text-micro text-ink-soft dark:text-zinc-500">
           + RM {{ formatMyr(fundsHeld) }} pending / locked
         </p>
       </div>
@@ -220,7 +220,7 @@
           <NuxtLink
             v-if="posCount"
             to="/seller/sales"
-            class="text-[11px] font-semibold text-pokemon-red hover:underline inline-flex items-center gap-0.5"
+            class="text-micro font-semibold text-pokemon-red hover:underline inline-flex items-center gap-0.5"
           >
             Counter sales
             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
@@ -228,7 +228,7 @@
           <button
             v-if="orders.length"
             @click="$emit('select', 'all')"
-            class="text-[11px] font-semibold text-pokemon-red hover:underline inline-flex items-center gap-0.5"
+            class="text-micro font-semibold text-pokemon-red hover:underline inline-flex items-center gap-0.5"
           >
             Orders
             <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
@@ -252,7 +252,7 @@
           </div>
           <div class="min-w-0 flex-1">
             <p class="text-sm font-medium text-ink dark:text-white truncate">{{ sale.name }}</p>
-            <p class="text-[11px] text-ink-muted dark:text-zinc-400">
+            <p class="text-micro text-ink-muted dark:text-zinc-400">
               {{ sale.itemsCount }} {{ sale.itemsCount === 1 ? "item" : "items" }} · RM {{ formatMyr(sale.value) }}
             </p>
           </div>

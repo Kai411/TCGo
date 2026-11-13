@@ -2,7 +2,7 @@
   <div class="max-w-5xl">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
-        <h1 class="text-xl font-bold text-ink dark:text-white">Enquiries</h1>
+        <h1 class="text-2xl font-bold text-ink dark:text-white">Enquiries</h1>
         <p class="text-sm text-ink-muted dark:text-zinc-400">
           Questions members sent from the Help Center. Your reply shows in their enquiry history and rings their bell.
           Close one when it's done.
@@ -54,7 +54,7 @@
               <span v-if="e.userEmail"> · {{ e.userEmail }}</span> · sent {{ fmt(e.createdAt) }}
             </p>
           </div>
-          <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold" :class="PILL[e.status]">
+          <span class="px-2 py-0.5 rounded-full text-micro font-semibold" :class="PILL[e.status]">
             {{ STAFF_LABEL[e.status] }}
           </span>
         </div>
@@ -63,7 +63,7 @@
           <li v-for="(m, i) in e.messages" :key="i" class="text-ink dark:text-zinc-200 whitespace-pre-line">
             <span class="font-semibold">{{ m.by === "tcgo" ? `TCGo${m.staffName ? ` (${m.staffName})` : ""}` : "Member" }}:</span>
             {{ m.text }}
-            <span class="text-[11px] text-ink-soft dark:text-zinc-500">{{ fmt(m.at) }}</span>
+            <span class="text-micro text-ink-soft dark:text-zinc-500">{{ fmt(m.at) }}</span>
           </li>
         </ul>
 

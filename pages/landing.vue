@@ -115,7 +115,7 @@
           >
             <LandingFeatureIcon :name="item.icon" />
             <h3 class="mt-4 text-sm font-semibold text-ink">{{ item.title }}</h3>
-            <p class="mt-1.5 text-[13px] leading-relaxed text-ink-muted">
+            <p class="mt-1.5 text-label leading-relaxed text-ink-muted">
               {{ item.body }}
             </p>
           </div>

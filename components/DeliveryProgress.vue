@@ -1,6 +1,6 @@
 <template>
   <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-    <h2 class="mb-4 text-sm font-semibold text-gray-500 dark:text-zinc-400">
+    <h2 class="mb-4 text-base font-semibold text-ink dark:text-white">
       Delivery
     </h2>
 
@@ -49,7 +49,7 @@
 
         <div class="min-w-0 flex-1">
           <p
-            class="text-[13.5px] font-semibold leading-tight"
+            class="text-body-sm font-semibold leading-tight"
             :class="
               i <= current
                 ? 'text-ink dark:text-white'
@@ -61,7 +61,7 @@
 
           <!-- Only the current step explains itself. Every step carrying a
                sentence turns a glanceable timeline into a wall of text. -->
-          <p v-if="i === current" class="mt-0.5 text-[12px] leading-relaxed text-gray-500 dark:text-zinc-400">
+          <p v-if="i === current" class="mt-0.5 text-caption leading-relaxed text-gray-500 dark:text-zinc-400">
             {{ courierNote || step.blurb }}
           </p>
         </div>
@@ -79,18 +79,18 @@
         Tracking number
       </p>
       <div class="mt-1 flex items-center gap-2">
-        <p class="min-w-0 flex-1 break-all font-mono text-[13px] font-semibold text-ink dark:text-white">
+        <p class="min-w-0 flex-1 break-all font-mono text-label font-semibold text-ink dark:text-white">
           {{ order.trackingNumber }}
         </p>
         <button
           type="button"
           @click="copy"
-          class="shrink-0 rounded-lg border border-black/[0.10] px-2.5 py-1 text-[11px] font-semibold text-ink transition-colors hover:bg-black/[0.03] dark:border-white/[0.12] dark:text-white dark:hover:bg-white/[0.05]"
+          class="shrink-0 rounded-lg border border-black/[0.10] px-2.5 py-1 text-micro font-semibold text-ink transition-colors hover:bg-black/[0.03] dark:border-white/[0.12] dark:text-white dark:hover:bg-white/[0.05]"
         >
           {{ copied ? "Copied" : "Copy" }}
         </button>
       </div>
-      <p v-if="order.shippingCarrier" class="mt-1 text-[12px] text-gray-500 dark:text-zinc-400">
+      <p v-if="order.shippingCarrier" class="mt-1 text-caption text-gray-500 dark:text-zinc-400">
         via {{ order.shippingCarrier }}
       </p>
     </div>

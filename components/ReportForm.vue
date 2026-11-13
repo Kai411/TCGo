@@ -95,7 +95,7 @@
             <button
               type="button"
               @click="removeEvidence(i)"
-              class="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100"
+              class="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-2xs opacity-0 group-hover:opacity-100"
             >
               ✕
             </button>

@@ -174,7 +174,7 @@
           </div>
           <p
             v-if="!couriersLoading && !courierNotice && !preferredCouriers.length"
-            class="text-[11px] text-ink-soft dark:text-zinc-500 mt-2"
+            class="text-micro text-ink-soft dark:text-zinc-500 mt-2"
           >
             None selected — always using the cheapest available.
           </p>

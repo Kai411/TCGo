@@ -122,7 +122,7 @@
                  parcel from this seller that hasn't gone out yet. -->
             <p
               v-if="joinsFor(group.sellerUid)"
-              class="flex items-start gap-1.5 text-[11px] leading-relaxed text-emerald-700 dark:text-emerald-400"
+              class="flex items-start gap-1.5 text-micro leading-relaxed text-emerald-700 dark:text-emerald-400"
             >
               <svg class="w-3.5 h-3.5 shrink-0 mt-px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12" />
@@ -131,7 +131,7 @@
               you pay RM {{ groupShipping(group).toFixed(2) }} instead of full
               postage. Everything arrives in one parcel.
             </p>
-            <p v-if="quoteError(group.sellerUid)" class="text-[11px] text-amber-600 dark:text-amber-400">
+            <p v-if="quoteError(group.sellerUid)" class="text-micro text-amber-600 dark:text-amber-400">
               {{ quoteError(group.sellerUid) }}
             </p>
             <div class="flex justify-between font-bold text-sm pt-1 border-t border-gray-100 dark:border-white/[0.06]">

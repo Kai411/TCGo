@@ -5,7 +5,7 @@
       <p class="mt-2 text-sm italic text-ink-soft">
         Effective {{ LEGAL_EFFECTIVE_DATE }}
       </p>
-      <p v-if="summary" class="mt-5 rounded-xl bg-black/[0.03] p-4 text-[15px] leading-relaxed">
+      <p v-if="summary" class="mt-5 rounded-xl bg-black/[0.03] p-4 text-body-ui leading-relaxed">
         <b>In short:</b> {{ summary }}
       </p>
     </header>

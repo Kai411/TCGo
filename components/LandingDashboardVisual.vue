@@ -2,7 +2,7 @@
   <div ref="root" class="surface rounded-3xl p-5 sm:p-7">
     <div class="flex items-start justify-between gap-3">
       <div>
-        <p class="eyebrow !text-[11px]">Total revenue</p>
+        <p class="eyebrow !text-micro">Total revenue</p>
         <p
           ref="total"
           class="mt-2 text-4xl sm:text-[2.75rem] font-bold text-ink tabular-price leading-none tracking-tightest"
@@ -33,7 +33,7 @@
             />
           </div>
         </div>
-        <span class="text-[10px] font-medium text-ink-soft">{{ day.label }}</span>
+        <span class="text-2xs font-medium text-ink-soft">{{ day.label }}</span>
       </div>
     </div>
 
@@ -42,14 +42,14 @@
       <div class="legend-item">
         <div class="flex items-center gap-1.5">
           <span class="w-2 h-2 rounded-full bg-pokemon-red" />
-          <span class="text-[11px] text-ink-muted">Online</span>
+          <span class="text-micro text-ink-muted">Online</span>
         </div>
         <p class="mt-1 text-sm font-bold text-ink tabular-price">RM 29,140</p>
       </div>
       <div class="legend-item">
         <div class="flex items-center gap-1.5">
           <span class="w-2 h-2 rounded-full bg-ink/80" />
-          <span class="text-[11px] text-ink-muted">Counter</span>
+          <span class="text-micro text-ink-muted">Counter</span>
         </div>
         <p class="mt-1 text-sm font-bold text-ink tabular-price">RM 19,180</p>
       </div>

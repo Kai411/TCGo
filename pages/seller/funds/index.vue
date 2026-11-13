@@ -89,7 +89,7 @@
             <svg class="w-3 h-3 ml-auto text-ink-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </div>
           <p class="text-xl font-extrabold text-ink dark:text-white tabular-nums mt-1">RM {{ fmt(queuedTotal) }}</p>
-          <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">
+          <p class="text-micro text-gray-400 dark:text-zinc-500 mt-0.5">
             {{ queued.length }} order{{ queued.length === 1 ? "" : "s" }} · {{ pendingCaption }}
           </p>
         </NuxtLink>
@@ -104,7 +104,7 @@
             <svg class="w-3 h-3 ml-auto text-ink-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </div>
           <p class="text-xl font-extrabold text-ink dark:text-white tabular-nums mt-1">RM {{ fmt(lockedTotal) }}</p>
-          <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">
+          <p class="text-micro text-gray-400 dark:text-zinc-500 mt-0.5">
             {{ locked.length }} order{{ locked.length === 1 ? "" : "s" }} · until delivered + {{ holdDays }}d
           </p>
         </NuxtLink>
@@ -118,7 +118,7 @@
             <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">Paid this month</p>
           </div>
           <p class="text-xl font-extrabold text-ink dark:text-white tabular-nums mt-1">RM {{ fmt(paidThisMonthTotal) }}</p>
-          <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">
+          <p class="text-micro text-gray-400 dark:text-zinc-500 mt-0.5">
             {{ paidThisMonth.length }} order{{ paidThisMonth.length === 1 ? "" : "s" }} · {{ monthLabel }}
           </p>
         </div>
@@ -140,12 +140,12 @@
               <p class="text-sm font-medium text-ink dark:text-white truncate">
                 {{ e.order.buyerName }} · {{ e.order.items.length }} item{{ e.order.items.length === 1 ? "" : "s" }}
               </p>
-              <p class="text-[11px] text-gray-500 dark:text-zinc-400">{{ payoutStage(e) }}</p>
+              <p class="text-micro text-gray-500 dark:text-zinc-400">{{ payoutStage(e) }}</p>
             </div>
             <span class="shrink-0 text-sm font-bold text-ink dark:text-white tabular-nums">RM {{ fmt(e.amount) }}</span>
           </div>
         </div>
-        <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-2">
+        <p class="text-micro text-gray-400 dark:text-zinc-500 mt-2">
           Bank transfers usually land the next working day once submitted.
         </p>
       </section>
@@ -162,7 +162,7 @@
             </div>
             <div class="min-w-0 flex-1">
               <p class="text-sm font-medium text-ink dark:text-white truncate">{{ e.order.buyerName }}</p>
-              <p class="text-[11px] text-gray-500 dark:text-zinc-400">Paid out{{ e.order.payoutPaidAt ? " · " + fmtDate(e.order.payoutPaidAt) : "" }}</p>
+              <p class="text-micro text-gray-500 dark:text-zinc-400">Paid out{{ e.order.payoutPaidAt ? " · " + fmtDate(e.order.payoutPaidAt) : "" }}</p>
             </div>
             <span class="shrink-0 text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">RM {{ fmt(e.amount) }}</span>
           </div>

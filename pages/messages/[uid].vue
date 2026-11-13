@@ -36,8 +36,8 @@
             <ChatAvatar :person="otherPerson" :online="online" class="w-10 h-10" />
             <div class="min-w-0">
               <p class="text-sm font-bold text-ink dark:text-white truncate">{{ otherPerson.name }}</p>
-              <p class="text-[11px] text-ink-muted dark:text-zinc-400 truncate">
-                <span :class="online ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''">{{ seenLabel }}</span>
+              <p class="text-micro text-ink-muted dark:text-zinc-400 truncate">
+                <span :class="online ? 'text-emerald-600 dark:text-emerald-400 font-semibold'  ''">{{ seenLabel }}</span>
                 <span aria-hidden="true"> · </span>
                 <span>{{ replyLabel }}</span>
               </p>
@@ -65,7 +65,7 @@
             </div>
 
             <template v-for="(m, i) in messages" :key="m.id">
-              <p v-if="dayChanged(i)" class="text-center text-[11px] font-semibold text-ink-soft dark:text-zinc-500 pt-2">
+              <p v-if="dayChanged(i)" class="text-center text-micro font-semibold text-ink-soft dark:text-zinc-500 pt-2">
                 {{ dayLabel(m.at) }}
               </p>
               <ChatBubble :message="m" :mine="m.senderUid === user.uid" />

@@ -36,7 +36,7 @@
         </p>
       </div>
 
-      <p class="text-[10px] text-ink-soft dark:text-zinc-500 px-1" :class="mine ? 'text-right' : ''">
+      <p class="text-2xs text-ink-soft dark:text-zinc-500 px-1" :class="mine ? 'text-right' : ''">
         {{ pending ? "Sending…" : time }}
       </p>
     </div>

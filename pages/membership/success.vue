@@ -49,7 +49,7 @@
       </svg>
     </div>
 
-    <h1 class="mt-4 text-2xl font-extrabold text-ink dark:text-white">Welcome to Pro!</h1>
+    <h1 class="mt-4 text-2xl font-bold text-ink dark:text-white">Welcome to Pro!</h1>
     <p class="mt-2 text-ink-muted dark:text-zinc-400">
       Your subscription is now active. Enjoy unlimited card scans.
     </p>

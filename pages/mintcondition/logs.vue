@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between gap-3 mb-5 flex-wrap">
       <div>
         <h1 class="text-2xl font-bold">Logs</h1>
-        <p class="text-[13px] text-ink-muted dark:text-zinc-400 mt-0.5">
+        <p class="text-label text-ink-muted dark:text-zinc-400 mt-0.5">
           What broke, and who did what.
         </p>
       </div>
@@ -14,7 +14,7 @@
          reveal who has an account), so this is where staff find out. -->
     <div class="rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4 mb-5">
       <p class="text-sm font-semibold">Test email</p>
-      <p class="text-[12px] text-ink-muted dark:text-zinc-400 mt-0.5">
+      <p class="text-caption text-ink-muted dark:text-zinc-400 mt-0.5">
         Sends one email and shows what Mailtrap answered.
       </p>
       <form class="mt-3 flex gap-2 flex-wrap" @submit.prevent="sendTest">
@@ -29,8 +29,8 @@
           {{ testBusy ? "Sending…" : "Send test" }}
         </button>
       </form>
-      <div v-if="testResult" class="mt-3 text-[13px] space-y-1">
-        <p :class="testResult.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+      <div v-if="testResult" class="mt-3 text-label space-y-1">
+        <p :class="testResult.ok ? 'text-emerald-600 dark:text-emerald-400'  'text-red-600 dark:text-red-400'">
           {{ testResult.headline }}
         </p>
         <p v-if="testResult.detail" class="text-ink-muted dark:text-zinc-400">{{ testResult.detail }}</p>
@@ -66,19 +66,19 @@
       </select>
       <label
         v-if="kind === 'error'"
-        class="flex items-center gap-1.5 text-[13px] text-ink-muted dark:text-zinc-400"
+        class="flex items-center gap-1.5 text-label text-ink-muted dark:text-zinc-400"
       >
         <input v-model="unresolved" type="checkbox" @change="load()" />
         Unresolved only
       </label>
     </div>
 
-    <p v-if="error" class="text-[13px] text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
-    <p v-if="loading" class="text-[13px] text-ink-soft dark:text-zinc-500">Loading…</p>
+    <p v-if="error" class="text-label text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
+    <p v-if="loading" class="text-label text-ink-soft dark:text-zinc-500">Loading…</p>
 
     <p
       v-else-if="!rows.length"
-      class="text-[13px] text-ink-soft dark:text-zinc-500 py-8 text-center"
+      class="text-label text-ink-soft dark:text-zinc-500 py-8 text-center"
     >
       {{
         kind === "error"
@@ -99,27 +99,27 @@
           <div class="min-w-0 flex-1">
             <p class="flex items-center gap-2 flex-wrap">
               <span
-                class="px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
+                class="px-1.5 py-0.5 rounded-md text-micro font-semibold"
                 :class="severityBadge(r.severity)"
                 >{{ r.severity }}</span
               >
-              <span class="text-[11px] font-semibold text-ink-soft dark:text-zinc-500">
+              <span class="text-micro font-semibold text-ink-soft dark:text-zinc-500">
                 {{ areaLabel(r.area) }}
               </span>
-              <code class="text-[11px] text-ink-soft dark:text-zinc-600">{{ r.code }}</code>
-              <span class="text-[11px] text-ink-soft dark:text-zinc-600">{{ fmt(r.at) }}</span>
+              <code class="text-micro text-ink-soft dark:text-zinc-600">{{ r.code }}</code>
+              <span class="text-micro text-ink-soft dark:text-zinc-600">{{ fmt(r.at) }}</span>
             </p>
-            <p class="text-[13px] font-semibold mt-1.5 break-words">{{ r.message }}</p>
+            <p class="text-label font-semibold mt-1.5 break-words">{{ r.message }}</p>
             <p
               v-if="r.hint"
-              class="text-[12px] leading-relaxed text-ink-muted dark:text-zinc-400 mt-1"
+              class="text-caption leading-relaxed text-ink-muted dark:text-zinc-400 mt-1"
             >
               {{ r.hint }}
             </p>
-            <p v-if="r.context" class="mt-1.5 text-[11px] font-mono text-ink-soft dark:text-zinc-600 break-all">
+            <p v-if="r.context" class="mt-1.5 text-micro font-mono text-ink-soft dark:text-zinc-600 break-all">
               {{ compact(r.context) }}
             </p>
-            <p v-if="r.orderId || r.payoutId" class="mt-1.5 text-[11px]">
+            <p v-if="r.orderId || r.payoutId" class="mt-1.5 text-micro">
               <NuxtLink
                 v-if="r.orderId"
                 :to="`/orders/${r.orderId}`"
@@ -145,7 +145,7 @@
         :key="r.id"
         class="surface rounded-lg border border-black/[0.06] dark:border-white/[0.08] px-3.5 py-2.5 flex items-start gap-3"
       >
-        <span class="text-[11px] font-mono text-ink-soft dark:text-zinc-600 shrink-0 w-28 tabular-nums">
+        <span class="text-micro font-mono text-ink-soft dark:text-zinc-600 shrink-0 w-28 tabular-nums">
           {{ fmt(r.at) }}
         </span>
         <!-- Fixed width with truncate, not just fixed width: a staff ID is
@@ -153,11 +153,11 @@
              28-character Firebase uid, which overflowed the column and printed
              straight through the summary next to it. -->
         <span
-          class="font-mono text-[11px] font-bold shrink-0 w-16 truncate"
+          class="font-mono text-micro font-bold shrink-0 w-16 truncate"
           :title="r.actorName ? `${r.actor} — ${r.actorName}` : r.actor"
         >{{ actorLabel(r.actor) }}</span>
-        <span class="text-[13px] flex-1 min-w-0 break-words">{{ r.summary }}</span>
-        <code class="hidden sm:block text-[10px] text-ink-soft dark:text-zinc-600 shrink-0 max-w-[10rem] truncate">{{ r.action }}</code>
+        <span class="text-label flex-1 min-w-0 break-words">{{ r.summary }}</span>
+        <code class="hidden sm:block text-2xs text-ink-soft dark:text-zinc-600 shrink-0 max-w-[10rem] truncate">{{ r.action }}</code>
       </div>
     </div>
 
@@ -306,7 +306,7 @@ onMounted(() => load());
 
 <style scoped>
 .sel {
-  @apply px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-[13px];
+  @apply px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-label;
 }
 .btn-ghost {
   @apply px-3 py-2 rounded-lg text-sm font-semibold border border-black/[0.08] dark:border-white/[0.10] text-ink-muted dark:text-zinc-300 disabled:opacity-40;

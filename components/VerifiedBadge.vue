@@ -7,7 +7,7 @@
       :aria-expanded="open"
       aria-haspopup="dialog"
       aria-label="Verified — what this means"
-      class="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-500/20 dark:text-emerald-300"
+      class="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-micro font-semibold text-emerald-700 transition-colors hover:bg-emerald-500/20 dark:text-emerald-300"
     >
       <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
         <path
@@ -36,9 +36,9 @@
         aria-label="About verification"
         class="absolute left-0 top-full z-50 mt-2 w-[min(19rem,calc(100vw-2rem))] origin-top-left rounded-xl border border-black/[0.08] bg-white p-4 text-left shadow-xl dark:border-white/[0.10] dark:bg-[#1b1b21]"
       >
-        <p class="text-[13px] font-bold text-ink dark:text-white">Identity verified</p>
+        <p class="text-label font-bold text-ink dark:text-white">Identity verified</p>
 
-        <p class="mt-1.5 text-[12.5px] leading-relaxed text-ink-muted dark:text-zinc-400">
+        <p class="mt-1.5 text-label leading-relaxed text-ink-muted dark:text-zinc-400">
           TCGo checked this member's MyKad against a live selfie, so the name
           on the account is the name on their IC.
         </p>
@@ -47,16 +47,16 @@
              "TCGo vouches for this seller" would be doing work identity
              verification cannot do, and the first bad trade would make it a
              promise we broke. -->
-        <p class="mt-2.5 rounded-lg bg-black/[0.03] px-3 py-2 text-[12px] leading-relaxed text-ink-muted dark:bg-white/[0.05] dark:text-zinc-400">
+        <p class="mt-2.5 rounded-lg bg-black/[0.03] px-3 py-2 text-caption leading-relaxed text-ink-muted dark:bg-white/[0.05] dark:text-zinc-400">
           It confirms <span class="font-semibold text-ink dark:text-zinc-200">who they are</span>,
           not how they trade. Their ratings and sales history are the guide for that.
         </p>
 
-        <p v-if="verifiedOn" class="mt-2.5 text-[11px] text-ink-soft dark:text-zinc-500">
+        <p v-if="verifiedOn" class="mt-2.5 text-micro text-ink-soft dark:text-zinc-500">
           Verified {{ verifiedOn }}
         </p>
 
-        <p class="mt-2 text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500">
+        <p class="mt-2 text-micro leading-relaxed text-ink-soft dark:text-zinc-500">
           Checks are run by
           <!-- rel is not optional here: noopener closes the window.opener
                handle a new tab would otherwise get, and this link sits in a

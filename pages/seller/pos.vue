@@ -59,7 +59,7 @@
                 <div class="w-7 h-9 shrink-0 rounded overflow-hidden"><CardImage :src="item.primaryImage" :alt="item.cardName" /></div>
                 <div class="min-w-0 flex-1">
                   <p class="text-xs font-medium text-ink dark:text-white truncate">{{ item.cardName }}</p>
-                  <p class="text-[10px] text-gray-500 dark:text-zinc-400 truncate">{{ [item.setName, item.number].filter(Boolean).join(" · ") }}</p>
+                  <p class="text-2xs text-gray-500 dark:text-zinc-400 truncate">{{ [item.setName, item.number].filter(Boolean).join(" · ") }}</p>
                 </div>
                 <span class="text-xs font-semibold text-pokemon-red">+ Add</span>
               </button>
@@ -100,7 +100,7 @@
       <!-- Stash -->
       <div class="mb-44 lg:mb-28">
         <div class="flex items-center justify-between mb-2">
-          <h2 class="text-sm font-semibold text-gray-500 dark:text-zinc-400">Cart ({{ stash.length }})</h2>
+          <h2 class="text-base font-semibold text-ink dark:text-white">Cart ({{ stash.length }})</h2>
           <button v-if="stash.length" @click="clearCart" class="text-xs text-gray-400 dark:text-zinc-500 hover:text-red-500">Clear</button>
         </div>
         <p v-if="!stash.length" class="text-sm text-gray-400 dark:text-zinc-500 py-6 text-center">Scan a label to add it here.</p>
@@ -116,17 +116,17 @@
             <div class="w-10 h-14 shrink-0 rounded overflow-hidden"><CardImage :src="line.image" :alt="line.cardName" /></div>
             <div class="min-w-0 flex-1">
               <p class="text-sm font-medium text-ink dark:text-white truncate">{{ line.cardName }}</p>
-              <p class="text-[11px] text-gray-500 dark:text-zinc-400 truncate">{{ line.sub }}</p>
-              <p v-if="blockedIds.has(line.id)" class="text-[10px] font-bold text-red-600 dark:text-red-400 mt-0.5">
+              <p class="text-micro text-gray-500 dark:text-zinc-400 truncate">{{ line.sub }}</p>
+              <p v-if="blockedIds.has(line.id)" class="text-2xs font-bold text-red-600 dark:text-red-400 mt-0.5">
                 {{ blockedReason(line.id) }}
               </p>
-              <p v-else-if="discountOf(line) > 0" class="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
+              <p v-else-if="discountOf(line) > 0" class="text-2xs text-amber-600 dark:text-amber-400 mt-0.5">
                 <span class="line-through">RM {{ line.listPrice.toFixed(2) }}</span>
                 · RM {{ discountOf(line).toFixed(2) }} off
               </p>
             </div>
             <div class="shrink-0 flex items-center gap-1">
-              <span class="text-[10px] text-gray-400">RM</span>
+              <span class="text-2xs text-gray-400">RM</span>
               <input type="number" min="0" step="0.01" v-model.number="line.soldPrice" :disabled="paying" class="w-20 text-sm text-right px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums disabled:opacity-50" />
             </div>
             <button @click="removeLine(i)" :disabled="paying" class="shrink-0 text-gray-400 hover:text-red-500 disabled:opacity-40" aria-label="Remove">
@@ -141,7 +141,7 @@
         <div v-if="stash.length" class="fixed bottom-20 lg:bottom-0 inset-x-0 lg:left-56 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] px-4 py-3 lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <div class="max-w-2xl mx-auto flex items-center justify-between gap-3">
             <div>
-              <p class="text-[11px] text-gray-500 dark:text-zinc-400">
+              <p class="text-micro text-gray-500 dark:text-zinc-400">
                 {{ stash.length }} {{ stash.length === 1 ? "item" : "items" }}
                 <span v-if="totals.discountTotal > 0" class="text-amber-600 dark:text-amber-400 font-semibold">
                   · RM {{ totals.discountTotal.toFixed(2) }} off

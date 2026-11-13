@@ -21,7 +21,7 @@
         v-if="showIntro"
         class="mb-3 flex items-start gap-3 rounded-2xl bg-pokemon-red/[0.06] dark:bg-pokemon-red/[0.12] px-4 py-3"
       >
-        <p class="min-w-0 flex-1 text-[13px] leading-relaxed text-ink dark:text-zinc-200">
+        <p class="min-w-0 flex-1 text-label leading-relaxed text-ink dark:text-zinc-200">
           Cards from Malaysian collectors. Your payment is held until your card
           arrives.
           <NuxtLink to="/refund-policy" class="font-semibold text-pokemon-red hover:underline">How Buyer Protection works</NuxtLink>

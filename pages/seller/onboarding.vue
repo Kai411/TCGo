@@ -2,13 +2,13 @@
   <div class="min-h-screen bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 px-4 py-10">
     <div class="mx-auto w-full max-w-md">
       <div class="mb-6 text-center">
-        <p class="text-[13px] font-semibold text-ink-muted dark:text-zinc-400">
+        <p class="text-label font-semibold text-ink-muted dark:text-zinc-400">
           Set up selling
         </p>
-        <h1 class="mt-1.5 text-2xl font-bold tracking-tightest text-ink dark:text-white">
+        <h1 class="mt-1.5 text-2xl font-bold tracking-tight text-ink dark:text-white">
           Four things and you're trading
         </h1>
-        <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
+        <p class="mt-1.5 text-label text-ink-muted dark:text-zinc-400">
           Buyers pay us, we pay you — so we need to know who you are and where
           the money goes.
         </p>
@@ -24,7 +24,7 @@
           :class="s.id === state.current ? 'bg-white shadow-sm dark:bg-white/[0.05]' : ''"
         >
           <span
-            class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+            class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-micro font-bold"
             :class="
               isDone(s.id)
                 ? 'bg-emerald-500 text-white'
@@ -40,12 +40,12 @@
           </span>
           <div class="min-w-0">
             <p
-              class="text-[13px] font-semibold leading-tight"
+              class="text-label font-semibold leading-tight"
               :class="isDone(s.id) ? 'text-ink-soft line-through dark:text-zinc-500' : 'text-ink dark:text-white'"
             >
               {{ s.title }}
             </p>
-            <p v-if="s.id === state.current" class="mt-0.5 text-[12px] text-ink-muted dark:text-zinc-400">
+            <p v-if="s.id === state.current" class="mt-0.5 text-caption text-ink-muted dark:text-zinc-400">
               {{ s.blurb }}
             </p>
           </div>
@@ -63,7 +63,7 @@
         <!-- ── Contact + pickup ─────────────────────────────────────── -->
         <template v-else-if="state.current === 'contact'">
           <h2 class="text-lg font-bold text-ink dark:text-white">Contact and pickup</h2>
-          <p class="mt-1.5 mb-5 text-[13px] text-ink-muted dark:text-zinc-400">
+          <p class="mt-1.5 mb-5 text-label text-ink-muted dark:text-zinc-400">
             Where couriers collect your parcels. Buyers never see this address.
           </p>
           <SellerContactForm />
@@ -72,7 +72,7 @@
         <!-- ── Bank ─────────────────────────────────────────────────── -->
         <template v-else-if="state.current === 'bank'">
           <h2 class="text-lg font-bold text-ink dark:text-white">Where you get paid</h2>
-          <p class="mt-1.5 mb-5 text-[13px] text-ink-muted dark:text-zinc-400">
+          <p class="mt-1.5 mb-5 text-label text-ink-muted dark:text-zinc-400">
             Sales are paid out to this account after the buyer receives the card.
           </p>
           <SellerBankForm />
@@ -81,7 +81,7 @@
         <!-- ── Handover ─────────────────────────────────────────────── -->
         <template v-else-if="state.current === 'handover'">
           <h2 class="text-lg font-bold text-ink dark:text-white">How you send parcels</h2>
-          <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
+          <p class="mt-1.5 text-label text-ink-muted dark:text-zinc-400">
             This decides which rates buyers are quoted, so pick the one you'll
             actually do. You can change it later.
           </p>
@@ -106,8 +106,8 @@
                 <span v-if="form.handoverPreference === opt.value" class="h-2 w-2 rounded-full bg-pokemon-red" />
               </span>
               <span class="min-w-0">
-                <span class="block text-[14px] font-semibold text-ink dark:text-white">{{ opt.title }}</span>
-                <span class="mt-0.5 block text-[12px] leading-relaxed text-ink-muted dark:text-zinc-400">{{ opt.blurb }}</span>
+                <span class="block text-body-sm font-semibold text-ink dark:text-white">{{ opt.title }}</span>
+                <span class="mt-0.5 block text-caption leading-relaxed text-ink-muted dark:text-zinc-400">{{ opt.blurb }}</span>
               </span>
             </button>
           </div>
@@ -127,7 +127,7 @@
               </svg>
             </div>
             <h2 class="text-lg font-bold text-ink dark:text-white">Your shop is open</h2>
-            <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
+            <p class="mt-1.5 text-label text-ink-muted dark:text-zinc-400">
               List your first card whenever you're ready.
             </p>
             <button @click="finish" class="btn-primary mt-5">{{ finishLabel }}</button>
@@ -135,13 +135,13 @@
         </template>
       </div>
 
-      <p class="mt-5 text-center text-[12px] leading-relaxed text-ink-soft dark:text-zinc-500">
+      <p class="mt-5 text-center text-caption leading-relaxed text-ink-soft dark:text-zinc-500">
         By selling on TCGo you agree to the
         <NuxtLink to="/seller-policy" target="_blank" class="font-semibold hover:underline">Seller Policy</NuxtLink>,
         including its fees and payout rules.
       </p>
 
-      <p class="mt-2 text-center text-[12px] text-ink-soft dark:text-zinc-500">
+      <p class="mt-2 text-center text-caption text-ink-soft dark:text-zinc-500">
         Just browsing?
         <NuxtLink to="/" class="font-semibold hover:underline">Back to the marketplace</NuxtLink>
       </p>
@@ -246,13 +246,13 @@ watch(
   @apply mb-1.5 block text-xs font-semibold text-ink-muted dark:text-zinc-400;
 }
 .hint {
-  @apply mt-1.5 block text-[11px] text-ink-soft dark:text-zinc-500;
+  @apply mt-1.5 block text-micro text-ink-soft dark:text-zinc-500;
 }
 .err {
-  @apply mt-3 text-[13px] text-rose-600 dark:text-rose-400;
+  @apply mt-3 text-label text-rose-600 dark:text-rose-400;
 }
 .field {
-  @apply w-full rounded-xl border border-black/[0.10] bg-white px-3.5 py-2.5 text-[15px]
+  @apply w-full rounded-xl border border-black/[0.10] bg-white px-3.5 py-2.5 text-body-ui
          text-ink outline-none transition-colors placeholder:text-ink-soft
          focus:border-pokemon-red focus:ring-2 focus:ring-pokemon-red/20
          dark:border-white/[0.12] dark:bg-white/[0.04] dark:text-white;

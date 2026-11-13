@@ -90,7 +90,7 @@
                 <p class="text-sm text-ink dark:text-white font-mono">#{{ order.id.slice(0, 8) }}</p>
                 <p class="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">{{ formatDate(order.createdAt) }}</p>
               </div>
-              <span class="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-full" :class="statusColor">
+              <span class="shrink-0 text-micro font-semibold px-2 py-1 rounded-full" :class="statusColor">
                 {{ statusLabel }}
               </span>
             </div>
@@ -123,7 +123,7 @@
 
           <!-- Items + money -->
           <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-            <h2 class="text-sm font-semibold text-gray-500 dark:text-zinc-400 mb-3">
+            <h2 class="text-base font-semibold text-ink dark:text-white mb-3">
               Items ({{ order.items.length }})
             </h2>
             <div class="space-y-3">
@@ -166,7 +166,7 @@
                 </span>
                 <span class="tabular-nums">RM {{ order.shipping.toFixed(2) }}</span>
               </div>
-              <p v-if="isJoinFee" class="-mt-1 text-[11px] leading-relaxed text-gray-400 dark:text-zinc-500">
+              <p v-if="isJoinFee" class="-mt-1 text-micro leading-relaxed text-gray-400 dark:text-zinc-500">
                 Ships in the same parcel as your earlier order, so there's no
                 second delivery to pay for.
               </p>
@@ -181,7 +181,7 @@
           <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <h2 class="text-sm font-semibold text-gray-500 dark:text-zinc-400">Invoice</h2>
+                <h2 class="text-base font-semibold text-ink dark:text-white">Invoice</h2>
                 <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1">
                   <template v-if="invoiceAvailable">
                     Tax invoice for order #{{ order.id.slice(0, 8) }}.
@@ -298,7 +298,7 @@
 
           <!-- Delivery address -->
           <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-            <h2 class="text-sm font-semibold text-gray-500 dark:text-zinc-400 mb-2">
+            <h2 class="text-base font-semibold text-ink dark:text-white mb-2">
               Delivery address
             </h2>
             <template v-if="order.deliveryAddress">
@@ -309,7 +309,7 @@
                 {{ order.deliveryAddress.postcode }} {{ order.deliveryAddress.city }}<br/>
                 {{ stateName(order.deliveryAddress.state) }}
               </p>
-              <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-2">
+              <p class="text-micro text-gray-400 dark:text-zinc-500 mt-2">
                 {{ order.region === "WM" ? "West Malaysia" : "East Malaysia" }}
               </p>
             </template>
@@ -327,7 +327,7 @@
           <template v-else>
             <!-- Waybill / tracking -->
             <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-              <h2 class="text-sm font-semibold text-gray-500 dark:text-zinc-400 mb-2">
+              <h2 class="text-base font-semibold text-ink dark:text-white mb-2">
                 Waybill
               </h2>
 
@@ -344,7 +344,7 @@
                   </div>
                   <button
                     @click="copyTracking"
-                    class="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 hover:border-pokemon-red hover:text-pokemon-red transition-colors"
+                    class="shrink-0 text-micro font-semibold px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 hover:border-pokemon-red hover:text-pokemon-red transition-colors"
                   >
                     {{ copied ? "Copied" : "Copy" }}
                   </button>
@@ -364,7 +364,7 @@
                     <button
                       @click="loadTracking"
                       :disabled="trackingBusy"
-                      class="text-[11px] font-semibold text-pokemon-red hover:underline disabled:opacity-50"
+                      class="text-micro font-semibold text-pokemon-red hover:underline disabled:opacity-50"
                     >
                       {{ trackingBusy ? "Refreshing…" : "Refresh" }}
                     </button>
@@ -388,7 +388,7 @@
                         class="w-full h-44 pointer-events-none"
                         title="Waybill preview"
                       />
-                      <span class="block text-[11px] font-semibold text-gray-600 dark:text-zinc-300 py-1.5 group-hover:text-pokemon-red">
+                      <span class="block text-micro font-semibold text-gray-600 dark:text-zinc-300 py-1.5 group-hover:text-pokemon-red">
                         Open full size ↗
                       </span>
                     </button>
@@ -402,7 +402,7 @@
                     <span v-if="labelBusy" class="animate-spin rounded-full h-3 w-3 border-b-2 border-pokemon-red"/>
                     {{ labelBusy ? "Fetching…" : labelUrl ? "Refresh label" : "Get consignment note" }}
                   </button>
-                  <p v-if="labelError" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                  <p v-if="labelError" class="text-micro text-amber-600 dark:text-amber-400 mt-1">
                     {{ labelError }}
                   </p>
                 </template>
@@ -441,7 +441,7 @@
               RM {{ (order.refundAmount ?? order.total ?? 0).toFixed(2) }}
             </p>
           </div>
-          <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-1.5">
+          <p class="text-micro text-gray-400 dark:text-zinc-500 mt-1.5">
             {{
               order.refundStatus === "refunded"
                 ? "Back on the account you paid from."
@@ -462,7 +462,7 @@
           <div class="flex items-center justify-between gap-2 mb-3">
             <h2 class="text-sm font-bold text-ink dark:text-white">Settlement</h2>
             <span
-              class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+              class="text-micro font-semibold px-2 py-0.5 rounded-full"
               :class="settlementBadge.cls"
             >
               {{ settlementBadge.label }}
@@ -572,7 +572,7 @@
           <div class="flex justify-between font-bold text-ink dark:text-white pt-1 border-t border-black/[0.06] dark:border-white/[0.08]">
             <span>You'll receive</span><span>RM {{ refundSummary.amount.toFixed(2) }}</span>
           </div>
-          <p class="text-[11px] text-gray-500 dark:text-zinc-400 pt-1">
+          <p class="text-micro text-gray-500 dark:text-zinc-400 pt-1">
             A 5% payment processing fee (capped at RM 2) covers the payment and transfer charges. Refunds are sent to your bank after review.
           </p>
         </div>

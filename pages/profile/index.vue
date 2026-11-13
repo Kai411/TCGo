@@ -175,7 +175,7 @@
                 <span v-if="p.email" class="block text-xs text-ink-soft dark:text-zinc-500 truncate">{{ p.email }}</span>
               </span>
               <span
-                class="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                class="shrink-0 text-micro font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
               >
                 Connected
               </span>

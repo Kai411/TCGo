@@ -89,7 +89,7 @@
                   ? 'bg-ink text-white dark:bg-white dark:text-ink rounded-br-md'
                   : 'bg-black/[0.05] dark:bg-white/[0.08] text-ink dark:text-zinc-100 rounded-bl-md'"
               >{{ m.text }}</p>
-              <span class="mt-1 px-1 text-[11px] text-ink-soft dark:text-zinc-500">
+              <span class="mt-1 px-1 text-micro text-ink-soft dark:text-zinc-500">
                 {{ m.by === "tcgo" ? "TCGo · " : "" }}{{ fmtDateTime(m.at) }}
               </span>
             </div>
@@ -204,7 +204,7 @@ const fmtDateTime = (ms: number) =>
 
 <style scoped>
 .pill {
-  @apply shrink-0 px-2 py-0.5 rounded-full text-[11px] font-semibold;
+  @apply shrink-0 px-2 py-0.5 rounded-full text-micro font-semibold;
 }
 .press {
   transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);

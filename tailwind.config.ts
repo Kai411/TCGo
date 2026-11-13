@@ -57,7 +57,22 @@ export default {
         tightest: "-0.02em",
         hero: "-0.02em",
       },
+      // Type scale by role (2026-11 design audit, better-typography). Each
+      // size carries its own unitless line-height, so a role is one
+      // decision. Tailwind's text-xs/sm/base/lg/xl/2xl stay valid and line
+      // up with caption/body-sm/body/title/section/page. Phone listing tiles
+      // keep kai's exact pixel sizes (CardTile and the Dex tiles).
       fontSize: {
+        "2xs": ["0.625rem", { lineHeight: "1.3" }], // 10px: badges only
+        micro: ["0.6875rem", { lineHeight: "1.35" }], // 11px: meta, chips
+        caption: ["0.75rem", { lineHeight: "1.4" }], // 12px
+        label: ["0.8125rem", { lineHeight: "1.4" }], // 13px: labels, secondary text
+        "body-sm": ["0.875rem", { lineHeight: "1.5" }], // 14px
+        "body-ui": ["0.9375rem", { lineHeight: "1.45" }], // 15px: touch rows, fields
+        body: ["1rem", { lineHeight: "1.55" }], // 16px: reading text
+        title: ["1.125rem", { lineHeight: "1.3" }], // 18px: h3
+        section: ["1.25rem", { lineHeight: "1.3" }], // 20px: h2
+        page: ["1.5rem", { lineHeight: "1.2" }], // 24px: h1
         hero: ["clamp(2.5rem, 6vw, 4.5rem)", { lineHeight: "1.05", letterSpacing: "-0.02em" }],
         display: ["clamp(2rem, 4vw, 3rem)", { lineHeight: "1.1", letterSpacing: "-0.02em" }],
       },

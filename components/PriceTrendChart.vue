@@ -19,7 +19,7 @@
         :class="headerClass"
       >
         <div>
-          <p class="text-[11px] text-ink-muted dark:text-zinc-400">
+          <p class="text-micro text-ink-muted dark:text-zinc-400">
             {{ valueLabel }}
           </p>
           <p
@@ -30,7 +30,7 @@
         </div>
         <span
           v-if="trend.changePct !== null"
-          class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-price"
+          class="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-micro font-bold tabular-price"
           :class="
             up
               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
@@ -134,11 +134,11 @@
             top: `${Math.max(0, (yAt(active) / H) * 100 - 6)}%`,
           }"
         >
-          <p class="text-[10px] text-white/70 dark:text-ink-muted">
+          <p class="text-2xs text-white/70 dark:text-ink-muted">
             {{ labelAt(active) }}
           </p>
           <p
-            class="text-[11px] font-bold text-white dark:text-ink tabular-price"
+            class="text-micro font-bold text-white dark:text-ink tabular-price"
           >
             RM {{ fmt(trend.points[active]!.market) }}
           </p>
@@ -147,7 +147,7 @@
 
       <!-- Range footer -->
       <div
-        class="mt-2 flex items-center justify-between text-[10px] text-ink-soft dark:text-zinc-500 tabular-price"
+        class="mt-2 flex items-center justify-between text-2xs text-ink-soft dark:text-zinc-500 tabular-price"
       >
         <span>{{ labelAt(0) }}</span>
         <span

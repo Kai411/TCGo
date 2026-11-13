@@ -8,12 +8,12 @@
         <p class="text-sm font-bold text-ink dark:text-white">
           Identity verification
           <span
-            class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
+            class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-md text-micro font-semibold"
             :class="tone.badge"
             >{{ tone.label }}</span
           >
         </p>
-        <p class="text-[13px] leading-relaxed text-gray-500 dark:text-zinc-400 mt-1.5 max-w-md">
+        <p class="text-label leading-relaxed text-gray-500 dark:text-zinc-400 mt-1.5 max-w-md">
           {{ tone.body }}
         </p>
       </div>
@@ -31,7 +31,7 @@
 
     <p
       v-if="error"
-      class="mt-3 text-[13px] text-red-600 dark:text-red-400"
+      class="mt-3 text-label text-red-600 dark:text-red-400"
     >
       {{ error }}
     </p>
@@ -39,7 +39,7 @@
     <!-- Consent has to be shown before the flow opens, not after. -->
     <p
       v-if="tone.canStart"
-      class="mt-4 text-[11px] leading-relaxed text-gray-400 dark:text-zinc-500"
+      class="mt-4 text-micro leading-relaxed text-gray-400 dark:text-zinc-500"
     >
       Continuing opens our verification partner, Didit, who will ask for your
       MyKad and a short face scan to confirm it's you. They process

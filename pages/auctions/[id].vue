@@ -132,7 +132,7 @@
         <div class="min-w-0">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink dark:text-white">
+              <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-ink dark:text-white">
                 {{ auction.title }}
               </h1>
               <p v-if="auction.cardSet" class="mt-1 text-sm font-medium text-ink-muted dark:text-zinc-400">{{ auction.cardSet }}</p>
@@ -151,7 +151,7 @@
                 <svg v-else class="w-[18px] h-[18px] text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span v-if="copied" role="status" class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap pointer-events-none">
+                <span v-if="copied" role="status" class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-2xs font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap pointer-events-none">
                   Copied!
                 </span>
               </button>
@@ -542,7 +542,7 @@
         >
           <div class="mx-auto mb-4 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15 sm:hidden" aria-hidden="true" />
           <h2 id="bid-intro-title" class="text-lg font-bold text-ink dark:text-white">Before your first bid</h2>
-          <ul class="mt-3 space-y-2.5 text-[14px] leading-relaxed text-ink-muted dark:text-zinc-300">
+          <ul class="mt-3 space-y-2.5 text-body-sm leading-relaxed text-ink-muted dark:text-zinc-300">
             <li>A bid is a promise to buy at that price if you win.</li>
             <li>If you win, you have {{ AUCTION_PAYMENT_WINDOW_HOURS }} hours to pay. Not paying cancels the win and can get your bidding restricted.</li>
             <li>The seller's shipping fee is added to the winning price when you pay.</li>

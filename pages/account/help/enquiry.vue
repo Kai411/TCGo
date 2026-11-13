@@ -81,7 +81,7 @@
         <button
           type="submit"
           :disabled="sending"
-          class="w-full min-h-[48px] rounded-full text-[15px] font-semibold bg-pokemon-red text-white transition-[transform,opacity] duration-150 active:scale-[0.97] disabled:opacity-60"
+          class="w-full min-h-[48px] rounded-full text-body-ui font-semibold bg-pokemon-red text-white transition-[transform,opacity] duration-150 active:scale-[0.97] disabled:opacity-60"
         >
           {{ sending ? "Sending…" : "Send enquiry" }}
         </button>

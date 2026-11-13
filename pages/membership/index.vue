@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-2xl mx-auto">
     <div class="text-center mb-10">
-      <h1 class="text-3xl font-extrabold text-ink dark:text-white mb-2">Simple, fair pricing</h1>
+      <h1 class="text-3xl font-bold text-ink dark:text-white mb-2">Simple, fair pricing</h1>
       <p class="text-gray-500 dark:text-zinc-400">Start free. Upgrade when you need more.</p>
     </div>
 
@@ -36,7 +36,7 @@
 
       <!-- Premium tier -->
       <div class="bg-white dark:bg-white/[0.04] rounded-2xl border-2 border-amber-400 dark:border-amber-500 p-6 flex flex-col relative overflow-hidden">
-        <div class="absolute top-3 right-3 text-[11px] font-semibold bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full">Popular</div>
+        <div class="absolute top-3 right-3 text-micro font-semibold bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full">Popular</div>
         <div class="mb-4">
           <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">Premium</span>
           <!-- Must match the Stripe Price object behind

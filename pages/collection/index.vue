@@ -70,7 +70,7 @@
           :aria-label="priceLabel"
           :title="priceLabel"
         >
-          <span class="text-[13px]">RM</span>
+          <span class="text-label">RM</span>
           <!-- Both chevrons when off, so the control reads as a sort before
                it has been touched; the active one alone once it is on. -->
           <svg
@@ -461,7 +461,7 @@
         </div>
         <p
           v-else-if="searchResults.length >= SEARCH_PAGE_SIZE"
-          class="mt-4 text-center text-[12px] text-gray-400 dark:text-zinc-500"
+          class="mt-4 text-center text-caption text-gray-400 dark:text-zinc-500"
         >
           {{ searchTotal }} result{{ searchTotal === 1 ? "" : "s" }} — that's all
         </p>

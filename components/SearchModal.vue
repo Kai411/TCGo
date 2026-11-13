@@ -198,7 +198,7 @@
                         class="w-full aspect-[3/4] object-cover rounded"
                       />
                       <span
-                        class="absolute left-2 top-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm"
+                        class="absolute left-2 top-2 inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-bold shadow-sm"
                         :class="a.endsAt > Date.now() ? 'bg-emerald-500/90 text-white' : 'bg-zinc-700 text-white'"
                       >
                         {{ a.endsAt > Date.now() ? 'LIVE' : 'ENDED' }}

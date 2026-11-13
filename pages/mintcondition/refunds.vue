@@ -2,7 +2,7 @@
   <div class="max-w-6xl">
     <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
       <div>
-        <h1 class="text-xl font-bold text-ink dark:text-white">Refunds</h1>
+        <h1 class="text-2xl font-bold text-ink dark:text-white">Refunds</h1>
         <p class="text-sm text-ink-muted dark:text-zinc-400">
           Buyers who cancelled a paid order. Sending a refund creates a Billplz Payment Order to the buyer's bank.
         </p>
@@ -48,11 +48,11 @@
                 #{{ String(r.orderId).slice(0, 8).toUpperCase() }}
               </NuxtLink>
               <p class="text-xs text-ink-muted dark:text-zinc-400">{{ r.buyerName || r.buyerUid }}</p>
-              <p class="text-[11px] text-ink-soft dark:text-zinc-500">{{ fmt(r.createdAt) }}</p>
+              <p class="text-micro text-ink-soft dark:text-zinc-500">{{ fmt(r.createdAt) }}</p>
             </td>
             <td class="px-3 py-3 tabular-nums">
               <p class="font-bold text-ink dark:text-white">RM {{ Number(r.amount).toFixed(2) }}</p>
-              <p class="text-[11px] text-ink-soft dark:text-zinc-500">
+              <p class="text-micro text-ink-soft dark:text-zinc-500">
                 RM {{ Number(r.orderTotal).toFixed(2) }} − RM {{ Number(r.fee).toFixed(2) }} fee
               </p>
             </td>

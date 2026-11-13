@@ -130,7 +130,7 @@
               v-for="link in mobileLinks"
               :key="link.to"
               :to="link.to"
-              class="flex items-center justify-between py-3.5 text-[15px] font-medium text-gray-700 transition-colors hover:text-pokemon-red"
+              class="flex items-center justify-between py-3.5 text-body-ui font-medium text-gray-700 transition-colors hover:text-pokemon-red"
               active-class="!text-pokemon-red"
               @click="mobileMenuOpen = false"
             >
@@ -146,7 +146,7 @@
           <div class="space-y-2 border-t border-gray-100 px-5 py-5">
             <NuxtLink
               to="/"
-              class="flex w-full items-center justify-center gap-1.5 rounded-full bg-pokemon-red px-4 py-3 text-[15px] font-bold text-white"
+              class="flex w-full items-center justify-center gap-1.5 rounded-full bg-pokemon-red px-4 py-3 text-body-ui font-bold text-white"
               @click="mobileMenuOpen = false"
             >
               Go to the marketplace
@@ -158,7 +158,7 @@
             <button
               v-if="user"
               type="button"
-              class="w-full rounded-full border border-gray-200 px-4 py-3 text-[15px] font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              class="w-full rounded-full border border-gray-200 px-4 py-3 text-body-ui font-semibold text-gray-700 transition-colors hover:bg-gray-50"
               @click="handleSignOut"
             >
               Sign out
@@ -166,7 +166,7 @@
             <button
               v-else-if="!authLoading"
               type="button"
-              class="w-full rounded-full border border-gray-200 px-4 py-3 text-[15px] font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              class="w-full rounded-full border border-gray-200 px-4 py-3 text-body-ui font-semibold text-gray-700 transition-colors hover:bg-gray-50"
               @click="mobileMenuOpen = false; goToLogin()"
             >
               Sign in

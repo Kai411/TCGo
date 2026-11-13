@@ -138,7 +138,7 @@
         <div class="min-w-0">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink dark:text-white">
+              <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-ink dark:text-white">
                 {{ card.cardName }}
               </h1>
               <p v-if="card.cardSet" class="mt-1 text-sm font-medium text-ink-muted dark:text-zinc-400">{{ card.cardSet }}</p>
@@ -166,7 +166,7 @@
                 <svg v-else class="w-[18px] h-[18px] text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span v-if="copied" role="status" class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap pointer-events-none">
+                <span v-if="copied" role="status" class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-2xs font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap pointer-events-none">
                   Copied!
                 </span>
               </button>

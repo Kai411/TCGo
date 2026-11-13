@@ -36,7 +36,7 @@
       v-if="!results.length && !picked && suggestions.length"
       class="mt-3"
     >
-      <p class="text-[11px] font-semibold text-ink-muted dark:text-zinc-400 mb-2">
+      <p class="text-micro font-semibold text-ink-muted dark:text-zinc-400 mb-2">
         Matches for what you typed — click one to confirm
       </p>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -64,7 +64,7 @@
            scanning a page, and putting it below meant scrolling past the
            results every single time. -->
       <div class="mb-2 flex items-center justify-between gap-3">
-        <p class="text-[11px] text-ink-muted dark:text-zinc-400 tabular-price">
+        <p class="text-micro text-ink-muted dark:text-zinc-400 tabular-price">
           {{ total }} result{{ total === 1 ? "" : "s" }}
         </p>
         <div v-if="totalPages > 1" class="flex items-center gap-1">
@@ -77,7 +77,7 @@
           >
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
           </button>
-          <span class="text-[11px] font-semibold tabular-price text-ink dark:text-white min-w-[3.5rem] text-center">
+          <span class="text-micro font-semibold tabular-price text-ink dark:text-white min-w-[3.5rem] text-center">
             {{ page + 1 }} / {{ totalPages }}
           </span>
           <button
@@ -125,7 +125,7 @@
         <button
           type="button"
           @click="clear"
-          class="shrink-0 text-[11px] font-semibold text-ink-muted dark:text-zinc-400 hover:text-pokemon-red transition-colors"
+          class="shrink-0 text-micro font-semibold text-ink-muted dark:text-zinc-400 hover:text-pokemon-red transition-colors"
         >
           Change
         </button>

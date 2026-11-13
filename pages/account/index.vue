@@ -69,7 +69,7 @@
         aria-haspopup="dialog"
       >
         <IconQr class="w-6 h-6" />
-        <span class="text-[10px] font-semibold">My code</span>
+        <span class="text-2xs font-semibold">My code</span>
       </button>
     </div>
 
@@ -113,7 +113,7 @@
             <component :is="s.icon" class="w-6 h-6" />
             <span
               v-if="s.badge"
-              class="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-[10px] font-bold flex items-center justify-center tabular-nums"
+              class="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-2xs font-bold flex items-center justify-center tabular-nums"
             >
               {{ badgeLabel(s.badge) }}
             </span>
@@ -200,7 +200,7 @@
               <component :is="g.icon" class="w-6 h-6" />
               <span
                 v-if="g.badge"
-                class="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-[10px] font-bold flex items-center justify-center tabular-nums"
+                class="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-2xs font-bold flex items-center justify-center tabular-nums"
               >
                 {{ badgeLabel(g.badge) }}
               </span>

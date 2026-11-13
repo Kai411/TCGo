@@ -1,7 +1,7 @@
 <template>
   <!-- Article text from Mint Condition, as text nodes only (no v-html), so
        nothing typed into the console can become markup. -->
-  <div class="select-text text-[16px] leading-[1.7] text-ink/85 dark:text-zinc-300 sm:text-[17px]">
+  <div class="select-text text-body leading-[1.7] text-ink/85 dark:text-zinc-300 sm:text-title">
     <template v-for="(block, i) in blocks" :key="i">
       <h2
         v-if="block.kind === 'h2'"
@@ -9,7 +9,7 @@
       >
         {{ block.text }}
       </h2>
-      <h3 v-else-if="block.kind === 'h3'" class="mb-2 mt-7 text-[17px] font-semibold leading-snug text-ink first:mt-0 dark:text-white sm:text-lg">
+      <h3 v-else-if="block.kind === 'h3'" class="mb-2 mt-7 text-title font-semibold leading-snug text-ink first:mt-0 dark:text-white sm:text-lg">
         {{ block.text }}
       </h3>
       <ul v-else-if="block.kind === 'ul'" class="mb-5 mt-1 list-disc space-y-2 pl-5 marker:text-pokemon-red last:mb-0">

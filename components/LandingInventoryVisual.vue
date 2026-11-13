@@ -16,12 +16,12 @@
         ref="posPanel"
         class="flex flex-col rounded-2xl border border-black/[0.07] bg-canvas-sunken p-3 sm:p-4"
       >
-        <p class="eyebrow !text-[11px]">In-store</p>
+        <p class="eyebrow !text-micro">In-store</p>
         <p class="mt-2 text-xs text-ink-muted">Counter sale</p>
         <p class="mt-1 text-lg font-bold text-ink tabular-price">RM 245</p>
         <div
           ref="chargeBtn"
-          class="mt-3 rounded-lg border border-transparent bg-ink text-white text-[11px] font-semibold text-center py-2"
+          class="mt-3 rounded-lg border border-transparent bg-ink text-white text-micro font-semibold text-center py-2"
         >
           Sold
         </div>
@@ -36,10 +36,10 @@
         ref="onlinePanel"
         class="flex flex-col rounded-2xl border border-black/[0.07] bg-canvas-sunken p-3 sm:p-4"
       >
-        <p class="eyebrow !text-[11px]">Online</p>
+        <p class="eyebrow !text-micro">Online</p>
         <p class="mt-2 text-xs text-ink-muted">tcgo.shop</p>
         <p class="mt-1 text-lg font-bold text-ink tabular-price">RM 245</p>
-        <div class="mt-3 rounded-lg border border-black/[0.08] bg-white text-ink-muted text-[11px] font-semibold text-center py-2">
+        <div class="mt-3 rounded-lg border border-black/[0.08] bg-white text-ink-muted text-micro font-semibold text-center py-2">
           Delisted
         </div>
       </div>
