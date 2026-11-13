@@ -15,12 +15,12 @@
       <!-- Addresses -->
       <div class="py-4 space-y-3">
         <div class="wb-row">
-          <p class="eyebrow !text-[9px]">From</p>
+          <p class="eyebrow !text-[11px]">From</p>
           <p class="mt-1 text-xs font-semibold text-ink">Kai's Cards</p>
           <p class="text-xs text-ink-muted">Georgetown, 10200 Penang</p>
         </div>
         <div class="wb-row">
-          <p class="eyebrow !text-[9px]">To</p>
+          <p class="eyebrow !text-[11px]">To</p>
           <p class="mt-1 text-xs font-semibold text-ink">Ahmad Rizal</p>
           <p class="text-xs text-ink-muted">Seksyen 7, 40000 Shah Alam</p>
         </div>

@@ -42,9 +42,9 @@
           </NuxtLink>
           <NuxtLink
             to="/"
-            class="inline-flex items-center gap-1 px-3.5 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white"
+            class="inline-flex items-center gap-1 px-3.5 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:bg-pokemon-red-dark transition-colors"
           >
-            TCGo Marketplace →
+            Open the marketplace
           </NuxtLink>
         </div>
 

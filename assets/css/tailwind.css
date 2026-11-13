@@ -259,12 +259,12 @@
     display: none;
   }
 
-  /* Landing scroll-reveal resting state. Declared in CSS rather than as inline
-     styles so elements are already hidden on first paint — otherwise there's a
-     visible flash of the finished layout before GSAP attaches its timeline. */
+  /* Landing scroll-reveal marker. Content is visible at rest (2026-11
+     design audit, Hallmark gate 62): a link preview, a slow phone or a
+     failed script must never see blank sections. The class stays as a
+     selector for the timelines, which now animate only position. */
   .reveal-init {
-    opacity: 0;
-    transform: translateY(18px);
+    opacity: 1;
   }
 
   /* Reduced motion never sees the animation, so it must never see the hidden

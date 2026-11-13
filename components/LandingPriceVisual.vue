@@ -2,7 +2,7 @@
   <div ref="root" class="surface rounded-3xl p-5 sm:p-7">
     <div class="flex items-start justify-between gap-3">
       <div>
-        <p class="eyebrow !text-[9px]">Market price</p>
+        <p class="eyebrow !text-[11px]">Market price</p>
         <p class="mt-1.5 text-sm font-semibold text-ink">Charizard ex · 199/165</p>
       </div>
       <span class="chip chip-accent shrink-0 flex items-center gap-1.5">
@@ -20,25 +20,10 @@
         ref="price"
         class="text-4xl sm:text-[2.75rem] font-bold text-ink tabular-price leading-none tracking-tightest"
       >
-        RM 0.00
+        RM 245.00
       </p>
-      <span
-        ref="delta"
-        class="mb-1 inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-bold text-emerald-600 tabular-price"
-      >
-        <svg class="w-3 h-3" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-          <path
-            d="M6 9.5V2.5M6 2.5L3 5.5M6 2.5l3 3"
-            stroke="currentColor"
-            stroke-width="1.6"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        4.2%
-      </span>
     </div>
-    <p class="mt-1.5 text-xs text-ink-soft">30-day trend · 1,284 sales tracked</p>
+    <p class="mt-1.5 text-xs text-ink-soft">30-day trend</p>
 
     <!-- Sparkline -->
     <div class="mt-5 relative">
@@ -116,7 +101,6 @@ const SPARK_W = 320;
 
 const root = ref<HTMLElement>();
 const price = ref<HTMLElement>();
-const delta = ref<HTMLElement>();
 const clip = ref<SVGRectElement>();
 const marker = ref<HTMLElement>();
 const liveDot = ref<HTMLElement>();
@@ -136,7 +120,6 @@ useReveal(root, ({ gsap, reduced, countUp, root: el }) => {
   }
 
   countUp(price.value!, 245, fmt, { trigger: el, duration: 1.4 });
-  gsap.set(delta.value!, { opacity: 0, scale: 0.8 });
 
   const tl = gsap.timeline({
     scrollTrigger: { trigger: el, start: "top 80%", once: true },
@@ -147,8 +130,7 @@ useReveal(root, ({ gsap, reduced, countUp, root: el }) => {
     duration: 1.4,
     ease: "power2.inOut",
   })
-    .to(marker.value!, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" }, "-=0.2")
-    .to(delta.value!, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2)" }, "-=0.3")
+    .to(marker.value!, { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" }, "-=0.2")
     // Selector string, not querySelectorAll — gsap.context scopes bare
     // selectors to the component root for us.
     .from(".row-item", { opacity: 0, y: 10, stagger: 0.08, duration: 0.5 }, "-=0.3");
