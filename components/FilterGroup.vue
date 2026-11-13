@@ -50,10 +50,8 @@ defineEmits<{ (e: "toggle"): void }>();
 
 <style scoped>
 .sb-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.55;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.7;
 }
 </style>

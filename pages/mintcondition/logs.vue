@@ -99,11 +99,11 @@
           <div class="min-w-0 flex-1">
             <p class="flex items-center gap-2 flex-wrap">
               <span
-                class="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide"
+                class="px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
                 :class="severityBadge(r.severity)"
                 >{{ r.severity }}</span
               >
-              <span class="text-[10px] font-bold uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+              <span class="text-[11px] font-semibold text-ink-soft dark:text-zinc-500">
                 {{ areaLabel(r.area) }}
               </span>
               <code class="text-[11px] text-ink-soft dark:text-zinc-600">{{ r.code }}</code>

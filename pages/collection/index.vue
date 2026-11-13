@@ -165,7 +165,7 @@
             <!-- Sort -->
             <div>
               <p
-                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5"
+                class="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-1.5"
               >
                 Sort
               </p>
@@ -190,7 +190,7 @@
             <!-- Language -->
             <div>
               <p
-                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5"
+                class="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-1.5"
               >
                 Language
               </p>
@@ -215,7 +215,7 @@
             <!-- Filter -->
             <div>
               <p
-                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5"
+                class="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-1.5"
               >
                 Filter
               </p>

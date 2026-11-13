@@ -7,7 +7,7 @@
       :aria-expanded="open"
       aria-haspopup="dialog"
       aria-label="Verified — what this means"
-      class="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 transition-colors hover:bg-emerald-500/20 dark:text-emerald-300"
+      class="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-500/20 dark:text-emerald-300"
     >
       <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
         <path

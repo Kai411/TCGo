@@ -29,7 +29,7 @@
         <h2 class="text-sm font-bold text-ink dark:text-white">Reported problem</h2>
         <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{{ problemReasonLabel(problem.reasonCode) }}</p>
       </div>
-      <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full" :class="badgeClass">
+      <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full" :class="badgeClass">
         {{ PROBLEM_STATUS_LABEL[problem.status] }}
       </span>
     </div>

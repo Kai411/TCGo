@@ -100,7 +100,7 @@
       <!-- Stash -->
       <div class="mb-44 lg:mb-28">
         <div class="flex items-center justify-between mb-2">
-          <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">Cart ({{ stash.length }})</h2>
+          <h2 class="text-sm font-semibold text-gray-500 dark:text-zinc-400">Cart ({{ stash.length }})</h2>
           <button v-if="stash.length" @click="clearCart" class="text-xs text-gray-400 dark:text-zinc-500 hover:text-red-500">Clear</button>
         </div>
         <p v-if="!stash.length" class="text-sm text-gray-400 dark:text-zinc-500 py-6 text-center">Scan a label to add it here.</p>

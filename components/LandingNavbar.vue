@@ -42,7 +42,7 @@
           </NuxtLink>
           <NuxtLink
             to="/"
-            class="inline-flex items-center gap-1 px-3.5 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white shadow-glow"
+            class="inline-flex items-center gap-1 px-3.5 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white"
           >
             TCGo Marketplace →
           </NuxtLink>
@@ -146,7 +146,7 @@
           <div class="space-y-2 border-t border-gray-100 px-5 py-5">
             <NuxtLink
               to="/"
-              class="flex w-full items-center justify-center gap-1.5 rounded-full bg-pokemon-red px-4 py-3 text-[15px] font-bold text-white shadow-glow"
+              class="flex w-full items-center justify-center gap-1.5 rounded-full bg-pokemon-red px-4 py-3 text-[15px] font-bold text-white"
               @click="mobileMenuOpen = false"
             >
               Go to the marketplace

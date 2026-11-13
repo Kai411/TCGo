@@ -18,7 +18,7 @@
     <template v-else>
       <!-- Delivery address — shipping can't be quoted without it -->
       <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4 mb-4">
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1">
+        <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-1">
           Deliver to
         </p>
         <template v-if="hasAddress">
@@ -51,7 +51,7 @@
                 <!-- "Compiled order" is what we call this internally, after
                      the compiledOrders collection. A buyer has no idea what it
                      means; they want to know who they're buying from. -->
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">
                   Sold by
                 </p>
                 <NuxtLink

@@ -3,7 +3,7 @@
     <!-- Header: counterparty + status -->
     <div class="flex items-center justify-between gap-3 mb-3">
       <div class="min-w-0">
-        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+        <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">
           {{ role === "buyer" ? "From seller" : "To buyer" }}
         </p>
         <NuxtLink

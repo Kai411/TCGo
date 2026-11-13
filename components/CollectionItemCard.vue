@@ -9,7 +9,7 @@
       :aria-label="`View ${card.name} price details`"
     >
       <div
-        class="aspect-[2.5/3.5] overflow-hidden bg-canvas-sunken dark:bg-white/[0.04] transition-transform duration-300 ease-premium group-hover:scale-[1.02]"
+        class="aspect-[2.5/3.5] overflow-hidden bg-canvas-sunken dark:bg-white/[0.04]"
       >
         <CardImage :src="card.imageUrl" :alt="card.name" />
       </div>

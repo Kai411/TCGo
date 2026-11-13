@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 px-4 py-10">
     <div class="mx-auto w-full max-w-md">
       <div class="mb-6 text-center">
-        <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-pokemon-red">
+        <p class="text-[13px] font-semibold text-ink-muted dark:text-zinc-400">
           Set up selling
         </p>
         <h1 class="mt-1.5 text-2xl font-bold tracking-tightest text-ink dark:text-white">

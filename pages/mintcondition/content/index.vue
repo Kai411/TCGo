@@ -38,7 +38,7 @@
 
         <!-- What people will see, at the width of the listing. -->
         <div class="mt-4">
-          <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+          <p class="mb-1.5 text-xs font-semibold text-ink-soft dark:text-zinc-500">
             Preview<span v-if="previewCount(p) > 1"> · loops every {{ BANNER_INTERVAL_MS / 1000 }} seconds</span>
           </p>
           <ListingBanner v-if="previewCount(p)" :banner="form[p]" class="!mb-0" />

@@ -107,7 +107,7 @@
               v-if="isEnded"
               class="absolute inset-0 bg-black/40 flex items-center justify-center z-10 pointer-events-none"
             >
-              <span class="px-3 py-1 rounded-full text-sm font-bold bg-black/70 text-white tracking-wide uppercase">Ended</span>
+              <span class="px-3 py-1 rounded-full text-sm font-semibold bg-black/70 text-white">Ended</span>
             </div>
           </div>
 
@@ -165,7 +165,7 @@
               v-if="auction.productType === 'Graded' && auction.grade"
               class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 border border-amber-600"
             >
-              <span class="uppercase tracking-wide">{{ gradingProviderLabel }}</span>
+              <span class="">{{ gradingProviderLabel }}</span>
               <span>{{ auction.grade }}</span>
             </span>
             <span
@@ -180,7 +180,7 @@
             >
               {{ auction.condition }}
             </span>
-            <span v-if="auction.language && auction.language !== 'EN'" class="text-xs font-bold tracking-wide px-2 py-0.5 rounded-md bg-black/85 text-white">
+            <span v-if="auction.language && auction.language !== 'EN'" class="text-xs font-bold px-2 py-0.5 rounded-md bg-black/85 text-white">
               {{ auction.language }}
             </span>
             <span v-if="auction.isPrivate" class="text-xs font-medium px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300">
@@ -226,7 +226,7 @@
               v-if="!user && !isEnded"
               type="button"
               @click="goToLogin"
-              class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
+              class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-colors"
             >
               Sign in to bid
             </button>
@@ -293,7 +293,7 @@
                   type="button"
                   @click="bidMode === 'manual' ? handleQuickBid() : handleAutoBid()"
                   :disabled="bidding"
-                  class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow disabled:opacity-50"
+                  class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-colors disabled:opacity-50"
                 >
                   {{ bidButtonLabel }}
                 </button>
@@ -324,7 +324,7 @@
                   <NuxtLink
                     v-if="isWinner"
                     :to="`/orders/${settledOrderId}`"
-                    class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
+                    class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-colors"
                   >
                     Pay now (FPX)
                   </NuxtLink>

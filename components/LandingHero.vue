@@ -25,7 +25,7 @@
           />
           <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-pokemon-red" />
         </span>
-        <span class="text-[11px] font-semibold tracking-wide text-ink-subtle">
+        <span class="text-[11px] font-semibold text-ink-subtle">
           Now in beta · Built in Malaysia
         </span>
       </div>
@@ -60,7 +60,7 @@
       >
         <NuxtLink
           to="/"
-          class="rounded-xl bg-pokemon-red px-7 py-3.5 text-base font-semibold text-white shadow-glow transition-transform duration-200 ease-premium hover:-translate-y-0.5"
+          class="rounded-xl bg-pokemon-red px-7 py-3.5 text-base font-semibold text-white transition-transform duration-200 ease-premium hover:-translate-y-0.5"
         >
           Start selling free
         </NuxtLink>
@@ -86,7 +86,7 @@
               class="rail-dot h-1.5 w-1.5 rounded-full bg-ink-faint"
               aria-hidden="true"
             />
-            <span class="text-[11px] sm:text-xs font-semibold tracking-wide text-ink-muted">
+            <span class="text-[11px] sm:text-xs font-semibold text-ink-muted">
               {{ node }}
             </span>
           </div>

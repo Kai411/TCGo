@@ -102,7 +102,7 @@
       <!-- ── The QR itself ───────────────────────────────────────────── -->
       <template v-else-if="phase === 'awaiting'">
         <div class="text-center">
-          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+          <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">
             DuitNow QR
           </p>
           <p class="mt-1 text-2xl font-extrabold text-ink dark:text-white tabular-nums">

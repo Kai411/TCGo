@@ -55,7 +55,7 @@
 
           <div class="flex items-center gap-3 my-5">
             <span class="h-px flex-1 bg-black/[0.08] dark:bg-white/[0.10]" />
-            <span class="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">or</span>
+            <span class="text-xs font-semibold text-ink-soft">or</span>
             <span class="h-px flex-1 bg-black/[0.08] dark:bg-white/[0.10]" />
           </div>
 

@@ -81,7 +81,7 @@
             <template v-if="!query.trim()">
               <section v-if="history.length > 0" class="mb-6">
                 <div class="flex items-center justify-between mb-2">
-                  <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400">Recent</p>
+                  <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400">Recent</p>
                   <button
                     @click="clear"
                     class="text-xs font-semibold text-ink-muted dark:text-zinc-400 hover:text-pokemon-red"
@@ -111,7 +111,7 @@
               </section>
 
               <section v-if="topSets.length > 0" class="mb-6">
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">Popular sets</p>
+                <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-2">Popular sets</p>
                 <div class="flex flex-wrap gap-1.5">
                   <button
                     v-for="s in topSets"
@@ -126,7 +126,7 @@
               </section>
 
               <section v-if="topSellers.length > 0">
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">Active sellers</p>
+                <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-2">Active sellers</p>
                 <div class="flex flex-wrap gap-1.5">
                   <button
                     v-for="s in topSellers"
@@ -148,7 +148,7 @@
               </div>
 
               <section v-if="cardResults.length > 0" class="mb-6">
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">
+                <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-2">
                   Cards ({{ cardResults.length }})
                 </p>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -178,7 +178,7 @@
               </section>
 
               <section v-if="auctionResults.length > 0">
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">
+                <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-2">
                   Auctions ({{ auctionResults.length }})
                 </p>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -198,7 +198,7 @@
                         class="w-full aspect-[3/4] object-cover rounded"
                       />
                       <span
-                        class="absolute left-2 top-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide shadow-sm"
+                        class="absolute left-2 top-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm"
                         :class="a.endsAt > Date.now() ? 'bg-emerald-500/90 text-white' : 'bg-zinc-700 text-white'"
                       >
                         {{ a.endsAt > Date.now() ? 'LIVE' : 'ENDED' }}

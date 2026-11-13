@@ -5,7 +5,7 @@
         <h2 class="text-sm font-bold flex items-center gap-2">
           Automatic payouts
           <span
-            class="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide"
+            class="px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
             :class="
               config?.enabled
                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'

@@ -48,22 +48,22 @@
               <span class="font-mono tracking-wide">{{ s.staffId }}</span>
               <span class="text-ink-muted dark:text-zinc-400 font-semibold">{{ s.name }}</span>
               <span
-                class="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-black/[0.05] dark:bg-white/[0.08]"
+                class="px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-black/[0.05] dark:bg-white/[0.08]"
                 >{{ s.roleName }}</span
               >
               <span
                 v-if="!s.active"
-                class="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300"
+                class="px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300"
                 >Deactivated</span
               >
               <span
                 v-else-if="s.lockedUntil && s.lockedUntil > now"
-                class="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+                class="px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                 >Locked out</span
               >
               <span
                 v-if="s.mustChangePassword"
-                class="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
+                class="px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
                 >Password not set by them</span
               >
             </p>
@@ -127,7 +127,7 @@
                 class="font-mono px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-black/[0.05] dark:bg-white/[0.08]"
                 >{{ r.prefix }}····</span
               >
-              <span v-if="r.builtin" class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-600">Built-in</span>
+              <span v-if="r.builtin" class="text-[11px] text-ink-soft dark:text-zinc-600">Built-in</span>
             </p>
             <p class="text-[12px] text-ink-muted dark:text-zinc-400 mt-1 max-w-lg leading-relaxed">
               {{ r.description }}
@@ -292,7 +292,7 @@
           </p>
 
           <div v-for="(perms, group) in grouped" :key="group">
-            <p class="text-[11px] font-bold uppercase tracking-wide text-ink-soft dark:text-zinc-500 mb-1.5">
+            <p class="text-xs font-semibold text-ink-soft dark:text-zinc-500 mb-1.5">
               {{ group }}
             </p>
             <label
@@ -309,7 +309,7 @@
               <span class="min-w-0">
                 <span class="text-[13px] font-semibold">
                   {{ p.label }}
-                  <span v-if="p.dangerous" class="ml-1 text-[10px] font-bold uppercase tracking-wide text-red-600 dark:text-red-400">sensitive</span>
+                  <span v-if="p.dangerous" class="ml-1 text-[11px] font-semibold text-red-600 dark:text-red-400">sensitive</span>
                 </span>
                 <span class="block text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500">
                   {{ p.description }}

@@ -193,7 +193,7 @@
                     Raw market price
                   </p>
                   <span
-                    class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                    class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold"
                     :class="CONFIDENCE_CLASS[confidence.level]"
                   >
                     {{ CONFIDENCE_LABEL[confidence.level] }}
@@ -234,7 +234,7 @@
                   class="mt-2 max-w-sm rounded-xl border border-black/[0.08] bg-canvas-sunken p-3 dark:border-white/[0.10] dark:bg-white/[0.04]"
                 >
                   <p
-                    class="text-[10px] font-bold uppercase tracking-wide text-ink-soft dark:text-zinc-500"
+                    class="text-[11px] font-semibold text-ink-soft dark:text-zinc-500"
                   >
                     Why {{ CONFIDENCE_LABEL[confidence.level].toLowerCase() }}
                   </p>
@@ -354,7 +354,7 @@
                 class="panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
               >
                 <p
-                  class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
+                  class="text-[11px] text-ink-soft dark:text-zinc-500"
                 >
                   Market low
                 </p>
@@ -368,7 +368,7 @@
                 class="panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
               >
                 <p
-                  class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
+                  class="text-[11px] text-ink-soft dark:text-zinc-500"
                 >
                   Market high
                 </p>
@@ -382,7 +382,7 @@
                 class="col-span-2 panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04] sm:col-span-1"
               >
                 <p
-                  class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
+                  class="text-[11px] text-ink-soft dark:text-zinc-500"
                 >
                   Graded supply
                 </p>
@@ -480,7 +480,7 @@
           class="mt-5 grid grid-cols-3 divide-x divide-black/[0.06] border-t border-black/[0.06] pt-4 text-center dark:divide-white/[0.08] dark:border-white/[0.08] lg:hidden"
         >
           <div class="px-2">
-            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+            <dt class="text-[11px] text-ink-soft dark:text-zinc-500">
               Market low
             </dt>
             <dd class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
@@ -488,7 +488,7 @@
             </dd>
           </div>
           <div class="px-2">
-            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+            <dt class="text-[11px] text-ink-soft dark:text-zinc-500">
               Market high
             </dt>
             <dd class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
@@ -496,7 +496,7 @@
             </dd>
           </div>
           <div class="px-2">
-            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+            <dt class="text-[11px] text-ink-soft dark:text-zinc-500">
               Graded
             </dt>
             <dd class="mt-1 text-sm font-bold text-ink dark:text-white">
@@ -601,7 +601,7 @@
             <table class="w-full min-w-[600px] text-sm">
               <thead class="bg-canvas-sunken dark:bg-white/[0.03]">
                 <tr
-                  class="text-left text-[10px] uppercase tracking-[0.14em] text-ink-soft dark:text-zinc-500"
+                  class="text-left text-[11px] text-ink-soft dark:text-zinc-500"
                 >
                   <th class="px-4 py-3 font-semibold">Condition</th>
                   <th class="px-4 py-3 font-semibold">Lowest ask</th>
@@ -765,7 +765,7 @@
             <table class="w-full min-w-[600px] text-sm">
               <thead class="bg-canvas-sunken dark:bg-white/[0.03]">
                 <tr
-                  class="text-left text-[10px] uppercase tracking-[0.14em] text-ink-soft dark:text-zinc-500"
+                  class="text-left text-[11px] text-ink-soft dark:text-zinc-500"
                 >
                   <th class="px-4 py-3 font-semibold">Grade</th>
                   <th class="px-4 py-3 font-semibold">Lowest ask</th>
@@ -784,7 +784,7 @@
                     <span
                       class="inline-flex items-center gap-1.5 rounded-md bg-amber-400 px-2 py-1 text-xs font-extrabold text-amber-950"
                     >
-                      <span class="uppercase tracking-wide">{{
+                      <span class="">{{
                         row.provider
                       }}</span>
                       <span>{{ row.grade }}</span>
@@ -840,7 +840,7 @@
                 <span
                   class="inline-flex items-center gap-1 rounded-md bg-amber-400 px-2 py-1 text-xs font-extrabold text-amber-950"
                 >
-                  <span class="uppercase tracking-wide">{{
+                  <span class="">{{
                     row.provider
                   }}</span>
                   <span>{{ row.grade }}</span>

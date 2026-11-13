@@ -31,7 +31,7 @@
 
     <div v-else class="overflow-x-auto rounded-xl border border-black/[0.08] dark:border-white/[0.10]">
       <table class="w-full min-w-[900px] text-sm">
-        <thead class="bg-black/[0.03] dark:bg-white/[0.04] text-left text-[11px] uppercase tracking-wide text-ink-muted dark:text-zinc-400">
+        <thead class="bg-black/[0.03] dark:bg-white/[0.04] text-left text-xs text-ink-muted dark:text-zinc-400">
           <tr>
             <th class="px-3 py-2.5">Order</th>
             <th class="px-3 py-2.5">Refund</th>

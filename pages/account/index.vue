@@ -128,7 +128,7 @@
       <NuxtLink
         v-if="!sellerLoading && !isSeller"
         to="/seller/onboarding"
-        class="press block rounded-2xl p-5 bg-pokemon-red text-white shadow-glow"
+        class="press block rounded-2xl p-5 bg-pokemon-red text-white"
       >
         <template v-if="sellerSetup.percent === 0">
           <p class="text-lg font-bold">Start selling on TCGo</p>

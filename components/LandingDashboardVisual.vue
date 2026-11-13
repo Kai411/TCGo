@@ -2,7 +2,7 @@
   <div ref="root" class="surface rounded-3xl p-5 sm:p-7">
     <div class="flex items-start justify-between gap-3">
       <div>
-        <p class="eyebrow !text-[9px] !tracking-[0.14em]">Total revenue</p>
+        <p class="eyebrow !text-[9px]">Total revenue</p>
         <p
           ref="total"
           class="mt-2 text-4xl sm:text-[2.75rem] font-bold text-ink tabular-price leading-none tracking-tightest"

@@ -113,7 +113,7 @@
               v-if="!available"
               class="absolute inset-0 bg-black/40 flex items-center justify-center z-10 pointer-events-none"
             >
-              <span class="px-3 py-1 rounded-full text-sm font-bold bg-black/70 text-white tracking-wide uppercase">{{ reserved ? "Reserved" : "Sold" }}</span>
+              <span class="px-3 py-1 rounded-full text-sm font-semibold bg-black/70 text-white">{{ reserved ? "Reserved" : "Sold" }}</span>
             </div>
           </div>
 
@@ -180,7 +180,7 @@
               v-if="card.productType === 'Graded' && card.grade"
               class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 border border-amber-600"
             >
-              <span class="uppercase tracking-wide">{{ gradingProviderLabel }}</span>
+              <span class="">{{ gradingProviderLabel }}</span>
               <span>{{ card.grade }}</span>
             </span>
             <span
@@ -195,7 +195,7 @@
             >
               {{ card.condition }}
             </span>
-            <span v-if="card.language && card.language !== 'EN'" class="text-xs font-bold tracking-wide px-2 py-0.5 rounded-md bg-black/85 text-white">
+            <span v-if="card.language && card.language !== 'EN'" class="text-xs font-bold px-2 py-0.5 rounded-md bg-black/85 text-white">
               {{ card.language }}
             </span>
             <span v-if="card.negotiable" class="text-xs font-medium px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
@@ -259,7 +259,7 @@
                 <button
                   type="button"
                   @click="user ? handleBuyNow() : goToLogin()"
-                  class="inline-flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
+                  class="inline-flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-colors"
                 >
                   {{ user ? "Buy now" : "Sign in to buy" }}
                 </button>

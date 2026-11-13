@@ -12,13 +12,13 @@
           <h2 class="text-base font-semibold">Scan Card</h2>
           <span
             v-if="premiumEnabled && user && isPremium"
-            class="text-[11px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300"
+            class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300"
           >
             Premium · Unlimited
           </span>
           <span
             v-else-if="user"
-            class="text-[11px] font-semibold tracking-wide px-2 py-0.5 rounded-full bg-white/10 text-white/80"
+            class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white/10 text-white/80"
             :class="{ 'text-red-300 bg-red-500/20': remaining === 0 }"
           >
             {{ used }}/{{ FREE_SCAN_LIMIT }} this month

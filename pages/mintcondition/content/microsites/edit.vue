@@ -95,7 +95,7 @@
 
       <!-- Article preview: the text as it will read. -->
       <div v-if="form.type === 'article' && form.body.trim()" class="rounded-xl border border-black/[0.06] p-4 dark:border-white/[0.08]">
-        <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-soft dark:text-zinc-500">Text preview</p>
+        <p class="mb-2 text-xs font-semibold text-ink-soft dark:text-zinc-500">Text preview</p>
         <p class="text-xl font-bold text-ink dark:text-white">{{ form.title }}</p>
         <ArticleBody :body="form.body" class="mt-3" />
       </div>

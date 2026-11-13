@@ -198,7 +198,7 @@
         >
           <NuxtLink
             to="/"
-            class="rounded-xl bg-pokemon-red px-8 py-3.5 text-base font-semibold text-white shadow-glow transition-transform duration-200 ease-premium hover:-translate-y-0.5"
+            class="rounded-xl bg-pokemon-red px-8 py-3.5 text-base font-semibold text-white transition-transform duration-200 ease-premium hover:-translate-y-0.5"
           >
             Start selling free
           </NuxtLink>

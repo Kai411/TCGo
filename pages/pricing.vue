@@ -39,7 +39,7 @@
           >
             <span
               v-if="plan.featured"
-              class="absolute -top-2.5 left-6 rounded-md bg-pokemon-red px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+              class="absolute -top-2.5 left-6 rounded-md bg-pokemon-red px-2 py-0.5 text-[11px] font-semibold text-white"
               >Most shops</span
             >
             <h2 class="text-sm font-semibold text-ink">{{ plan.name }}</h2>
@@ -220,7 +220,7 @@
 
             <!-- Result -->
             <div class="rounded-2xl bg-ink p-6 text-white">
-              <p class="text-xs uppercase tracking-wider text-white/50">
+              <p class="text-xs text-white/50">
                 You keep each month
               </p>
               <p class="mt-2 text-[34px] font-bold leading-none tracking-tightest">
@@ -358,7 +358,7 @@
             <table class="w-full min-w-[380px] text-sm">
               <thead>
                 <tr
-                  class="text-left text-xs uppercase tracking-wider text-ink-soft"
+                  class="text-left text-xs text-ink-soft"
                 >
                   <th class="pb-3 font-semibold">Sale price</th>
                   <th class="pb-3 text-right font-semibold">TCGo fee</th>
@@ -433,7 +433,7 @@
             <table class="w-full min-w-[440px] text-sm">
               <thead>
                 <tr
-                  class="text-left text-xs uppercase tracking-wider text-ink-soft"
+                  class="text-left text-xs text-ink-soft"
                 >
                   <th class="pb-3 font-semibold">Platform</th>
                   <th class="pb-3 text-right font-semibold">Take rate</th>
@@ -452,7 +452,7 @@
                     {{ row.name }}
                     <span
                       v-if="row.us"
-                      class="ml-1.5 rounded-md bg-pokemon-red/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-pokemon-red"
+                      class="ml-1.5 rounded-md bg-pokemon-red/10 px-1.5 py-0.5 text-[11px] font-semibold text-pokemon-red"
                       >You</span
                     >
                   </td>
@@ -516,7 +516,7 @@
         >
           <NuxtLink
             to="/"
-            class="rounded-xl bg-pokemon-red px-8 py-3.5 text-base font-semibold text-white shadow-glow transition-transform duration-200 ease-premium hover:-translate-y-0.5"
+            class="rounded-xl bg-pokemon-red px-8 py-3.5 text-base font-semibold text-white transition-transform duration-200 ease-premium hover:-translate-y-0.5"
           >
             Start selling free
           </NuxtLink>

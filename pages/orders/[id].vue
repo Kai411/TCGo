@@ -84,7 +84,7 @@
           <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
             <div class="flex items-start justify-between gap-3 mb-4">
               <div class="min-w-0">
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">
                   Order
                 </p>
                 <p class="text-sm text-ink dark:text-white font-mono">#{{ order.id.slice(0, 8) }}</p>
@@ -97,13 +97,13 @@
 
             <div class="grid grid-cols-2 gap-4 text-sm">
               <div class="min-w-0">
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-0.5">Buyer</p>
+                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-0.5">Buyer</p>
                 <NuxtLink :to="`/profile/${order.buyerUid}`" class="font-semibold text-ink dark:text-white hover:underline truncate block">
                   {{ order.buyerName }}
                 </NuxtLink>
               </div>
               <div class="min-w-0">
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-0.5">Seller</p>
+                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-0.5">Seller</p>
                 <NuxtLink :to="`/profile/${order.sellerUid}`" class="font-semibold text-ink dark:text-white hover:underline truncate block">
                   {{ order.sellerName }}
                 </NuxtLink>
@@ -123,7 +123,7 @@
 
           <!-- Items + money -->
           <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-3">
+            <h2 class="text-sm font-semibold text-gray-500 dark:text-zinc-400 mb-3">
               Items ({{ order.items.length }})
             </h2>
             <div class="space-y-3">
@@ -181,7 +181,7 @@
           <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">Invoice</h2>
+                <h2 class="text-sm font-semibold text-gray-500 dark:text-zinc-400">Invoice</h2>
                 <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1">
                   <template v-if="invoiceAvailable">
                     Tax invoice for order #{{ order.id.slice(0, 8) }}.
@@ -298,7 +298,7 @@
 
           <!-- Delivery address -->
           <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
+            <h2 class="text-sm font-semibold text-gray-500 dark:text-zinc-400 mb-2">
               Delivery address
             </h2>
             <template v-if="order.deliveryAddress">
@@ -327,7 +327,7 @@
           <template v-else>
             <!-- Waybill / tracking -->
             <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-              <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
+              <h2 class="text-sm font-semibold text-gray-500 dark:text-zinc-400 mb-2">
                 Waybill
               </h2>
 
@@ -358,7 +358,7 @@
                      scan-by-scan progress. -->
                 <div v-if="role === 'buyer'" class="mt-4 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
                   <div class="flex items-center justify-between gap-2 mb-3">
-                    <h3 class="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                    <h3 class="text-xs font-semibold text-gray-500 dark:text-zinc-400">
                       Delivery progress
                     </h3>
                     <button
@@ -462,7 +462,7 @@
           <div class="flex items-center justify-between gap-2 mb-3">
             <h2 class="text-sm font-bold text-ink dark:text-white">Settlement</h2>
             <span
-              class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+              class="text-[11px] font-semibold px-2 py-0.5 rounded-full"
               :class="settlementBadge.cls"
             >
               {{ settlementBadge.label }}

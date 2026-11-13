@@ -14,7 +14,7 @@
       Who is {{ name }}?
       <span
         v-if="data"
-        class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide"
+        class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
         :class="badge.cls"
       >{{ badge.text }}</span>
     </button>

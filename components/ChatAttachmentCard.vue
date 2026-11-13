@@ -9,7 +9,7 @@
       <CardImage v-if="attachment.imageUrl" :src="attachment.imageUrl" :alt="title" :width="96" />
     </div>
     <div class="min-w-0 flex-1">
-      <p class="text-[10px] font-semibold uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+      <p class="text-[11px] font-semibold text-ink-soft dark:text-zinc-500">
         {{ kindLabel }}
       </p>
       <p class="text-sm font-semibold text-ink dark:text-white truncate">{{ title }}</p>

@@ -131,7 +131,7 @@
                     >
                       <span
                         v-if="item.language && item.language !== 'EN'"
-                        class="inline-block bg-black/85 text-white text-[10px] font-bold tracking-wide px-1.5 py-0.5 rounded"
+                        class="inline-block bg-black/85 text-white text-[10px] font-bold px-1.5 py-0.5 rounded"
                       >
                         {{ item.language }}
                       </span>

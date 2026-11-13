@@ -55,7 +55,7 @@
 
           <!-- Coming soon (roadmap signposts) -->
           <div v-if="soonItems.length" class="pt-3 mt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
-            <p class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-soft dark:text-zinc-600">Coming soon</p>
+            <p class="px-3 pb-1 text-[11px] font-semibold text-ink-soft dark:text-zinc-600">Coming soon</p>
             <div
               v-for="item in soonItems"
               :key="item.label"
@@ -63,14 +63,14 @@
             >
               <component :is="item.icon" class="w-4 h-4 shrink-0 opacity-60" />
               {{ item.label }}
-              <span class="ml-auto text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-black/[0.05] dark:bg-white/[0.06]">Soon</span>
+              <span class="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-black/[0.05] dark:bg-white/[0.06]">Soon</span>
             </div>
           </div>
 
           <!-- Learn: things *about* the product rather than parts of it, so
                they sit apart from the working destinations above. -->
           <div class="pt-3 mt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
-            <p class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-soft dark:text-zinc-600">Learn</p>
+            <p class="px-3 pb-1 text-[11px] font-semibold text-ink-soft dark:text-zinc-600">Learn</p>
             <NuxtLink
               to="/landing"
               data-tour="nav-pricing"
@@ -114,7 +114,7 @@
           :key="item.to"
           :to="item.to"
           :data-tour="item.tour"
-          class="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
+          class="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-ink-soft dark:text-zinc-500 transition-colors"
           :class="isActive(item) ? '!text-pokemon-red' : ''"
         >
           <component :is="item.icon" class="w-5 h-5" />
@@ -127,7 +127,7 @@
           @click="openSheet = key"
           :aria-expanded="openSheet === key"
           aria-haspopup="menu"
-          class="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
+          class="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold text-ink-soft dark:text-zinc-500 transition-colors"
           :class="sheetIsActive(key) ? '!text-pokemon-red' : ''"
         >
           <component :is="sheet.icon" class="w-5 h-5" />
@@ -166,7 +166,7 @@
           <div class="flex justify-center pt-2.5 pb-1">
             <span class="h-1 w-9 rounded-full bg-black/15 dark:bg-white/20" />
           </div>
-          <p class="px-4 pb-1 text-[11px] font-bold uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+          <p class="px-4 pb-1 text-xs font-semibold text-ink-soft dark:text-zinc-500">
             {{ SHEETS[openSheet].label }}
           </p>
           <div class="grid grid-cols-3 gap-1 px-3 pb-4 pt-1">

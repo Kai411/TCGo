@@ -33,7 +33,7 @@
           aria-hidden="true"
         />
         <div class="relative">
-          <p class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-white/60">
+          <p class="inline-flex items-center gap-1.5 text-xs font-semibold text-white/60">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             Available for payout
           </p>
@@ -130,7 +130,7 @@
            are genuinely different states and the seller is entitled to know
            which one their money is in. -->
       <section v-if="queued.length" class="mb-6">
-        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
+        <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-2">
           Payout status
         </p>
         <div class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06]">
@@ -153,7 +153,7 @@
 
       <!-- Payout history -->
       <section>
-        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">Payout history</p>
+        <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-2">Payout history</p>
         <p v-if="!paidOut.length" class="text-sm text-gray-400 dark:text-zinc-500 py-3">No payouts yet.</p>
         <div v-else class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06]">
           <div v-for="e in paidOut" :key="e.order.id" class="flex items-center gap-3 px-3 py-2.5">

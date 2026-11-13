@@ -5,7 +5,7 @@
     <div class="w-full max-w-sm">
       <div class="text-center mb-7">
         <p
-          class="text-[11px] font-bold uppercase tracking-[0.2em] text-ink-soft dark:text-zinc-500"
+          class="text-xs font-semibold text-ink-soft dark:text-zinc-500"
         >
           Mint Condition
         </p>

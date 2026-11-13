@@ -1,6 +1,6 @@
 <template>
   <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+    <h2 class="mb-4 text-sm font-semibold text-gray-500 dark:text-zinc-400">
       Delivery
     </h2>
 
@@ -75,7 +75,7 @@
       v-if="order.trackingNumber && !cancelled"
       class="mt-4 border-t border-black/[0.05] pt-4 dark:border-white/[0.06]"
     >
-      <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-zinc-500">
+      <p class="text-xs font-semibold text-gray-400 dark:text-zinc-500">
         Tracking number
       </p>
       <div class="mt-1 flex items-center gap-2">

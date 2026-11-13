@@ -36,7 +36,7 @@
               <span class="text-[14px] font-bold text-ink dark:text-white">{{ a.name }}</span>
               <span
                 v-if="a.isDefault"
-                class="rounded-md bg-pokemon-red/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-pokemon-red"
+                class="rounded-md bg-pokemon-red/10 px-1.5 py-0.5 text-[11px] font-semibold text-pokemon-red"
               >
                 Default
               </span>

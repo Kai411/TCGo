@@ -8,7 +8,7 @@
         <p class="text-sm font-bold text-ink dark:text-white">
           Identity verification
           <span
-            class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide"
+            class="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
             :class="tone.badge"
             >{{ tone.label }}</span
           >

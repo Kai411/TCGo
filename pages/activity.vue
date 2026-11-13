@@ -108,7 +108,7 @@
               v-if="orderFilter === 'all' && needsAction.length"
               class="panel surface rounded-2xl border border-amber-200 dark:border-amber-500/20 lg:overflow-hidden"
             >
-              <p class="flex items-center gap-1.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300 lg:px-4 lg:py-2 lg:bg-amber-50 lg:dark:bg-amber-500/10">
+              <p class="flex items-center gap-1.5 pb-1 text-xs font-semibold text-amber-700 dark:text-amber-300 lg:px-4 lg:py-2 lg:bg-amber-50 lg:dark:bg-amber-500/10">
                 <span class="w-1.5 h-1.5 rounded-full bg-amber-500 lg:hidden" aria-hidden="true" />
                 Needs your action
               </p>
@@ -128,7 +128,7 @@
             <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] lg:overflow-hidden">
               <p
                 v-if="orderFilter === 'all' && needsAction.length && visibleOrders.length"
-                class="lg:hidden pb-3 text-[11px] font-bold uppercase tracking-wide text-ink-muted dark:text-zinc-400"
+                class="lg:hidden pb-3 text-xs font-semibold text-ink-muted dark:text-zinc-400"
               >
                 All orders
               </p>

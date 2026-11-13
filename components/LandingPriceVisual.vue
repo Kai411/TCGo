@@ -2,7 +2,7 @@
   <div ref="root" class="surface rounded-3xl p-5 sm:p-7">
     <div class="flex items-start justify-between gap-3">
       <div>
-        <p class="eyebrow !text-[9px] !tracking-[0.14em]">Market price</p>
+        <p class="eyebrow !text-[9px]">Market price</p>
         <p class="mt-1.5 text-sm font-semibold text-ink">Charizard ex · 199/165</p>
       </div>
       <span class="chip chip-accent shrink-0 flex items-center gap-1.5">

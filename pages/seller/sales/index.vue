@@ -192,7 +192,7 @@
               </p>
               <p class="text-[12px] text-gray-500 dark:text-zinc-400">
                 <span
-                  class="inline-block px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide mr-1"
+                  class="inline-block px-1.5 py-0.5 rounded-md text-[11px] font-semibold mr-1"
                   :class="s.channel === 'online'
                     ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300'
                     : 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'"
@@ -215,7 +215,7 @@
               </p>
               <span
                 v-if="s.status !== 'paid'"
-                class="inline-block mt-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide"
+                class="inline-block mt-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-semibold"
                 :class="statusClass(s.status)"
               >
                 {{ STATUS_LABELS[s.status] ?? s.status }}

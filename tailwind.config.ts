@@ -17,6 +17,8 @@ export default {
       colors: {
         pokemon: {
           red: "#E3350D",
+          // Hover and pressed state for red buttons (replaces the old glow).
+          "red-dark": "#C42D0B",
           blue: "#006DAA",
           yellow: "#FFCB05",
           gold: "#B8860B",
@@ -61,8 +63,6 @@ export default {
         card: "0 1px 2px rgba(15,15,20,0.04), 0 4px 16px rgba(15,15,20,0.04)",
         "card-hover":
           "0 1px 2px rgba(15,15,20,0.05), 0 16px 40px rgba(15,15,20,0.12)",
-        glow:
-          "0 0 0 1px rgba(227,53,13,0.5), 0 8px 24px rgba(227,53,13,0.35)",
         "ring-soft":
           "0 0 0 1px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
         pill:

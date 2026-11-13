@@ -196,7 +196,7 @@
         </svg>
       </div>
       <div class="min-w-0 flex-1">
-        <p class="text-[11px] font-semibold uppercase tracking-wide text-ink-muted dark:text-zinc-400">Funds</p>
+        <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400">Funds</p>
         <p class="text-lg font-bold text-ink dark:text-white tabular-price leading-tight">
           RM {{ formatMyr(fundsAvailable) }}
           <span class="text-xs font-semibold text-ink-soft dark:text-zinc-500">available</span>

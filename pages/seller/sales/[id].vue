@@ -32,7 +32,7 @@
               </p>
             </div>
             <span
-              class="px-2 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide"
+              class="px-2 py-1 rounded-lg text-xs font-semibold"
               :class="statusClass"
             >
               {{ STATUS_LABELS[sale.status] ?? sale.status }}

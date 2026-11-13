@@ -208,14 +208,15 @@
     @apply bg-[#1B1B20] border-white/[0.06] shadow-none;
   }
 
-  /* Eyebrow label — small caps, lots of tracking */
+  /* Section label: a small heading in sentence case. No capitals or
+     tracking (both read as template UI, see the 2026-11 design audit). */
   .eyebrow {
-    @apply inline-block text-[11px] font-semibold tracking-[0.18em] uppercase text-ink-muted dark:text-zinc-400;
+    @apply inline-block text-[13px] font-semibold text-ink-muted dark:text-zinc-400;
   }
 
   /* Pill chip — for conditions, tags, metadata */
   .chip {
-    @apply inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide uppercase bg-ink/[0.04] text-ink-muted dark:bg-white/[0.06] dark:text-zinc-300;
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-ink/[0.04] text-ink-muted dark:bg-white/[0.06] dark:text-zinc-300;
   }
   .chip-accent {
     @apply bg-pokemon-red/[0.08] text-pokemon-red;

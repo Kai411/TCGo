@@ -368,7 +368,7 @@
 
         <div class="hidden sm:block surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08]">
           <table class="w-full text-sm table-fixed">
-            <thead class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-zinc-500 border-b border-black/[0.06] dark:border-white/[0.08]">
+            <thead class="text-xs text-gray-400 dark:text-zinc-500 border-b border-black/[0.06] dark:border-white/[0.08]">
               <tr>
                 <th class="px-3 py-2 w-9">
                   <input type="checkbox" :checked="allPageSelected" @change="toggleSelectAllPage" class="rounded align-middle" aria-label="Select all on page" />
