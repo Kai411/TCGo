@@ -43,6 +43,9 @@ export interface Report {
   evidenceUrls: string[];
   relatedItemId: string;
   relatedItemType: "card" | "auction" | "";
+  relatedItemName?: string;
+  /** What staff did about it, written by /api/mc/listings/hide and users/suspend. */
+  actionsTaken?: string[];
   status: "pending" | "approved" | "dismissed";
   penalty: number;
   createdAt: number;
@@ -63,6 +66,7 @@ export const useReports = () => {
     evidenceUrls: string[];
     relatedItemId?: string;
     relatedItemType?: "card" | "auction" | "";
+    relatedItemName?: string;
   }) => {
     if (!user.value) throw new Error("Not authenticated");
 
@@ -79,6 +83,7 @@ export const useReports = () => {
       evidenceUrls: report.evidenceUrls,
       relatedItemId: report.relatedItemId || "",
       relatedItemType: report.relatedItemType || "",
+      relatedItemName: (report.relatedItemName || "").slice(0, 200),
       status: "pending",
       penalty: 0,
       createdAt: Date.now(),

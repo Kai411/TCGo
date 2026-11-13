@@ -332,6 +332,14 @@
               </div>
             </dl>
           </section>
+
+          <ReportListingButton
+            listing-kind="card"
+            :listing-id="card.id"
+            :seller-uid="card.sellerUid"
+            :seller-name="card.seller"
+            :item-name="card.cardName"
+          />
         </div>
       </div>
 

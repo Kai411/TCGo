@@ -25,7 +25,11 @@ export type NotificationKind =
   | "auction_outbid"
   | "auction_won"
   | "auction_sold"
-  | "enquiry_reply";
+  | "enquiry_reply"
+  | "listing_hidden"
+  | "listing_restored"
+  | "selling_suspended"
+  | "selling_restored";
 
 export type NotificationAudience = "buyer" | "seller";
 
