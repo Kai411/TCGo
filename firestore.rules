@@ -245,7 +245,7 @@ service cloud.firestore {
       function auctionServerFields() {
         return ['bidCount', 'orderId', 'winnerUid', 'winnerName', 'winningBid',
                 'endedAt', 'paymentDueAt', 'soldAt', 'expiredAt',
-                'hidden', 'hiddenReason', 'hiddenAt', 'hiddenBy'];
+                'hidden', 'hiddenReason', 'hiddenMessage', 'hiddenAt', 'hiddenBy', 'hiddenVia'];
       }
 
       function noBidsYet() {
