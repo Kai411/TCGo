@@ -60,6 +60,7 @@ export type SkipReason =
   | "over_daily_cap"
   | "too_fresh"
   | "seller_reported"
+  | "identity_check"
   | "repeated_failure";
 
 export const SKIP_LABELS: Record<SkipReason, string> = {
@@ -71,6 +72,7 @@ export const SKIP_LABELS: Record<SkipReason, string> = {
   over_daily_cap: "Would exceed the daily limit",
   too_fresh: "Queued too recently",
   seller_reported: "Seller has an unresolved report",
+  identity_check: "Seller not verified, suspended, or account name needs approval",
   repeated_failure: "Failed automatically too many times",
 };
 
@@ -99,11 +101,14 @@ export const decideAutoPayouts = (
   context: {
     spentLast24h: number;
     reportedSellerUids?: Set<string>;
+    /** Batches that fail the payout identity check (shared/payout-identity.ts). */
+    identityHeldBatchIds?: Set<string>;
     now?: number;
   },
 ): AutoPayoutDecision => {
   const now = context.now ?? Date.now();
   const reported = context.reportedSellerUids ?? new Set<string>();
+  const identityHeld = context.identityHeldBatchIds ?? new Set<string>();
 
   const approved: CandidateBatch[] = [];
   const skipped: { batch: CandidateBatch; reason: SkipReason }[] = [];
@@ -145,6 +150,12 @@ export const decideAutoPayouts = (
     }
     if (config.skipReportedSellers && reported.has(b.sellerUid)) {
       skip("seller_reported");
+      continue;
+    }
+    // Not a setting: a payout to an unverified, suspended or unapproved
+    // account is never automatic.
+    if (identityHeld.has(b.id)) {
+      skip("identity_check");
       continue;
     }
     // Caps are checked last so a batch blocked by a cap reports the cap, not

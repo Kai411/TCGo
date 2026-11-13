@@ -122,6 +122,8 @@ export interface UserProfile {
   kycVerifiedAt?: number;
   /** Name as it appeared on the verified document — match payouts against it. */
   kycVerifiedName?: string;
+  /** MyKad number Didit read. Server-written; payouts are sent with it. */
+  kycIdentityNumber?: string;
   kycDocumentType?: string;
   kycIssuingState?: string;
   kycDeclineReason?: string | null;

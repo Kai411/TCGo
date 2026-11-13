@@ -40,8 +40,15 @@
         <label class="block">
           <span class="lbl">Account holder</span>
           <input v-model="form.bankAccountHolder" placeholder="As per bank records" class="field" />
+          <span v-if="nameDiffers" class="hint !text-amber-600 dark:!text-amber-400">
+            This isn't the name on your verified ID ({{ verifiedName }}). You can still save it,
+            but payouts to it wait until our team has checked the account.
+          </span>
         </label>
-        <label class="block">
+        <p v-if="verifiedIc" class="text-[13px] text-ink-muted dark:text-zinc-400 tabular-nums">
+          IC ending {{ verifiedIc.slice(-4) }}, from your MyKad. Payouts are always sent with this one.
+        </p>
+        <label v-else class="block">
           <span class="lbl">IC number</span>
           <input v-model="form.identityNumber" inputmode="numeric" placeholder="e.g. 900101101234" class="field tabular-nums" />
           <span class="hint">Required by the bank to release a transfer. Never shown to buyers.</span>
@@ -69,6 +76,7 @@ import {
   normaliseAccountNumber,
   resolveBankCode,
 } from "~/shared/banks";
+import { namesLooselyMatch } from "~/shared/payout-identity";
 
 withDefaults(
   defineProps<{ submitLabel?: string; cancellable?: boolean }>(),
@@ -111,13 +119,26 @@ watch(
     form.bankAccountNumber = p.bankAccountNumber || "";
     // The name Didit read off their MyKad is the one the bank will have.
     form.bankAccountHolder = p.bankAccountHolder || p.kycVerifiedName || "";
-    form.identityNumber = p.identityNumber || "";
+    form.identityNumber = p.kycIdentityNumber || p.identityNumber || "";
     fromScan.value = !!(form.bankAccountHolder && /^\d{12}$/.test(form.identityNumber));
   },
   { immediate: true },
 );
 
 const selectedBank = computed(() => bankByCode(form.bankCode));
+
+// The IC Didit read is server-kept and can't be changed here
+// (server/api/account/payout-details.post.ts).
+const verifiedIc = computed(() => String(profile.value?.kycIdentityNumber || ""));
+const verifiedName = computed(() => String(profile.value?.kycVerifiedName || ""));
+// A different name isn't refused: joint and business accounts look the same.
+// Payouts to it wait for a staff check (shared/payout-identity.ts).
+const nameDiffers = computed(
+  () =>
+    !!verifiedName.value &&
+    !!form.bankAccountHolder.trim() &&
+    !namesLooselyMatch(verifiedName.value, form.bankAccountHolder),
+);
 
 const accountCheck = computed(() =>
   form.bankCode && form.bankAccountNumber
