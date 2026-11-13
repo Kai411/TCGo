@@ -42,6 +42,7 @@ Server environment variables come from `runtimeConfig` in `nuxt.config.ts` (came
 - `firestore.rules` and `firestore.indexes.json` in the repo are the source of truth, but they are **not deployed automatically**. kai pastes them into the Firebase console by hand.
 - A paste **replaces everything**, so a rules change must always be the full file from latest staging, never a fragment. If you add an index, list its exact collection and fields in the PR.
 - A feature that needs new rules will not work in production until the paste happens. Say so in the PR.
+- `database.rules.json` is the Realtime Database rules (live auction prices and bids), pasted the same way under Realtime Database > Rules. Browsers can only read summaries, the bid list and their own bid index; nothing is browser-writable.
 
 ## Business and legal decisions
 
@@ -60,7 +61,7 @@ Server environment variables come from `runtimeConfig` in `nuxt.config.ts` (came
 - **TCGo Dex** (formerly "Collection"): the name in all copy is "TCGo Dex"; URLs stay `/collection`. Prices are TCGPlayer USD market prices (via TCGCSV), imported nightly into Supabase with a 365-day history and converted to MYR in the browser (`/api/fx/usd-myr`). Cardmarket EUR is a manual fallback. Default sort is newest release. The Dex tab on profiles is hidden by one setting in `shared/dex.ts`.
 - **Card price page** (`pages/collection/[productId].vue`): on phones the price must show without scrolling.
 - **Card scanning** (`/api/identify-card`): sign-in required, 20 scans a month plus a one-time 5 bonus, counted on the server; Pro is unlimited; seller photo import counts toward the same limit.
-- **Auctions**: winning creates an order the winner pays through Billplz.
+- **Auctions**: winning creates an order the winner pays through Billplz. Every bid goes through `/api/auctions/bid`, which runs auto bids (secret maximums in `auction_private`) and anti-snipe on the server in one transaction. Once an auction has a bid, the seller can't edit or delete it.
 - **Chat** needs the `conversations` and `userStats` rules and a `conversations` composite index.
 - **Seller onboarding** is one four-step flow at `/seller/onboarding`.
 - **Help Center** (`shared/help.ts`): members send enquiries; staff answer in Mint Condition > Enquiries with an in-app bell notification (no email).
