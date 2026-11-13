@@ -263,7 +263,7 @@
               <div class="min-w-0">
                 <p
                   v-if="card.price"
-                  class="text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
+                  class="text-4xl font-extrabold tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
                 >
                   <span
                     class="mr-1 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
@@ -276,7 +276,7 @@
                      from a different angle. -->
                 <template v-else-if="secondary">
                   <p
-                    class="text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
+                    class="text-4xl font-extrabold tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
                   >
                     <span
                       class="mr-1 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"

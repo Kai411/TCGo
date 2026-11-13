@@ -52,12 +52,14 @@ export default {
         display: ['"Inter"', "system-ui", "sans-serif"],
       },
       letterSpacing: {
-        tightest: "-0.04em",
-        hero: "-0.055em",
+        // Display tracking stays within -0.01 to -0.02em (better-typography);
+        // tighter made the letters touch.
+        tightest: "-0.02em",
+        hero: "-0.02em",
       },
       fontSize: {
-        hero: ["clamp(2.5rem, 6vw, 4.5rem)", { lineHeight: "1", letterSpacing: "-0.055em" }],
-        display: ["clamp(2rem, 4vw, 3rem)", { lineHeight: "1.05", letterSpacing: "-0.04em" }],
+        hero: ["clamp(2.5rem, 6vw, 4.5rem)", { lineHeight: "1.05", letterSpacing: "-0.02em" }],
+        display: ["clamp(2rem, 4vw, 3rem)", { lineHeight: "1.1", letterSpacing: "-0.02em" }],
       },
       boxShadow: {
         card: "0 1px 2px rgba(15,15,20,0.04), 0 4px 16px rgba(15,15,20,0.04)",

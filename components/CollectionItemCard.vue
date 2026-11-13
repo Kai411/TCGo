@@ -57,7 +57,7 @@
           </p>
           <p
             v-if="card.price"
-            class="text-md font-[900] text-ink dark:text-white tabular-nums"
+            class="text-md font-extrabold text-ink dark:text-white tabular-nums"
             :class="dense ? 'hidden sm:block' : ''"
           >
             <span class="text-xs font-semibold">RM</span>
