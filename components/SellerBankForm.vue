@@ -15,7 +15,7 @@
       <label class="block">
         <span class="lbl">Account number</span>
         <input v-model="form.bankAccountNumber" inputmode="numeric" class="field tabular-nums" />
-        <span v-if="accountHint" :class="accountOk ? 'hint'  'err mt-1.5 block text-micro'">
+        <span v-if="accountHint" :class="accountOk ? 'hint' : 'err mt-1.5 block text-micro'">
           {{ accountHint }}
         </span>
       </label>

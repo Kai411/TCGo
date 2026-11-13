@@ -30,7 +30,7 @@
         </button>
       </form>
       <div v-if="testResult" class="mt-3 text-label space-y-1">
-        <p :class="testResult.ok ? 'text-emerald-600 dark:text-emerald-400'  'text-red-600 dark:text-red-400'">
+        <p :class="testResult.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
           {{ testResult.headline }}
         </p>
         <p v-if="testResult.detail" class="text-ink-muted dark:text-zinc-400">{{ testResult.detail }}</p>

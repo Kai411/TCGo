@@ -15,7 +15,7 @@
     :title="label"
   >
     <svg
-      :class="size === 'sm' ? 'w-4 h-4'  'w-5 h-5'"
+      :class="size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'"
       :fill="isFav ? '#E3350D' : 'none'"
       :stroke="isFav ? '#E3350D' : 'currentColor'"
       stroke-width="2"

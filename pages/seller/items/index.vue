@@ -386,7 +386,7 @@
                  pill and action icons share one centre line regardless of how
                  many lines the card name wraps to. -->
             <tbody class="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
-              <tr v-for="item in pagedItems" :key="item.id" :class="isSelected(item.id) ? 'bg-pokemon-red/[0.03]'  ''">
+              <tr v-for="item in pagedItems" :key="item.id" :class="isSelected(item.id) ? 'bg-pokemon-red/[0.03]' : ''">
                 <!-- Select -->
                 <td class="px-3 py-2.5 align-middle">
                   <input type="checkbox" :checked="isSelected(item.id)" @change="toggleSelect(item.id)" class="rounded align-middle" :aria-label="`Select ${item.cardName}`" />

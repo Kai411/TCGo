@@ -7,7 +7,7 @@
     <div class="container mx-auto max-w-6xl">
       <div class="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
         <!-- Copy -->
-        <div :class="reverse ? 'lg:order-2'  ''">
+        <div :class="reverse ? 'lg:order-2' : ''">
           <div ref="copy">
             <!-- The feature's name as a plain label: no ordinal or rule in
                  front of it (2026-11 design audit). -->
@@ -51,7 +51,7 @@
         </div>
 
         <!-- Visual -->
-        <div ref="visual" :class="reverse ? 'lg:order-1'  ''">
+        <div ref="visual" :class="reverse ? 'lg:order-1' : ''">
           <slot />
           <p class="mt-3 text-center text-xs text-ink-soft">Example screen with sample figures</p>
         </div>

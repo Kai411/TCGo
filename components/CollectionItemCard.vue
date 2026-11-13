@@ -24,8 +24,8 @@
 
       <div
         :class="[
-          dense ? 'p-2 sm:p-2.5'  'p-2.5',
-          readonly ? ''  dense ? 'sm:pr-11'  'pr-11',
+          dense ? 'p-2 sm:p-2.5' : 'p-2.5',
+          readonly ? '' : dense ? 'sm:pr-11' : 'pr-11',
         ]"
       >
         <p
@@ -74,14 +74,14 @@
          name and price below keep the tile's full width. From sm up this
          wrapper is static and they return to the tile's bottom corner. -->
     <div
-      :class="dense ? 'pointer-events-none absolute inset-x-0 top-0 aspect-[2.5/3.5] sm:static sm:aspect-auto'  'contents'"
+      :class="dense ? 'pointer-events-none absolute inset-x-0 top-0 aspect-[2.5/3.5] sm:static sm:aspect-auto' : 'contents'"
     >
       <!-- Owned-card controls: step the quantity instead of a single
            add/remove, so a playset is managed in place. `−` at one copy removes
            the card entirely, which is what the minus already meant. -->
       <div
         v-if="!readonly && showQuantity"
-        :class="dense ? 'bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5'  'bottom-2.5 right-2.5'"
+        :class="dense ? 'bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5' : 'bottom-2.5 right-2.5'"
         class="pointer-events-auto absolute z-10 flex items-center gap-0.5 rounded-full bg-canvas-raised dark:bg-night-raised border border-black/[0.08] dark:border-white/[0.12] shadow-sm"
       >
         <button
@@ -113,13 +113,13 @@
         :disabled="busy"
         @click="$emit('toggle')"
         :class="[
-          dense ? 'bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5'  'bottom-2.5 right-2.5',
+          dense ? 'bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5' : 'bottom-2.5 right-2.5',
           'pointer-events-auto absolute z-10 inline-flex items-center justify-center w-7 h-7 rounded-full text-white text-base font-bold transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-pokemon-blue disabled:cursor-wait disabled:opacity-75',
           busy
             ? 'bg-gray-400'
-             inCollection
+            : inCollection
             ? 'bg-gray-400 hover:bg-pokemon-red'
-             'bg-pokemon-blue hover:bg-blue-700',
+            : 'bg-pokemon-blue hover:bg-blue-700',
         ]"
         :aria-label="
           busy

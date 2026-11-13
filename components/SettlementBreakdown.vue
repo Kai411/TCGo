@@ -5,12 +5,12 @@
       :key="i"
       :class="[
         'flex items-baseline justify-between gap-3',
-        line.kind === 'sub' ? 'py-1 pl-4'  'py-2',
+        line.kind === 'sub' ? 'py-1 pl-4' : 'py-2',
         line.kind === 'total'
           ? 'mt-1 pt-3 border-t border-black/[0.10] dark:border-white/[0.14]'
-           line.kind === 'sub'
+          : line.kind === 'sub'
             ? ''
-             'border-b border-black/[0.04] dark:border-white/[0.05]',
+            : 'border-b border-black/[0.04] dark:border-white/[0.05]',
       ]"
     >
       <div class="min-w-0">
@@ -19,11 +19,11 @@
             'truncate',
             line.kind === 'total'
               ? 'text-sm font-bold text-ink dark:text-white'
-               line.kind === 'gross'
+              : line.kind === 'gross'
                 ? 'text-sm font-semibold text-ink dark:text-white'
-                 line.kind === 'sub'
+                : line.kind === 'sub'
                   ? 'text-xs text-gray-500 dark:text-zinc-400'
-                   'text-sm text-gray-600 dark:text-zinc-300',
+                  : 'text-sm text-gray-600 dark:text-zinc-300',
           ]"
         >
           {{ line.label }}
@@ -40,13 +40,13 @@
           'shrink-0 tabular-nums',
           line.kind === 'total'
             ? 'text-lg font-extrabold text-ink dark:text-white'
-             line.kind === 'sub'
+            : line.kind === 'sub'
               ? 'text-xs text-gray-500 dark:text-zinc-400'
-             line.kind === 'credit'
+            : line.kind === 'credit'
               ? 'text-sm font-semibold text-emerald-600 dark:text-emerald-400'
-               line.amount < 0
+              : line.amount < 0
                 ? 'text-sm font-semibold text-rose-600 dark:text-rose-400'
-                 'text-sm font-semibold text-ink dark:text-white',
+                : 'text-sm font-semibold text-ink dark:text-white',
         ]"
       >
         {{ line.amount < 0 ? "−" : line.kind === "credit" ? "+" : "" }}RM

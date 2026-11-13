@@ -957,7 +957,7 @@
               :class="
                 relatedBusyIds.has(relatedCard.productId)
                   ? 'pointer-events-none opacity-55'
-                   ''
+                  : ''
               "
               @toggle="handleRelatedToggle(relatedCard.productId)"
             />

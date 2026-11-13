@@ -37,7 +37,7 @@
             <div class="min-w-0">
               <p class="text-sm font-bold text-ink dark:text-white truncate">{{ otherPerson.name }}</p>
               <p class="text-micro text-ink-muted dark:text-zinc-400 truncate">
-                <span :class="online ? 'text-emerald-600 dark:text-emerald-400 font-semibold'  ''">{{ seenLabel }}</span>
+                <span :class="online ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''">{{ seenLabel }}</span>
                 <span aria-hidden="true"> · </span>
                 <span>{{ replyLabel }}</span>
               </p>

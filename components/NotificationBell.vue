@@ -26,7 +26,7 @@
          Desktop keeps the dropdown. -->
     <Teleport to="body" :disabled="!isPhone">
     <Transition
-      :enter-active-class="isPhone ? 'notif-slide-enter'  'transition duration-150 ease-out'"
+      :enter-active-class="isPhone ? 'notif-slide-enter' : 'transition duration-150 ease-out'"
       :leave-active-class="isPhone ? 'notif-slide-leave' : 'transition duration-100 ease-in'"
       :enter-from-class="isPhone ? 'translate-x-full' : 'opacity-0 -translate-y-1'"
       :leave-to-class="isPhone ? 'translate-x-full' : 'opacity-0 -translate-y-1'"
@@ -38,7 +38,7 @@
         aria-label="Notifications"
         :class="isPhone
           ? 'notif-screen flex flex-col bg-canvas dark:bg-canvas-inverse'
-           'absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] z-50 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-night-raised shadow-xl overflow-hidden'"
+          : 'absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] z-50 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-night-raised shadow-xl overflow-hidden'"
       >
         <div
           class="flex items-center justify-between border-b border-black/[0.06] dark:border-white/[0.08]"
@@ -118,7 +118,7 @@
             type="button"
             :disabled="pushBusy"
             @click="enablePush"
-            :class="isPhone ? 'min-h-[44px]'  'min-h-[36px]'"
+            :class="isPhone ? 'min-h-[44px]' : 'min-h-[36px]'"
             class="shrink-0 px-3 rounded-lg text-caption font-semibold text-pokemon-red hover:bg-pokemon-red/10 disabled:opacity-60"
           >
             {{ pushBusy ? "Turning on…" : "Turn on" }}
@@ -127,7 +127,7 @@
             v-else
             to="/profile#notifications"
             @click="open = false"
-            :class="isPhone ? 'min-h-[44px]'  'min-h-[36px]'"
+            :class="isPhone ? 'min-h-[44px]' : 'min-h-[36px]'"
             class="shrink-0 inline-flex items-center px-3 rounded-lg text-caption font-semibold text-pokemon-red hover:bg-pokemon-red/10"
           >
             How
