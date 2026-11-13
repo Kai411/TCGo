@@ -1,7 +1,7 @@
 # TCGo project notes
 
 Key decisions and conventions for anyone joining the project. Read this before your first PR.
-Last updated 2026-11-11. If something here disagrees with the code, the code wins; please fix this file in the same PR.
+Last updated 2026-11-12. If something here disagrees with the code, the code wins; please fix this file in the same PR.
 
 ## What TCGo is
 
@@ -51,6 +51,8 @@ Server environment variables come from `runtimeConfig` in `nuxt.config.ts` (came
 - Say **"Buyer Protection"**, never "escrow", in the UI and docs. Billplz is not an escrow service and we are not licensed as one.
 - Seller terms must state money retention, fulfilment timelines and payout conditions. A Malaysian lawyer still has to review the policies and operator details in `shared/legal.ts` (currently placeholders, English only).
 - Personal data (IC, bank account, address, phone) lives in a private per-user record, not on the public profile (PDPA). PDPA consent is a required box at sign-up. Bumping `LEGAL_VERSION` asks every member to agree again, so only bump it when they must.
+- Every staff look-up of a member's identity record (`/api/admin/identity`) is written to the action log (Mint Condition > Logs, area Identity, `identity.viewed`). Any new staff route that shows identity, IC or bank details must log the same way with `noteAction`.
+- Data breaches and privacy requests follow `docs/privacy-runbook.md` (72-hour Commissioner notice, member notice, deletion by email request since there is no close-account feature). Its legal deadlines are marked for lawyer review.
 - Gateways compared: Billplz is the choice. HitPay is out for the marketplace (no Malaysian payout API). Curlec Route is the fallback if Billplz ever changes its mind.
 - **Pro membership costs RM5.99 a month.** It is one shared constant (`MARKETPLACE_MONTHLY` in `shared/pricing.ts`); the Stripe price must match it. Pro is hidden for now: `PREMIUM_ENABLED = false` in `composables/useFeatureFlags.ts`.
 - Launch promo: two months of Pro free for new users (never paid Pro) with code `TCGO2026`, until 31 Dec 2026. The coupon lives in Stripe.

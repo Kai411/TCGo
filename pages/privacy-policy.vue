@@ -146,15 +146,19 @@ useHead({ title: "Privacy Policy · TCGo" });
     </p>
 
     <h2>5. How long we keep it</h2>
+    <!-- LAWYER REVIEW: retention periods below. The 7-year and 3-year
+         figures are our reading of tax and consumer protection rules, not
+         confirmed legal advice. -->
     <ul>
-      <li>Account data: while your account is open, and up to 12 months after it is closed to deal with any remaining questions.</li>
-      <li>Order, payment, payout and seller records: 7 years, as required for tax and accounting, and at least 3 years for seller records under consumer protection rules.</li>
-      <li>Identity verification images and biometrics: held by Didit under its retention policy; we keep only the result and the details listed in section 1.</li>
-      <li>Chat messages and photos: while your account is open, so both sides can refer back to them if there is a problem with an order, then as for account data.</li>
+      <li>Account data: while your account is open. You can't close an account in the app yet. To close it, email {{ OPERATOR.privacyEmail }}; we then delete or anonymise your data, apart from the records below that we must keep by law. We keep a record of each request and what we did about it.</li>
+      <li>Order, payment, payout and seller records: 7 years, as required for tax and accounting, and at least 3 years for seller records under consumer protection rules. These are kept even if you close your account.</li>
+      <li>Identity verification images and biometrics: held by Didit under its retention policy; we keep only the result and the details listed in section 1, as part of your seller records.</li>
+      <li>Chat messages and photos: while your account is open, so both sides can refer back to them if there is a problem with an order. They are deleted with your account when you ask us to close it.</li>
+      <li>Help Center enquiries and our replies: while your account is open, and deleted with your account when you ask us to close it.</li>
       <li>Push notification addresses: until you turn notifications off for that device, sign out of it, or the browser tells us the address no longer works.</li>
-      <li>Logs: up to 12 months.</li>
+      <li>Logs, including a record of each time our staff open your identity record: at least 12 months, so we can check who accessed your data.</li>
     </ul>
-    <p>After that we delete or anonymise it.</p>
+    <p>When a period ends, or you ask us to delete your data, we delete or anonymise it.</p>
 
     <h2>6. Security</h2>
     <p>
