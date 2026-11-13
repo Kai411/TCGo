@@ -360,7 +360,7 @@ const showBuyerQr = ref(false);
 
 const avatarUrl = computed(() => profile.value?.photoURL || user.value?.photoURL || "");
 
-// The same four-step setup the seller area is gated on (useSellerKyc).
+// The same seller setup the seller area is gated on (useSellerKyc).
 const { sellerReady: isSeller, setup: sellerSetup, kycLoading: sellerLoading } = useSellerKyc();
 const nextSellerStep = computed(() => {
   const id = sellerSetup.value.current;

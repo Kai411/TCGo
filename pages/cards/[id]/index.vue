@@ -300,6 +300,7 @@
               icon-only
             />
           </div>
+          <SellerDisclosure :uid="card.sellerUid" />
 
           <!-- Description -->
           <section v-if="card.description" class="mt-8">

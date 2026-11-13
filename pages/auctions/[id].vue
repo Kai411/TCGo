@@ -388,6 +388,7 @@
               icon-only
             />
           </div>
+          <SellerDisclosure :uid="auction.sellerUid" />
 
           <!-- Description -->
           <section v-if="auction.description" class="mt-8">

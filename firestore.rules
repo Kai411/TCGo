@@ -83,7 +83,10 @@ service cloud.firestore {
         'trustScore',
         // Payout bank, saved through /api/account/payout-details so the
         // 24-hour hold after a password change can be enforced there.
-        'bankCode', 'bankName'
+        'bankCode', 'bankName',
+        // Individual or business, saved through /api/account/seller-disclosure
+        // with what buyers see (sellerDisclosures/{uid}, server-only).
+        'sellerType'
       ];
     }
 
@@ -169,7 +172,7 @@ service cloud.firestore {
              'kycSessionId', 'kycStartedAt', 'kycDocumentType',
              'kycIssuingState', 'kycDeclineReason',
              'subscriptionStatus', 'stripeCustomerId', 'stripeSubscriptionId',
-             'currentPeriodEnd', 'cancelAtPeriodEnd'
+             'currentPeriodEnd', 'cancelAtPeriodEnd', 'sellerType'
            ])
         // keys() is a list, and list.hasAny() takes a list: passing a set
         // made this an evaluation error, which refused every new profile.
