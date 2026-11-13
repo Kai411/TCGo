@@ -9,7 +9,7 @@
         class="flex items-center justify-between px-4 h-14 bg-black text-white"
       >
         <div class="flex items-center gap-3">
-          <h2 class="text-base font-semibold">Scan Card</h2>
+          <h2 class="text-base font-semibold">Scan card</h2>
           <span
             v-if="premiumEnabled && user && isPremium"
             class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300"

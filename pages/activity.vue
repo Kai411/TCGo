@@ -16,7 +16,7 @@
       <!-- Phones: back to Account (where these screens are opened from), the
            title, then full-width tabs with a sliding underline. -->
       <div class="lg:hidden">
-        <SubpageHeader :title="activeTab === 'purchases' ? 'My Orders' : 'My Activity'" />
+        <SubpageHeader :title="activeTab === 'purchases' ? 'My orders' : 'My Activity'" />
         <div
           class="relative -mx-4 px-4 flex border-b border-black/[0.06] dark:border-white/[0.08] mb-4 select-none"
           role="tablist"
@@ -45,7 +45,7 @@
       </div>
 
       <div class="hidden lg:flex items-center justify-between mb-6 gap-3 flex-wrap">
-        <h1 class="text-2xl font-bold text-ink dark:text-white">{{ activeTab === "purchases" ? "My Orders" : "My Activity" }}</h1>
+        <h1 class="text-2xl font-bold text-ink dark:text-white">{{ activeTab === "purchases" ? "My orders" : "My Activity" }}</h1>
         <TabStrip v-model="activeTab" :tabs="tabs" />
       </div>
 

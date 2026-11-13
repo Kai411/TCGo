@@ -96,7 +96,7 @@ type Step = { id: string; target?: string; title: string; body: string };
 const allSteps: Step[] = [
   {
     id: "welcome",
-    title: "Welcome to your Seller Dashboard",
+    title: "Welcome to your Seller dashboard",
     body: "This is where you run your shop — stock, sales, orders and payouts all in one place. Let's take a quick look around. It only takes a minute.",
   },
   {

@@ -20,7 +20,7 @@
           : 'text-ink dark:text-zinc-100',
       ]"
     >
-      {{ value < 0 ? "−" : "" }}RM{{ money(Math.abs(value)) }}
+      {{ value < 0 ? "−" : "" }}RM {{ money(Math.abs(value)) }}
     </dd>
   </div>
 </template>

@@ -73,7 +73,7 @@
         Run now
       </button>
       <span class="text-[11px] text-ink-soft dark:text-zinc-500">
-        RM{{ spentLast24h.toFixed(2) }} sent automatically in the last 24h
+        RM {{ spentLast24h.toFixed(2) }} sent automatically in the last 24h
       </span>
     </div>
 
@@ -87,12 +87,12 @@
       <p class="font-semibold mb-2">
         {{ preview.dryRun ? "Would send" : "Sent" }}
         {{ preview.dryRun ? preview.wouldSend?.length : preview.sent }} payout(s)
-        · RM{{ (preview.total ?? preview.totalSent ?? 0).toFixed(2) }}
+        · RM {{ (preview.total ?? preview.totalSent ?? 0).toFixed(2) }}
       </p>
       <ul v-if="skipList.length" class="space-y-1">
         <li v-for="s in skipList" :key="s.payoutId" class="flex justify-between gap-3 text-ink-muted dark:text-zinc-400">
           <span class="font-mono">{{ s.payoutId.slice(0, 8) }}</span>
-          <span class="text-right">RM{{ s.amount?.toFixed(2) }} — {{ s.label }}</span>
+          <span class="text-right">RM {{ s.amount?.toFixed(2) }} — {{ s.label }}</span>
         </li>
       </ul>
       <p v-else class="text-ink-soft dark:text-zinc-500">Nothing skipped.</p>

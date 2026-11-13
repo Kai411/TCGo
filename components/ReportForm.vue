@@ -8,7 +8,7 @@
       class="bg-white dark:bg-white/[0.04] rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4"
     >
       <div class="flex items-center justify-between">
-        <h2 class="text-lg font-bold">Report User</h2>
+        <h2 class="text-lg font-bold">Report user</h2>
         <button @click="close" class="text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:hover:text-zinc-300">
           <svg
             class="w-5 h-5"

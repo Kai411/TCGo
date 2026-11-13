@@ -60,9 +60,9 @@ const formatPrice = (price: number): string => {
   });
 };
 
-// Phone tiles: "RM1,250" for whole amounts so big prices fit one line.
+// Phone tiles: "RM 1,250" for whole amounts so big prices fit one line.
 const formatPriceCompact = (price: number): string =>
-  "RM" +
+  "RM\u00a0" +
   price.toLocaleString("en-MY", {
     minimumFractionDigits: Number.isInteger(price) ? 0 : 2,
     maximumFractionDigits: 2,
@@ -284,12 +284,11 @@ const timerClasses = computed(() => {
                     </g>
                     <path d="M12.5 21h8" />
                   </svg>
-                  {{ formatPrice(auction?.currentPrice || 0) }}
                   <span
-                    class="text-[10px] font-semibold text-ink-soft dark:text-zinc-500"
+                    class="text-[11px] font-semibold text-ink-soft dark:text-zinc-500"
+                    >RM</span
                   >
-                    MYR
-                  </span>
+                  {{ formatPrice(auction?.currentPrice || 0) }}
                 </p>
               </template>
               <!-- Card: fixed price -->
@@ -297,12 +296,11 @@ const timerClasses = computed(() => {
                 <p
                   class="tabular-price font-extrabold text-[17px] leading-none text-ink dark:text-white"
                 >
-                  {{ formatPrice(card?.price || 0) }}
                   <span
-                    class="text-[10px] font-semibold text-ink-soft dark:text-zinc-500"
+                    class="text-[11px] font-semibold text-ink-soft dark:text-zinc-500"
+                    >RM</span
                   >
-                    MYR
-                  </span>
+                  {{ formatPrice(card?.price || 0) }}
                 </p>
               </template>
             </div>

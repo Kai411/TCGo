@@ -116,7 +116,7 @@
               v-if="item.myr !== null"
               class="text-sm font-bold text-ink dark:text-white tabular-price"
             >
-              ≈ {{ formatMyr(item.myr) }} MYR
+              ≈ RM {{ formatMyr(item.myr) }}
             </p>
             <p
               class="text-[11px] text-ink-soft dark:text-zinc-500 tabular-price"

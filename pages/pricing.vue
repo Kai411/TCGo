@@ -140,7 +140,7 @@
                     >Average sale price</label
                   >
                   <span class="text-sm font-semibold tabular-nums text-ink"
-                    >RM{{ avgSale }}</span
+                    >RM {{ avgSale }}</span
                   >
                 </div>
                 <input
@@ -224,10 +224,10 @@
                 You keep each month
               </p>
               <p class="mt-2 text-[34px] font-bold leading-none tracking-tightest">
-                RM{{ money(keepAmount) }}
+                RM {{ money(keepAmount) }}
               </p>
               <p class="mt-2 text-xs text-white/50">
-                from RM{{ money(revenue) }} in online sales
+                from RM {{ money(revenue) }} in online sales
               </p>
 
               <dl class="mt-6 space-y-2.5 border-t border-white/10 pt-5 text-[13px]">
@@ -235,21 +235,21 @@
                   <dt class="text-white/60">
                     Commission ({{ (feeRate * 100).toFixed(0) }}%)
                   </dt>
-                  <dd class="tabular-nums">−RM{{ money(marketplaceFee) }}</dd>
+                  <dd class="tabular-nums">−RM {{ money(marketplaceFee) }}</dd>
                 </div>
                 <div class="flex justify-between gap-3">
                   <dt class="text-white/60">Withdrawals</dt>
-                  <dd class="tabular-nums">−RM{{ money(withdrawalFee) }}</dd>
+                  <dd class="tabular-nums">−RM {{ money(withdrawalFee) }}</dd>
                 </div>
                 <div v-if="subscription" class="flex justify-between gap-3">
                   <dt class="text-white/60">{{ currentPlan.name }} plan</dt>
-                  <dd class="tabular-nums">−RM{{ money(subscription) }}</dd>
+                  <dd class="tabular-nums">−RM {{ money(subscription) }}</dd>
                 </div>
                 <div
                   class="flex justify-between gap-3 border-t border-white/10 pt-2.5 font-semibold"
                 >
                   <dt>Total cost</dt>
-                  <dd class="tabular-nums">RM{{ money(totalCost) }}</dd>
+                  <dd class="tabular-nums">RM {{ money(totalCost) }}</dd>
                 </div>
               </dl>
 
@@ -626,7 +626,7 @@ const plans = [
     rate: STANDARD_RATE,
     monthly: MARKETPLACE_MONTHLY,
     defaults: { avgSale: 45, salesPerMonth: 70, withdrawals: 2 },
-    price: `RM${MARKETPLACE_MONTHLY}`,
+    price: `RM ${MARKETPLACE_MONTHLY}`,
     period: "/month",
     who: "For a shop or a serious seller, where the scan cap starts to bite.",
     featured: true,

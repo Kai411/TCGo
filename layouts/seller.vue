@@ -9,7 +9,7 @@
             <span class="hidden sm:inline">Marketplace</span>
           </NuxtLink>
           <span class="text-ink-soft dark:text-zinc-600">/</span>
-          <span class="font-bold text-ink dark:text-white truncate">Seller Dashboard</span>
+          <span class="font-bold text-ink dark:text-white truncate">Seller dashboard</span>
         </div>
         <!-- Inventory and Auctions each have their own add button on-page, so
              duplicating them up here just crowded the bar. Settings takes the
@@ -331,7 +331,7 @@ const SHEETS: Record<
       // Spelled out rather than "Inventory" twice: the sheet is already
       // titled Inventory, so a row repeating it says nothing about what it
       // does. This is the one that manages stock.
-      { to: "/seller/items", label: "Manage Inventory", icon: IconBox, tour: "nav-items" },
+      { to: "/seller/items", label: "Manage inventory", icon: IconBox, tour: "nav-items" },
       { to: "/seller/listings", label: "Listings", icon: IconTag, tour: "nav-listings" },
       { to: "/seller/auctions", label: "Auctions", icon: IconGavel, tour: "nav-auctions" },
     ],

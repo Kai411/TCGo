@@ -265,11 +265,10 @@
                   v-if="card.price"
                   class="text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
                 >
-                  {{ formatMyr(card.price.market) }}
                   <span
-                    class="ml-0.5 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
-                    >MYR</span
-                  >
+                    class="mr-1 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
+                    >RM</span
+                  >{{ formatMyr(card.price.market) }}
                 </p>
                 <!-- No primary price. Show the second opinion rather than a
                      dead end, and say plainly that it is one — it is a
@@ -279,11 +278,10 @@
                   <p
                     class="text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
                   >
-                    {{ formatMyr(secondary.market) }}
                     <span
-                      class="ml-0.5 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
-                      >MYR</span
-                    >
+                      class="mr-1 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
+                      >RM</span
+                    >{{ formatMyr(secondary.market) }}
                   </p>
                   <p class="mt-1 text-xs text-ink-soft dark:text-zinc-500">
                     Second source · {{ secondary.currency }} converted. No
@@ -361,7 +359,7 @@
                 <p
                   class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price"
                 >
-                  {{ card.price ? `${formatMyr(card.price.low)} MYR` : "—" }}
+                  {{ card.price ? `RM ${formatMyr(card.price.low)}` : "—" }}
                 </p>
               </div>
               <div
@@ -375,7 +373,7 @@
                 <p
                   class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price"
                 >
-                  {{ card.price ? `${formatMyr(card.price.high)} MYR` : "—" }}
+                  {{ card.price ? `RM ${formatMyr(card.price.high)}` : "—" }}
                 </p>
               </div>
               <div
@@ -626,7 +624,7 @@
                   <td
                     class="px-4 py-4 font-bold text-ink dark:text-white tabular-price"
                   >
-                    {{ formatMyr(row.low) }} MYR
+                    RM {{ formatMyr(row.low) }}
                   </td>
                   <td
                     class="px-4 py-4 text-ink-muted dark:text-zinc-300 tabular-price"
@@ -683,13 +681,13 @@
                 <p
                   class="text-sm font-bold text-ink dark:text-white tabular-price"
                 >
-                  {{ formatMyr(row.low) }} MYR
+                  RM {{ formatMyr(row.low) }}
                 </p>
                 <p
                   v-if="row.high !== row.low"
                   class="mt-0.5 text-[10px] text-ink-soft dark:text-zinc-500"
                 >
-                  up to {{ formatMyr(row.high) }} MYR
+                  up to RM {{ formatMyr(row.high) }}
                 </p>
               </div>
             </NuxtLink>
@@ -793,7 +791,7 @@
                   <td
                     class="px-4 py-4 font-bold text-ink dark:text-white tabular-price"
                   >
-                    {{ formatMyr(row.low) }} MYR
+                    RM {{ formatMyr(row.low) }}
                   </td>
                   <td
                     class="px-4 py-4 text-ink-muted dark:text-zinc-300 tabular-price"
@@ -853,13 +851,13 @@
                 <p
                   class="text-sm font-bold text-ink dark:text-white tabular-price"
                 >
-                  {{ formatMyr(row.low) }} MYR
+                  RM {{ formatMyr(row.low) }}
                 </p>
                 <p
                   v-if="row.high !== row.low"
                   class="mt-0.5 text-[10px] text-ink-soft dark:text-zinc-500"
                 >
-                  up to {{ formatMyr(row.high) }} MYR
+                  up to RM {{ formatMyr(row.high) }}
                 </p>
               </div>
             </NuxtLink>
@@ -1561,8 +1559,8 @@ const formatMyr = (value: number) =>
 
 const formatPriceRange = (low: number, high: number) =>
   low === high
-    ? `${formatMyr(low)} MYR`
-    : `${formatMyr(low)}–${formatMyr(high)} MYR`;
+    ? `RM ${formatMyr(low)}`
+    : `RM ${formatMyr(low)}–${formatMyr(high)}`;
 
 useHead(() => ({
   title: card.value

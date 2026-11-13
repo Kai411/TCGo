@@ -436,7 +436,7 @@
                   class="shrink-0 text-sm font-semibold tabular-nums"
                   :class="index === 0 ? 'text-pokemon-red' : 'text-ink dark:text-white'"
                 >
-                  <span v-if="bid.triggeredAntiSnipe" title="Extended the clock" aria-label="Extended the clock">⚡</span>
+                  <span v-if="bid.triggeredAntiSnipe" title="Extended the clock" aria-label="Extended the clock" class="inline-flex align-[-2px] mr-0.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2 2M9 2h6" /></svg></span>
                   RM {{ formatRM(bid.amount) }}
                 </p>
               </li>

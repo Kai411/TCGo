@@ -53,15 +53,15 @@
             v-if="card.price && dense"
             class="sm:hidden min-w-0 truncate tabular-nums font-bold text-[10px] leading-none text-ink dark:text-white"
           >
-            RM{{ card.price.market.toLocaleString("en-MY", { minimumFractionDigits: Number.isInteger(card.price.market) ? 0 : 2, maximumFractionDigits: 2 }) }}
+            RM {{ card.price.market.toLocaleString("en-MY", { minimumFractionDigits: Number.isInteger(card.price.market) ? 0 : 2, maximumFractionDigits: 2 }) }}
           </p>
           <p
             v-if="card.price"
             class="text-md font-[900] text-ink dark:text-white tabular-nums"
             :class="dense ? 'hidden sm:block' : ''"
           >
+            <span class="text-xs font-semibold">RM</span>
             {{ card.price.market.toFixed(2) }}
-            <span class="text-xs font-semibold">MYR</span>
           </p>
           <p v-else class="text-[11px] text-gray-400 dark:text-zinc-500">
             No price

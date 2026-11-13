@@ -70,7 +70,7 @@
           :aria-label="priceLabel"
           :title="priceLabel"
         >
-          <span>$</span>
+          <span class="text-[13px]">RM</span>
           <!-- Both chevrons when off, so the control reads as a sort before
                it has been touched; the active one alone once it is on. -->
           <svg

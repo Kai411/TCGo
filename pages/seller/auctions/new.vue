@@ -297,7 +297,7 @@
                       <span
                         class="flex items-center px-2 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 text-xs font-medium whitespace-nowrap select-none"
                       >
-                        <span class="hidden sm:inline">Start Price</span>
+                        <span class="hidden sm:inline">Start price</span>
                         <span class="sm:hidden">SB</span>
                       </span>
                       <input
@@ -603,9 +603,10 @@
             </div>
             <p
               v-if="isPrivate"
-              class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"
+              class="flex items-start gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"
             >
-              🔒 This auction will only be visible to people with the direct
+              <svg class="w-3.5 h-3.5 mt-px shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+              This auction will only be visible to people with the direct
               link.
             </p>
 
@@ -622,8 +623,8 @@
                   <span
                     class="flex items-center px-3 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 text-sm font-medium whitespace-nowrap select-none"
                   >
-                    <span class="hidden sm:inline">Start Price: MYR</span>
-                    <span class="sm:hidden">SB: MYR</span>
+                    <span class="hidden sm:inline">Start price (RM)</span>
+                    <span class="sm:hidden">Start (RM)</span>
                   </span>
                   <input
                     v-model.number="startingPrice"

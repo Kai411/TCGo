@@ -100,7 +100,7 @@
     </div>
 
     <template v-if="user">
-      <!-- Quick shortcuts. The last column is wider: "Manage Listings" is
+      <!-- Quick shortcuts. The last column is wider: "Manage listings" is
            the longest label. -->
       <div class="grid grid-cols-[1fr_1fr_1fr_1.3fr]">
         <NuxtLink
@@ -161,7 +161,7 @@
         </span>
         <span class="min-w-0 flex-1">
           <span class="flex items-center gap-2 text-sm font-bold text-ink dark:text-white">
-            Seller Dashboard
+            Seller dashboard
             <span
               v-if="sellerHasUnread"
               class="w-2 h-2 rounded-full bg-pokemon-red"
@@ -183,7 +183,7 @@
           to="/activity"
           class="press flex items-center justify-between lg:px-4 min-h-[48px]"
         >
-          <span class="text-base font-bold text-ink dark:text-white">My Orders</span>
+          <span class="text-base font-bold text-ink dark:text-white">My orders</span>
           <span class="flex items-center gap-0.5 text-xs font-medium text-ink-soft dark:text-zinc-500">
             View all
             <IconChevron class="w-4 h-4" />

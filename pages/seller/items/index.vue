@@ -15,7 +15,7 @@
           <p class="text-sm text-gray-500 dark:text-zinc-400 mt-1">
             <span class="font-semibold text-ink dark:text-white tabular-nums">{{ totalUnits }}</span> units ·
             <span class="font-semibold text-ink dark:text-white tabular-nums">{{ count }}</span> entries ·
-            est. value <span class="font-semibold text-pokemon-red tabular-nums">{{ formatMyr(totalValue) }} MYR</span>
+            est. value <span class="font-semibold text-pokemon-red tabular-nums">RM {{ formatMyr(totalValue) }}</span>
           </p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
@@ -353,7 +353,7 @@
               <span class="text-sm font-medium text-ink dark:text-white leading-snug line-clamp-2 break-words">{{ item.cardName }}</span>
               <span class="text-xs text-gray-500 dark:text-zinc-400 truncate">{{ item.condition || "No condition" }}</span>
               <span class="mt-0.5 flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-zinc-500 tabular-nums">
-                RM{{ formatMyr(item.listPrice || 0) }}<template v-if="item.quantity > 1"> × {{ item.quantity }}</template>
+                RM {{ formatMyr(item.listPrice || 0) }}<template v-if="item.quantity > 1"> × {{ item.quantity }}</template>
                 <span class="font-semibold px-1.5 rounded-full whitespace-nowrap" :class="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
               </span>
             </button>

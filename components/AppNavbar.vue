@@ -421,7 +421,7 @@ const desktopLinks = computed(() => {
   if (user.value) {
     links.push({ to: "/collection", label: "Dex" });
     links.push({ to: "/activity", label: "Orders" });
-    links.push({ to: "/seller", label: "Seller Dashboard" });
+    links.push({ to: "/seller", label: "Seller dashboard" });
   }
   return links;
 });
@@ -535,7 +535,7 @@ const onSellTap = () => {
 const sellItems = computed(() => [
   { to: "/seller/listings/new", label: "Sell a card", hint: "List it at a fixed price", icon: IconPlus, dot: false },
   { to: "/seller/auctions/new", label: "Start an auction", hint: "Let buyers bid on it", icon: IconGavel, dot: false },
-  { to: "/seller", label: "Seller Dashboard", hint: "Listings, orders to ship and payouts", icon: IconStore, dot: sellerHasUnread.value },
+  { to: "/seller", label: "Seller dashboard", hint: "Listings, orders to ship and payouts", icon: IconStore, dot: sellerHasUnread.value },
 ]);
 
 // ── Our height, published for anything that sticks beneath us ───────────

@@ -18,7 +18,7 @@
     </div>
 
     <template v-else>
-      <h1 class="text-2xl font-bold mb-6">Edit Listing</h1>
+      <h1 class="text-2xl font-bold mb-6">Edit listing</h1>
 
       <form id="edit-listing-form" @submit.prevent="handleSubmit" class="space-y-4 pb-36 lg:pb-0">
         <p class="text-xs text-gray-500 dark:text-zinc-400 -mt-2">

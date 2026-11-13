@@ -347,7 +347,7 @@
             </span>
             <span class="text-ink-muted dark:text-zinc-400">
               est. value
-              <span class="font-bold text-ink dark:text-white tabular-nums">RM{{ formatMyr(collectionValue) }}</span>
+              <span class="font-bold text-ink dark:text-white tabular-nums">RM {{ formatMyr(collectionValue) }}</span>
             </span>
             <NuxtLink
               v-if="isOwnProfile"

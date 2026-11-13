@@ -25,7 +25,7 @@
           <p
             class="text-2xl font-bold text-ink dark:text-white tabular-price leading-none mt-1"
           >
-            {{ fmt(trend.last) }} MYR
+            RM {{ fmt(trend.last) }}
           </p>
         </div>
         <span
@@ -140,7 +140,7 @@
           <p
             class="text-[11px] font-bold text-white dark:text-ink tabular-price"
           >
-            {{ fmt(trend.points[active]!.market) }} MYR
+            RM {{ fmt(trend.points[active]!.market) }}
           </p>
         </div>
       </div>
@@ -151,7 +151,7 @@
       >
         <span>{{ labelAt(0) }}</span>
         <span
-          >Low {{ fmt(trend.min) }} MYR · High {{ fmt(trend.max) }} MYR</span
+          >Low RM {{ fmt(trend.min) }} · High RM {{ fmt(trend.max) }}</span
         >
         <span>{{ labelAt(trend.points.length - 1) }}</span>
       </div>
