@@ -232,7 +232,7 @@
                 <button
                   v-if="order.status === 'shipped'"
                   @click="handleMarkDelivered"
-                  class="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+                  class="px-4 py-2 rounded-lg text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
                 >
                   Mark received
                 </button>

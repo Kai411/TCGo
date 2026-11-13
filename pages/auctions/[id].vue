@@ -465,7 +465,7 @@
       <Teleport to="body">
         <div
           v-if="showActionBar"
-          class="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-white dark:bg-[#111114] border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]"
+          class="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-white dark:bg-canvas-inverse border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]"
         >
           <!-- The page's own message may be scrolled away, so the bar repeats it. -->
           <p v-if="!isEnded && (bidError || bidSuccess)" class="mb-2 text-xs font-medium text-center" :class="bidError ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'">

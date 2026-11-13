@@ -10,13 +10,13 @@
       <svg class="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 260 220">
         <!-- Back cards -->
         <g class="card card-left">
-          <rect x="70" y="40" width="104" height="146" rx="12" class="fill-white dark:fill-[#26262C] stroke-black/10 dark:stroke-white/10" stroke-width="1.5" />
+          <rect x="70" y="40" width="104" height="146" rx="12" class="fill-white dark:fill-night-high stroke-black/10 dark:stroke-white/10" stroke-width="1.5" />
           <rect x="80" y="50" width="84" height="62" rx="6" class="fill-black/[0.05] dark:fill-white/[0.06]" />
           <rect x="80" y="122" width="56" height="7" rx="3.5" class="fill-black/[0.08] dark:fill-white/[0.10]" />
           <rect x="80" y="136" width="40" height="7" rx="3.5" class="fill-black/[0.06] dark:fill-white/[0.08]" />
         </g>
         <g class="card card-right">
-          <rect x="86" y="40" width="104" height="146" rx="12" class="fill-white dark:fill-[#26262C] stroke-black/10 dark:stroke-white/10" stroke-width="1.5" />
+          <rect x="86" y="40" width="104" height="146" rx="12" class="fill-white dark:fill-night-high stroke-black/10 dark:stroke-white/10" stroke-width="1.5" />
           <rect x="96" y="50" width="84" height="62" rx="6" class="fill-black/[0.05] dark:fill-white/[0.06]" />
           <rect x="96" y="122" width="56" height="7" rx="3.5" class="fill-black/[0.08] dark:fill-white/[0.10]" />
           <rect x="96" y="136" width="40" height="7" rx="3.5" class="fill-black/[0.06] dark:fill-white/[0.08]" />

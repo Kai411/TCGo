@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import colors from "tailwindcss/colors";
 
 export default {
   darkMode: "class",
@@ -15,6 +16,14 @@ export default {
   theme: {
     extend: {
       colors: {
+        // One grey family (2026-11 design audit). The ink and canvas tokens
+        // are zinc values, but pages also used Tailwind's blue-tinted gray
+        // and slate, so borders and secondary text drifted from page to
+        // page. Every grey utility now resolves to zinc.
+        gray: colors.zinc,
+        slate: colors.zinc,
+        neutral: colors.zinc,
+        stone: colors.zinc,
         pokemon: {
           red: "#E3350D",
           // Hover and pressed state for red buttons (replaces the old glow).
@@ -30,6 +39,13 @@ export default {
           muted: "#52525B",
           soft: "#A1A1AA",
           faint: "#D4D4D8",
+        },
+        // Dark-mode surfaces that pages used to write as hex literals.
+        night: {
+          raised: "#1B1B20",
+          sunken: "#17171C",
+          hover: "#202027",
+          high: "#26262C",
         },
         canvas: {
           DEFAULT: "#FAFAFA",

@@ -70,7 +70,7 @@
           v-else
           type="button"
           @click="$emit('mark-delivered', order.id)"
-          class="shrink-0 min-h-[40px] px-5 rounded-full text-label font-semibold bg-emerald-600 text-white transition-transform duration-150 active:scale-[0.97]"
+          class="shrink-0 min-h-[40px] px-5 rounded-full text-label font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-transform duration-150 active:scale-[0.97]"
         >
           Mark received
         </button>
@@ -137,7 +137,7 @@
       <button
         v-else-if="order.status === 'shipped'"
         @click="$emit('mark-delivered', order.id)"
-        class="w-full px-3 py-2 rounded-lg text-xs font-bold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+        class="w-full px-3 py-2 rounded-lg text-xs font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
       >
         Mark received
       </button>

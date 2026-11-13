@@ -315,7 +315,7 @@
               </div>
               <div
                 v-if="inCollection && user"
-                class="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-black/[0.10] bg-canvas-raised px-0.5 dark:border-white/[0.12] dark:bg-[#1B1B20]"
+                class="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-black/[0.10] bg-canvas-raised px-0.5 dark:border-white/[0.12] dark:bg-night-raised"
               >
                 <button
                   type="button"

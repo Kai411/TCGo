@@ -102,7 +102,7 @@
       <button
         @click="handleClaimBonus"
         :disabled="claimingBonus"
-        class="shrink-0 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-60"
+        class="shrink-0 bg-pokemon-red hover:bg-pokemon-red-dark text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-60"
       >
         {{ claimingBonus ? '...' : 'Claim +5' }}
       </button>

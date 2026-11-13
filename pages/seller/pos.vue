@@ -152,7 +152,7 @@
             <button
               @click="openPayment"
               :disabled="paying"
-              class="px-8 py-3 rounded-xl text-sm font-bold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors disabled:opacity-60 flex items-center gap-2"
+              class="px-8 py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:bg-pokemon-red-dark transition-colors disabled:opacity-60 flex items-center gap-2"
             >
               <span v-if="paying" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
               Pay

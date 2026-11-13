@@ -101,7 +101,7 @@
             type="submit"
             form="edit-listing-form"
             :disabled="submitting"
-            class="flex-1 bg-pokemon-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+            class="flex-1 bg-pokemon-red text-white py-3 rounded-xl font-semibold hover:bg-pokemon-red-dark transition-colors disabled:opacity-50"
           >
             {{ submitting ? "Saving..." : "Save Changes" }}
           </button>

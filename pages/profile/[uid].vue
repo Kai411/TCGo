@@ -227,7 +227,7 @@
             class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
             @click.self="showBuyerQr = false"
           >
-            <div class="w-full max-w-sm rounded-2xl bg-white p-5 dark:bg-[#17171c]" role="dialog" aria-label="Your customer code">
+            <div class="w-full max-w-sm rounded-2xl bg-white p-5 dark:bg-night-sunken" role="dialog" aria-label="Your customer code">
               <BuyerQrCard />
               <button
                 type="button"

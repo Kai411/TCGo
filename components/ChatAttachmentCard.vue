@@ -2,7 +2,7 @@
   <component
     :is="link ? NuxtLink : 'div'"
     :to="link ? attachmentHref(attachment) : undefined"
-    class="flex items-center gap-3 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-[#1f1f26] p-2.5 text-left"
+    class="flex items-center gap-3 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-night-hover p-2.5 text-left"
     :class="link ? 'hover:shadow-card-hover transition-shadow' : ''"
   >
     <div class="w-12 h-12 shrink-0 rounded-lg overflow-hidden bg-canvas-sunken dark:bg-white/[0.04]">

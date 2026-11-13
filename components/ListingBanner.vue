@@ -31,7 +31,7 @@
           class="relative block w-full shrink-0 snap-center snap-always overflow-hidden bg-black/[0.04] dark:bg-white/[0.06]"
           :class="[
             linkFor(s) ? 'transition-transform duration-150 ease-out active:scale-[0.985]' : '',
-            s.imageUrl ? '' : 'bg-gradient-to-br from-pokemon-red to-[#b8290a] dark:from-[#c22d0b] dark:to-[#7a1c06]',
+            s.imageUrl ? '' : 'bg-gradient-to-br from-pokemon-red to-pokemon-red-dark dark:from-pokemon-red-dark dark:to-[#7a1c06]',
           ]"
           :aria-hidden="i >= slides.length ? 'true' : undefined"
           :tabindex="i >= slides.length ? -1 : undefined"

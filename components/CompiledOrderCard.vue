@@ -83,7 +83,7 @@
         <button
           v-if="order.status === 'shipped'"
           @click="$emit('mark-delivered', order.id)"
-          class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
         >
           Mark received
         </button>

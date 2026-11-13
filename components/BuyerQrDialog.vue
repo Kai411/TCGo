@@ -13,7 +13,7 @@
         @click.self="close"
       >
         <div
-          class="w-full max-w-sm rounded-2xl bg-white p-5 dark:bg-[#17171c]"
+          class="w-full max-w-sm rounded-2xl bg-white p-5 dark:bg-night-sunken"
           role="dialog"
           aria-modal="true"
           aria-label="Your customer code"

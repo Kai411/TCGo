@@ -219,7 +219,7 @@
 
           <button
             @click="$emit('close')"
-            class="w-full mt-4 py-3 rounded-xl text-sm font-bold bg-emerald-500 text-white hover:bg-emerald-600"
+            class="w-full mt-4 py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:bg-pokemon-red-dark transition-colors"
           >
             New sale
           </button>

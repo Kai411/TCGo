@@ -231,7 +231,7 @@ interface Step {
 
 const STEP_DOT: Record<StepState, string> = {
   done: "bg-emerald-500 text-white",
-  current: "bg-white dark:bg-[#1B1B20] ring-2 ring-pokemon-red",
+  current: "bg-white dark:bg-night-raised ring-2 ring-pokemon-red",
   todo: "bg-gray-200 dark:bg-white/[0.10]",
 };
 

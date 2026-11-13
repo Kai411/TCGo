@@ -82,7 +82,7 @@
       <div
         v-if="!readonly && showQuantity"
         :class="dense ? 'bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5'  'bottom-2.5 right-2.5'"
-        class="pointer-events-auto absolute z-10 flex items-center gap-0.5 rounded-full bg-canvas-raised dark:bg-[#1B1B20] border border-black/[0.08] dark:border-white/[0.12] shadow-sm"
+        class="pointer-events-auto absolute z-10 flex items-center gap-0.5 rounded-full bg-canvas-raised dark:bg-night-raised border border-black/[0.08] dark:border-white/[0.12] shadow-sm"
       >
         <button
           type="button"

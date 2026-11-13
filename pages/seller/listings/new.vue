@@ -409,7 +409,7 @@
           type="button"
           @click="publishDrafts"
           :disabled="publishing || !canPublishDrafts"
-          class="mt-4 w-full bg-pokemon-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+          class="mt-4 w-full bg-pokemon-red text-white py-3 rounded-xl font-semibold hover:bg-pokemon-red-dark transition-colors disabled:opacity-50"
         >
           {{ publishButtonLabel }}
         </button>
@@ -560,7 +560,7 @@
         <NuxtLink
           v-if="needsPickupAddress"
           to="/seller/settings#pickup"
-          class="block w-full text-center bg-pokemon-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+          class="block w-full text-center bg-pokemon-red text-white py-3 rounded-xl font-semibold hover:bg-pokemon-red-dark transition-colors"
         >
           Set up pickup address
         </NuxtLink>
@@ -568,7 +568,7 @@
           v-else
           type="submit"
           :disabled="submitting"
-          class="w-full bg-pokemon-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="w-full bg-pokemon-red text-white py-3 rounded-xl font-semibold hover:bg-pokemon-red-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {{ submitting ? "Listing..." : "List for Sale" }}
         </button>

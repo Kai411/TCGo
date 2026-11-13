@@ -15,7 +15,7 @@
            and a badge over a 20px bell is unreadable anyway. -->
       <span
         v-if="hasUnread"
-        class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-pokemon-red ring-2 ring-white dark:ring-[#17171c]"
+        class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-pokemon-red ring-2 ring-white dark:ring-night-sunken"
         aria-hidden="true"
       />
     </button>
@@ -38,7 +38,7 @@
         aria-label="Notifications"
         :class="isPhone
           ? 'notif-screen flex flex-col bg-canvas dark:bg-canvas-inverse'
-           'absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] z-50 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-[#1b1b21] shadow-xl overflow-hidden'"
+           'absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] z-50 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-night-raised shadow-xl overflow-hidden'"
       >
         <div
           class="flex items-center justify-between border-b border-black/[0.06] dark:border-white/[0.08]"

@@ -159,7 +159,7 @@
       >
         <div
           v-if="openSheet"
-          class="lg:hidden fixed bottom-0 inset-x-0 z-50 rounded-t-2xl bg-white dark:bg-[#17171c] border-t border-black/[0.06] dark:border-white/[0.08] pb-[env(safe-area-inset-bottom,16px)]"
+          class="lg:hidden fixed bottom-0 inset-x-0 z-50 rounded-t-2xl bg-white dark:bg-night-sunken border-t border-black/[0.06] dark:border-white/[0.08] pb-[env(safe-area-inset-bottom,16px)]"
           role="menu"
           :aria-label="SHEETS[openSheet].label"
         >

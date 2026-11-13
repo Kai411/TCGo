@@ -24,7 +24,7 @@
            red gradient made the primary balance read like an error banner. Dark
            ink keeps the hero weight; emerald carries the "ready" meaning. -->
       <div
-        class="relative overflow-hidden rounded-2xl p-5 mb-3 bg-ink dark:bg-[#202027] border border-transparent dark:border-white/[0.08]"
+        class="relative overflow-hidden rounded-2xl p-5 mb-3 bg-ink dark:bg-night-hover border border-transparent dark:border-white/[0.08]"
       >
         <!-- Soft emerald wash, purely decorative -->
         <div

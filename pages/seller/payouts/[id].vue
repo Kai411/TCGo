@@ -67,7 +67,7 @@
               class="absolute left-[5px] top-4 bottom-0 w-px bg-black/[0.10] dark:bg-white/[0.12]"
               aria-hidden="true"
             />
-            <span class="relative mt-1 shrink-0 w-[11px] h-[11px] rounded-full ring-4 ring-canvas-raised dark:ring-[#1B1B20]" :class="dotFor(e.key)" />
+            <span class="relative mt-1 shrink-0 w-[11px] h-[11px] rounded-full ring-4 ring-canvas-raised dark:ring-night-raised" :class="dotFor(e.key)" />
             <div class="min-w-0 flex-1">
               <p class="text-sm font-semibold text-ink dark:text-white">{{ e.label }}</p>
               <p v-if="e.detail" class="text-micro text-ink-muted dark:text-zinc-400 mt-0.5">{{ e.detail }}</p>

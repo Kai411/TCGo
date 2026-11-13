@@ -257,7 +257,7 @@
             <button
               v-if="queue.length > 0"
               @click="finishScanning"
-              class="absolute right-6 inline-flex items-center gap-1.5 bg-emerald-500 text-white px-4 py-2.5 rounded-full text-sm font-semibold shadow-lg hover:bg-emerald-600 transition-colors"
+              class="absolute right-6 inline-flex items-center gap-1.5 bg-white text-ink px-4 py-2.5 rounded-full text-sm font-semibold shadow-lg hover:bg-zinc-100 transition-colors"
             >
               Done · {{ queue.length }}
               <svg

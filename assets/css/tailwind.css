@@ -196,7 +196,7 @@
     @apply bg-white/95 border-b border-black/[0.06];
   }
   .dark .glass {
-    @apply bg-[#111114]/95 border-white/[0.06];
+    @apply bg-canvas-inverse/95 border-white/[0.06];
   }
 
   /* Plain raised surface — used for cards, panels */
@@ -204,7 +204,7 @@
     @apply bg-canvas-raised border border-black/[0.06] shadow-card;
   }
   .dark .surface {
-    @apply bg-[#1B1B20] border-white/[0.06] shadow-none;
+    @apply bg-night-raised border-white/[0.06] shadow-none;
   }
 
   /* Section label: a small heading in sentence case. No capitals or

@@ -344,7 +344,7 @@
       <Teleport to="body">
         <div
           v-if="available && !isOwnListing"
-          class="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-white dark:bg-[#111114] border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]"
+          class="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-white dark:bg-canvas-inverse border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]"
         >
           <div class="grid grid-cols-2 gap-2.5">
             <button

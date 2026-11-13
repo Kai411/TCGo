@@ -34,7 +34,7 @@
         ref="panel"
         role="dialog"
         aria-label="About verification"
-        class="absolute left-0 top-full z-50 mt-2 w-[min(19rem,calc(100vw-2rem))] origin-top-left rounded-xl border border-black/[0.08] bg-white p-4 text-left shadow-xl dark:border-white/[0.10] dark:bg-[#1b1b21]"
+        class="absolute left-0 top-full z-50 mt-2 w-[min(19rem,calc(100vw-2rem))] origin-top-left rounded-xl border border-black/[0.08] bg-white p-4 text-left shadow-xl dark:border-white/[0.10] dark:bg-night-raised"
       >
         <p class="text-label font-bold text-ink dark:text-white">Identity verified</p>
 

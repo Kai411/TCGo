@@ -6,7 +6,7 @@
     <div
       role="alertdialog"
       aria-labelledby="chat-risk-title"
-      class="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl bg-white dark:bg-[#1b1b21] shadow-xl p-5"
+      class="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl bg-white dark:bg-night-raised shadow-xl p-5"
     >
       <div class="flex items-start gap-3">
         <div class="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
