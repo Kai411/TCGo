@@ -41,6 +41,8 @@ export interface LifecycleView {
   /** Set by a soft delete. The document stays; this hides it. */
   deletedAt?: number | null;
   status?: string | null;
+  /** Taken down by TCGo staff (shared/moderation.ts). */
+  hidden?: boolean | null;
 }
 
 /**
@@ -96,7 +98,7 @@ export const isExpiringSoon = (card: LifecycleView, now: number = Date.now()): b
  * "sold out" message and a seller's "expired" message came from one flag.
  */
 export const isListable = (card: LifecycleView, now: number = Date.now()): boolean =>
-  !isDeleted(card) && !isExpired(card, now);
+  !isDeleted(card) && !isExpired(card, now) && card.hidden !== true;
 
 export const listableOnly = <T extends LifecycleView>(cards: T[], now: number = Date.now()): T[] =>
   cards.filter((c) => isListable(c, now));

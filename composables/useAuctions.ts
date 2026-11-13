@@ -60,6 +60,8 @@ export interface Auction {
   quantity?: number;
   status?: AuctionStatus;
   viewCount?: number;
+  /** Taken down by TCGo staff; see shared/moderation.ts. */
+  hidden?: boolean;
   // ── Settlement (written by /api/auctions/settle) ──────────────────────
   orderId?: string; // compiled order the winner pays
   winnerUid?: string;
@@ -120,7 +122,10 @@ const initializeAuctions = () => {
   const { firestore, db } = useFirebase();
 
   unsubFirestoreList = onSnapshot(collection(firestore!, "auctions"), (snap) => {
-    firestoreAuctions.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    // Taken down by TCGo staff (shared/moderation.ts): off every list.
+    firestoreAuctions.value = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }) as any)
+      .filter((a) => a.hidden !== true);
     loading.value = false;
   });
 
