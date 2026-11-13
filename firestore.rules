@@ -233,20 +233,44 @@ service cloud.firestore {
     }
 
     // ── auctions ─────────────────────────────────────────────────────
-    // Same gate. Bids live in RTDB and are governed by its own rules.
+    // Same gate. Bids live in RTDB (database.rules.json): only the server
+    // writes them, through /api/auctions/bid.
+    //
+    // Bidders are told bids are binding, so once anyone has bid the seller
+    // can't change what they bid on or delete it. /api/auctions/bid copies the
+    // bid count here after every bid so these rules can see it.
     match /auctions/{auctionId} {
+      // Written only by the server: the bid count, the settlement result,
+      // and staff's Hide listing.
+      function auctionServerFields() {
+        return ['bidCount', 'orderId', 'winnerUid', 'winnerName', 'winningBid',
+                'endedAt', 'paymentDueAt', 'soldAt', 'expiredAt',
+                'hidden', 'hiddenReason', 'hiddenAt', 'hiddenBy'];
+      }
+
+      function noBidsYet() {
+        return resource.data.get('bidCount', 0) == 0
+          && resource.data.get('status', 'active') == 'active';
+      }
+
       allow read: if true;
 
       allow create: if isOwner(request.resource.data.sellerUid)
-        && kycGatePassed();
+        && kycGatePassed()
+        && request.resource.data.get('status', 'active') == 'active'
+        && !request.resource.data.keys().hasAny(auctionServerFields());
 
       allow update: if isAdmin()
         || onlyEngagementCounters()
         || (isOwner(resource.data.sellerUid)
             && kycGatePassed()
-            && request.resource.data.sellerUid == resource.data.sellerUid);
+            && noBidsYet()
+            && request.resource.data.sellerUid == resource.data.sellerUid
+            && !request.resource.data.diff(resource.data).affectedKeys()
+                 .hasAny(auctionServerFields().concat(['status'])));
 
-      allow delete: if isAdmin() || isOwner(resource.data.sellerUid);
+      allow delete: if isAdmin()
+        || (isOwner(resource.data.sellerUid) && noBidsYet());
     }
 
     // ── inventory (private stock ledger) ─────────────────────────────
