@@ -4,7 +4,7 @@
       <p class="text-gray-500 dark:text-zinc-400 text-lg">
         Your role doesn't include access to payouts.
       </p>
-      <p class="text-[13px] text-ink-soft dark:text-zinc-500 mt-1.5">
+      <p class="text-label text-ink-soft dark:text-zinc-500 mt-1.5">
         Ask an admin to grant it if you need it.
       </p>
     </div>
@@ -102,7 +102,7 @@
                     v-if="p.status === 'processing'"
                     @click="refresh(p)"
                     :disabled="busy === p.id"
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-500 text-white hover:bg-indigo-600 disabled:opacity-50"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-ink text-white hover:bg-ink-subtle dark:bg-white dark:text-ink dark:hover:bg-zinc-200 disabled:opacity-50"
                   >
                     {{ busy === p.id ? "Checking…" : "Check status" }}
                   </button>

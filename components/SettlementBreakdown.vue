@@ -30,7 +30,7 @@
         </p>
         <p
           v-if="line.note && showNotes && line.kind !== 'sub'"
-          class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5"
+          class="text-micro text-gray-400 dark:text-zinc-500 mt-0.5"
         >
           {{ line.note }}
         </p>
@@ -58,12 +58,12 @@
          in the statement — it was never the seller's money to lose. -->
     <p
       v-if="postage"
-      class="text-[11px] leading-relaxed text-gray-500 dark:text-zinc-400 mt-3 pt-3 border-t border-black/[0.05] dark:border-white/[0.06]"
+      class="text-micro leading-relaxed text-gray-500 dark:text-zinc-400 mt-3 pt-3 border-t border-black/[0.05] dark:border-white/[0.06]"
     >
       {{ postage }}
     </p>
 
-    <p v-if="hint" class="text-[11px] text-gray-400 dark:text-zinc-500 mt-2.5">
+    <p v-if="hint" class="text-micro text-gray-400 dark:text-zinc-500 mt-2.5">
       {{ hint }}
     </p>
   </div>

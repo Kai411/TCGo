@@ -175,7 +175,7 @@
                 <span v-if="p.email" class="block text-xs text-ink-soft dark:text-zinc-500 truncate">{{ p.email }}</span>
               </span>
               <span
-                class="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                class="shrink-0 text-micro font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
               >
                 Connected
               </span>
@@ -220,13 +220,13 @@
           <p class="text-xl font-bold">Membership</p>
           <span
             v-if="isPremium"
-            class="text-[11px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300"
+            class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300"
           >
             Premium
           </span>
           <span
             v-else
-            class="text-[11px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-ink/[0.06] text-ink-muted dark:bg-white/[0.06] dark:text-zinc-300"
+            class="text-xs font-semibold px-2 py-0.5 rounded-full bg-ink/[0.06] text-ink-muted dark:bg-white/[0.06] dark:text-zinc-300"
           >
             Free
           </span>
@@ -286,7 +286,7 @@
             <button
               @click="handleClaimBonus"
               :disabled="claimingBonus"
-              class="shrink-0 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
+              class="shrink-0 bg-pokemon-red hover:bg-pokemon-red-dark text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
             >
               {{ claimingBonus ? '...' : 'Claim' }}
             </button>

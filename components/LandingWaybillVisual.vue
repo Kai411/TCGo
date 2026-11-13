@@ -15,12 +15,12 @@
       <!-- Addresses -->
       <div class="py-4 space-y-3">
         <div class="wb-row">
-          <p class="eyebrow !text-[9px] !tracking-[0.14em]">From</p>
+          <p class="eyebrow !text-micro">From</p>
           <p class="mt-1 text-xs font-semibold text-ink">Kai's Cards</p>
           <p class="text-xs text-ink-muted">Georgetown, 10200 Penang</p>
         </div>
         <div class="wb-row">
-          <p class="eyebrow !text-[9px] !tracking-[0.14em]">To</p>
+          <p class="eyebrow !text-micro">To</p>
           <p class="mt-1 text-xs font-semibold text-ink">Ahmad Rizal</p>
           <p class="text-xs text-ink-muted">Seksyen 7, 40000 Shah Alam</p>
         </div>
@@ -40,13 +40,13 @@
         </div>
         <p
           ref="tracking"
-          class="mt-2.5 text-[13px] font-bold tabular-price tracking-[0.12em] text-ink"
+          class="mt-2.5 text-label font-bold tabular-price text-ink"
         >
           &nbsp;
         </p>
       </div>
 
-      <div class="wb-row mt-4 pt-3 border-t border-black/[0.06] flex items-center justify-between text-[11px]">
+      <div class="wb-row mt-4 pt-3 border-t border-black/[0.06] flex items-center justify-between text-micro">
         <span class="text-ink-muted">Order #TCG-2841</span>
         <span class="font-semibold text-ink tabular-price">0.35 kg</span>
       </div>

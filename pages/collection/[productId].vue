@@ -115,7 +115,7 @@
                   v-if="!inCollection"
                   type="button"
                   :disabled="collectionBusy || (!!user && collectionLoading)"
-                  class="relative inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-pokemon-blue/10 px-3 text-[13px] font-semibold text-pokemon-blue transition-all before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] hover:bg-pokemon-blue/15 active:scale-[0.97] disabled:opacity-60 dark:bg-sky-400/15 dark:text-sky-300 lg:h-auto lg:min-w-[166px] lg:gap-2 lg:bg-pokemon-blue lg:px-5 lg:py-3 lg:text-sm lg:font-bold lg:text-white lg:shadow-sm lg:hover:-translate-y-0.5 lg:hover:bg-blue-700 lg:disabled:translate-y-0 lg:dark:bg-pokemon-blue lg:dark:text-white"
+                  class="relative inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-pokemon-blue/10 px-3 text-label font-semibold text-pokemon-blue transition-all before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] hover:bg-pokemon-blue/15 active:scale-[0.97] disabled:opacity-60 dark:bg-sky-400/15 dark:text-sky-300 lg:h-auto lg:min-w-[166px] lg:gap-2 lg:bg-pokemon-blue lg:px-5 lg:py-3 lg:text-sm lg:font-bold lg:text-white lg:shadow-sm lg:hover:-translate-y-0.5 lg:hover:bg-blue-700 lg:disabled:translate-y-0 lg:dark:bg-pokemon-blue lg:dark:text-white"
                   @click="handleCollectionToggle"
                 >
                   <div
@@ -147,13 +147,13 @@
                  below, not repeated here. -->
             <div class="col-start-2 row-start-1 flex min-w-0 flex-col lg:mt-5">
               <h1
-                class="font-display text-xl font-extrabold leading-tight tracking-tight text-ink dark:text-white sm:text-3xl lg:text-5xl lg:leading-none lg:tracking-tightest"
+                class="font-display text-2xl font-bold leading-tight tracking-tight text-ink dark:text-white sm:text-3xl lg:text-5xl lg:leading-none lg:tracking-tight"
               >
                 {{ card.name }}
               </h1>
               <NuxtLink
                 :to="`/collection?set=${encodeURIComponent(card.setName)}`"
-                class="mt-1.5 line-clamp-2 self-start text-[13px] font-medium leading-snug text-ink-muted transition-colors hover:text-pokemon-red dark:text-zinc-400 lg:mt-3 lg:text-base"
+                class="mt-1.5 line-clamp-2 self-start text-label font-medium leading-snug text-ink-muted transition-colors hover:text-pokemon-red dark:text-zinc-400 lg:mt-3 lg:text-base"
                 :aria-label="`See other cards from ${card.setName}`"
               >
                 {{ card.setName }}
@@ -193,7 +193,7 @@
                     Raw market price
                   </p>
                   <span
-                    class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                    class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-micro font-semibold"
                     :class="CONFIDENCE_CLASS[confidence.level]"
                   >
                     {{ CONFIDENCE_LABEL[confidence.level] }}
@@ -203,7 +203,7 @@
                   <button
                     type="button"
                     @click="confidenceOpen = !confidenceOpen"
-                    class="relative inline-flex h-[18px] w-[18px] items-center justify-center rounded-full border border-black/[0.15] text-[10px] font-bold before:absolute before:-inset-3 before:content-[''] text-ink-muted transition-colors hover:border-pokemon-red hover:text-pokemon-red dark:border-white/[0.20] dark:text-zinc-400"
+                    class="relative inline-flex h-[18px] w-[18px] items-center justify-center rounded-full border border-black/[0.15] text-2xs font-bold before:absolute before:-inset-3 before:content-[''] text-ink-muted transition-colors hover:border-pokemon-red hover:text-pokemon-red dark:border-white/[0.20] dark:text-zinc-400"
                     :aria-expanded="confidenceOpen"
                     aria-controls="price-confidence-why"
                     :aria-label="`Why this is ${CONFIDENCE_LABEL[confidence.level].toLowerCase()}`"
@@ -216,7 +216,7 @@
                      easy to miss, and this is when the reason matters. -->
                 <p
                   v-if="!confidenceOpen && lowConfidenceNote"
-                  class="mt-2 max-w-sm text-[12px] leading-relaxed text-amber-700 dark:text-amber-300"
+                  class="mt-2 max-w-sm text-caption leading-relaxed text-amber-700 dark:text-amber-300"
                 >
                   {{ lowConfidenceNote }}
                   <button
@@ -234,7 +234,7 @@
                   class="mt-2 max-w-sm rounded-xl border border-black/[0.08] bg-canvas-sunken p-3 dark:border-white/[0.10] dark:bg-white/[0.04]"
                 >
                   <p
-                    class="text-[10px] font-bold uppercase tracking-wide text-ink-soft dark:text-zinc-500"
+                    class="text-micro font-semibold text-ink-soft dark:text-zinc-500"
                   >
                     Why {{ CONFIDENCE_LABEL[confidence.level].toLowerCase() }}
                   </p>
@@ -242,7 +242,7 @@
                     <li
                       v-for="reason in confidence.reasons"
                       :key="reason"
-                      class="flex gap-1.5 text-[12px] leading-relaxed text-ink-muted dark:text-zinc-300"
+                      class="flex gap-1.5 text-caption leading-relaxed text-ink-muted dark:text-zinc-300"
                     >
                       <span
                         class="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-current opacity-50"
@@ -252,7 +252,7 @@
                     </li>
                   </ul>
                   <p
-                    class="mt-2 border-t border-black/[0.06] pt-2 text-[11px] leading-relaxed text-ink-soft dark:border-white/[0.08] dark:text-zinc-500"
+                    class="mt-2 border-t border-black/[0.06] pt-2 text-micro leading-relaxed text-ink-soft dark:border-white/[0.08] dark:text-zinc-500"
                   >
                     A guide, not an appraisal. We weigh how recently the price
                     was checked, how steady it has been, and whether live
@@ -263,13 +263,12 @@
               <div class="min-w-0">
                 <p
                   v-if="card.price"
-                  class="text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
+                  class="text-4xl font-extrabold tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
                 >
-                  {{ formatMyr(card.price.market) }}
                   <span
-                    class="ml-0.5 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
-                    >MYR</span
-                  >
+                    class="mr-1 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
+                    >RM</span
+                  >{{ formatMyr(card.price.market) }}
                 </p>
                 <!-- No primary price. Show the second opinion rather than a
                      dead end, and say plainly that it is one — it is a
@@ -277,13 +276,12 @@
                      from a different angle. -->
                 <template v-else-if="secondary">
                   <p
-                    class="text-4xl font-black tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
+                    class="text-4xl font-extrabold tracking-tight text-ink dark:text-white tabular-price sm:text-5xl"
                   >
-                    {{ formatMyr(secondary.market) }}
                     <span
-                      class="ml-0.5 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
-                      >MYR</span
-                    >
+                      class="mr-1 text-lg font-bold text-ink-muted dark:text-zinc-400 sm:text-2xl"
+                      >RM</span
+                    >{{ formatMyr(secondary.market) }}
                   </p>
                   <p class="mt-1 text-xs text-ink-soft dark:text-zinc-500">
                     Second source · {{ secondary.currency }} converted. No
@@ -317,7 +315,7 @@
               </div>
               <div
                 v-if="inCollection && user"
-                class="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-black/[0.10] bg-canvas-raised px-0.5 dark:border-white/[0.12] dark:bg-[#1B1B20]"
+                class="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-black/[0.10] bg-canvas-raised px-0.5 dark:border-white/[0.12] dark:bg-night-raised"
               >
                 <button
                   type="button"
@@ -354,35 +352,35 @@
                 class="panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
               >
                 <p
-                  class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
+                  class="text-micro text-ink-soft dark:text-zinc-500"
                 >
                   Market low
                 </p>
                 <p
                   class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price"
                 >
-                  {{ card.price ? `${formatMyr(card.price.low)} MYR` : "—" }}
+                  {{ card.price ? `RM ${formatMyr(card.price.low)}` : "—" }}
                 </p>
               </div>
               <div
                 class="panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04]"
               >
                 <p
-                  class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
+                  class="text-micro text-ink-soft dark:text-zinc-500"
                 >
                   Market high
                 </p>
                 <p
                   class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price"
                 >
-                  {{ card.price ? `${formatMyr(card.price.high)} MYR` : "—" }}
+                  {{ card.price ? `RM ${formatMyr(card.price.high)}` : "—" }}
                 </p>
               </div>
               <div
                 class="col-span-2 panel-tile rounded-xl bg-black/[0.025] px-3 py-3 dark:bg-white/[0.04] sm:col-span-1"
               >
                 <p
-                  class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500"
+                  class="text-micro text-ink-soft dark:text-zinc-500"
                 >
                   Graded supply
                 </p>
@@ -458,7 +456,7 @@
             </div>
             <p
               v-if="unavailableRangeLabel"
-              class="mt-2 max-w-xs text-[10px] leading-relaxed text-amber-700 dark:text-amber-300"
+              class="mt-2 max-w-xs text-2xs leading-relaxed text-amber-700 dark:text-amber-300"
             >
               {{ unavailableRangeLabel }}
             </p>
@@ -480,7 +478,7 @@
           class="mt-5 grid grid-cols-3 divide-x divide-black/[0.06] border-t border-black/[0.06] pt-4 text-center dark:divide-white/[0.08] dark:border-white/[0.08] lg:hidden"
         >
           <div class="px-2">
-            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+            <dt class="text-micro text-ink-soft dark:text-zinc-500">
               Market low
             </dt>
             <dd class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
@@ -488,7 +486,7 @@
             </dd>
           </div>
           <div class="px-2">
-            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+            <dt class="text-micro text-ink-soft dark:text-zinc-500">
               Market high
             </dt>
             <dd class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
@@ -496,7 +494,7 @@
             </dd>
           </div>
           <div class="px-2">
-            <dt class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+            <dt class="text-micro text-ink-soft dark:text-zinc-500">
               Graded
             </dt>
             <dd class="mt-1 text-sm font-bold text-ink dark:text-white">
@@ -508,7 +506,7 @@
 
         <div
           v-if="fullTrend"
-          class="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-black/[0.06] pt-4 text-[11px] leading-relaxed text-ink-soft dark:border-white/[0.08] dark:text-zinc-500"
+          class="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-black/[0.06] pt-4 text-micro leading-relaxed text-ink-soft dark:border-white/[0.08] dark:text-zinc-500"
         >
           <p>
             {{ selectedCoverageLabel }} No missing dates or prices are
@@ -531,7 +529,7 @@
         </div>
         <p
           v-else
-          class="mt-5 text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500"
+          class="mt-5 text-micro leading-relaxed text-ink-soft dark:text-zinc-500"
         >
           TCGplayer raw-card market data, converted from USD to MYR. The chart
           only draws when at least two recorded snapshots are available.
@@ -601,7 +599,7 @@
             <table class="w-full min-w-[600px] text-sm">
               <thead class="bg-canvas-sunken dark:bg-white/[0.03]">
                 <tr
-                  class="text-left text-[10px] uppercase tracking-[0.14em] text-ink-soft dark:text-zinc-500"
+                  class="text-left text-micro text-ink-soft dark:text-zinc-500"
                 >
                   <th class="px-4 py-3 font-semibold">Condition</th>
                   <th class="px-4 py-3 font-semibold">Lowest ask</th>
@@ -626,7 +624,7 @@
                   <td
                     class="px-4 py-4 font-bold text-ink dark:text-white tabular-price"
                   >
-                    {{ formatMyr(row.low) }} MYR
+                    RM {{ formatMyr(row.low) }}
                   </td>
                   <td
                     class="px-4 py-4 text-ink-muted dark:text-zinc-300 tabular-price"
@@ -675,7 +673,7 @@
                 >
                   {{ row.condition }}
                 </span>
-                <p class="mt-2 text-[11px] text-ink-soft dark:text-zinc-500">
+                <p class="mt-2 text-micro text-ink-soft dark:text-zinc-500">
                   {{ row.count }} {{ row.count === 1 ? "listing" : "listings" }}
                 </p>
               </div>
@@ -683,13 +681,13 @@
                 <p
                   class="text-sm font-bold text-ink dark:text-white tabular-price"
                 >
-                  {{ formatMyr(row.low) }} MYR
+                  RM {{ formatMyr(row.low) }}
                 </p>
                 <p
                   v-if="row.high !== row.low"
-                  class="mt-0.5 text-[10px] text-ink-soft dark:text-zinc-500"
+                  class="mt-0.5 text-2xs text-ink-soft dark:text-zinc-500"
                 >
-                  up to {{ formatMyr(row.high) }} MYR
+                  up to RM {{ formatMyr(row.high) }}
                 </p>
               </div>
             </NuxtLink>
@@ -698,7 +696,7 @@
 
         <p
           v-if="rawRows.length"
-          class="mt-4 text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500"
+          class="mt-4 text-micro leading-relaxed text-ink-soft dark:text-zinc-500"
         >
           These are seller asking prices, not appraisal values. Condition is the
           seller's own assessment. Tap a row to view the lowest-priced listing.
@@ -765,7 +763,7 @@
             <table class="w-full min-w-[600px] text-sm">
               <thead class="bg-canvas-sunken dark:bg-white/[0.03]">
                 <tr
-                  class="text-left text-[10px] uppercase tracking-[0.14em] text-ink-soft dark:text-zinc-500"
+                  class="text-left text-micro text-ink-soft dark:text-zinc-500"
                 >
                   <th class="px-4 py-3 font-semibold">Grade</th>
                   <th class="px-4 py-3 font-semibold">Lowest ask</th>
@@ -784,7 +782,7 @@
                     <span
                       class="inline-flex items-center gap-1.5 rounded-md bg-amber-400 px-2 py-1 text-xs font-extrabold text-amber-950"
                     >
-                      <span class="uppercase tracking-wide">{{
+                      <span class="">{{
                         row.provider
                       }}</span>
                       <span>{{ row.grade }}</span>
@@ -793,7 +791,7 @@
                   <td
                     class="px-4 py-4 font-bold text-ink dark:text-white tabular-price"
                   >
-                    {{ formatMyr(row.low) }} MYR
+                    RM {{ formatMyr(row.low) }}
                   </td>
                   <td
                     class="px-4 py-4 text-ink-muted dark:text-zinc-300 tabular-price"
@@ -840,12 +838,12 @@
                 <span
                   class="inline-flex items-center gap-1 rounded-md bg-amber-400 px-2 py-1 text-xs font-extrabold text-amber-950"
                 >
-                  <span class="uppercase tracking-wide">{{
+                  <span class="">{{
                     row.provider
                   }}</span>
                   <span>{{ row.grade }}</span>
                 </span>
-                <p class="mt-2 text-[11px] text-ink-soft dark:text-zinc-500">
+                <p class="mt-2 text-micro text-ink-soft dark:text-zinc-500">
                   {{ row.count }} {{ row.count === 1 ? "listing" : "listings" }}
                 </p>
               </div>
@@ -853,13 +851,13 @@
                 <p
                   class="text-sm font-bold text-ink dark:text-white tabular-price"
                 >
-                  {{ formatMyr(row.low) }} MYR
+                  RM {{ formatMyr(row.low) }}
                 </p>
                 <p
                   v-if="row.high !== row.low"
-                  class="mt-0.5 text-[10px] text-ink-soft dark:text-zinc-500"
+                  class="mt-0.5 text-2xs text-ink-soft dark:text-zinc-500"
                 >
-                  up to {{ formatMyr(row.high) }} MYR
+                  up to RM {{ formatMyr(row.high) }}
                 </p>
               </div>
             </NuxtLink>
@@ -868,7 +866,7 @@
 
         <p
           v-if="gradedRows.length"
-          class="mt-4 text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500"
+          class="mt-4 text-micro leading-relaxed text-ink-soft dark:text-zinc-500"
         >
           These are seller asking prices, not independent appraisal values. Tap
           a row to view the lowest-priced listing.
@@ -1561,8 +1559,8 @@ const formatMyr = (value: number) =>
 
 const formatPriceRange = (low: number, high: number) =>
   low === high
-    ? `${formatMyr(low)} MYR`
-    : `${formatMyr(low)}–${formatMyr(high)} MYR`;
+    ? `RM ${formatMyr(low)}`
+    : `RM ${formatMyr(low)}–${formatMyr(high)}`;
 
 useHead(() => ({
   title: card.value

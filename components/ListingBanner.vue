@@ -31,7 +31,7 @@
           class="relative block w-full shrink-0 snap-center snap-always overflow-hidden bg-black/[0.04] dark:bg-white/[0.06]"
           :class="[
             linkFor(s) ? 'transition-transform duration-150 ease-out active:scale-[0.985]' : '',
-            s.imageUrl ? '' : 'bg-gradient-to-br from-pokemon-red to-[#b8290a] dark:from-[#c22d0b] dark:to-[#7a1c06]',
+            s.imageUrl ? '' : 'bg-gradient-to-br from-pokemon-red to-pokemon-red-dark dark:from-pokemon-red-dark dark:to-[#7a1c06]',
           ]"
           :aria-hidden="i >= slides.length ? 'true' : undefined"
           :tabindex="i >= slides.length ? -1 : undefined"
@@ -57,10 +57,10 @@
             :class="s.imageUrl && (s.headline || s.subtext) ? 'bg-gradient-to-t from-black/65 via-black/20 to-transparent' : ''"
           >
             <div class="min-w-0 flex-1 text-white">
-              <p v-if="s.headline" class="text-[15px] font-bold leading-tight sm:text-xl [text-wrap:balance]">
+              <p v-if="s.headline" class="text-body-ui font-bold leading-tight sm:text-xl [text-wrap:balance]">
                 {{ s.headline }}
               </p>
-              <p v-if="s.subtext" class="mt-0.5 line-clamp-2 text-[12px] leading-snug text-white/85 sm:text-sm">
+              <p v-if="s.subtext" class="mt-0.5 line-clamp-2 text-caption leading-snug text-white/85 sm:text-sm">
                 {{ s.subtext }}
               </p>
             </div>

@@ -35,7 +35,7 @@
           {{ m.title }}{{ m.published ? "" : " (draft)" }}
         </option>
       </select>
-      <p v-if="pickedDraft" class="text-[11px] text-amber-700 dark:text-amber-400">
+      <p v-if="pickedDraft" class="text-micro text-amber-700 dark:text-amber-400">
         This microsite is a draft, so the banner leads to "page not found" until it's published.
       </p>
     </template>
@@ -55,7 +55,7 @@
     <p v-if="invalid" class="text-xs text-red-600 dark:text-red-400">
       Links can only go to pages inside TCGo.
     </p>
-    <p v-else-if="modelValue" class="truncate font-mono text-[11px] text-ink-soft dark:text-zinc-500">
+    <p v-else-if="modelValue" class="truncate font-mono text-micro text-ink-soft dark:text-zinc-500">
       Opens {{ modelValue }}
     </p>
   </div>

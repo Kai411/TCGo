@@ -17,7 +17,7 @@
           :class="s.id === state.current ? 'bg-white dark:bg-white/[0.05] shadow-sm' : ''"
         >
           <span
-            class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+            class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-micro font-bold"
             :class="
               isDone(s.id)
                 ? 'bg-emerald-500 text-white'
@@ -33,12 +33,12 @@
           </span>
           <div class="min-w-0">
             <p
-              class="text-[13px] font-semibold leading-tight"
+              class="text-label font-semibold leading-tight"
               :class="isDone(s.id) ? 'text-ink-soft dark:text-zinc-500 line-through' : 'text-ink dark:text-white'"
             >
               {{ s.title }}
             </p>
-            <p v-if="s.id === state.current" class="mt-0.5 text-[12px] text-ink-muted dark:text-zinc-400">
+            <p v-if="s.id === state.current" class="mt-0.5 text-caption text-ink-muted dark:text-zinc-400">
               {{ s.blurb }}
             </p>
           </div>
@@ -52,10 +52,10 @@
              with the full policy one tap away: the tick is consent to the
              policy, so the policy has to be what it links to. -->
         <template v-if="state.current === 'consent'">
-          <h1 class="text-lg font-bold text-ink dark:text-white">
+          <h1 class="text-2xl font-bold text-ink dark:text-white">
             {{ policyUpdated ? "We've updated our policies" : "Your personal data" }}
           </h1>
-          <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
+          <p class="mt-1.5 text-label text-ink-muted dark:text-zinc-400">
             {{
               policyUpdated
                 ? "Please read the current Privacy Policy and give your consent again to keep using your account."
@@ -63,7 +63,7 @@
             }}
           </p>
 
-          <ul class="mt-4 space-y-2 text-[13px] leading-relaxed text-ink-muted dark:text-zinc-400">
+          <ul class="mt-4 space-y-2 text-label leading-relaxed text-ink-muted dark:text-zinc-400">
             <li class="flex gap-2">
               <span class="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-pokemon-red" />
               <span><span class="font-semibold text-ink dark:text-white">What:</span> your account details, delivery address and phone, orders, messages, and for sellers, identity and bank details.</span>
@@ -78,18 +78,18 @@
             </li>
           </ul>
 
-          <label class="mt-5 flex items-start gap-2.5 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.02] dark:bg-white/[0.03] p-3 text-[13px] leading-relaxed text-ink dark:text-zinc-200">
+          <label class="mt-5 flex items-start gap-2.5 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.02] dark:bg-white/[0.03] p-3 text-label leading-relaxed text-ink dark:text-zinc-200">
             <input v-model="consentTicked" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-pokemon-red" />
             <span>
               I consent to TCGo collecting, using and sharing my personal data as described in the
               <NuxtLink to="/privacy-policy" target="_blank" class="font-semibold text-pokemon-red hover:underline">Privacy Policy</NuxtLink>.
             </span>
           </label>
-          <p class="mt-2 text-[12px] text-ink-soft dark:text-zinc-500">
+          <p class="mt-2 text-caption text-ink-soft dark:text-zinc-500">
             You can withdraw consent at any time by contacting us, as the policy explains.
           </p>
 
-          <p v-if="error" class="mt-3 text-[13px] text-rose-600 dark:text-rose-400">{{ error }}</p>
+          <p v-if="error" class="mt-3 text-label text-rose-600 dark:text-rose-400">{{ error }}</p>
           <button :disabled="busy || !consentTicked" @click="giveConsent" class="btn-primary mt-5">
             <span v-if="busy" class="spinner" />Agree and continue
           </button>
@@ -97,8 +97,8 @@
 
         <!-- ── Email ────────────────────────────────────────────────── -->
         <template v-else-if="state.current === 'email'">
-          <h1 class="text-lg font-bold text-ink dark:text-white">Confirm your email</h1>
-          <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
+          <h1 class="text-2xl font-bold text-ink dark:text-white">Confirm your email</h1>
+          <p class="mt-1.5 text-label text-ink-muted dark:text-zinc-400">
             We sent a 6-digit code to <span class="font-semibold text-ink dark:text-white">{{ email }}</span>.
           </p>
 
@@ -110,21 +110,21 @@
             placeholder="000000"
             class="field mt-5 text-center text-2xl font-mono tracking-[0.4em]"
           />
-          <p v-if="error" class="mt-3 text-[13px] text-rose-600 dark:text-rose-400">{{ error }}</p>
-          <p v-if="notice" class="mt-3 text-[13px] text-emerald-600 dark:text-emerald-400">{{ notice }}</p>
+          <p v-if="error" class="mt-3 text-label text-rose-600 dark:text-rose-400">{{ error }}</p>
+          <p v-if="notice" class="mt-3 text-label text-emerald-600 dark:text-emerald-400">{{ notice }}</p>
 
           <button :disabled="busy || code.length < 6" @click="submitCode" class="btn-primary mt-5">
             <span v-if="busy" class="spinner" />Confirm email
           </button>
-          <button :disabled="busy || cooldown > 0" @click="resend" class="mt-3 w-full text-[13px] font-semibold text-pokemon-red hover:underline disabled:text-ink-soft disabled:no-underline">
+          <button :disabled="busy || cooldown > 0" @click="resend" class="mt-3 w-full text-label font-semibold text-pokemon-red hover:underline disabled:text-ink-soft disabled:no-underline">
             {{ cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code" }}
           </button>
         </template>
 
         <!-- ── Delivery address ─────────────────────────────────────── -->
         <template v-else-if="state.current === 'address'">
-          <h1 class="text-lg font-bold text-ink dark:text-white">Where should orders go?</h1>
-          <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
+          <h1 class="text-2xl font-bold text-ink dark:text-white">Where should orders go?</h1>
+          <p class="mt-1.5 text-label text-ink-muted dark:text-zinc-400">
             Shipping is quoted from this address. You can change it per order.
           </p>
 
@@ -168,7 +168,7 @@
             </label>
           </div>
 
-          <p v-if="error" class="mt-3 text-[13px] text-rose-600 dark:text-rose-400">{{ error }}</p>
+          <p v-if="error" class="mt-3 text-label text-rose-600 dark:text-rose-400">{{ error }}</p>
           <button :disabled="busy" @click="saveAddress" class="btn-primary mt-5">
             <span v-if="busy" class="spinner" />Save and continue
           </button>
@@ -182,8 +182,8 @@
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h1 class="text-lg font-bold text-ink dark:text-white">You're ready to buy</h1>
-            <p class="mt-1.5 text-[13px] text-ink-muted dark:text-zinc-400">
+            <h1 class="text-2xl font-bold text-ink dark:text-white">You're ready to buy</h1>
+            <p class="mt-1.5 text-label text-ink-muted dark:text-zinc-400">
               Taking you back to where you were.
             </p>
             <button @click="finish" class="btn-primary mt-5">Continue</button>
@@ -196,11 +196,11 @@
       <button
         v-if="!state.complete && !state.blocking"
         @click="finish"
-        class="mx-auto mt-6 block text-[13px] font-semibold text-ink-muted dark:text-zinc-400 hover:underline"
+        class="mx-auto mt-6 block text-label font-semibold text-ink-muted dark:text-zinc-400 hover:underline"
       >
         Not now
       </button>
-      <button @click="signOutAndLeave" class="mx-auto mt-6 block text-[12px] text-ink-soft dark:text-zinc-500 hover:underline">
+      <button @click="signOutAndLeave" class="mx-auto mt-6 block text-caption text-ink-soft dark:text-zinc-500 hover:underline">
         Sign out
       </button>
     </div>
@@ -441,7 +441,7 @@ watch(
 }
 .field {
   @apply w-full rounded-xl border border-black/[0.10] dark:border-white/[0.12]
-         bg-white dark:bg-white/[0.04] px-3.5 py-2.5 text-[15px] text-ink dark:text-white
+         bg-white dark:bg-white/[0.04] px-3.5 py-2.5 text-body-ui text-ink dark:text-white
          placeholder:text-ink-soft outline-none transition-colors
          focus:border-pokemon-red focus:ring-2 focus:ring-pokemon-red/20;
 }

@@ -99,7 +99,7 @@
                 </div>
                 <div
                   v-else-if="item.status === 'failed'"
-                  class="absolute top-1 right-1 w-5 h-5 rounded-full bg-pokemon-red text-white text-[10px] flex items-center justify-center"
+                  class="absolute top-1 right-1 w-5 h-5 rounded-full bg-pokemon-red text-white text-2xs flex items-center justify-center"
                   title="Identification failed"
                 >
                   !
@@ -131,7 +131,7 @@
                     >
                       <span
                         v-if="item.language && item.language !== 'EN'"
-                        class="inline-block bg-black/85 text-white text-[10px] font-bold tracking-wide px-1.5 py-0.5 rounded"
+                        class="inline-block bg-black/85 text-white text-2xs font-bold px-1.5 py-0.5 rounded"
                       >
                         {{ item.language }}
                       </span>
@@ -154,7 +154,7 @@
                     <!-- TCGo Dex market price (current daily snapshot, MYR). -->
                     <p
                       v-if="item.tcgoPrice"
-                      class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-500/[0.12] px-1.5 py-0.5 rounded"
+                      class="mt-1 inline-flex items-center gap-1 text-micro font-semibold text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-500/[0.12] px-1.5 py-0.5 rounded"
                       :title="`Source: TCGo Dex (${item.tcgoPrice.subtype}, TCGPlayer market in USD, converted to MYR)`"
                     >
                       <svg
@@ -197,7 +197,7 @@
                 <!-- needs-pick: candidate grid from TCGo Dex. Falls back to
                      a helpful hint if Gemini couldn't read the number. -->
                 <div v-if="item.status === 'needs-pick' && item.matches">
-                  <p class="text-[11px] text-gray-500 dark:text-zinc-400 mb-1.5">
+                  <p class="text-micro text-gray-500 dark:text-zinc-400 mb-1.5">
                     Pick the matching print from TCGo Dex:
                   </p>
                   <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -211,17 +211,17 @@
                       <div class="w-full aspect-[2.5/3.5]">
                         <CardImage :src="m.imageUrl" :alt="m.name" />
                       </div>
-                      <p class="px-1 py-0.5 text-[10px] font-semibold truncate">
+                      <p class="px-1 py-0.5 text-2xs font-semibold truncate">
                         {{ m.name }}
                       </p>
                       <p
-                        class="px-1 text-[9px] text-gray-500 dark:text-zinc-400 truncate"
+                        class="px-1 text-2xs text-gray-500 dark:text-zinc-400 truncate"
                       >
                         {{ m.setName }}<span v-if="m.number"> · {{ m.number }}</span>
                       </p>
                       <p
                         v-if="m.price"
-                        class="px-1 pb-1 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400"
+                        class="px-1 pb-1 text-2xs font-semibold text-emerald-600 dark:text-emerald-400"
                       >
                         RM {{ m.price.market }}
                       </p>
@@ -348,7 +348,7 @@
                   <!-- Extra photos -->
                   <div>
                     <p
-                      class="text-[11px] font-medium text-gray-600 dark:text-zinc-300 mb-1.5"
+                      class="text-micro font-medium text-gray-600 dark:text-zinc-300 mb-1.5"
                     >
                       Extra photos (optional) — your scan is already attached
                     </p>
@@ -385,7 +385,7 @@
                         <button
                           type="button"
                           @click="removeDraftFile(item.id, i)"
-                          class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pokemon-red text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pokemon-red text-white text-2xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           ✕
                         </button>
@@ -409,7 +409,7 @@
           type="button"
           @click="publishDrafts"
           :disabled="publishing || !canPublishDrafts"
-          class="mt-4 w-full bg-pokemon-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+          class="mt-4 w-full bg-pokemon-red text-white py-3 rounded-xl font-semibold hover:bg-pokemon-red-dark transition-colors disabled:opacity-50"
         >
           {{ publishButtonLabel }}
         </button>
@@ -455,7 +455,7 @@
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
-                <span class="text-[10px] font-medium">Add</span>
+                <span class="text-2xs font-medium">Add</span>
               </label>
               <!-- Photo previews -->
               <div
@@ -560,7 +560,7 @@
         <NuxtLink
           v-if="needsPickupAddress"
           to="/seller/settings#pickup"
-          class="block w-full text-center bg-pokemon-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+          class="block w-full text-center bg-pokemon-red text-white py-3 rounded-xl font-semibold hover:bg-pokemon-red-dark transition-colors"
         >
           Set up pickup address
         </NuxtLink>
@@ -568,7 +568,7 @@
           v-else
           type="submit"
           :disabled="submitting"
-          class="w-full bg-pokemon-blue text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="w-full bg-pokemon-red text-white py-3 rounded-xl font-semibold hover:bg-pokemon-red-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {{ submitting ? "Listing..." : "List for Sale" }}
         </button>

@@ -29,7 +29,7 @@
         <h2 class="text-sm font-bold text-ink dark:text-white">Reported problem</h2>
         <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{{ problemReasonLabel(problem.reasonCode) }}</p>
       </div>
-      <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full" :class="badgeClass">
+      <span class="text-micro font-semibold px-2 py-0.5 rounded-full" :class="badgeClass">
         {{ PROBLEM_STATUS_LABEL[problem.status] }}
       </span>
     </div>
@@ -45,7 +45,7 @@
         class="rounded-lg px-3 py-2 text-sm"
         :class="m.by === role ? 'bg-black/[0.04] dark:bg-white/[0.06]' : m.by === 'tcgo' ? 'bg-amber-500/10' : 'border border-black/[0.06] dark:border-white/[0.08]'"
       >
-        <p class="text-[11px] font-semibold text-gray-500 dark:text-zinc-400">
+        <p class="text-micro font-semibold text-gray-500 dark:text-zinc-400">
           {{ m.by === role ? "You" : m.by === "tcgo" ? "TCGo" : m.by === "buyer" ? "Buyer" : "Seller" }}
           · {{ fmt(m.at) }}
         </p>
@@ -163,7 +163,7 @@
           <input v-model="bank.bankAccountNumber" type="text" inputmode="numeric" class="field-sm" />
           <p v-if="bankErrors.bankAccountNumber" class="mt-1 text-xs text-red-600">{{ bankErrors.bankAccountNumber }}</p>
         </div>
-        <p class="text-[11px] text-gray-500 dark:text-zinc-400">
+        <p class="text-micro text-gray-500 dark:text-zinc-400">
           Only TCGo staff see your bank details and IC, and only to send a refund.
         </p>
       </div>

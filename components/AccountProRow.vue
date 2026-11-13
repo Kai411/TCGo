@@ -93,7 +93,7 @@
           >
             Compare plans
           </NuxtLink>
-          <p v-if="!isPremium" class="text-center text-[11px] text-ink-soft dark:text-zinc-500">
+          <p v-if="!isPremium" class="text-center text-micro text-ink-soft dark:text-zinc-500">
             Card payment through Stripe. Cancel anytime.
           </p>
         </div>

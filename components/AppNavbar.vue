@@ -116,11 +116,11 @@
       <div class="ml-auto flex items-center lg:gap-2 shrink-0">
         <!-- Desktop sell CTAs → enter the inventory system -->
         <div v-if="user" class="hidden lg:flex items-center gap-2 ml-1">
-          <!-- Single glowing Sell CTA; the menu asks card vs auction. -->
+          <!-- Single Sell CTA; the menu asks card vs auction. -->
           <div class="relative" @click.stop>
             <button
               @click="desktopSellOpen = !desktopSellOpen"
-              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white shadow-glow hover:shadow-[0_0_24px_rgba(220,38,38,0.65)] hover:brightness-110 transition-[box-shadow,filter] duration-200 ease-premium"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:bg-pokemon-red-dark transition-colors duration-200 ease-premium"
               aria-haspopup="true"
               :aria-expanded="desktopSellOpen"
             >
@@ -208,7 +208,7 @@
           </svg>
           <span
             v-if="cartCount > 0"
-            class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-[10px] font-bold flex items-center justify-center tabular-nums"
+            class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-2xs font-bold flex items-center justify-center tabular-nums"
           >
             {{ cartCount > 99 ? "99+" : cartCount }}
           </span>
@@ -230,17 +230,27 @@
           class="hidden lg:flex ml-1 items-center hover:opacity-80 transition-opacity"
         >
           <img
+            v-if="profile?.photoURL || user.photoURL"
             :src="profile?.photoURL || user.photoURL || ''"
-            :alt="profile?.customName || user.displayName || 'User'"
+            alt=""
             class="w-9 h-9 rounded-full ring-2 ring-white dark:ring-zinc-900 object-cover"
           />
+          <!-- No photo (email sign-ups): the initial, as on /account, never
+               an empty img that prints its alt text. -->
+          <span
+            v-else
+            class="w-9 h-9 rounded-full flex items-center justify-center bg-black/[0.06] dark:bg-white/[0.08] text-sm font-bold text-ink-muted dark:text-zinc-300"
+            aria-hidden="true"
+          >
+            {{ (profile?.customName || user.displayName || user.email || "?").charAt(0).toUpperCase() }}
+          </span>
         </NuxtLink>
         <button
           v-else
           @click="goToLogin"
           class="hidden lg:inline-flex px-4 py-2 rounded-full text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
         >
-          Sign In
+          Sign in
         </button>
       </div>
     </div>
@@ -290,7 +300,7 @@
           v-if="tab.sell"
           type="button"
           @click.stop="onSellTap"
-          class="tab-press relative flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500"
+          class="tab-press relative flex flex-col items-center justify-center gap-0.5 text-micro font-semibold text-ink-soft dark:text-zinc-500"
           :class="sellSheetOpen ? '!text-pokemon-red' : ''"
           aria-haspopup="dialog"
           :aria-expanded="sellSheetOpen"
@@ -309,7 +319,7 @@
         <NuxtLink
           v-else
           :to="tab.to!"
-          class="tab-press relative flex flex-col items-center justify-center gap-0.5 text-[11px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500"
+          class="tab-press relative flex flex-col items-center justify-center gap-0.5 text-micro font-semibold text-ink-soft dark:text-zinc-500"
           :class="isTabActive(tab.to!) ? '!text-pokemon-red' : ''"
           :aria-current="isTabActive(tab.to!) ? 'page' : undefined"
         >
@@ -357,7 +367,7 @@
       >
         <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15" aria-hidden="true" />
         <p class="px-2 pb-2 text-base font-bold text-ink dark:text-white">What are you selling?</p>
-        <p v-if="needsSellerSetup" class="px-2 pb-3 -mt-1 text-[13px] leading-relaxed text-ink-muted dark:text-zinc-400">
+        <p v-if="needsSellerSetup" class="px-2 pb-3 -mt-1 text-label leading-relaxed text-ink-muted dark:text-zinc-400">
           First time? Setup comes first and takes a few minutes: your MyKad,
           a bank account and a pickup address.
         </p>
@@ -411,7 +421,7 @@ const desktopLinks = computed(() => {
   if (user.value) {
     links.push({ to: "/collection", label: "Dex" });
     links.push({ to: "/activity", label: "Orders" });
-    links.push({ to: "/seller", label: "Seller Dashboard" });
+    links.push({ to: "/seller", label: "Seller dashboard" });
   }
   return links;
 });
@@ -525,7 +535,7 @@ const onSellTap = () => {
 const sellItems = computed(() => [
   { to: "/seller/listings/new", label: "Sell a card", hint: "List it at a fixed price", icon: IconPlus, dot: false },
   { to: "/seller/auctions/new", label: "Start an auction", hint: "Let buyers bid on it", icon: IconGavel, dot: false },
-  { to: "/seller", label: "Seller Dashboard", hint: "Listings, orders to ship and payouts", icon: IconStore, dot: sellerHasUnread.value },
+  { to: "/seller", label: "Seller dashboard", hint: "Listings, orders to ship and payouts", icon: IconStore, dot: sellerHasUnread.value },
 ]);
 
 // ── Our height, published for anything that sticks beneath us ───────────

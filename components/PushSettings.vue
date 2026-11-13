@@ -39,7 +39,7 @@
 
     <!-- What to send. Applies to every device the member has turned on. -->
     <div v-if="state === 'on'" class="space-y-4 border-t border-gray-100 dark:border-white/[0.06] pt-5">
-      <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-zinc-500">Send me</p>
+      <p class="text-xs font-semibold text-gray-400 dark:text-zinc-500">Send me</p>
       <label
         v-for="c in PUSH_CATEGORIES"
         :key="c.key"

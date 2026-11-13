@@ -30,7 +30,7 @@
         <header class="flex items-start justify-between gap-6 pb-5 border-b border-gray-200">
           <div>
             <p class="text-xl font-extrabold tracking-tight">TCGo</p>
-            <p class="text-[11px] text-gray-500 mt-0.5">TCGo Marketplace · tcgo.shop</p>
+            <p class="text-micro text-gray-500 mt-0.5">TCGo Marketplace · tcgo.shop</p>
           </div>
           <div class="text-right">
             <p class="text-lg font-bold">INVOICE</p>
@@ -41,7 +41,7 @@
 
         <section class="grid grid-cols-2 gap-8 py-5 text-sm">
           <div>
-            <p class="text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-1">Billed to</p>
+            <p class="text-xs font-semibold text-gray-500 mb-1">Billed to</p>
             <p class="font-semibold">{{ order.deliveryAddress?.name || order.buyerName }}</p>
             <template v-if="order.deliveryAddress">
               <p class="text-gray-600">{{ order.deliveryAddress.phone }}</p>
@@ -54,7 +54,7 @@
             </template>
           </div>
           <div>
-            <p class="text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-1">Sold by</p>
+            <p class="text-xs font-semibold text-gray-500 mb-1">Sold by</p>
             <p class="font-semibold">{{ order.sellerName }}</p>
             <p class="text-gray-600">Order placed {{ placedOn }}</p>
             <p v-if="order.paidAt" class="text-gray-600">Paid {{ paidOn }}</p>
@@ -66,7 +66,7 @@
 
         <table class="w-full text-sm border-t border-gray-200">
           <thead>
-            <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500">
+            <tr class="text-left text-xs text-gray-500">
               <th class="py-2 font-bold">Item</th>
               <th class="py-2 font-bold text-right w-28">Amount</th>
             </tr>
@@ -101,7 +101,7 @@
           </div>
         </section>
 
-        <footer class="pt-6 mt-6 border-t border-gray-200 text-[11px] text-gray-500 leading-relaxed">
+        <footer class="pt-6 mt-6 border-t border-gray-200 text-micro text-gray-500 leading-relaxed">
           <p>Paid online via FPX{{ order.billplzBillId ? ` · ref ${order.billplzBillId}` : "" }}.</p>
           <p class="mt-1">
             This document is computer generated and valid without a signature.

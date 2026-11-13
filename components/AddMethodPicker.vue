@@ -47,10 +47,10 @@
                line it made the Scan tile taller than the other two and the row
                stopped aligning. -->
           <span class="flex items-center gap-1.5">
-            <span class="text-[13px] font-bold text-ink dark:text-white">{{ m.label }}</span>
+            <span class="text-label font-bold text-ink dark:text-white">{{ m.label }}</span>
             <span
               v-if="m.id === 'scan' && showQuota"
-              class="shrink-0 rounded px-1 py-px text-[10px] font-bold tabular-price"
+              class="shrink-0 rounded px-1 py-px text-2xs font-bold tabular-price"
               :class="
                 isPremium
                   ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
@@ -62,7 +62,7 @@
               {{ isPremium ? "∞" : `${scanRemaining}/${scanLimit}` }}
             </span>
           </span>
-          <span class="block text-[11px] text-ink-muted dark:text-zinc-400 leading-snug mt-0.5">
+          <span class="block text-micro text-ink-muted dark:text-zinc-400 leading-snug mt-0.5">
             {{ m.hint }}
           </span>
         </span>

@@ -56,7 +56,7 @@
             <p class="mt-1.5 text-xl font-bold text-ink dark:text-white tabular-price">
               {{ myr(p.totals.total) }}
             </p>
-            <p class="mt-0.5 text-[11px] text-ink-soft dark:text-zinc-500">
+            <p class="mt-0.5 text-micro text-ink-soft dark:text-zinc-500">
               {{ p.totals.saleCount }} {{ p.totals.saleCount === 1 ? "sale" : "sales" }} ·
               {{ p.totals.itemCount }} {{ p.totals.itemCount === 1 ? "card" : "cards" }}
             </p>
@@ -81,7 +81,7 @@
             >
               {{ myr(selected.discountTotal) }}
             </p>
-            <p class="mt-0.5 text-[11px] text-ink-soft dark:text-zinc-500">
+            <p class="mt-0.5 text-micro text-ink-soft dark:text-zinc-500">
               <!-- The gap between the printed label and what was taken. Worth
                    its own figure: it's the easiest margin to give away and the
                    hardest to notice going. -->
@@ -93,7 +93,7 @@
             <p class="mt-1.5 text-xl font-bold text-ink dark:text-white tabular-price">
               {{ myr(selected.subtotal) }}
             </p>
-            <p class="mt-0.5 text-[11px] text-ink-soft dark:text-zinc-500">
+            <p class="mt-0.5 text-micro text-ink-soft dark:text-zinc-500">
               took {{ myr(selected.total) }}
             </p>
           </div>
@@ -108,16 +108,16 @@
               :key="m.method"
               class="flex items-center gap-3"
             >
-              <span class="text-[13px] font-semibold text-ink dark:text-zinc-200 w-28 shrink-0">
+              <span class="text-label font-semibold text-ink dark:text-zinc-200 w-28 shrink-0">
                 {{ m.label }}
               </span>
               <div class="flex-1 h-2 rounded-full bg-black/[0.06] dark:bg-white/[0.08] overflow-hidden">
                 <div class="h-full rounded-full bg-pokemon-red" :style="{ width: methodPct(m.total) }" />
               </div>
-              <span class="text-[13px] tabular-price text-ink dark:text-zinc-200 w-24 text-right shrink-0">
+              <span class="text-label tabular-price text-ink dark:text-zinc-200 w-24 text-right shrink-0">
                 {{ myr(m.total) }}
               </span>
-              <span class="text-[11px] text-ink-soft dark:text-zinc-500 w-8 text-right shrink-0">
+              <span class="text-micro text-ink-soft dark:text-zinc-500 w-8 text-right shrink-0">
                 {{ m.count }}
               </span>
             </div>
@@ -135,11 +135,11 @@
                 alt=""
                 class="w-8 h-11 object-cover rounded shrink-0 bg-black/[0.04]"
               />
-              <span class="flex-1 min-w-0 text-[13px] font-semibold text-ink dark:text-zinc-200 truncate">
+              <span class="flex-1 min-w-0 text-label font-semibold text-ink dark:text-zinc-200 truncate">
                 {{ c.cardName }}
               </span>
-              <span class="text-[11px] text-ink-soft dark:text-zinc-500 shrink-0">×{{ c.count }}</span>
-              <span class="text-[13px] tabular-price text-ink dark:text-zinc-200 w-24 text-right shrink-0">
+              <span class="text-micro text-ink-soft dark:text-zinc-500 shrink-0">×{{ c.count }}</span>
+              <span class="text-label tabular-price text-ink dark:text-zinc-200 w-24 text-right shrink-0">
                 {{ myr(c.total) }}
               </span>
             </div>
@@ -190,9 +190,9 @@
               <p class="text-sm font-semibold text-ink dark:text-white truncate">
                 {{ saleTitle(s) }}
               </p>
-              <p class="text-[12px] text-gray-500 dark:text-zinc-400">
+              <p class="text-caption text-gray-500 dark:text-zinc-400">
                 <span
-                  class="inline-block px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide mr-1"
+                  class="inline-block px-1.5 py-0.5 rounded-md text-micro font-semibold mr-1"
                   :class="s.channel === 'online'
                     ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300'
                     : 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'"
@@ -203,7 +203,7 @@
               </p>
               <p
                 v-if="s.discountTotal > 0"
-                class="text-[11px] text-amber-600 dark:text-amber-400"
+                class="text-micro text-amber-600 dark:text-amber-400"
               >
                 {{ myr(s.discountTotal) }} off label
               </p>
@@ -215,7 +215,7 @@
               </p>
               <span
                 v-if="s.status !== 'paid'"
-                class="inline-block mt-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide"
+                class="inline-block mt-0.5 px-1.5 py-0.5 rounded-md text-micro font-semibold"
                 :class="statusClass(s.status)"
               >
                 {{ STATUS_LABELS[s.status] ?? s.status }}
@@ -226,7 +226,7 @@
 
         <p
           v-if="data.truncated"
-          class="mt-3 text-[11px] text-ink-soft dark:text-zinc-500 text-center"
+          class="mt-3 text-micro text-ink-soft dark:text-zinc-500 text-center"
         >
           Showing your most recent sales. Older ones aren't listed here yet.
         </p>
@@ -334,6 +334,6 @@ const statusClass = (s: string) =>
 
 <style scoped>
 .sel {
-  @apply px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-[13px];
+  @apply px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-label;
 }
 </style>

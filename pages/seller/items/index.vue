@@ -15,7 +15,7 @@
           <p class="text-sm text-gray-500 dark:text-zinc-400 mt-1">
             <span class="font-semibold text-ink dark:text-white tabular-nums">{{ totalUnits }}</span> units ·
             <span class="font-semibold text-ink dark:text-white tabular-nums">{{ count }}</span> entries ·
-            est. value <span class="font-semibold text-pokemon-red tabular-nums">{{ formatMyr(totalValue) }} MYR</span>
+            est. value <span class="font-semibold text-pokemon-red tabular-nums">RM {{ formatMyr(totalValue) }}</span>
           </p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
@@ -105,7 +105,7 @@
             </p>
             <button
               type="button"
-              class="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline"
+              class="text-micro font-semibold text-emerald-700 dark:text-emerald-400 hover:underline"
               @click="undoLastAdd"
               :disabled="undoBusy"
             >
@@ -116,7 +116,7 @@
             <li
               v-for="a in sessionAdds.slice(0, 4)"
               :key="a.id"
-              class="text-[12px] text-emerald-900/80 dark:text-emerald-200/80 flex justify-between gap-3"
+              class="text-caption text-emerald-900/80 dark:text-emerald-200/80 flex justify-between gap-3"
             >
               <span class="truncate">{{ a.label }}</span>
               <span v-if="a.qty > 1" class="shrink-0 tabular-nums">×{{ a.qty }}</span>
@@ -124,7 +124,7 @@
           </ul>
           <p
             v-if="sessionAdds.length > 4"
-            class="text-[11px] text-emerald-700/70 dark:text-emerald-400/70 mt-1"
+            class="text-micro text-emerald-700/70 dark:text-emerald-400/70 mt-1"
           >
             and {{ sessionAdds.length - 4 }} more
           </p>
@@ -156,7 +156,7 @@
                   @click="fileInput?.click()"
                 >
                   <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
-                  <span class="text-[10px] font-medium">Add</span>
+                  <span class="text-2xs font-medium">Add</span>
                 </label>
                 <div v-for="(file, index) in selectedFiles" :key="index" class="relative group aspect-[5/7]">
                   <img :src="file.preview" class="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-white/[0.08]" />
@@ -244,7 +244,7 @@
         v-if="addOpen && count > 0"
         class="surface rounded-2xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
       >
-        <p class="text-[13px] text-gray-500 dark:text-zinc-400">
+        <p class="text-label text-gray-500 dark:text-zinc-400">
           Your {{ count }} {{ count === 1 ? "item is" : "items are" }} hidden while you're adding.
         </p>
         <button
@@ -352,8 +352,8 @@
             <button type="button" @click="viewItem(item)" class="flex-1 min-w-0 self-stretch flex flex-col justify-center text-left py-1" :aria-label="viewLabel(item)">
               <span class="text-sm font-medium text-ink dark:text-white leading-snug line-clamp-2 break-words">{{ item.cardName }}</span>
               <span class="text-xs text-gray-500 dark:text-zinc-400 truncate">{{ item.condition || "No condition" }}</span>
-              <span class="mt-0.5 flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-zinc-500 tabular-nums">
-                RM{{ formatMyr(item.listPrice || 0) }}<template v-if="item.quantity > 1"> × {{ item.quantity }}</template>
+              <span class="mt-0.5 flex items-center gap-1.5 text-micro text-gray-400 dark:text-zinc-500 tabular-nums">
+                RM {{ formatMyr(item.listPrice || 0) }}<template v-if="item.quantity > 1"> × {{ item.quantity }}</template>
                 <span class="font-semibold px-1.5 rounded-full whitespace-nowrap" :class="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
               </span>
             </button>
@@ -368,7 +368,7 @@
 
         <div class="hidden sm:block surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08]">
           <table class="w-full text-sm table-fixed">
-            <thead class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-zinc-500 border-b border-black/[0.06] dark:border-white/[0.08]">
+            <thead class="text-xs text-gray-400 dark:text-zinc-500 border-b border-black/[0.06] dark:border-white/[0.08]">
               <tr>
                 <th class="px-3 py-2 w-9">
                   <input type="checkbox" :checked="allPageSelected" @change="toggleSelectAllPage" class="rounded align-middle" aria-label="Select all on page" />
@@ -407,7 +407,7 @@
                     </template>
                     <span v-else class="absolute inset-0 flex flex-col items-center justify-center gap-0.5 text-pokemon-blue">
                       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                      <span class="text-[8px] font-bold leading-none">Photo</span>
+                      <span class="text-2xs font-bold leading-none">Photo</span>
                     </span>
                     <span v-if="uploadingPhotoId === item.id" class="absolute inset-0 bg-black/50 flex items-center justify-center">
                       <span class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
@@ -417,7 +417,7 @@
                 <!-- Card -->
                 <td class="px-2 py-2.5 align-middle">
                   <p class="font-medium text-ink dark:text-white leading-snug line-clamp-2 break-words" :title="item.cardName">{{ item.cardName }}</p>
-                  <p class="text-[11px] text-gray-500 dark:text-zinc-400 truncate">
+                  <p class="text-micro text-gray-500 dark:text-zinc-400 truncate">
                     {{ [item.setName, item.number].filter(Boolean).join(" · ") }}
                   </p>
                   <select
@@ -425,7 +425,7 @@
                     :disabled="item.status === 'listed'"
                     :title="item.status === 'listed' ? 'Unlist to change condition' : undefined"
                     @change="updateItem(item.id, { condition: ($event.target as HTMLSelectElement).value })"
-                    class="mt-1 max-w-full text-[11px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                    class="mt-1 max-w-full text-micro px-1.5 py-0.5 rounded border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option value="">Condition…</option>
                     <option v-for="c in conditionOptions(item.condition)" :key="c" :value="c">{{ c }}</option>
@@ -464,7 +464,7 @@
                     >
                       {{ signedMyr(rowProfit(item) ?? 0) }}
                     </p>
-                    <p class="text-[10px] text-gray-400 dark:text-zinc-500 tabular-nums">
+                    <p class="text-2xs text-gray-400 dark:text-zinc-500 tabular-nums">
                       cost {{ formatMyr(item.costPrice ?? 0) }}<template v-if="rowFee(item) > 0"> · fee {{ formatMyr(rowFee(item)) }}</template>
                     </p>
                   </template>
@@ -480,7 +480,7 @@
                 </td>
                 <!-- Status -->
                 <td class="px-2 py-2.5 align-middle hidden sm:table-cell">
-                  <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="statusClass(item.status)">
+                  <span class="text-2xs font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="statusClass(item.status)">
                     {{ statusLabel(item.status) }}
                   </span>
                 </td>
@@ -584,7 +584,7 @@
         </div>
         <p
           v-if="listPhotoRule.required && !listPhotoOk"
-          class="mt-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 px-3 py-2.5 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300"
+          class="mt-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 px-3 py-2.5 text-micro leading-relaxed text-amber-800 dark:text-amber-300"
         >
           {{ listPhotoRule.reason }}
           <button
@@ -595,7 +595,7 @@
             Add a photo now
           </button>
         </p>
-        <p v-else class="text-[11px] text-gray-400 dark:text-zinc-500 mt-3">
+        <p v-else class="text-micro text-gray-400 dark:text-zinc-500 mt-3">
           <template v-if="!listingLive?.photos?.length">
             Lists with the catalogue image — fine at this price and condition,
             but your own photo always sells better.
@@ -732,7 +732,7 @@
   @apply w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white;
 }
 .menu-row {
-  @apply flex w-full items-center min-h-12 px-3 rounded-xl text-[15px] text-left text-ink dark:text-white active:bg-black/[0.05] dark:active:bg-white/[0.08];
+  @apply flex w-full items-center min-h-12 px-3 rounded-xl text-body-ui text-left text-ink dark:text-white active:bg-black/[0.05] dark:active:bg-white/[0.08];
 }
 /* Phone sheets slide up from the bottom; from sm up the edit dialog keeps
    its plain fade-free appearance. */

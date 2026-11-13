@@ -16,7 +16,7 @@
           <span class="text-ink-soft dark:text-zinc-600">/</span>
           <span class="font-bold text-ink dark:text-white truncate">Operations</span>
           <span
-            class="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-pokemon-red/10 text-pokemon-red"
+            class="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md text-micro font-semibold bg-pokemon-red/10 text-pokemon-red"
             >Admin</span
           >
         </div>
@@ -26,11 +26,11 @@
             to="/mintcondition/account"
             class="hidden sm:flex flex-col items-end leading-tight group"
           >
-            <span class="text-[11px] font-mono font-bold group-hover:underline">{{ me.staffId }}</span>
-            <span class="text-[10px] text-ink-soft dark:text-zinc-500">{{ me.roleName }}</span>
+            <span class="text-micro font-mono font-bold group-hover:underline">{{ me.staffId }}</span>
+            <span class="text-2xs text-ink-soft dark:text-zinc-500">{{ me.roleName }}</span>
           </NuxtLink>
           <button
-            class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border border-black/[0.08] dark:border-white/[0.10] text-ink-muted dark:text-zinc-300"
+            class="px-2.5 py-1.5 rounded-lg text-micro font-semibold border border-black/[0.08] dark:border-white/[0.10] text-ink-muted dark:text-zinc-300"
             @click="logout"
           >
             Sign out
@@ -42,7 +42,7 @@
            that stops it quietly becoming permanent. -->
       <p
         v-if="me?.legacy"
-        class="px-4 pb-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-400"
+        class="px-4 pb-2 text-micro leading-relaxed text-amber-700 dark:text-amber-400"
       >
         Signed in through the marketplace admin bridge, not a staff account.
         Create one on
@@ -77,7 +77,7 @@
             class="pt-3 mt-2 border-t border-black/[0.06] dark:border-white/[0.08]"
           >
             <p
-              class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-soft dark:text-zinc-600"
+              class="px-3 pb-1 text-micro font-semibold text-ink-soft dark:text-zinc-600"
             >
               Coming soon
             </p>
@@ -89,7 +89,7 @@
               <component :is="item.icon" class="w-4 h-4 shrink-0 opacity-60" />
               {{ item.label }}
               <span
-                class="ml-auto text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-black/[0.05] dark:bg-white/[0.06]"
+                class="ml-auto text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-black/[0.05] dark:bg-white/[0.06]"
                 >Soon</span
               >
             </div>
@@ -112,7 +112,7 @@
           v-for="item in navItems"
           :key="item.to"
           :to="item.to"
-          class="relative flex flex-col items-center justify-center gap-0.5 shrink-0 min-w-[68px] flex-1 text-[9px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
+          class="relative flex flex-col items-center justify-center gap-0.5 shrink-0 min-w-[68px] flex-1 text-2xs font-semibold text-ink-soft dark:text-zinc-500 transition-colors"
           :class="isActive(item) ? '!text-pokemon-red' : ''"
         >
           <component :is="item.icon" class="w-5 h-5" />

@@ -14,7 +14,7 @@
       Who is {{ name }}?
       <span
         v-if="data"
-        class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide"
+        class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md text-micro font-semibold"
         :class="badge.cls"
       >{{ badge.text }}</span>
     </button>
@@ -36,7 +36,7 @@
 
         <p
           v-if="nameMismatch"
-          class="sm:col-span-2 mt-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 px-2.5 py-2 text-[11px] leading-relaxed text-amber-800 dark:text-amber-300"
+          class="sm:col-span-2 mt-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 px-2.5 py-2 text-micro leading-relaxed text-amber-800 dark:text-amber-300"
         >
           The payout account is in a different name from the verified document.
           Not proof of anything on its own — a joint or business account looks
@@ -44,7 +44,7 @@
         </p>
         <p
           v-if="data.kyc.status !== 'verified'"
-          class="sm:col-span-2 mt-1 text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500"
+          class="sm:col-span-2 mt-1 text-micro leading-relaxed text-ink-soft dark:text-zinc-500"
         >
           This account has not completed identity verification, so we have no
           confirmed real-world identity behind it.

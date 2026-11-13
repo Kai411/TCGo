@@ -113,7 +113,7 @@
               v-if="!available"
               class="absolute inset-0 bg-black/40 flex items-center justify-center z-10 pointer-events-none"
             >
-              <span class="px-3 py-1 rounded-full text-sm font-bold bg-black/70 text-white tracking-wide uppercase">{{ reserved ? "Reserved" : "Sold" }}</span>
+              <span class="px-3 py-1 rounded-full text-sm font-semibold bg-black/70 text-white">{{ reserved ? "Reserved" : "Sold" }}</span>
             </div>
           </div>
 
@@ -138,7 +138,7 @@
         <div class="min-w-0">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink dark:text-white">
+              <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-ink dark:text-white">
                 {{ card.cardName }}
               </h1>
               <p v-if="card.cardSet" class="mt-1 text-sm font-medium text-ink-muted dark:text-zinc-400">{{ card.cardSet }}</p>
@@ -166,7 +166,7 @@
                 <svg v-else class="w-[18px] h-[18px] text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span v-if="copied" role="status" class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap pointer-events-none">
+                <span v-if="copied" role="status" class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-2xs font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap pointer-events-none">
                   Copied!
                 </span>
               </button>
@@ -180,7 +180,7 @@
               v-if="card.productType === 'Graded' && card.grade"
               class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 border border-amber-600"
             >
-              <span class="uppercase tracking-wide">{{ gradingProviderLabel }}</span>
+              <span class="">{{ gradingProviderLabel }}</span>
               <span>{{ card.grade }}</span>
             </span>
             <span
@@ -195,7 +195,7 @@
             >
               {{ card.condition }}
             </span>
-            <span v-if="card.language && card.language !== 'EN'" class="text-xs font-bold tracking-wide px-2 py-0.5 rounded-md bg-black/85 text-white">
+            <span v-if="card.language && card.language !== 'EN'" class="text-xs font-bold px-2 py-0.5 rounded-md bg-black/85 text-white">
               {{ card.language }}
             </span>
             <span v-if="card.negotiable" class="text-xs font-medium px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
@@ -259,7 +259,7 @@
                 <button
                   type="button"
                   @click="user ? handleBuyNow() : goToLogin()"
-                  class="inline-flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
+                  class="inline-flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-colors"
                 >
                   {{ user ? "Buy now" : "Sign in to buy" }}
                 </button>
@@ -344,7 +344,7 @@
       <Teleport to="body">
         <div
           v-if="available && !isOwnListing"
-          class="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-white dark:bg-[#111114] border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]"
+          class="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-white dark:bg-canvas-inverse border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]"
         >
           <div class="grid grid-cols-2 gap-2.5">
             <button

@@ -39,14 +39,14 @@
 
         <dl class="mt-5 pt-4 border-t border-black/[0.06] dark:border-white/[0.08] grid grid-cols-2 gap-4 text-sm">
           <div>
-            <dt class="text-[11px] text-ink-muted dark:text-zinc-400">To</dt>
+            <dt class="text-micro text-ink-muted dark:text-zinc-400">To</dt>
             <dd class="mt-0.5 font-semibold text-ink dark:text-white">
               {{ payout.recipient?.bankName }}
               <span class="tabular-price font-normal text-ink-muted dark:text-zinc-400">{{ payout.recipient?.bankAccountNumber }}</span>
             </dd>
           </div>
           <div>
-            <dt class="text-[11px] text-ink-muted dark:text-zinc-400">Orders</dt>
+            <dt class="text-micro text-ink-muted dark:text-zinc-400">Orders</dt>
             <dd class="mt-0.5 font-semibold text-ink dark:text-white tabular-price">{{ payout.orderIds?.length ?? 0 }}</dd>
           </div>
         </dl>
@@ -67,16 +67,16 @@
               class="absolute left-[5px] top-4 bottom-0 w-px bg-black/[0.10] dark:bg-white/[0.12]"
               aria-hidden="true"
             />
-            <span class="relative mt-1 shrink-0 w-[11px] h-[11px] rounded-full ring-4 ring-canvas-raised dark:ring-[#1B1B20]" :class="dotFor(e.key)" />
+            <span class="relative mt-1 shrink-0 w-[11px] h-[11px] rounded-full ring-4 ring-canvas-raised dark:ring-night-raised" :class="dotFor(e.key)" />
             <div class="min-w-0 flex-1">
               <p class="text-sm font-semibold text-ink dark:text-white">{{ e.label }}</p>
-              <p v-if="e.detail" class="text-[11px] text-ink-muted dark:text-zinc-400 mt-0.5">{{ e.detail }}</p>
-              <p class="text-[11px] text-ink-soft dark:text-zinc-500 mt-0.5 tabular-price">{{ stamp(e.at) }}</p>
+              <p v-if="e.detail" class="text-micro text-ink-muted dark:text-zinc-400 mt-0.5">{{ e.detail }}</p>
+              <p class="text-micro text-ink-soft dark:text-zinc-500 mt-0.5 tabular-price">{{ stamp(e.at) }}</p>
             </div>
           </li>
         </ol>
 
-        <p v-if="payout.status === 'processing'" class="mt-1 text-[11px] text-ink-soft dark:text-zinc-500">
+        <p v-if="payout.status === 'processing'" class="mt-1 text-micro text-ink-soft dark:text-zinc-500">
           Waiting on the bank. This page checks for an update each time you open it.
         </p>
       </section>

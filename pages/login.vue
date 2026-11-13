@@ -32,7 +32,7 @@
            from you. A form that silently swaps its fields is the fastest way
            to make someone type the wrong thing. -->
       <div class="text-center mb-7">
-        <h1 class="text-2xl font-bold tracking-tightest text-ink dark:text-white">
+        <h1 class="text-2xl font-bold tracking-tight text-ink dark:text-white">
           {{ heading }}
         </h1>
         <p class="mt-2 text-sm text-ink-muted dark:text-zinc-400">{{ subheading }}</p>
@@ -55,7 +55,7 @@
 
           <div class="flex items-center gap-3 my-5">
             <span class="h-px flex-1 bg-black/[0.08] dark:bg-white/[0.10]" />
-            <span class="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">or</span>
+            <span class="text-xs font-semibold text-ink-soft">or</span>
             <span class="h-px flex-1 bg-black/[0.08] dark:bg-white/[0.10]" />
           </div>
 
@@ -117,19 +117,19 @@
               <button
                 type="button"
                 @click="showPassword = !showPassword"
-                class="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-semibold text-ink-soft hover:text-ink dark:hover:text-white"
+                class="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-micro font-semibold text-ink-soft hover:text-ink dark:hover:text-white"
                 :aria-label="showPassword ? 'Hide password' : 'Show password'"
               >
                 {{ showPassword ? "Hide" : "Show" }}
               </button>
             </div>
-            <p v-if="mode === 'register'" class="mt-1.5 text-[11px] text-ink-soft dark:text-zinc-500">
+            <p v-if="mode === 'register'" class="mt-1.5 text-micro text-ink-soft dark:text-zinc-500">
               At least {{ MIN_PASSWORD }} characters.
             </p>
           </div>
 
           <template v-if="mode === 'register'">
-            <label class="mt-4 flex items-start gap-2.5 text-[12px] leading-relaxed text-ink-muted dark:text-zinc-400">
+            <label class="mt-4 flex items-start gap-2.5 text-caption leading-relaxed text-ink-muted dark:text-zinc-400">
               <input v-model="acceptedTerms" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-pokemon-red" />
               <span>
                 I agree to the
@@ -139,7 +139,7 @@
             <!-- PDPA consent. Its own box, set apart from the Terms line: the
                  PDPA Regulations 2013 (reg. 3) want a consent request that
                  sits beside another matter to look distinct from it. -->
-            <label class="mt-3 flex items-start gap-2.5 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.02] dark:bg-white/[0.03] p-3 text-[12px] leading-relaxed text-ink dark:text-zinc-200">
+            <label class="mt-3 flex items-start gap-2.5 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-black/[0.02] dark:bg-white/[0.03] p-3 text-caption leading-relaxed text-ink dark:text-zinc-200">
               <input v-model="acceptedPrivacy" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-pokemon-red" />
               <span>
                 <span class="font-semibold">Personal data consent.</span>
@@ -149,14 +149,14 @@
             </label>
           </template>
 
-          <p v-if="error" class="mt-3 text-[13px] text-rose-600 dark:text-rose-400">{{ error }}</p>
+          <p v-if="error" class="mt-3 text-label text-rose-600 dark:text-rose-400">{{ error }}</p>
 
           <button type="submit" :disabled="busy" class="btn-primary mt-5">
             <span v-if="busy" class="spinner" />
             {{ mode === "register" ? "Create account" : "Sign in" }}
           </button>
 
-          <p class="mt-6 text-center text-[13px] text-ink-muted dark:text-zinc-400">
+          <p class="mt-6 text-center text-label text-ink-muted dark:text-zinc-400">
             {{ mode === "register" ? "Already have an account?" : "New to TCGo?" }}
             <button type="button" @click="toggleMode" class="font-semibold text-pokemon-red hover:underline">
               {{ mode === "register" ? "Sign in" : "Create one" }}
@@ -187,20 +187,20 @@
               New password
             </label>
             <input id="newpw" v-model="password" type="password" autocomplete="new-password" class="field" />
-            <p class="mt-1.5 text-[11px] text-ink-soft dark:text-zinc-500">
+            <p class="mt-1.5 text-micro text-ink-soft dark:text-zinc-500">
               At least {{ MIN_PASSWORD }} characters.
             </p>
           </div>
 
-          <p v-if="error" class="mt-3 text-[13px] text-rose-600 dark:text-rose-400">{{ error }}</p>
-          <p v-if="notice" class="mt-3 text-[13px] text-emerald-600 dark:text-emerald-400">{{ notice }}</p>
+          <p v-if="error" class="mt-3 text-label text-rose-600 dark:text-rose-400">{{ error }}</p>
+          <p v-if="notice" class="mt-3 text-label text-emerald-600 dark:text-emerald-400">{{ notice }}</p>
 
           <button type="submit" :disabled="busy || code.length < 6" class="btn-primary mt-5">
             <span v-if="busy" class="spinner" />
             {{ purpose === "reset_password" ? "Set new password" : "Confirm email" }}
           </button>
 
-          <div class="mt-5 flex items-center justify-between text-[13px]">
+          <div class="mt-5 flex items-center justify-between text-label">
             <button type="button" @click="resend" :disabled="busy || cooldown > 0" class="font-semibold text-pokemon-red hover:underline disabled:text-ink-soft disabled:no-underline">
               {{ cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code" }}
             </button>
@@ -225,7 +225,7 @@
             spellcheck="false"
             class="field"
           />
-          <p v-if="error" class="mt-3 text-[13px] text-rose-600 dark:text-rose-400">{{ error }}</p>
+          <p v-if="error" class="mt-3 text-label text-rose-600 dark:text-rose-400">{{ error }}</p>
 
           <button type="submit" :disabled="busy" class="btn-primary mt-5">
             <span v-if="busy" class="spinner" />
@@ -235,7 +235,7 @@
         </form>
       </div>
 
-      <p class="mt-5 text-center text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500">
+      <p class="mt-5 text-center text-micro leading-relaxed text-ink-soft dark:text-zinc-500">
         By continuing, including with Google, you agree to TCGo's
         <NuxtLink to="/terms" target="_blank" class="underline hover:text-pokemon-red">Terms of Use</NuxtLink>.
         New Google accounts are asked to consent to the
@@ -503,7 +503,7 @@ watch(
 <style scoped>
 .field {
   @apply w-full rounded-xl border border-black/[0.10] dark:border-white/[0.12]
-         bg-white dark:bg-white/[0.04] px-3.5 py-2.5 text-[15px] text-ink dark:text-white
+         bg-white dark:bg-white/[0.04] px-3.5 py-2.5 text-body-ui text-ink dark:text-white
          placeholder:text-ink-soft outline-none transition-colors
          focus:border-pokemon-red focus:ring-2 focus:ring-pokemon-red/20;
 }

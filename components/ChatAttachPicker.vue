@@ -3,7 +3,7 @@
        (z-55), and a sheet left inside the page opened underneath it. -->
   <Teleport to="body">
   <div class="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/40 dark:bg-black/60" @click.self="$emit('close')">
-    <div class="w-full sm:max-w-lg max-h-[85vh] max-h-[85dvh] pb-[env(safe-area-inset-bottom)] flex flex-col rounded-t-2xl sm:rounded-2xl bg-white dark:bg-[#1b1b21] shadow-xl">
+    <div class="w-full sm:max-w-lg max-h-[85vh] max-h-[85dvh] pb-[env(safe-area-inset-bottom)] flex flex-col rounded-t-2xl sm:rounded-2xl bg-white dark:bg-night-raised shadow-xl">
       <div class="flex items-center justify-between px-4 pt-4 pb-2">
         <p class="text-base font-bold text-ink dark:text-white">Attach</p>
         <button type="button" @click="$emit('close')" aria-label="Close" class="p-1.5 rounded-lg text-ink-muted hover:bg-black/[0.05] dark:hover:bg-white/[0.08]">

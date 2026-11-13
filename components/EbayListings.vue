@@ -116,10 +116,10 @@
               v-if="item.myr !== null"
               class="text-sm font-bold text-ink dark:text-white tabular-price"
             >
-              ≈ {{ formatMyr(item.myr) }} MYR
+              ≈ RM {{ formatMyr(item.myr) }}
             </p>
             <p
-              class="text-[11px] text-ink-soft dark:text-zinc-500 tabular-price"
+              class="text-micro text-ink-soft dark:text-zinc-500 tabular-price"
               :class="item.myr === null && 'text-sm font-bold text-ink dark:text-white'"
             >
               {{ formatOriginal(item.price) }}
@@ -142,7 +142,7 @@
 
     <div
       v-if="data && data.enabled && state === 'ready'"
-      class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-black/[0.06] pt-4 text-[11px] text-ink-soft dark:border-white/[0.08] dark:text-zinc-500"
+      class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-black/[0.06] pt-4 text-micro text-ink-soft dark:border-white/[0.08] dark:text-zinc-500"
     >
       <p>{{ checkedLabel }}</p>
       <a

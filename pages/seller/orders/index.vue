@@ -51,11 +51,11 @@
                  something to do about it. -->
             <p
               v-if="needsWaybill.length"
-              class="mt-1 text-[11px] text-ink-soft dark:text-zinc-500"
+              class="mt-1 text-micro text-ink-soft dark:text-zinc-500"
             >
               {{ needsWaybill.length }} still {{ needsWaybill.length === 1 ? "needs" : "need" }} a waybill
             </p>
-            <p v-else class="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400">
+            <p v-else class="mt-1 text-micro text-emerald-600 dark:text-emerald-400">
               All labelled — just hand over
             </p>
           </button>
@@ -73,7 +73,7 @@
             <p class="mt-2 text-2xl font-bold text-ink dark:text-white tabular-price">
               {{ shipped.length }}
             </p>
-            <p class="mt-1 text-[11px] text-ink-soft dark:text-zinc-500">
+            <p class="mt-1 text-micro text-ink-soft dark:text-zinc-500">
               With the courier — nothing to do
             </p>
           </button>

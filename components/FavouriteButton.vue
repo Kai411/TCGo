@@ -31,7 +31,7 @@
     <span
       v-if="count > 0"
       class="text-gray-500 dark:text-zinc-400"
-      :class="size === 'sm' ? 'text-[10px]' : 'text-xs'"
+      :class="size === 'sm' ? 'text-2xs' : 'text-xs'"
     >
       {{ count }}
     </span>

@@ -76,7 +76,7 @@
         <section class="panel surface rounded-2xl p-5">
           <h2 class="eyebrow">Receipt</h2>
           <p class="mt-2 text-sm text-gray-600 dark:text-zinc-300 leading-relaxed">{{ receiptLine }}</p>
-          <p v-if="order.billplzBillId" class="mt-1 text-[11px] font-mono text-gray-400 dark:text-zinc-500">
+          <p v-if="order.billplzBillId" class="mt-1 text-micro font-mono text-gray-400 dark:text-zinc-500">
             FPX · ref {{ order.billplzBillId }}
           </p>
           <a
@@ -231,7 +231,7 @@ interface Step {
 
 const STEP_DOT: Record<StepState, string> = {
   done: "bg-emerald-500 text-white",
-  current: "bg-white dark:bg-[#1B1B20] ring-2 ring-pokemon-red",
+  current: "bg-white dark:bg-night-raised ring-2 ring-pokemon-red",
   todo: "bg-gray-200 dark:bg-white/[0.10]",
 };
 

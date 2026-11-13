@@ -5,12 +5,12 @@
     <div class="w-full max-w-sm">
       <div class="text-center mb-7">
         <p
-          class="text-[11px] font-bold uppercase tracking-[0.2em] text-ink-soft dark:text-zinc-500"
+          class="text-xs font-semibold text-ink-soft dark:text-zinc-500"
         >
           Mint Condition
         </p>
         <h1 class="mt-1.5 text-2xl font-bold">Operations sign-in</h1>
-        <p class="mt-2 text-[13px] text-ink-muted dark:text-zinc-400">
+        <p class="mt-2 text-label text-ink-muted dark:text-zinc-400">
           Staff accounts only. This isn't your marketplace login.
         </p>
       </div>
@@ -44,7 +44,7 @@
         <p
           v-if="error"
           role="alert"
-          class="text-[13px] leading-relaxed text-red-600 dark:text-red-400"
+          class="text-label leading-relaxed text-red-600 dark:text-red-400"
         >
           {{ error }}
         </p>
@@ -58,7 +58,7 @@
         </button>
       </form>
 
-      <p class="mt-5 text-center text-[11px] leading-relaxed text-ink-soft dark:text-zinc-600">
+      <p class="mt-5 text-center text-micro leading-relaxed text-ink-soft dark:text-zinc-600">
         Forgotten your password? An admin has to reset it — there's no email
         recovery on staff accounts by design.
       </p>

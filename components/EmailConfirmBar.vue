@@ -3,7 +3,7 @@
     v-if="show"
     class="border-b border-amber-200/70 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10"
   >
-    <div class="container mx-auto flex items-center gap-3 px-4 py-2 text-[13px] text-amber-900 dark:text-amber-100">
+    <div class="container mx-auto flex items-center gap-3 px-4 py-2 text-label text-amber-900 dark:text-amber-100">
       <p class="min-w-0 flex-1">
         Confirm your email to buy, bid, sell or send messages.
       </p>

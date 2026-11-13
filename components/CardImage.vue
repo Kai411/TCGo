@@ -25,7 +25,7 @@
       <circle cx="8.5" cy="8.5" r="1.5" />
       <path d="M21 15l-5-5L5 21" />
     </svg>
-    <span class="text-[10px] font-medium px-1 text-center leading-tight">No image</span>
+    <span class="text-2xs font-medium px-1 text-center leading-tight">No image</span>
   </div>
 </template>
 

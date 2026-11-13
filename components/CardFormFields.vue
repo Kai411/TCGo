@@ -101,7 +101,7 @@
       <button
         type="button"
         @click="moreOpen = !moreOpen"
-        class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
+        class="inline-flex items-center gap-1.5 text-label font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
         :aria-expanded="showMore"
       >
         <svg

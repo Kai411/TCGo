@@ -1,13 +1,13 @@
 <template>
   <div class="max-w-md mx-auto">
     <h1 class="text-2xl font-bold mb-1">Your account</h1>
-    <p class="text-[13px] text-ink-muted dark:text-zinc-400 mb-6">
+    <p class="text-label text-ink-muted dark:text-zinc-400 mb-6">
       {{ me?.staffId }} · {{ me?.roleName }}
     </p>
 
     <div
       v-if="first"
-      class="mb-5 rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-[13px] leading-relaxed text-amber-800 dark:text-amber-300"
+      class="mb-5 rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-label leading-relaxed text-amber-800 dark:text-amber-300"
     >
       Whoever created this account knows the password you just used. Set your
       own before you do anything else.
@@ -42,7 +42,7 @@
           autocomplete="new-password"
           class="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm"
         />
-        <p class="mt-1.5 text-[11px] text-ink-soft dark:text-zinc-500">
+        <p class="mt-1.5 text-micro text-ink-soft dark:text-zinc-500">
           At least {{ MIN_PASSWORD_LENGTH }} characters. A few unrelated words
           beats a short one with symbols in it.
         </p>
@@ -63,13 +63,13 @@
               : 'border-black/[0.08] dark:border-white/[0.10]'
           "
         />
-        <p v-if="mismatch" class="mt-1.5 text-[11px] text-red-600 dark:text-red-400">
+        <p v-if="mismatch" class="mt-1.5 text-micro text-red-600 dark:text-red-400">
           These two don't match.
         </p>
       </div>
 
-      <p v-if="error" class="text-[13px] text-red-600 dark:text-red-400">{{ error }}</p>
-      <p v-if="done" class="text-[13px] text-emerald-600 dark:text-emerald-400">
+      <p v-if="error" class="text-label text-red-600 dark:text-red-400">{{ error }}</p>
+      <p v-if="done" class="text-label text-emerald-600 dark:text-emerald-400">
         Password changed. Any other browser you were signed in on has been signed out.
       </p>
 
@@ -88,12 +88,12 @@
         <li
           v-for="p in myPermissions"
           :key="p.key"
-          class="text-[13px] text-ink-muted dark:text-zinc-400 flex gap-2"
+          class="text-label text-ink-muted dark:text-zinc-400 flex gap-2"
         >
           <span class="text-emerald-500 shrink-0">✓</span>{{ p.label }}
         </li>
       </ul>
-      <p v-if="!myPermissions.length" class="text-[13px] text-ink-soft dark:text-zinc-500">
+      <p v-if="!myPermissions.length" class="text-label text-ink-soft dark:text-zinc-500">
         Your role currently carries no permissions. Ask an admin.
       </p>
     </div>

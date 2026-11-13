@@ -18,11 +18,11 @@
           <p class="text-sm truncate text-ink dark:text-white" :class="unread(c) ? 'font-bold' : 'font-semibold'">
             {{ c.people?.[other(c)]?.name || "TCGo member" }}
           </p>
-          <span class="shrink-0 text-[11px] text-ink-soft dark:text-zinc-500">{{ shortTime(c.lastMessage?.at) }}</span>
+          <span class="shrink-0 text-micro text-ink-soft dark:text-zinc-500">{{ shortTime(c.lastMessage?.at) }}</span>
         </div>
         <div class="flex items-center gap-2">
           <p
-            class="text-[13px] truncate flex-1"
+            class="text-label truncate flex-1"
             :class="unread(c) ? 'text-ink dark:text-zinc-100 font-medium' : 'text-ink-muted dark:text-zinc-400'"
           >
             <span v-if="c.lastMessage?.senderUid === user?.uid">You: </span>{{ c.lastMessage?.preview }}

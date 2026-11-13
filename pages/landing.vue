@@ -5,9 +5,8 @@
     <!-- Section intro -->
     <section id="features" class="scroll-mt-20 px-4 pt-8 pb-4">
       <div ref="intro" class="container mx-auto max-w-3xl text-center">
-        <span class="reveal-init eyebrow">Core features</span>
         <h2
-          class="reveal-init mt-4 text-display font-bold tracking-tightest text-ink"
+          class="reveal-init text-display font-bold tracking-tightest [text-wrap:balance] text-ink"
         >
           Everything a card shop runs on
         </h2>
@@ -22,9 +21,9 @@
       index="01"
       eyebrow="Point of sale"
       title="A till that runs on the phone in your pocket."
-      body="Ring up a walk-in customer with the camera you already own. Scan the card, take the money, print the price tag — no card reader, no separate terminal, no extra hardware to buy."
+      body="Ring up a walk-in customer with the camera you already own. Scan the card, take the money, print the price tag. No card reader, no separate terminal, no extra hardware to buy."
       :points="[
-        'Scan cards with your phone — no scanner or extra equipment',
+        'Scan cards with your phone, no scanner or extra equipment',
         'Print item labels and price tags straight from the platform',
         'Take payment on the spot with your own QR code',
         'Or tap-to-pay on the same phone (additional charge applies)',
@@ -54,7 +53,7 @@
       index="03"
       eyebrow="Live market data"
       title="Know what a card is worth before you price it."
-      body="Real-time market pricing on every card you hold, drawn from live sales and active listings — so you're pricing on today's market, not last season's guide."
+      body="Real-time market pricing on every card you hold, drawn from live sales and active listings, so you're pricing on today's market, not last season's guide."
       :points="[
         'Live market price on every card in your inventory',
         '30-day trend and last-sold history',
@@ -101,9 +100,8 @@
     <section class="px-4 py-20 sm:py-28">
       <div ref="secondary" class="container mx-auto max-w-5xl">
         <div class="text-center">
-          <span class="reveal-init eyebrow">And the marketplace</span>
           <h2
-            class="reveal-init mt-4 text-display font-bold tracking-tightest text-ink"
+            class="reveal-init text-display font-bold tracking-tightest [text-wrap:balance] text-ink"
           >
             Your shop, in front of every collector
           </h2>
@@ -117,7 +115,7 @@
           >
             <LandingFeatureIcon :name="item.icon" />
             <h3 class="mt-4 text-sm font-semibold text-ink">{{ item.title }}</h3>
-            <p class="mt-1.5 text-[13px] leading-relaxed text-ink-muted">
+            <p class="mt-1.5 text-label leading-relaxed text-ink-muted">
               {{ item.body }}
             </p>
           </div>
@@ -131,9 +129,8 @@
         <div
           class="reveal-init surface rounded-3xl px-6 py-12 text-center sm:px-10 sm:py-14"
         >
-          <span class="eyebrow">Pricing</span>
           <h2
-            class="mt-4 text-display font-bold tracking-tightest text-ink"
+            class="text-display font-bold tracking-tightest [text-wrap:balance] text-ink"
           >
             4% a sale. 3% with Vendor.
           </h2>
@@ -164,10 +161,9 @@
             class="mt-9 inline-flex items-center gap-1.5 rounded-xl bg-ink px-7 py-3 text-sm font-semibold text-white transition-transform duration-200 ease-premium hover:-translate-y-0.5"
           >
             See full pricing
-            <span aria-hidden="true">→</span>
           </NuxtLink>
           <p v-if="BETA_PRICING" class="mt-4 text-xs text-ink-soft">
-            {{ (BETA_RATE * 100).toFixed(0) }}% while we're in beta —
+            {{ (BETA_RATE * 100).toFixed(0) }}% while we're in beta,
             {{ (STANDARD_RATE * 100).toFixed(0) }}% at public launch.
           </p>
           <p v-else class="mt-4 text-xs text-ink-soft">
@@ -184,21 +180,21 @@
         class="container mx-auto max-w-4xl rounded-3xl bg-ink px-6 py-16 sm:py-20 text-center"
       >
         <h2
-          class="reveal-init text-display font-bold tracking-tightest text-white"
+          class="reveal-init text-display font-bold tracking-tightest [text-wrap:balance] text-white"
         >
           Ready to run it all in one place?
         </h2>
         <p class="reveal-init mx-auto mt-4 max-w-lg text-base text-white/60">
           Set up your shop, import your stock, and take your first synced sale
           today.
-          {{ BETA_PRICING ? "Free while we're in beta." : "Free to start — no listing fees." }}
+          {{ BETA_PRICING ? "Free while we're in beta." : "Free to start, no listing fees." }}
         </p>
         <div
           class="reveal-init mt-9 flex flex-col sm:flex-row gap-3 justify-center"
         >
           <NuxtLink
             to="/"
-            class="rounded-xl bg-pokemon-red px-8 py-3.5 text-base font-semibold text-white shadow-glow transition-transform duration-200 ease-premium hover:-translate-y-0.5"
+            class="rounded-xl bg-pokemon-red px-8 py-3.5 text-base font-semibold text-white transition-transform duration-200 ease-premium hover:-translate-y-0.5"
           >
             Start selling free
           </NuxtLink>

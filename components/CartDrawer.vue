@@ -197,7 +197,7 @@
           <button
             type="button"
             @click="goToCheckout"
-            class="block w-full text-center px-4 py-3 rounded-full text-sm font-semibold bg-pokemon-red text-white shadow-glow hover:brightness-110 transition"
+            class="block w-full text-center px-4 py-3 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:bg-pokemon-red-dark transition"
           >
             {{ someSelected ? `Checkout (${selectedCount})` : "Checkout all" }}
           </button>
