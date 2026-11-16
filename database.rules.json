@@ -1,0 +1,21 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "auction_summaries": {
+      ".read": true
+    },
+    "auction_bids": {
+      "$auctionId": {
+        "bids": {
+          ".read": true
+        }
+      }
+    },
+    "user_bid_index": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}

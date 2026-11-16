@@ -809,12 +809,11 @@ const placeQuickBid = async () => {
   bidSuccess.value = "";
   bidding.value = true;
   try {
-    await placeBid(
-      user.value!.uid,
-      myProfile.value?.customName || user.value!.displayName || "Anonymous",
-      minBidAmount.value,
-    );
-    bidSuccess.value = `Bid placed: RM ${minBidAmount.value.toFixed(2)}`;
+    const amount = minBidAmount.value;
+    const res = await placeBid(amount);
+    // Someone's auto bid can answer straight away and stay on top.
+    if (res.leading) bidSuccess.value = `Bid placed: RM ${amount.toFixed(2)}`;
+    else bidError.value = `Bid placed, but another bidder's auto bid already covered it, so they're still on top at RM ${res.currentPrice.toFixed(2)}.`;
   } catch (e: any) {
     bidError.value = e.message || "Failed to place bid";
   } finally {
@@ -836,12 +835,10 @@ const placeAutoBid = async () => {
   if (!autoBidMax.value) return;
   bidding.value = true;
   try {
-    await setAutoBid(
-      user.value!.uid,
-      myProfile.value?.customName || user.value!.displayName || "Anonymous",
-      autoBidMax.value,
-    );
-    bidSuccess.value = `Auto bid set! Max: RM ${autoBidMax.value.toFixed(2)}`;
+    const max = autoBidMax.value;
+    const res = await setAutoBid(max);
+    if (res.leading) bidSuccess.value = `Auto bid set! Max: RM ${max.toFixed(2)}`;
+    else bidError.value = `Another bidder's maximum is at least as high as yours, so they're still on top at RM ${res.currentPrice.toFixed(2)}. Try a higher maximum.`;
     autoBidMax.value = null;
   } catch (e: any) {
     bidError.value = e.message || "Failed to set auto bid";
