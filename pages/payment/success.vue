@@ -96,6 +96,7 @@
 // webhook flips it to `paid`, and this page follows. A declined payment
 // (billplz[paid]=false) is handed to /payment/failed.
 import { stateName } from "~/shared/my-states";
+import { BUYER_TIMELINE, timelineIndex } from "~/shared/delivery-stage";
 import type { PaymentResultCopy } from "~/composables/usePaymentResult";
 
 const route = useRoute();
@@ -235,70 +236,34 @@ const STEP_DOT: Record<StepState, string> = {
   todo: "bg-gray-200 dark:bg-white/[0.10]",
 };
 
+// Same five stages, in the same words, as the tracker on the order page, so
+// the buyer doesn't meet two vocabularies for one parcel.
 const steps = computed<Step[]>(() => {
   const o = order.value;
   if (!o) return [];
-  const paid: Step = {
-    title: "Paid",
-    detail: `${o.paidAt ? formatDate(o.paidAt) : "Just now"} · FPX`,
-    state: "done",
+  const at = Math.max(0, timelineIndex(o as any));
+  const detailFor = (id: string, fallback: string): string => {
+    if (id === "placed") return `${o.paidAt ? formatDate(o.paidAt) : "Just now"} · FPX`;
+    if (id === "arranging" && at === 1) {
+      return o.shipmentOrderNo
+        ? `Courier booked. ${o.sellerName} is packing your order for pickup.`
+        : `${o.sellerName} is preparing your order. A courier waybill is generated automatically.`;
+    }
+    if (id === "in_transit" || id === "collected") {
+      const tracking = [o.shippingCarrier, o.trackingNumber].filter(Boolean).join(" ");
+      if (tracking && at >= 2) return tracking;
+    }
+    if (id === "delivered") {
+      if (o.deliveredAt) return formatDate(o.deliveredAt);
+      return "Tracking appears on your order page once the courier scans the parcel.";
+    }
+    return fallback;
   };
-  if (o.status === "paid") {
-    return [
-      paid,
-      {
-        title: "Processing",
-        detail: o.shipmentOrderNo
-          ? `Courier booked — ${o.sellerName} is packing your order for pickup.`
-          : `${o.sellerName} is preparing your order. A courier waybill is generated automatically.`,
-        state: "current",
-      },
-      { title: "Shipped", detail: "Handed to the courier.", state: "todo" },
-      {
-        title: "Delivered",
-        detail: "Tracking appears on your order page once the courier scans the parcel.",
-        state: "todo",
-      },
-    ];
-  }
-  const processed: Step = {
-    title: "Processing",
-    detail: `Packed by ${o.sellerName}.`,
-    state: "done",
-  };
-  const shipped: Step = {
-    title: "Shipped",
-    detail:
-      [
-        o.shippedAt ? formatDate(o.shippedAt) : "",
-        [o.shippingCarrier, o.trackingNumber].filter(Boolean).join(" "),
-      ]
-        .filter(Boolean)
-        .join(" · ") || "Handed to the courier.",
-    state: o.status === "shipped" ? "current" : "done",
-  };
-  if (o.status === "shipped") {
-    return [
-      paid,
-      processed,
-      shipped,
-      {
-        title: "Delivered",
-        detail: "Track the parcel from your order page and mark it received when it arrives.",
-        state: "todo",
-      },
-    ];
-  }
-  return [
-    paid,
-    processed,
-    shipped,
-    {
-      title: "Delivered",
-      detail: o.deliveredAt ? formatDate(o.deliveredAt) : "Received.",
-      state: "done",
-    },
-  ];
+  return BUYER_TIMELINE.map((t, i) => ({
+    title: t.label,
+    detail: detailFor(t.id, t.blurb),
+    state: i < at || (i === at && i === BUYER_TIMELINE.length - 1) ? "done" : i === at ? "current" : "todo",
+  }));
 });
 
 // Sandbox sends are captured by Mailtrap and never reach the buyer — say so
