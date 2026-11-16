@@ -16,6 +16,7 @@ import {
 import { requireUser } from "~/server/utils/auth";
 import { regionForState, totalForRegion } from "~/shared/shipping";
 import { isAvailable, unavailableReason } from "~/shared/card-availability";
+import { isHiddenByStaff, isSellingSuspended } from "~/shared/moderation";
 import { quoteOrderShipping } from "~/server/utils/shipping";
 import { noteError } from "~/server/utils/oplog";
 
@@ -49,6 +50,29 @@ export default defineEventHandler(async (event) => {
   }
   if (!order.deliveryAddress?.postcode) {
     throw createError({ statusCode: 400, message: "Delivery address required before payment" });
+  }
+
+  // A seller TCGo has suspended can't be paid, and neither can a listing TCGo
+  // took down: the order may have been made before staff acted, and taking
+  // the money would put it in the hands of the seller under review.
+  // 403 rather than 409: waiting won't make it payable.
+  if (order.sellerUid) {
+    const sellerSnap = await db.collection("users").doc(order.sellerUid).get();
+    if (isSellingSuspended(sellerSnap.data() as any)) {
+      throw createError({
+        statusCode: 403,
+        message: "This seller can't take payments right now, so the order can't be paid. You haven't been charged.",
+      });
+    }
+  }
+  if (order.auctionId) {
+    const auctionSnap = await db.collection("auctions").doc(order.auctionId).get();
+    if (isHiddenByStaff(auctionSnap.data() as any)) {
+      throw createError({
+        statusCode: 403,
+        message: "TCGo took this auction down, so it can't be paid. You haven't been charged.",
+      });
+    }
   }
 
   // Every card must still be for sale AT THE MOMENT OF PAYMENT. Orders are
@@ -85,7 +109,9 @@ export default defineEventHandler(async (event) => {
           blocked.length === 1
             ? blocked[0]!.reason === "reserved"
               ? `${blocked[0]!.cardName} is being paid for in store right now. Try again in a few minutes.`
-              : `${blocked[0]!.cardName} has just been sold.`
+              : blocked[0]!.reason === "removed"
+                ? `${blocked[0]!.cardName} was taken down by TCGo, so it can't be bought.`
+                : `${blocked[0]!.cardName} has just been sold.`
             : `${blocked.length} cards in this order are no longer available.`,
         data: { unavailable: blocked },
       });

@@ -13,9 +13,13 @@
     </div>
 
     <EmptyState
-      v-else-if="!auction"
+      v-else-if="!auction || auction.hidden"
       headline="This auction isn't available"
-      caption="It may have been removed by the seller. There are more auctions running."
+      :caption="
+        auction?.hidden
+          ? 'TCGo took this auction down because it broke the marketplace rules. There are more auctions running.'
+          : 'It may have been removed by the seller. There are more auctions running.'
+      "
     >
       <NuxtLink
         to="/auctions"
@@ -453,6 +457,14 @@
               </div>
             </dl>
           </section>
+
+          <ReportListingButton
+            listing-kind="auction"
+            :listing-id="auction.id"
+            :seller-uid="auction.sellerUid"
+            :seller-name="auction.seller"
+            :item-name="(auction.title || auction.cardName)"
+          />
         </div>
       </div>
 

@@ -30,6 +30,8 @@ export interface AvailabilityView {
   sold?: boolean;
   status?: string | null;
   reservedUntil?: number | null;
+  /** Taken down by TCGo staff (shared/moderation.ts). */
+  hidden?: boolean | null;
 }
 
 /** Held for an in-flight POS payment, and the hold hasn't lapsed yet. */
@@ -50,6 +52,7 @@ export const isReserved = (card: AvailabilityView): boolean => {
  */
 export const isAvailable = (card: AvailabilityView): boolean => {
   if (card.sold) return false;
+  if (card.hidden === true) return false;
   if (!card.status) return true; // legacy docs predate the lifecycle field
   if (!UNAVAILABLE_STATUSES.has(card.status)) return true;
   // Reserved is the one unavailable state that heals on its own.
@@ -65,11 +68,12 @@ export const availableOnly = <T extends AvailabilityView>(cards: T[]): T[] =>
  * Distinguishes "someone else already bought this" from "you're mid-sale on
  * another till", which need different responses.
  */
-export type UnavailableReason = "sold" | "reserved" | "unavailable";
+export type UnavailableReason = "sold" | "reserved" | "removed" | "unavailable";
 
 export const unavailableReason = (card: AvailabilityView): UnavailableReason | null => {
   if (isAvailable(card)) return null;
   if (card.sold || card.status === "sold") return "sold";
+  if (card.hidden === true) return "removed";
   if (isReserved(card)) return "reserved";
   return "unavailable";
 };
