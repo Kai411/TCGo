@@ -1,8 +1,8 @@
 // Whether this member can sell — the one answer every screen uses.
 //
-// It is the four-step seller setup (shared/onboarding.ts): a verified
-// identity, contact and pickup address, a bank account with IC number, and
-// how parcels are handed over. Before this, four screens each had their own
+// It is the seller setup in shared/onboarding.ts: a verified identity,
+// individual or business, contact and pickup address, a bank account with IC
+// number, and how parcels are handed over. Before this, four screens each had their own
 // checklist (this file skipped the handover step, and the Account page looked
 // for a timestamp only the old /seller/verify form wrote), so one account
 // could be a seller on one screen and not on the next.

@@ -6,7 +6,7 @@
           Set up selling
         </p>
         <h1 class="mt-1.5 text-2xl font-bold tracking-tight text-ink dark:text-white">
-          Four things and you're trading
+          Five things and you're trading
         </h1>
         <p class="mt-1.5 text-label text-ink-muted dark:text-zinc-400">
           Buyers pay us, we pay you — so we need to know who you are and where
@@ -14,7 +14,7 @@
         </p>
       </div>
 
-      <!-- All four shown, not "step 2 of 4". Someone can see what's coming and
+      <!-- All five shown, not "step 2 of 4". Someone can see what's coming and
            decide to finish in one sitting instead of being surprised twice. -->
       <ol class="mb-6 space-y-1">
         <li
@@ -58,6 +58,15 @@
           <!-- The checklist above and the card already say what this is and
                why; a third explanation here pushed the button off screen. -->
           <KycVerifyCard />
+        </template>
+
+        <!-- ── Individual or business ───────────────────────────────── -->
+        <template v-else-if="state.current === 'seller'">
+          <h2 class="text-lg font-bold text-ink dark:text-white">Who buyers see</h2>
+          <p class="mt-1.5 mb-5 text-[13px] text-ink-muted dark:text-zinc-400">
+            Your listings and auctions say who the seller is, beside your username.
+          </p>
+          <SellerDisclosureForm />
         </template>
 
         <!-- ── Contact + pickup ─────────────────────────────────────── -->

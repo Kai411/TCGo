@@ -24,7 +24,7 @@
       </div>
 
       <div class="panel surface rounded-2xl p-5 sm:p-6 space-y-7">
-        <!-- Setup status: the same four steps the seller area is gated on -->
+        <!-- Setup status: the same steps the seller area is gated on -->
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-semibold text-ink dark:text-zinc-100">Selling</p>
@@ -54,6 +54,40 @@
             Verified with your MyKad<span v-if="profile?.kycVerifiedName"> as {{ profile.kycVerifiedName }}</span>.
           </p>
           <KycVerifyCard v-else class="mt-2" />
+        </div>
+
+        <!-- Individual or business: what buyers see as the seller -->
+        <div id="seller-type" class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08]">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-ink dark:text-zinc-100 mb-1">Who buyers see</p>
+              <p class="text-sm text-ink-muted dark:text-zinc-400">
+                Shown as the seller on your listings and auctions.
+              </p>
+            </div>
+            <button
+              v-if="editing !== 'seller'"
+              class="shrink-0 text-sm font-semibold text-pokemon-red hover:underline"
+              @click="editing = 'seller'"
+            >
+              {{ disclosure ? "Edit" : "Add" }}
+            </button>
+          </div>
+          <SellerDisclosureForm
+            v-if="editing === 'seller'"
+            class="mt-4"
+            submit-label="Save"
+            cancellable
+            :current="disclosure"
+            @saved="(d) => { disclosure = d; editing = null; }"
+            @cancel="editing = null"
+          />
+          <div v-else-if="disclosure" class="mt-2 text-sm text-ink-subtle dark:text-zinc-200">
+            <p>{{ disclosure.name }}</p>
+            <p class="text-ink-muted dark:text-zinc-400 tabular-nums">
+              {{ disclosure.type === "business" ? `Registered business · SSM ${disclosure.ssmNumber}` : "Individual seller" }}
+            </p>
+          </div>
         </div>
 
         <!-- Contact and pickup -->
@@ -206,6 +240,7 @@ import { stateName } from "~/shared/my-states";
 import { isKycVerified } from "~/shared/didit";
 import { bankName, resolveBankCode } from "~/shared/banks";
 import { joinWords, missingSellerContact } from "~/shared/onboarding";
+import type { SellerDisclosure } from "~/shared/seller-disclosure";
 
 definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Settings | TCGo" });
@@ -218,12 +253,13 @@ const route = useRoute();
 
 // One section open at a time. A link to #bank or #pickup (Funds, the listing
 // pages) opens that section straight away.
-const editing = ref<"contact" | "bank" | null>(null);
+const editing = ref<"seller" | "contact" | "bank" | null>(null);
 watch(
   () => route.hash,
   (hash) => {
     if (hash === "#bank") editing.value = "bank";
     if (hash === "#pickup") editing.value = "contact";
+    if (hash === "#seller-type") editing.value = "seller";
   },
   { immediate: true },
 );
@@ -240,6 +276,20 @@ const bankLine = computed(() => {
   return `${name} ••••${p.bankAccountNumber.slice(-4)}${p.bankAccountHolder ? ` · ${p.bankAccountHolder}` : ""}`;
 });
 const { authedFetch } = useAuthedFetch();
+
+// What buyers see as the seller. Read from the public endpoint so this shows
+// exactly what a listing shows.
+const disclosure = ref<SellerDisclosure | null>(null);
+watch(
+  () => user.value?.uid,
+  async (uid) => {
+    if (!uid) return;
+    try {
+      disclosure.value = await $fetch<SellerDisclosure | null>(`/api/sellers/${uid}/disclosure`);
+    } catch {}
+  },
+  { immediate: true },
+);
 
 // ── Handover preference ───────────────────────────────────────────────
 const HANDOVER_OPTIONS = [

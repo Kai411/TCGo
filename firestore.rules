@@ -110,7 +110,10 @@ service cloud.firestore {
         'sellingSuspendedBy',
         // Payout bank, saved through /api/account/payout-details so the
         // 24-hour hold after a password change can be enforced there.
-        'bankCode', 'bankName'
+        'bankCode', 'bankName',
+        // Individual or business, saved through /api/account/seller-disclosure
+        // with what buyers see (sellerDisclosures/{uid}, server-only).
+        'sellerType'
       ];
     }
 
@@ -199,7 +202,7 @@ service cloud.firestore {
              'subscriptionStatus', 'stripeCustomerId', 'stripeSubscriptionId',
              'currentPeriodEnd', 'cancelAtPeriodEnd',
              'sellingSuspended', 'sellingSuspendedReason',
-             'sellingSuspendedAt', 'sellingSuspendedBy'
+             'sellingSuspendedAt', 'sellingSuspendedBy', 'sellerType'
            ])
         // keys() is a list, and list.hasAny() takes a list: passing a set
         // made this an evaluation error, which refused every new profile.

@@ -26,6 +26,7 @@
 
 import { isKycVerified, type KycStatus } from "~/shared/didit";
 import { LEGAL_VERSION } from "~/shared/legal";
+import { hasSellerType } from "~/shared/seller-disclosure";
 
 export type OnboardingStepId = "consent" | "email" | "address";
 
@@ -218,7 +219,7 @@ export const isOnboardingExempt = (path: string): boolean =>
 // tab and coming back lands exactly where they left off, and a step that was
 // finished can never be asked for twice.
 
-export type SellerStepId = "identity" | "contact" | "bank" | "handover";
+export type SellerStepId = "identity" | "seller" | "contact" | "bank" | "handover";
 
 export interface SellerStep {
   id: SellerStepId;
@@ -231,6 +232,12 @@ export const SELLER_STEPS: SellerStep[] = [
     id: "identity",
     title: "Verify your identity",
     blurb: "Your MyKad and a selfie. Buyers see a Verified badge.",
+  },
+  {
+    // After identity: an individual's listings show their verified name.
+    id: "seller",
+    title: "Individual or business",
+    blurb: "Who buyers see as the seller on your listings.",
   },
   {
     id: "contact",
@@ -262,6 +269,7 @@ export interface SellerOnboardingView extends OnboardingView {
   bankAccountHolder?: string | null;
   identityNumber?: string | null;
   handoverPreference?: string | null;
+  sellerType?: string | null;
 }
 
 const filled = (v: unknown): boolean => !!String(v ?? "").trim();
@@ -274,7 +282,7 @@ const filled = (v: unknown): boolean => !!String(v ?? "").trim();
  * isn't: Seller settings shows the pickup address line once there's a street
  * and postcode, and the setup form prefills the number from the delivery
  * address, so a missing number or city was invisible everywhere except the
- * "3 of 4 done" count.
+ * "4 of 5 done" count.
  */
 export const missingSellerContact = (p: SellerOnboardingView | null | undefined): string[] => {
   const out: string[] = [];
@@ -326,6 +334,7 @@ export const sellerOnboardingState = (
 ): SellerOnboardingState => {
   const done: Record<SellerStepId, boolean> = {
     identity: hasIdentity(p),
+    seller: hasSellerType(p),
     contact: hasSellerContact(p),
     bank: hasBankDetails(p),
     handover: hasHandover(p),
