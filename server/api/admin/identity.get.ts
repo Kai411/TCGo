@@ -17,6 +17,8 @@ import { requireStaff } from "~/server/utils/staff-auth";
 import { noteAction } from "~/server/utils/oplog";
 import type { KycStatus } from "~/shared/didit";
 import { getUserProfile } from "~/server/utils/user-profile";
+import { toPayoutRecipient } from "~/shared/payout-details";
+import { namesLooselyMatch, payoutNameApproved } from "~/shared/payout-identity";
 
 export default defineEventHandler(async (event) => {
   const actor = await requireStaff(event, "identity.view");
@@ -44,6 +46,7 @@ export default defineEventHandler(async (event) => {
   });
 
   if (!p) return { found: false };
+  const recipient = toPayoutRecipient(p as any);
 
   return {
     found: true,
@@ -68,5 +71,12 @@ export default defineEventHandler(async (event) => {
     // Useful signal when judging a report: an account that has never sold is a
     // different problem from one with a hundred completed orders.
     payoutNameOnFile: p.bankAccountHolder ?? null,
+    // The payout name check (shared/payout-identity.ts), worked out here so
+    // the panel shows the same answer the payout routes act on.
+    payoutAccountLast4: recipient ? recipient.bankAccountNumber.slice(-4) : null,
+    payoutNameMatches: recipient ? namesLooselyMatch(p.kycVerifiedName, recipient.name) : null,
+    payoutNameApproved: recipient ? payoutNameApproved(p.payoutNameApproval, recipient) : false,
+    payoutNameApprovedByName: p.payoutNameApproval?.approvedByName ?? null,
+    sellingSuspended: p.sellingSuspended === true,
   };
 });

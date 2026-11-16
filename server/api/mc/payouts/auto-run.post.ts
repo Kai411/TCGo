@@ -32,6 +32,8 @@ import {
   decideAutoPayouts,
 } from "~/shared/auto-payout";
 import type { AutoPayoutConfig, CandidateBatch } from "~/shared/auto-payout";
+import { checkPayoutIdentity } from "~/shared/payout-identity";
+import { getUserProfile } from "~/server/utils/user-profile";
 
 const timingSafeEqual = (a: string, b: string) => {
   if (a.length !== b.length) return false;
@@ -104,6 +106,23 @@ export default defineEventHandler(async (event) => {
     );
   }
 
+  // Seller still verified, not suspended, and paying an account in their own
+  // name or one staff approved. executePayoutBatch re-checks; skipping here
+  // keeps a held batch from burning its automatic attempts.
+  const identityHeldBatchIds = new Set<string>();
+  const sellerUids = [...new Set(candidates.map((c) => c.sellerUid).filter(Boolean))];
+  const profiles = new Map(
+    await Promise.all(
+      sellerUids.map(async (uid) => [uid, await getUserProfile(db, uid)] as const),
+    ),
+  );
+  for (const d of queuedSnap.docs) {
+    const p = d.data() as any;
+    if (!p.recipient || !checkPayoutIdentity(profiles.get(p.sellerUid) as any, p.recipient).ok) {
+      identityHeldBatchIds.add(d.id);
+    }
+  }
+
   const since = Date.now() - 86_400_000;
   const runsSnap = await db
     .collection("autoPayoutRuns")
@@ -118,6 +137,7 @@ export default defineEventHandler(async (event) => {
   const decision = decideAutoPayouts(candidates, settings, {
     spentLast24h,
     reportedSellerUids,
+    identityHeldBatchIds,
   });
 
   const skippedSummary = decision.skipped.map((s) => ({

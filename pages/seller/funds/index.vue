@@ -287,7 +287,9 @@ const doRequestPayout = async () => {
     alert(
       `RM ${fmt(res.amount)} on its way for ${res.orders} order${res.orders === 1 ? "" : "s"} ` +
         `(RM ${fmt(res.grossAmount)} less the RM ${fmt(res.withdrawalFee)} withdrawal fee). ` +
-        `We'll transfer to your bank shortly.`,
+        (res.held
+          ? `${res.heldMessage || "Our team will check your account before sending it."}`
+          : `We'll transfer to your bank shortly.`),
     );
   } catch (e: any) {
     alert(e?.data?.message || e?.message || "Couldn't request payout. Please try again.");

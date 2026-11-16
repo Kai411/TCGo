@@ -51,6 +51,11 @@ export const SERVER_PRIVATE_FIELDS = [
   "kycDocumentType",
   "kycIssuingState",
   "kycDeclineReason",
+  // The MyKad number Didit read. Payouts are sent with this one, and the
+  // payout form can't replace it (shared/payout-identity.ts).
+  "kycIdentityNumber",
+  // Staff approval of a payout account in a name other than the verified one.
+  "payoutNameApproval",
   "hitpayAccessToken",
   "hitpayMerchantKey",
 ] as const;

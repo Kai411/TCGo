@@ -14,6 +14,7 @@ import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { getUserProfile, privateProfileRef } from "~/server/utils/user-profile";
 import { assertNotLocked } from "~/server/utils/security-lock";
 import { bankByCode, checkBankAccount, normaliseAccountNumber } from "~/shared/banks";
+import { namesLooselyMatch } from "~/shared/payout-identity";
 
 export default defineEventHandler(async (event) => {
   const caller = await requireUser(event);
@@ -24,7 +25,19 @@ export default defineEventHandler(async (event) => {
   const bank = bankByCode(bankCode);
   const accountRaw = str(body.bankAccountNumber);
   const bankAccountHolder = str(body.bankAccountHolder).trim();
-  const identityNumber = str(body.identityNumber).replace(/[\s-]/g, "");
+  const db = getAdminFirestore();
+  const current = (await getUserProfile(db, caller.uid)) ?? {};
+  // The IC Didit read off the MyKad can't be replaced from this form: it's
+  // what payouts are sent with. A seller without one types theirs.
+  const verifiedIc = String(current.kycIdentityNumber ?? "");
+  const typedIc = str(body.identityNumber).replace(/[\s-]/g, "");
+  if (verifiedIc && typedIc && typedIc !== verifiedIc) {
+    throw createError({
+      statusCode: 400,
+      message: `Payouts use the IC on the MyKad you verified (ending ${verifiedIc.slice(-4)}). It can't be changed here.`,
+    });
+  }
+  const identityNumber = verifiedIc || typedIc;
 
   if (!bank || !accountRaw.trim() || !bankAccountHolder || !identityNumber) {
     throw createError({ statusCode: 400, message: "All four are needed before a payout can be sent." });
@@ -36,14 +49,15 @@ export default defineEventHandler(async (event) => {
   }
   const bankAccountNumber = normaliseAccountNumber(accountRaw);
 
-  const db = getAdminFirestore();
-  const current = (await getUserProfile(db, caller.uid)) ?? {};
   const changed =
     current.bankCode !== bankCode ||
     current.bankAccountNumber !== bankAccountNumber ||
     current.bankAccountHolder !== bankAccountHolder ||
     current.identityNumber !== identityNumber;
-  if (!changed) return { saved: true };
+  // Tells the form whether payouts to this name will wait for a staff check
+  // (shared/payout-identity.ts). Informational: the payout routes decide.
+  const nameMatchesId = namesLooselyMatch(current.kycVerifiedName, bankAccountHolder);
+  if (!changed) return { saved: true, nameMatchesId };
   if (current.bankAccountNumber) await assertNotLocked(caller.uid);
 
   await privateProfileRef(db, caller.uid).set(
@@ -55,5 +69,5 @@ export default defineEventHandler(async (event) => {
     { bankCode, bankName: bank.name },
     { merge: true },
   );
-  return { saved: true };
+  return { saved: true, nameMatchesId };
 });

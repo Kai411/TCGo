@@ -76,7 +76,10 @@
                 <p v-if="!p.autoPayoutSupported" class="text-xs text-amber-600 dark:text-amber-400 mt-1">
                   Automated transfer unavailable for this bank — transfer manually, then record the reference.
                 </p>
-                <p v-if="p.failureReason" class="text-xs text-red-600 dark:text-red-400 mt-1">
+                <p v-if="p.status === 'queued' && p.identityHold" class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  Held: the account name doesn't match the seller's verified ID. Check it below before sending.
+                </p>
+                <p v-if="p.failureReason && !(p.status === 'queued' && p.identityHold)" class="text-xs text-red-600 dark:text-red-400 mt-1">
                   {{ p.failureReason }}
                 </p>
                 <p v-if="p.manualReference" class="text-xs text-gray-500 dark:text-zinc-400 mt-1">
@@ -91,7 +94,7 @@
                 <p class="text-xl font-extrabold text-ink dark:text-white tabular-nums">RM {{ fmt(p.amount) }}</p>
                 <div class="flex gap-2 mt-2 justify-end flex-wrap">
                   <button
-                    v-if="p.status === 'queued' && p.autoPayoutSupported"
+                    v-if="p.status === 'queued' && p.autoPayoutSupported && !p.identityHold"
                     @click="execute(p)"
                     :disabled="busy === p.id"
                     class="px-3 py-1.5 rounded-lg text-xs font-bold bg-pokemon-red text-white hover:bg-red-700 disabled:opacity-50"
@@ -117,6 +120,13 @@
                 </div>
               </div>
             </div>
+            <AdminIdentityPanel
+              v-if="p.status === 'queued' && p.identityHold"
+              :uid="p.sellerUid"
+              :name="p.sellerName"
+              start-open
+              @approved="load"
+            />
           </div>
         </div>
       </template>

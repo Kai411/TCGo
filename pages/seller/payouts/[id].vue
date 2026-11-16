@@ -31,6 +31,12 @@
 
         <p v-if="nextStep" class="mt-3 text-xs text-ink-muted dark:text-zinc-400">{{ nextStep }}</p>
         <p
+          v-if="payout.status === 'queued' && payout.identityHold"
+          class="mt-3 text-xs rounded-lg bg-amber-50 text-amber-800 dark:bg-amber-400/10 dark:text-amber-300 px-3 py-2"
+        >
+          The account name doesn't match the name on your verified ID, so our team checks the account before sending. Nothing is needed from you unless we get in touch.
+        </p>
+        <p
           v-if="payout.status === 'failed' && payout.failureReason"
           class="mt-3 text-xs rounded-lg bg-pokemon-red/[0.08] text-pokemon-red px-3 py-2"
         >

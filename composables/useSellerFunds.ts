@@ -119,6 +119,9 @@ export const useSellerFunds = () => {
       amount: number;
       grossAmount: number;
       withdrawalFee: number;
+      /** Waiting for a staff check of the account name (shared/payout-identity.ts). */
+      held?: boolean;
+      heldMessage?: string | null;
     }>("/api/payouts/request", { method: "POST" });
   };
 

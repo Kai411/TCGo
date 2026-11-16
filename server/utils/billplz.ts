@@ -308,3 +308,18 @@ export const billplzGetBill = async (billId: string): Promise<BillplzBill> => {
   }
   return JSON.parse(text) as BillplzBill;
 };
+
+// Read a whole bill back from Billplz. Used before paying a seller, because
+// the order document is client-created and can't prove payment on its own
+// (shared/payout-paid.ts). Null when Billplz has no such bill; throws when
+// Billplz can't be reached, so a payout is refused rather than guessed.
+export const billplzGetBillRecord = async (
+  billId: string,
+): Promise<import("~/shared/payout-paid").BillplzBillRecord | null> => {
+  const res = await fetch(`${billplzBaseUrl()}/v3/bills/${encodeURIComponent(billId)}`, {
+    headers: { Authorization: billplzAuthHeader() },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Billplz bill ${billId} lookup failed (${res.status})`);
+  return (await res.json()) as import("~/shared/payout-paid").BillplzBillRecord;
+};

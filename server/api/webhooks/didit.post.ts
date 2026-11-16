@@ -162,7 +162,7 @@ export default defineEventHandler(async (event) => {
 
   if (next === "verified") {
     patch.kycVerifiedAt = now;
-    // Store the verified name and the IC number only. The name is what the
+    // Store the verified name and the IC number only (see below for where). The name is what the
     // payout account holder should match, and Billplz needs the IC to send a
     // payout, so keeping it saves the seller typing it. The document images,
     // race and religion Didit also returns are things we have no business
@@ -174,7 +174,13 @@ export default defineEventHandler(async (event) => {
       if (idv.document_type) patch.kycDocumentType = idv.document_type;
       if (idv.issuing_state) patch.kycIssuingState = idv.issuing_state;
       const ic = myKadNumberFrom(idv);
-      if (ic) patch.identityNumber = ic;
+      if (ic) {
+        // kycIdentityNumber is server-only: payouts are sent with it and the
+        // payout form can't replace it. identityNumber is the owner's copy,
+        // kept so the seller's bank form shows "IC ending …".
+        patch.kycIdentityNumber = ic;
+        patch.identityNumber = ic;
+      }
     }
   }
 

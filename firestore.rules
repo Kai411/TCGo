@@ -171,7 +171,8 @@ service cloud.firestore {
         'pickupAddress1', 'pickupAddress2', 'pickupPostcode', 'pickupCity',
         'pickupState',
         'kycVerifiedName', 'kycDocumentType', 'kycIssuingState',
-        'kycDeclineReason', 'hitpayAccessToken', 'hitpayMerchantKey'
+        'kycDeclineReason', 'kycIdentityNumber', 'payoutNameApproval',
+        'hitpayAccessToken', 'hitpayMerchantKey'
       ];
     }
 
@@ -226,15 +227,18 @@ service cloud.firestore {
                'pickupPostcode', 'pickupCity', 'pickupState',
                // Server-written; may be present, never changed by the owner.
                'kycVerifiedName', 'kycDocumentType', 'kycIssuingState',
-               'kycDeclineReason', 'hitpayAccessToken', 'hitpayMerchantKey'
+               'kycDeclineReason', 'kycIdentityNumber', 'payoutNameApproval',
+               'hitpayAccessToken', 'hitpayMerchantKey'
              ])
           && (resource == null
               ? !request.resource.data.keys().hasAny(['kycVerifiedName',
                   'kycDocumentType', 'kycIssuingState', 'kycDeclineReason',
+                  'kycIdentityNumber', 'payoutNameApproval',
                   'hitpayAccessToken', 'hitpayMerchantKey'])
               : !request.resource.data.diff(resource.data).affectedKeys()
                   .hasAny(['kycVerifiedName', 'kycDocumentType',
                     'kycIssuingState', 'kycDeclineReason',
+                    'kycIdentityNumber', 'payoutNameApproval',
                     'hitpayAccessToken', 'hitpayMerchantKey'].toSet()))
           && bankFieldsKept(uid);
         allow delete: if false;
