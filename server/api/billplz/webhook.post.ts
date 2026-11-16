@@ -1,4 +1,5 @@
-// Billplz payment callback. Verifies the X-Signature, then promotes the
+// Billplz payment callback. Verifies the X-Signature, confirms the bill with
+// Billplz, then promotes the
 // matching compiled order to `paid`:
 //   - status: paid + paidAt
 //   - platformFee / sellerPayout / payoutStatus fields (payout rail)
@@ -8,7 +9,12 @@
 // Stripe webhook.
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
-import { verifyBillplzSignature } from "~/server/utils/billplz";
+import { billplzGetBill, isBillplzSandbox } from "~/server/utils/billplz";
+import {
+  amountMatches,
+  checkBillForOrder,
+  verifyBillplzCallback,
+} from "~/server/utils/billplz-callback";
 import {
   computeSellerPayout,
   platformFeeFor,
@@ -24,10 +30,7 @@ import { sendBuyerOrderEmail, sendSellerOrderEmail } from "~/server/utils/order-
 import { orderCreated, orderPlaced } from "~/shared/notifications";
 
 export default defineEventHandler(async (event) => {
-  const body = (await readBody(event)) as Record<string, string>;
-  // Callbacks arrive with plain keys (`id`, `paid`); the browser redirect uses
-  // `billplz[id]`. Accept either so this handler works for both.
-  const get = (k: string) => body[k] ?? body[`billplz[${k}]`] ?? "";
+  const body = await readBody(event);
 
   const config = useRuntimeConfig();
   const xSignatureKey = config.billplzXSignatureKey as string;
@@ -36,14 +39,20 @@ export default defineEventHandler(async (event) => {
     console.error("[billplz webhook] NUXT_BILLPLZ_X_SIGNATURE_KEY not set — refusing callback");
     throw createError({ statusCode: 500, message: "Payment callback not configured" });
   }
-  if (!verifyBillplzSignature(body, xSignatureKey)) {
-    console.error("[billplz webhook] bad signature");
+  // Only Billplz's server-to-server callback (plain keys) is accepted, and
+  // every field below is read from the verified set. The browser redirect's
+  // billplz[...] params never come here (pages/payment/success reads them),
+  // and accepting both shapes is what let a signed redirect smuggle in
+  // unsigned plain `paid=true` (security review C1).
+  const verified = verifyBillplzCallback(body, xSignatureKey);
+  if (!verified.ok) {
+    console.error("[billplz webhook] rejected:", verified.reason);
     throw createError({ statusCode: 403, message: "Invalid signature" });
   }
+  const get = (k: string) => verified.params[k] ?? "";
 
   const billId = get("id");
   const paid = get("paid") === "true";
-  if (!billId) throw createError({ statusCode: 400, message: "Missing bill id" });
   if (!paid) return { ok: true, ignored: "not paid" };
 
   const db = getAdminFirestore();
@@ -67,6 +76,43 @@ export default defineEventHandler(async (event) => {
   const orderRef = orders.docs[0].ref;
   const order = orders.docs[0].data() as any;
 
+  // Ask Billplz. The callback is only a nudge: what settles the order is the
+  // bill Billplz itself says is paid, for the amount it says it collected.
+  // Skipped on the sandbox only, where no real money moves and
+  // scripts/test-auction-flow.mjs simulates callbacks for unpaid bills.
+  let paidSen: number;
+  if (isBillplzSandbox()) {
+    paidSen = Number(get("paid_amount") || get("amount") || 0);
+  } else {
+    let bill;
+    try {
+      bill = await billplzGetBill(billId);
+    } catch (e: any) {
+      console.error("[billplz webhook] bill lookup failed:", e?.message || e);
+      // Non-2xx so Billplz retries the callback once the API answers again.
+      throw createError({ statusCode: 502, message: "Couldn't confirm the bill with Billplz" });
+    }
+    const check = checkBillForOrder(bill, {
+      billId,
+      orderId: orderRef.id,
+      collectionId: (config.billplzCollectionId as string) || undefined,
+    });
+    if (!check.ok) {
+      console.error("[billplz webhook] bill check failed:", check.reason, { billId });
+      noteError({
+        area: "payment",
+        severity: "critical",
+        code: `billplz.callback_${check.code}`,
+        message: `A signed Billplz callback said bill ${billId} was paid, but Billplz says otherwise: ${check.reason}.`,
+        orderId: orderRef.id,
+        context: { billId, billState: bill?.state ?? null },
+        hint: "The order was NOT settled. If this repeats, the X-Signature key may have leaked: rotate it in Billplz and Netlify.",
+      });
+      return { ok: true, ignored: check.code };
+    }
+    paidSen = check.paidSen;
+  }
+
   // Idempotent — callbacks can retry. `pending` and `confirmed` are both
   // pre-payment states (the seller may have confirmed a manual order before
   // the buyer paid online); anything further along is already settled.
@@ -77,7 +123,6 @@ export default defineEventHandler(async (event) => {
     // should be rare — but "should be" is not a refund. Stamp the order and
     // raise it so staff can refund by hand.
     if (order.status === "cancelled" && !order.stalePayment) {
-      const paidSen = Number(get("amount") || 0);
       await orderRef.update({
         stalePayment: { billId, paidSen, paidAt: get("paid_at") || null, at: Date.now() },
       });
@@ -98,9 +143,9 @@ export default defineEventHandler(async (event) => {
   // Billplz reports what it actually collected. If that doesn't match the
   // amount we priced the bill at, do NOT settle the order — flag it instead
   // and let an admin look. Underpayment must never mark cards sold.
+  // An order with no recorded bill amount is a mismatch too, not a pass.
   const expectedSen = Number(order.billplzAmountSen ?? 0);
-  const paidSen = Number(get("amount") || 0);
-  if (expectedSen > 0 && paidSen !== expectedSen) {
+  if (!amountMatches(expectedSen, paidSen)) {
     console.error(
       "[billplz webhook] amount mismatch",
       { billId, expectedSen, paidSen },

@@ -4,8 +4,6 @@
 // Sandbox and production are separate accounts/hosts — toggle with
 // NUXT_BILLPLZ_SANDBOX=true.
 
-import crypto from "node:crypto";
-
 // Sandbox only when the flag is explicitly "true" (or "1"). Anything else —
 // "false", empty, unset — means production. (A bare `if (config.billplzSandbox)`
 // would treat the string "false" as truthy and wrongly pick sandbox.)
@@ -42,6 +40,7 @@ export const billplzAuthHeader = () => {
 //      (verified against the sandbox — see PAYMENT_ORDER_CHECKSUM_FIELDS).
 import { createHmac } from "node:crypto";
 import { SANDBOX_BANK_CODE } from "~/shared/banks";
+import type { BillplzBill } from "~/server/utils/billplz-callback";
 
 const signatureKey = (): string => {
   const key = useRuntimeConfig().billplzXSignatureKey as string;
@@ -267,54 +266,6 @@ export const mapInstructionStatus = (
   return "processing";
 };
 
-export const verifyBillplzSignature = (
-  params: Record<string, string>,
-  xSignatureKey: string,
-): boolean => {
-  const provided = params["billplz[x_signature]"] ?? params["x_signature"] ?? "";
-  if (!provided) return false;
-
-  // Billplz signs the two payloads differently, and getting this wrong fails
-  // closed — the callback is rejected and a paid order never settles.
-  //
-  //   callback (POST to callback_url): plain keys, source part is `<key><value>`
-  //     amount100|collection_idyhx5t1pp|idzq0tm2wc|paid_at...|paidtrue|statepaid
-  //
-  //   redirect (browser return):       billplz[...] keys, part is `billplz<key><value>`
-  //     billplzidzq0tm2wc|billplzpaid_at...|billplzpaidtrue
-  const bracketed = Object.keys(params).some((k) => /^billplz\[.+\]$/.test(k));
-
-  const parts: string[] = [];
-  for (const [rawKey, value] of Object.entries(params)) {
-    if (bracketed) {
-      const m = rawKey.match(/^billplz\[(.+)\]$/);
-      if (!m || m[1] === "x_signature") continue;
-      parts.push(`billplz${m[1]}${value ?? ""}`);
-    } else {
-      if (rawKey === "x_signature") continue;
-      parts.push(`${rawKey}${value ?? ""}`);
-    }
-  }
-
-  // Sort the *concatenated* strings, not the keys. Billplz's own example puts
-  // `paid_amount…|paid_at…|paidtrue` — key order would give paid, paid_amount,
-  // paid_at. Compared on code units so `_` (0x5F) sorts before `t` (0x74).
-  parts.sort((a, b) => {
-    const x = a.toLowerCase();
-    const y = b.toLowerCase();
-    return x < y ? -1 : x > y ? 1 : 0;
-  });
-  const digest = crypto
-    .createHmac("sha256", xSignatureKey)
-    .update(parts.join("|"))
-    .digest("hex");
-  try {
-    return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(provided));
-  } catch {
-    return false;
-  }
-};
-
 // ── Bills ─────────────────────────────────────────────────────────────
 
 // Void an unpaid (due) bill. Billplz refuses once the bill has been paid —
@@ -341,4 +292,19 @@ export const billplzBillState = async (billId: string): Promise<string> => {
   if (!res.ok) return "unknown";
   const data = (await res.json().catch(() => null)) as { state?: string } | null;
   return String(data?.state || "unknown");
+};
+
+// The bill as Billplz holds it. The payment callback settles an order from
+// this, not from the callback body, so a signed-but-wrong callback can't mark
+// an unpaid bill paid. Throws on any failure: the webhook turns that into a
+// non-2xx so Billplz retries rather than the payment being dropped.
+export const billplzGetBill = async (billId: string): Promise<BillplzBill> => {
+  const res = await fetch(`${billplzBaseUrl()}/v3/bills/${encodeURIComponent(billId)}`, {
+    headers: { Authorization: billplzAuthHeader() },
+  });
+  const text = await res.text().catch(() => "");
+  if (!res.ok) {
+    throw new Error(`Billplz bill ${billId} not readable (${res.status}): ${text.slice(0, 200)}`);
+  }
+  return JSON.parse(text) as BillplzBill;
 };
