@@ -18,7 +18,7 @@
       <span class="block">{{ opt.label }}</span>
       <span
         v-if="opt.hint"
-        class="block text-[10px] font-normal mt-0.5"
+        class="block text-2xs font-normal mt-0.5"
         :class="modelValue === opt.value ? 'text-pokemon-red/70' : 'text-ink-soft dark:text-zinc-500'"
       >
         {{ opt.hint }}
@@ -62,6 +62,6 @@ const normalised = computed<Choice[]>(() =>
 
 const colsClass = computed(() => props.cols);
 const sizeClass = computed(() =>
-  props.size === "sm" ? "py-1.5 px-2 text-[11px]" : "py-2.5 px-3 text-sm",
+  props.size === "sm" ? "py-1.5 px-2 text-micro" : "py-2.5 px-3 text-sm",
 );
 </script>

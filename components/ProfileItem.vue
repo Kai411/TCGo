@@ -11,7 +11,7 @@
           :src="cdnUrl(image, 400)"
           :alt="title"
           loading="lazy"
-          class="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500 ease-premium"
+          class="w-full h-full object-cover"
         />
         <div
           v-else
@@ -45,7 +45,7 @@
         <div class="mt-3 flex items-end justify-between">
           <div class="min-w-0">
             <span
-              class="text-[10px] font-semibold uppercase tracking-wider text-ink-soft dark:text-zinc-500"
+              class="text-[11px] font-semibold text-ink-soft dark:text-zinc-500"
             >
               RM
             </span>

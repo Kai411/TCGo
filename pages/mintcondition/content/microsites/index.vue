@@ -1,6 +1,6 @@
 <template>
   <div class="max-w-5xl">
-    <h1 class="text-xl font-bold text-ink dark:text-white">Content</h1>
+    <h1 class="text-2xl font-bold text-ink dark:text-white">Content</h1>
     <p class="mb-4 text-sm text-ink-muted dark:text-zinc-400">
       The banners above the Marketplace and Auctions listings, and pages of your own.
     </p>
@@ -37,16 +37,16 @@
           </div>
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-semibold text-ink dark:text-white">{{ m.title }}</p>
-            <p class="truncate font-mono text-[11px] text-ink-soft dark:text-zinc-500">/p/{{ m.slug }}</p>
+            <p class="truncate font-mono text-micro text-ink-soft dark:text-zinc-500">/p/{{ m.slug }}</p>
           </div>
           <div class="flex shrink-0 flex-col items-end gap-1">
             <span
-              class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              class="rounded-full px-2 py-0.5 text-micro font-semibold"
               :class="m.published ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-black/[0.05] text-ink-muted dark:bg-white/[0.08] dark:text-zinc-300'"
             >
               {{ m.published ? "Published" : "Draft" }}
             </span>
-            <span class="text-[11px] text-ink-soft dark:text-zinc-500">{{ m.type === "image" ? "Image only" : "Article" }}</span>
+            <span class="text-micro text-ink-soft dark:text-zinc-500">{{ m.type === "image" ? "Image only" : "Article" }}</span>
           </div>
         </NuxtLink>
       </li>

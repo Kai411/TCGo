@@ -70,7 +70,7 @@
           :aria-label="priceLabel"
           :title="priceLabel"
         >
-          <span>$</span>
+          <span class="text-label">RM</span>
           <!-- Both chevrons when off, so the control reads as a sort before
                it has been touched; the active one alone once it is on. -->
           <svg
@@ -165,7 +165,7 @@
             <!-- Sort -->
             <div>
               <p
-                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5"
+                class="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-1.5"
               >
                 Sort
               </p>
@@ -190,7 +190,7 @@
             <!-- Language -->
             <div>
               <p
-                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5"
+                class="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-1.5"
               >
                 Language
               </p>
@@ -215,7 +215,7 @@
             <!-- Filter -->
             <div>
               <p
-                class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1.5"
+                class="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-1.5"
               >
                 Filter
               </p>
@@ -461,7 +461,7 @@
         </div>
         <p
           v-else-if="searchResults.length >= SEARCH_PAGE_SIZE"
-          class="mt-4 text-center text-[12px] text-gray-400 dark:text-zinc-500"
+          class="mt-4 text-center text-caption text-gray-400 dark:text-zinc-500"
         >
           {{ searchTotal }} result{{ searchTotal === 1 ? "" : "s" }} — that's all
         </p>

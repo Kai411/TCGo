@@ -74,7 +74,7 @@
           <div class="rounded-lg bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] px-3 py-2 text-xs font-mono text-ink dark:text-zinc-200 overflow-x-auto">
             Name | Set Number | Set Name | Price | Qty | Cost | Remark
           </div>
-          <p class="text-[11px] text-gray-400 dark:text-zinc-500">
+          <p class="text-micro text-gray-400 dark:text-zinc-500">
             e.g. <span class="font-mono">Chansey IR | 209/198 | Scarlet &amp; Violet 151 | 240.67 | 2</span>
           </p>
           <textarea
@@ -86,7 +86,7 @@
           />
           <p v-if="parseError" class="text-sm text-red-500">{{ parseError }}</p>
           <div class="flex items-center justify-between gap-3">
-            <p class="text-[11px] text-gray-400 dark:text-zinc-500">
+            <p class="text-micro text-gray-400 dark:text-zinc-500">
               Tip: use <span class="font-semibold">|</span> or tab if a name or set has spaces.
             </p>
             <button
@@ -125,7 +125,7 @@
               <button
                 type="button"
                 @click="removePhoto(i)"
-                class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pokemon-red text-white text-[10px] flex items-center justify-center"
+                class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pokemon-red text-white text-2xs flex items-center justify-center"
                 aria-label="Remove photo"
               >✕</button>
             </div>
@@ -133,7 +133,7 @@
 
           <p v-if="parseError" class="text-sm text-red-500">{{ parseError }}</p>
           <div class="flex items-center justify-between gap-3">
-            <p class="text-[11px] text-gray-400 dark:text-zinc-500">
+            <p class="text-micro text-gray-400 dark:text-zinc-500">
               Identification takes a few seconds per card.
             </p>
             <button
@@ -248,18 +248,18 @@
               <p class="text-sm font-medium text-ink dark:text-white truncate">
                 {{ row.match?.name || row.rawName }}
               </p>
-              <p class="text-[11px] text-gray-500 dark:text-zinc-400 truncate">
+              <p class="text-micro text-gray-500 dark:text-zinc-400 truncate">
                 <template v-if="row.match">{{ [row.match.setName, row.match.number].filter(Boolean).join(" · ") }}</template>
                 <span v-else class="text-amber-600 dark:text-amber-400">No catalog match — imported as “{{ row.rawName }}”</span>
               </p>
             </div>
             <div class="shrink-0 flex items-center gap-1.5 flex-wrap justify-end">
               <div class="flex items-center gap-0.5" title="Asking price">
-                <span class="text-[10px] text-gray-400">RM</span>
+                <span class="text-2xs text-gray-400">RM</span>
                 <input type="number" min="0" step="0.01" v-model.number="row.price" class="w-16 text-xs text-right px-1.5 py-1 rounded border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums"/>
               </div>
               <div class="flex items-center gap-0.5" title="Cost price per card (private)">
-                <span class="text-[10px] text-gray-400">cost</span>
+                <span class="text-2xs text-gray-400">cost</span>
                 <input type="number" min="0" step="0.01" v-model.number="row.cost" placeholder="—" class="w-16 text-xs text-right px-1.5 py-1 rounded border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums"/>
               </div>
               <input type="number" min="1" step="1" v-model.number="row.quantity" title="Quantity" class="w-11 text-xs text-right px-1.5 py-1 rounded border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums"/>

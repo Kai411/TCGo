@@ -33,21 +33,28 @@
         >
           <div class="flex items-center gap-3 sm:gap-5 min-w-0 pr-10">
             <img
-              :src="profile.photoURL || ''"
-              :alt="profile.customName || profile.displayName"
+              v-if="profile.photoURL"
+              :src="profile.photoURL"
+              alt=""
               class="w-14 h-14 sm:w-20 sm:h-20 rounded-full ring-2 sm:ring-4 ring-white dark:ring-canvas-inverse shadow-card object-cover shrink-0"
             />
+            <span
+              v-else
+              class="w-14 h-14 sm:w-20 sm:h-20 rounded-full flex items-center justify-center shrink-0 bg-black/[0.06] dark:bg-white/[0.08] text-xl sm:text-3xl font-bold text-ink-muted dark:text-zinc-300"
+              aria-hidden="true"
+            >
+              {{ (profile.customName || profile.displayName || "?").charAt(0).toUpperCase() }}
+            </span>
             <div class="min-w-0">
-              <span class="eyebrow">Profile</span>
               <h1
-                class="mt-0.5 font-display text-xl sm:text-3xl font-extrabold tracking-tightest text-ink dark:text-white truncate"
+                class="font-display text-2xl sm:text-3xl font-bold tracking-tight text-ink dark:text-white truncate"
               >
                 {{ profile.customName || profile.displayName }}
               </h1>
               <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <span
                   v-if="premiumEnabled && profile.tier === 'premium'"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide uppercase bg-amber-400/20 text-amber-700 dark:text-amber-300"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-micro font-semibold bg-amber-400/20 text-amber-700 dark:text-amber-300"
                 >
                   <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
                     <path
@@ -71,7 +78,7 @@
                   {{ getScoreBadge(profile.trustScore ?? 100)?.label }}
                 </span>
               </div>
-              <p class="mt-1 text-[11px] text-ink-soft dark:text-zinc-500">
+              <p class="mt-1 text-micro text-ink-soft dark:text-zinc-500">
                 Member since {{ formatDate(profile.createdAt) }}
               </p>
               <ChatResponsiveness
@@ -149,16 +156,16 @@
           class="relative h-8 inline-flex items-center gap-1.5 surface rounded-full pl-3 pr-2 hover:shadow-card-hover transition-[box-shadow,transform] duration-150 ease-premium active:scale-[0.97] before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-['']"
         >
           <span
-            class="text-[11px] font-semibold tracking-wide uppercase leading-none text-ink-muted dark:text-zinc-400"
+            class="text-xs font-semibold leading-none text-ink-muted dark:text-zinc-400"
           >
             Trust
           </span>
           <span
-            class="tabular-price text-[13px] font-bold leading-none"
+            class="tabular-price text-label font-bold leading-none"
             :class="trustScoreColor(profile.trustScore ?? 100)"
           >
             {{ profile.trustScore ?? 100
-            }}<span class="text-[11px] text-ink-soft dark:text-zinc-500 font-medium"
+            }}<span class="text-micro text-ink-soft dark:text-zinc-500 font-medium"
               >/100</span
             >
           </span>
@@ -184,7 +191,7 @@
           <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
           </svg>
-          <span class="text-[11px] font-semibold tracking-wide uppercase">Go Premium</span>
+          <span class="text-xs font-semibold">Go Premium</span>
         </NuxtLink>
 
         <!-- Held up at a shop counter with a queue behind you, so it lives
@@ -203,7 +210,7 @@
             <rect x="3" y="14" width="7" height="7" rx="1" />
             <path d="M14 14h3v3h-3zM19 19h2v2h-2z" />
           </svg>
-          <span class="text-[11px] font-semibold tracking-wide uppercase leading-none">My code</span>
+          <span class="text-xs font-semibold leading-none">My code</span>
         </button>
       </section>
 
@@ -220,7 +227,7 @@
             class="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
             @click.self="showBuyerQr = false"
           >
-            <div class="w-full max-w-sm rounded-2xl bg-white p-5 dark:bg-[#17171c]" role="dialog" aria-label="Your customer code">
+            <div class="w-full max-w-sm rounded-2xl bg-white p-5 dark:bg-night-sunken" role="dialog" aria-label="Your customer code">
               <BuyerQrCard />
               <button
                 type="button"
@@ -260,12 +267,12 @@
           >
             <span
               :ref="(el) => setTabRef(tab.id, el)"
-              class="inline-flex items-baseline gap-1.5 text-[15px] sm:text-lg font-semibold sm:font-bold tracking-tightest"
+              class="inline-flex items-baseline gap-1.5 text-body-ui sm:text-lg font-semibold sm:font-bold tracking-tightest"
             >
               {{ tab.label }}
               <span
                 v-if="tab.count !== undefined"
-                class="tabular-nums text-[12px] sm:text-sm font-medium text-ink-soft dark:text-zinc-500"
+                class="tabular-nums text-caption sm:text-sm font-medium text-ink-soft dark:text-zinc-500"
                 >{{ tab.count }}<span class="sr-only"> listed</span></span
               >
             </span>
@@ -340,7 +347,7 @@
             </span>
             <span class="text-ink-muted dark:text-zinc-400">
               est. value
-              <span class="font-bold text-ink dark:text-white tabular-nums">RM{{ formatMyr(collectionValue) }}</span>
+              <span class="font-bold text-ink dark:text-white tabular-nums">RM {{ formatMyr(collectionValue) }}</span>
             </span>
             <NuxtLink
               v-if="isOwnProfile"

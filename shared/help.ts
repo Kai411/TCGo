@@ -157,7 +157,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         steps: [
           "Open the auction, or go to Account and tap Won.",
           "Tap Pay now (FPX). The seller's shipping fee is added to your winning price.",
-          "After you pay, the order works like any other: you can follow it in My Orders.",
+          "After you pay, the order works like any other: you can follow it in My orders.",
         ],
         notes: [
           `You have ${AUCTION_PAYMENT_WINDOW_HOURS} hours to pay. Not paying cancels the win and can get your bidding restricted.`,
@@ -238,7 +238,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: "Ship an order",
         summary: "Book the courier from the order, then hand the parcel over.",
         steps: [
-          "Open Seller Dashboard, then Orders. Orders that need you are under To ship.",
+          "Open Seller dashboard, then Orders. Orders that need you are under To ship.",
           `Open the order and tap Book courier. It unlocks ${CANCEL_GRACE_MINUTES} minutes after payment, the window in which the buyer can still cancel.`,
           "Print the waybill and stick it on the parcel.",
           "Drop the parcel at the courier branch, or wait for the courier to collect it, depending on your handover choice.",
@@ -257,7 +257,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: "Get paid",
         summary: "Request a payout once a sale's funds unlock.",
         steps: [
-          "Open Seller Dashboard, then Funds.",
+          "Open Seller dashboard, then Funds.",
           `Money from online sales is held until the buyer has the card, plus ${PAYOUT_HOLD_DAYS} days in case they report a problem. Until then it shows as Locked.`,
           "When it shows as Available for payout, tap Request payout.",
           "The money goes to your bank account, usually on the next working day. Funds shows the status of each payout.",
@@ -276,7 +276,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: "Manage your inventory",
         summary: "Track your stock, print QR labels and list from it.",
         steps: [
-          "Open Seller Dashboard, then Inventory.",
+          "Open Seller dashboard, then Inventory.",
           "Tap Add inventory to scan cards with your camera (a whole stack in one go) or add them by hand.",
           "Tap Bulk add to import a CSV or Excel file, or paste rows. TCGo matches each row to the catalogue.",
           "Tap Labels to print QR labels for thermal label printers. You scan them at the counter with the POS.",
@@ -292,7 +292,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: "Sell at your counter (POS)",
         summary: "Scan labels, take payment by DuitNow QR or cash.",
         steps: [
-          "Open Seller Dashboard, then POS, and tap Start scanning.",
+          "Open Seller dashboard, then POS, and tap Start scanning.",
           "Scan the QR label on each card to add it to the sale.",
           "Tap Take payment. Choose DuitNow QR for the customer to scan with any Malaysian banking or e-wallet app, or Cash to record the sale.",
           "While the customer pays, TCGo holds the cards so nobody buys them online.",
@@ -362,19 +362,19 @@ export const HELP_TOPICS: HelpTopic[] = [
         title: "Pay for and track an order",
         summary: "Find your orders, pay, and follow the parcel.",
         steps: [
-          "Go to Account and look under My Orders. To pay and In transit show how many need you.",
+          "Go to Account and look under My orders. To pay and In transit show how many need you.",
           "Open an order and tap Pay online (FPX) if it hasn't been paid yet.",
           "Once paid, the order shows where the parcel is, from preparing to delivered, with the waybill number to track it on the courier's site.",
           "When the card arrives, tap Mark received.",
         ],
-        links: [{ to: "/activity", label: "My Orders" }],
+        links: [{ to: "/activity", label: "My orders" }],
       },
       {
         slug: "cancel-order",
         title: "Cancel an order",
         summary: `Unpaid orders any time, paid orders within ${CANCEL_GRACE_MINUTES} minutes.`,
         steps: [
-          "Open the order from My Orders.",
+          "Open the order from My orders.",
           "If it isn't paid yet, tap Cancel.",
           `If you've paid, you can cancel within ${CANCEL_GRACE_MINUTES} minutes of paying and ask for a refund. After that the seller can book the courier.`,
         ],

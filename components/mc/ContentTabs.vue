@@ -5,7 +5,7 @@
       v-for="t in tabs"
       :key="t.to"
       :to="t.to"
-      class="rounded-md px-3.5 py-2 text-[13px] font-semibold transition-colors"
+      class="rounded-md px-3.5 py-2 text-label font-semibold transition-colors"
       :class="
         active(t.to)
           ? 'bg-white text-ink shadow-sm dark:bg-white/[0.12] dark:text-white'

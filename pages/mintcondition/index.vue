@@ -4,7 +4,7 @@
       <p class="text-gray-500 dark:text-zinc-400 text-lg">
         Your role doesn't include access to the dashboard.
       </p>
-      <p class="text-[13px] text-ink-soft dark:text-zinc-500 mt-1.5">
+      <p class="text-label text-ink-soft dark:text-zinc-500 mt-1.5">
         Ask an admin to grant it if you need it.
       </p>
     </div>
@@ -74,25 +74,25 @@
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-3">
           <AdminStat
             label="Revenue"
-            :value="`RM${fmt(summary.revenue)}`"
+            :value="`RM ${fmt(summary.revenue)}`"
             :hint="`Commission, shipping margin and subscriptions`"
             tone="default"
           />
           <AdminStat
             label="Costs"
-            :value="`RM${fmt(summary.costs)}`"
+            :value="`RM ${fmt(summary.costs)}`"
             hint="Courier labels, FPX and payout fees"
             tone="default"
           />
           <AdminStat
             label="Net profit"
-            :value="`RM${fmt(summary.netProfit)}`"
+            :value="`RM ${fmt(summary.netProfit)}`"
             :hint="summary.margin !== null ? `${summary.margin}% margin` : 'No revenue yet'"
             :tone="summary.netProfit >= 0 ? 'good' : 'bad'"
           />
           <AdminStat
             label="GMV"
-            :value="`RM${fmt(summary.gmv)}`"
+            :value="`RM ${fmt(summary.gmv)}`"
             :hint="`${summary.orderCount} settled orders — sellers' money, not ours`"
             tone="muted"
           />
@@ -106,13 +106,13 @@
           <div class="flex items-start justify-between gap-4 flex-wrap">
             <div class="min-w-0">
               <p class="text-sm font-semibold text-ink dark:text-white">
-                The beta discount cost RM{{ fmt(summary.betaGiveaway) }} this period
+                The beta discount cost RM {{ fmt(summary.betaGiveaway) }} this period
               </p>
               <p class="text-xs text-ink-muted dark:text-zinc-400 mt-1 max-w-xl leading-relaxed">
                 Commission runs at the reduced beta rate of
                 {{ (BETA_RATE * 100).toFixed(0) }}%, earning
-                RM{{ fmt(summary.commission) }}. The same orders at launch rates
-                would have earned RM{{ fmt(summary.commissionIfCharged) }}.
+                RM {{ fmt(summary.commission) }}. The same orders at launch rates
+                would have earned RM {{ fmt(summary.commissionIfCharged) }}.
               </p>
             </div>
             <NuxtLink
@@ -144,7 +144,7 @@
               <AdminRow
                 label="Courier labels"
                 :value="-summary.courierCost"
-                :note="`RM${fmt(summary.shippingMargin)} left after postage`"
+                :note="`RM ${fmt(summary.shippingMargin)} left after postage`"
               />
               <AdminRow label="FPX collection fees" :value="-summary.billplzCollectionFees" />
               <AdminRow label="Payout fees" :value="-summary.billplzPayoutFees" />
@@ -169,7 +169,7 @@
                   }}</span>
                 </div>
                 <p class="text-xs text-ink-soft dark:text-zinc-500 mt-0.5">
-                  RM{{ fmt(data.subscriptions.pro * MARKETPLACE_MONTHLY) }} / month
+                  RM {{ fmt(data.subscriptions.pro * MARKETPLACE_MONTHLY) }} / month
                 </p>
               </div>
               <div>
@@ -181,7 +181,7 @@
               <div class="pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
                 <p class="text-xs text-ink-soft dark:text-zinc-500">Recurring revenue</p>
                 <p class="text-xl font-bold tabular-nums text-ink dark:text-white mt-0.5">
-                  RM{{ fmt(mrr) }}<span class="text-xs font-medium text-ink-soft"> / mo</span>
+                  RM {{ fmt(mrr) }}<span class="text-xs font-medium text-ink-soft"> / mo</span>
                 </p>
               </div>
             </div>
@@ -218,7 +218,7 @@
                   >SST registration</span
                 >
                 <span class="text-xs tabular-nums text-ink-muted dark:text-zinc-400">
-                  RM{{ fmt(data.tax.sst.taxableTurnover) }} / RM{{
+                  RM {{ fmt(data.tax.sst.taxableTurnover) }} / RM {{
                     fmt(data.tax.sst.threshold)
                   }}
                 </span>
@@ -237,7 +237,7 @@
                 <template v-else>
                   {{ data.tax.sst.percent }}% of the threshold. Service tax applies
                   to our fees, never to GMV. At 8% today that would be
-                  RM{{ fmt(data.tax.sst.taxIfRegistered) }}.
+                  RM {{ fmt(data.tax.sst.taxIfRegistered) }}.
                 </template>
               </p>
             </div>
@@ -247,10 +247,10 @@
                 Income tax provision
               </p>
               <p class="text-2xl font-bold tabular-nums text-ink dark:text-white">
-                RM{{ fmt(data.tax.incomeTaxProvision) }}
+                RM {{ fmt(data.tax.incomeTaxProvision) }}
               </p>
               <p class="text-xs text-ink-muted dark:text-zinc-400 mt-1.5 leading-relaxed">
-                On RM{{ fmt(data.tax.rollingNet) }} trailing-year net, at resident
+                On RM {{ fmt(data.tax.rollingNet) }} trailing-year net, at resident
                 SME rates (15% to RM150k, 17% to RM600k, 24% above). Confirm with
                 your accountant before relying on it.
               </p>
@@ -262,13 +262,13 @@
         <div class="grid gap-3 sm:grid-cols-3">
           <AdminStat
             label="Owed to sellers"
-            :value="`RM${fmt(summary.payoutsPending)}`"
+            :value="`RM ${fmt(summary.payoutsPending)}`"
             :hint="`${data.counts.payoutsQueued} batch(es) awaiting execution`"
             :tone="data.counts.payoutsQueued > 0 ? 'warn' : 'muted'"
           />
           <AdminStat
             label="Paid out"
-            :value="`RM${fmt(summary.payoutsPaid)}`"
+            :value="`RM ${fmt(summary.payoutsPaid)}`"
             hint="Transferred to sellers"
             tone="muted"
           />

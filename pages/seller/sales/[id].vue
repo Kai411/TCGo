@@ -26,13 +26,13 @@
               <p class="text-2xl font-bold text-ink dark:text-white tabular-price">
                 {{ myr(sale.total) }}
               </p>
-              <p class="text-[13px] text-gray-500 dark:text-zinc-400 mt-0.5">
+              <p class="text-label text-gray-500 dark:text-zinc-400 mt-0.5">
                 {{ METHOD_LABELS[sale.method] ?? sale.method }} ·
                 {{ fullWhen(sale.paidAt ?? sale.createdAt) }}
               </p>
             </div>
             <span
-              class="px-2 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide"
+              class="px-2 py-1 rounded-lg text-xs font-semibold"
               :class="statusClass"
             >
               {{ STATUS_LABELS[sale.status] ?? sale.status }}
@@ -41,13 +41,13 @@
 
           <p
             v-if="sale.failedReason"
-            class="mt-3 rounded-lg bg-red-50 dark:bg-red-500/10 px-3 py-2 text-[12px] text-red-700 dark:text-red-300"
+            class="mt-3 rounded-lg bg-red-50 dark:bg-red-500/10 px-3 py-2 text-caption text-red-700 dark:text-red-300"
           >
             {{ sale.failedReason }}
           </p>
           <p
             v-else-if="sale.status === 'awaiting_payment'"
-            class="mt-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-[12px] leading-relaxed text-amber-800 dark:text-amber-300"
+            class="mt-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-caption leading-relaxed text-amber-800 dark:text-amber-300"
           >
             These cards are held for this sale and won't show as available until
             it's paid or cancelled.
@@ -72,7 +72,7 @@
               >
                 {{ l.cardName }}
               </component>
-              <p v-if="l.sub" class="text-[12px] text-gray-500 dark:text-zinc-400 truncate">
+              <p v-if="l.sub" class="text-caption text-gray-500 dark:text-zinc-400 truncate">
                 {{ l.sub }}
               </p>
             </div>
@@ -84,7 +84,7 @@
                    matches the one beside it is noise. -->
               <p
                 v-if="discount(l) > 0"
-                class="text-[11px] text-amber-600 dark:text-amber-400 tabular-price"
+                class="text-micro text-amber-600 dark:text-amber-400 tabular-price"
               >
                 <s class="text-ink-soft dark:text-zinc-600">{{ myr(l.listPrice) }}</s>
                 −{{ myr(discount(l)) }}
@@ -95,13 +95,13 @@
 
         <!-- Totals -->
         <div class="p-5 border-t border-black/[0.06] dark:border-white/[0.08] space-y-1.5">
-          <div class="flex justify-between text-[13px] text-gray-500 dark:text-zinc-400">
+          <div class="flex justify-between text-label text-gray-500 dark:text-zinc-400">
             <span>Labels asked</span>
             <span class="tabular-price">{{ myr(sale.subtotal) }}</span>
           </div>
           <div
             v-if="sale.discountTotal > 0"
-            class="flex justify-between text-[13px] text-amber-600 dark:text-amber-400"
+            class="flex justify-between text-label text-amber-600 dark:text-amber-400"
           >
             <span>Discount given</span>
             <span class="tabular-price">−{{ myr(sale.discountTotal) }}</span>
@@ -115,11 +115,11 @@
         </div>
       </div>
 
-      <p class="mt-4 text-[11px] text-ink-soft dark:text-zinc-500 text-center">
+      <p class="mt-4 text-micro text-ink-soft dark:text-zinc-500 text-center">
         Counter sales settle straight to you — they don't go through the
         marketplace payout queue.
       </p>
-      <p class="mt-1 text-[11px] text-ink-soft dark:text-zinc-600 text-center font-mono">
+      <p class="mt-1 text-micro text-ink-soft dark:text-zinc-600 text-center font-mono">
         {{ sale.id }}
       </p>
     </template>

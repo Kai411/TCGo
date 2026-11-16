@@ -3,7 +3,7 @@
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
         <h2 class="text-base font-bold text-ink dark:text-white">Your customer code</h2>
-        <p class="mt-1 text-[13px] leading-relaxed text-ink-muted dark:text-zinc-400">
+        <p class="mt-1 text-label leading-relaxed text-ink-muted dark:text-zinc-400">
           Show this at a TCGo shop counter and your receipt is emailed to you —
           no need to read your address out loud.
         </p>
@@ -16,14 +16,14 @@
       <div class="rounded-xl bg-white p-3 shadow-sm">
         <img :src="qr" alt="Your TCGo customer code" width="180" height="180" class="block h-[180px] w-[180px]" />
       </div>
-      <p class="mt-3 text-center text-[12px] text-ink-soft dark:text-zinc-500">
+      <p class="mt-3 text-center text-caption text-ink-soft dark:text-zinc-500">
         It identifies your account, not your email — the shop only ever gets
         the address when they send a receipt.
       </p>
     </div>
 
-    <p v-else-if="error" class="mt-4 text-[13px] text-rose-600 dark:text-rose-400">{{ error }}</p>
-    <p v-else class="mt-4 text-[13px] text-ink-soft dark:text-zinc-500">Generating…</p>
+    <p v-else-if="error" class="mt-4 text-label text-rose-600 dark:text-rose-400">{{ error }}</p>
+    <p v-else class="mt-4 text-label text-ink-soft dark:text-zinc-500">Generating…</p>
   </div>
 </template>
 

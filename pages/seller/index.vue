@@ -39,7 +39,7 @@
 
 <script setup lang="ts">
 definePageMeta({ layout: "seller" });
-useHead({ title: "Seller Dashboard | TCGo" });
+useHead({ title: "Seller dashboard | TCGo" });
 
 const router = useRouter();
 const {user} = useAuth();

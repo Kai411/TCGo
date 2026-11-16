@@ -38,7 +38,7 @@
             </span>
             <span class="min-w-0 flex-1">
               <span class="block text-sm font-semibold text-ink dark:text-white">DuitNow QR</span>
-              <span class="block text-[11px] text-gray-500 dark:text-zinc-400">
+              <span class="block text-micro text-gray-500 dark:text-zinc-400">
                 Customer scans with any banking app
               </span>
             </span>
@@ -57,7 +57,7 @@
             </span>
             <span class="min-w-0 flex-1">
               <span class="block text-sm font-semibold text-ink dark:text-white">Tap to pay</span>
-              <span class="block text-[11px] text-gray-500 dark:text-zinc-400">Coming soon</span>
+              <span class="block text-micro text-gray-500 dark:text-zinc-400">Coming soon</span>
             </span>
           </div>
 
@@ -73,7 +73,7 @@
             </span>
             <span class="min-w-0 flex-1">
               <span class="block text-sm font-semibold text-ink dark:text-white">Cash</span>
-              <span class="block text-[11px] text-gray-500 dark:text-zinc-400">
+              <span class="block text-micro text-gray-500 dark:text-zinc-400">
                 Record the sale, no payment taken
               </span>
             </span>
@@ -102,7 +102,7 @@
       <!-- ── The QR itself ───────────────────────────────────────────── -->
       <template v-else-if="phase === 'awaiting'">
         <div class="text-center">
-          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+          <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">
             DuitNow QR
           </p>
           <p class="mt-1 text-2xl font-extrabold text-ink dark:text-white tabular-nums">
@@ -130,7 +130,7 @@
             <p class="text-xs font-bold text-amber-800 dark:text-amber-200">
               That payment was declined
             </p>
-            <p class="mt-0.5 text-[11px] text-amber-700 dark:text-amber-300">
+            <p class="mt-0.5 text-micro text-amber-700 dark:text-amber-300">
               The QR still works — ask them to try again, or cancel and take cash.
             </p>
           </div>
@@ -170,7 +170,7 @@
                do two things at once, and the sale is already recorded whether
                or not this succeeds. -->
           <div class="mt-6 text-left">
-            <p v-if="receiptSentTo" class="rounded-xl bg-emerald-500/10 px-3.5 py-3 text-[13px] text-emerald-700 dark:text-emerald-300">
+            <p v-if="receiptSentTo" class="rounded-xl bg-emerald-500/10 px-3.5 py-3 text-label text-emerald-700 dark:text-emerald-300">
               Receipt sent to <span class="font-semibold">{{ receiptSentTo }}</span>.
             </p>
 
@@ -186,14 +186,14 @@
                   autocapitalize="none"
                   spellcheck="false"
                   placeholder="customer@email.com"
-                  class="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-[15px] text-ink outline-none focus:border-pokemon-red dark:border-white/[0.12] dark:bg-white/[0.04] dark:text-white"
+                  class="min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-body-ui text-ink outline-none focus:border-pokemon-red dark:border-white/[0.12] dark:bg-white/[0.04] dark:text-white"
                   @keydown.enter.prevent="$emit('send-receipt', receiptEmail)"
                 />
                 <button
                   type="button"
                   :disabled="sendingReceipt || !receiptEmail.trim()"
                   @click="$emit('send-receipt', receiptEmail)"
-                  class="shrink-0 rounded-xl bg-ink px-4 py-2.5 text-[13px] font-bold text-white disabled:opacity-40 dark:bg-white dark:text-ink"
+                  class="shrink-0 rounded-xl bg-ink px-4 py-2.5 text-label font-bold text-white disabled:opacity-40 dark:bg-white dark:text-ink"
                 >
                   {{ sendingReceipt ? "Sending…" : "Send" }}
                 </button>
@@ -202,7 +202,7 @@
               <button
                 type="button"
                 @click="$emit('scan-buyer')"
-                class="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-pokemon-red hover:underline"
+                class="mt-2 inline-flex items-center gap-1.5 text-label font-semibold text-pokemon-red hover:underline"
               >
                 <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
@@ -211,7 +211,7 @@
                 Scan their TCGo code instead
               </button>
 
-              <p v-if="receiptError" class="mt-2 text-[12.5px] text-rose-600 dark:text-rose-400">
+              <p v-if="receiptError" class="mt-2 text-label text-rose-600 dark:text-rose-400">
                 {{ receiptError }}
               </p>
             </template>
@@ -219,7 +219,7 @@
 
           <button
             @click="$emit('close')"
-            class="w-full mt-4 py-3 rounded-xl text-sm font-bold bg-emerald-500 text-white hover:bg-emerald-600"
+            class="w-full mt-4 py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:bg-pokemon-red-dark transition-colors"
           >
             New sale
           </button>

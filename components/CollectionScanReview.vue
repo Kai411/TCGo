@@ -81,7 +81,7 @@
                   <p class="mt-1 text-sm font-bold tabular-price text-ink dark:text-white">
                     <template v-if="item.tcgoPrice">RM {{ formatMyr(item.tcgoPrice.market) }}</template>
                     <span v-else class="text-xs font-medium text-ink-soft dark:text-zinc-500">No price yet</span>
-                    <span v-if="ownedOf(item.productId)" class="ml-1.5 text-[11px] font-medium text-ink-soft dark:text-zinc-500">
+                    <span v-if="ownedOf(item.productId)" class="ml-1.5 text-micro font-medium text-ink-soft dark:text-zinc-500">
                       · you have {{ ownedOf(item.productId) }}
                     </span>
                   </p>
@@ -172,11 +172,11 @@
                 <div class="aspect-[5/7] rounded-md overflow-hidden bg-black/[0.04] dark:bg-white/[0.06] ring-1 ring-black/[0.06] dark:ring-white/[0.08]">
                   <img v-if="m.imageUrl" :src="m.imageUrl" alt="" loading="lazy" class="w-full h-full object-cover" />
                 </div>
-                <p class="mt-1 truncate text-[11px] font-semibold text-ink dark:text-white">{{ displayName(m.name) }}</p>
-                <p class="truncate text-[10px] text-ink-soft dark:text-zinc-500">
+                <p class="mt-1 truncate text-micro font-semibold text-ink dark:text-white">{{ displayName(m.name) }}</p>
+                <p class="truncate text-2xs text-ink-soft dark:text-zinc-500">
                   <template v-if="m.number">{{ m.number }} · </template>{{ m.setName }}
                 </p>
-                <p v-if="m.price" class="text-[11px] font-bold tabular-price text-ink dark:text-white">
+                <p v-if="m.price" class="text-micro font-bold tabular-price text-ink dark:text-white">
                   RM {{ formatMyr(m.price.market) }}
                 </p>
               </button>

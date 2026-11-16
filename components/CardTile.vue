@@ -37,7 +37,7 @@ const conditionLabel = computed((): string => {
         : i.gradingProvider;
     return `${provider || ""} ${i.grade || ""}`.trim();
   }
-  if (i.productType === "Sealed") return "SEALED";
+  if (i.productType === "Sealed") return "Sealed";
   const m = (i.condition || "").match(/\(([^)]+)\)/);
   return m ? m[1] : i.condition || "";
 });
@@ -60,9 +60,9 @@ const formatPrice = (price: number): string => {
   });
 };
 
-// Phone tiles: "RM1,250" for whole amounts so big prices fit one line.
+// Phone tiles: "RM 1,250" for whole amounts so big prices fit one line.
 const formatPriceCompact = (price: number): string =>
-  "RM" +
+  "RM\u00a0" +
   price.toLocaleString("en-MY", {
     minimumFractionDigits: Number.isInteger(price) ? 0 : 2,
     maximumFractionDigits: 2,
@@ -102,7 +102,7 @@ const isLive = computed(
 const statusTimeLabel = computed(() => {
   if (!props.auction) return "";
   const diff = props.auction.endsAt - Date.now();
-  if (diff <= 0) return "ENDED";
+  if (diff <= 0) return "Ended";
   const hours = Math.floor(diff / 3600000);
   const minutes = Math.floor((diff % 3600000) / 60000);
   if (hours > 24) {
@@ -141,7 +141,7 @@ const timerClasses = computed(() => {
             :src="cdnUrl(imageUrl, 400)"
             :alt="item?.cardName"
             loading="lazy"
-            class="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300 ease-premium"
+            class="w-full h-full object-cover"
           />
           <div
             v-else
@@ -153,10 +153,10 @@ const timerClasses = computed(() => {
           <!-- Top-left: auction status badge OR photo count -->
           <span
             v-if="isAuction"
-            class="absolute left-1.5 top-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide shadow-sm"
+            class="absolute left-1.5 top-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm"
             :class="timerClasses"
           >
-            <span v-if="isLive" class="hidden sm:inline">LIVE</span>
+            <span v-if="isLive" class="hidden sm:inline">Live</span>
             {{ statusTimeLabel }}
           </span>
           <span
@@ -195,7 +195,7 @@ const timerClasses = computed(() => {
             v-if="card && !isAvailable(card)"
             class="absolute inset-0 bg-black/40 flex items-end p-1.5"
           >
-            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/60 text-white/90 tracking-wide uppercase">
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-black/60 text-white/90">
               {{ isReserved(card) ? "Reserved" : "Sold" }}
             </span>
           </div>
@@ -203,7 +203,7 @@ const timerClasses = computed(() => {
           <!-- Bottom-left: language badge (cards) or photo count (auctions) -->
           <span
             v-if="!isAuction && item?.language && item.language !== 'EN'"
-            class="absolute left-1.5 bottom-1.5 bg-black/75 text-white text-[10px] font-bold tracking-wide px-1.5 py-0.5 rounded"
+            class="absolute left-1.5 bottom-1.5 bg-black/75 text-white text-[10px] font-bold px-1.5 py-0.5 rounded"
           >
             {{ item.language }}
           </span>
@@ -284,12 +284,11 @@ const timerClasses = computed(() => {
                     </g>
                     <path d="M12.5 21h8" />
                   </svg>
-                  {{ formatPrice(auction?.currentPrice || 0) }}
                   <span
-                    class="text-[10px] font-semibold uppercase tracking-wider text-ink-soft dark:text-zinc-500"
+                    class="text-[11px] font-semibold text-ink-soft dark:text-zinc-500"
+                    >RM</span
                   >
-                    MYR
-                  </span>
+                  {{ formatPrice(auction?.currentPrice || 0) }}
                 </p>
               </template>
               <!-- Card: fixed price -->
@@ -297,12 +296,11 @@ const timerClasses = computed(() => {
                 <p
                   class="tabular-price font-extrabold text-[17px] leading-none text-ink dark:text-white"
                 >
-                  {{ formatPrice(card?.price || 0) }}
                   <span
-                    class="text-[10px] font-semibold uppercase tracking-wider text-ink-soft dark:text-zinc-500"
+                    class="text-[11px] font-semibold text-ink-soft dark:text-zinc-500"
+                    >RM</span
                   >
-                    MYR
-                  </span>
+                  {{ formatPrice(card?.price || 0) }}
                 </p>
               </template>
             </div>

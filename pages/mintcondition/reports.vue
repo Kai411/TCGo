@@ -4,7 +4,7 @@
       <p class="text-gray-500 dark:text-zinc-400 text-lg">
         Your role doesn't include access to reports.
       </p>
-      <p class="text-[13px] text-ink-soft dark:text-zinc-500 mt-1.5">
+      <p class="text-label text-ink-soft dark:text-zinc-500 mt-1.5">
         Ask an admin to grant it if you need it.
       </p>
     </div>

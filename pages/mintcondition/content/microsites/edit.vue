@@ -7,7 +7,7 @@
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
       Microsites
     </NuxtLink>
-    <h1 class="mb-5 text-xl font-bold text-ink dark:text-white">{{ originalSlug ? form.title || "Edit page" : "New page" }}</h1>
+    <h1 class="mb-5 text-2xl font-bold text-ink dark:text-white">{{ originalSlug ? form.title || "Edit page" : "New page" }}</h1>
 
     <div v-if="loading" class="flex justify-center py-16">
       <div class="h-6 w-6 animate-spin rounded-full border-2 border-ink/10 border-t-pokemon-red" />
@@ -40,7 +40,7 @@
             @click="form.type = t.key"
           >
             <span class="block text-sm font-semibold text-ink dark:text-white">{{ t.label }}</span>
-            <span class="mt-0.5 block text-[11px] leading-snug text-ink-muted dark:text-zinc-400">{{ t.hint }}</span>
+            <span class="mt-0.5 block text-micro leading-snug text-ink-muted dark:text-zinc-400">{{ t.hint }}</span>
           </button>
         </div>
       </div>
@@ -48,7 +48,7 @@
       <div>
         <label class="mb-1.5 block text-xs font-semibold text-ink dark:text-white" for="ms-title">Title</label>
         <input id="ms-title" v-model="form.title" :maxlength="MICROSITE_TITLE_MAX" type="text" class="mc-inp" placeholder="Weekend auction drop" @input="onTitle" />
-        <p v-if="form.type === 'image'" class="mt-1 text-[11px] text-ink-soft dark:text-zinc-500">
+        <p v-if="form.type === 'image'" class="mt-1 text-micro text-ink-soft dark:text-zinc-500">
           Not shown on the page; used for the browser tab and read aloud for the image.
         </p>
       </div>
@@ -69,7 +69,7 @@
             @input="onSlug"
           />
         </div>
-        <p v-if="originalSlug && form.slug !== originalSlug" class="mt-1 text-[11px] text-amber-700 dark:text-amber-400">
+        <p v-if="originalSlug && form.slug !== originalSlug" class="mt-1 text-micro text-amber-700 dark:text-amber-400">
           The old address /p/{{ originalSlug }} stops working, including any banner or shared link to it.
         </p>
       </div>
@@ -87,7 +87,7 @@
       <div v-if="form.type === 'article'">
         <label class="mb-1.5 block text-xs font-semibold text-ink dark:text-white" for="ms-body">Text</label>
         <textarea id="ms-body" v-model="form.body" rows="12" :maxlength="MICROSITE_BODY_MAX" class="mc-inp leading-relaxed" placeholder="Write the article here." />
-        <p class="mt-1 text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500">
+        <p class="mt-1 text-micro leading-relaxed text-ink-soft dark:text-zinc-500">
           A blank line starts a new paragraph. Start a line with <span class="font-mono"># </span> for a heading,
           <span class="font-mono">## </span> for a smaller one, and <span class="font-mono">- </span> for a bullet.
         </p>
@@ -95,7 +95,7 @@
 
       <!-- Article preview: the text as it will read. -->
       <div v-if="form.type === 'article' && form.body.trim()" class="rounded-xl border border-black/[0.06] p-4 dark:border-white/[0.08]">
-        <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-soft dark:text-zinc-500">Text preview</p>
+        <p class="mb-2 text-xs font-semibold text-ink-soft dark:text-zinc-500">Text preview</p>
         <p class="text-xl font-bold text-ink dark:text-white">{{ form.title }}</p>
         <ArticleBody :body="form.body" class="mt-3" />
       </div>
@@ -139,7 +139,7 @@
           Delete
         </button>
       </div>
-      <p v-if="dirty && originalSlug" class="text-[11px] text-ink-soft dark:text-zinc-500">
+      <p v-if="dirty && originalSlug" class="text-micro text-ink-soft dark:text-zinc-500">
         Unsaved changes. Preview shows the saved version.
       </p>
     </div>

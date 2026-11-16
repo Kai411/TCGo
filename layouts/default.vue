@@ -37,7 +37,7 @@
          with a translucent canvas behind it. Anything else fixed to the
          bottom on desktop (toasts, install prompt) sits above it. -->
     <footer
-      class="hidden lg:flex fixed inset-x-0 bottom-0 z-30 h-9 select-none items-center bg-canvas/90 dark:bg-canvas-inverse/90 backdrop-blur border-t border-black/[0.05] dark:border-white/[0.06] text-[11px] text-ink-soft dark:text-zinc-500"
+      class="hidden lg:flex fixed inset-x-0 bottom-0 z-30 h-9 select-none items-center bg-canvas/90 dark:bg-canvas-inverse/90 backdrop-blur border-t border-black/[0.05] dark:border-white/[0.06] text-micro text-ink-soft dark:text-zinc-500"
     >
       <div
         class="container mx-auto px-4 flex items-center justify-center gap-x-4 whitespace-nowrap"

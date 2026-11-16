@@ -8,14 +8,14 @@
          nothing has to squeeze into a single 360px line. -->
     <div class="lg:hidden surface rounded-2xl p-4 transition-transform duration-150 active:scale-[0.98]">
       <div class="flex items-center justify-between gap-3 mb-3">
-        <p class="min-w-0 flex items-center gap-1.5 text-[13px] font-semibold text-ink dark:text-white">
+        <p class="min-w-0 flex items-center gap-1.5 text-label font-semibold text-ink dark:text-white">
           <svg class="w-4 h-4 shrink-0 text-ink-soft dark:text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M3 9l1.5-5h15L21 9" /><path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0V9z" /><path d="M5 13v7h14v-7" />
           </svg>
           <span class="truncate">{{ order.sellerName }}</span>
         </p>
         <span
-          class="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+          class="shrink-0 text-micro font-semibold px-2 py-0.5 rounded-full"
           :class="statusColor"
         >
           {{ statusLabel }}
@@ -27,7 +27,7 @@
           <CardImage :src="order.items[0]?.imageUrl" :alt="order.items[0]?.cardName" />
           <span
             v-if="order.items.length > 1"
-            class="absolute bottom-1 right-1 px-1 rounded bg-black/70 text-white text-[10px] font-bold tabular-nums"
+            class="absolute bottom-1 right-1 px-1 rounded bg-black/70 text-white text-2xs font-bold tabular-nums"
           >
             ×{{ order.items.length }}
           </span>
@@ -43,7 +43,7 @@
             <p class="text-xs text-ink-soft dark:text-zinc-500 truncate">
               {{ shortDate }} · #{{ order.id.slice(0, 6) }}
             </p>
-            <p class="shrink-0 text-[15px] font-bold tabular-nums text-ink dark:text-white">
+            <p class="shrink-0 text-body-ui font-bold tabular-nums text-ink dark:text-white">
               RM {{ order.total.toFixed(2) }}
             </p>
           </div>
@@ -62,7 +62,7 @@
           v-if="order.status === 'pending'"
           type="button"
           @click="$emit('pay', order.id)"
-          class="shrink-0 min-h-[40px] px-5 rounded-full text-[13px] font-semibold bg-pokemon-red text-white transition-transform duration-150 active:scale-[0.97]"
+          class="shrink-0 min-h-[40px] px-5 rounded-full text-label font-semibold bg-pokemon-red text-white transition-transform duration-150 active:scale-[0.97]"
         >
           Pay now
         </button>
@@ -70,7 +70,7 @@
           v-else
           type="button"
           @click="$emit('mark-delivered', order.id)"
-          class="shrink-0 min-h-[40px] px-5 rounded-full text-[13px] font-semibold bg-emerald-600 text-white transition-transform duration-150 active:scale-[0.97]"
+          class="shrink-0 min-h-[40px] px-5 rounded-full text-label font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-transform duration-150 active:scale-[0.97]"
         >
           Mark received
         </button>
@@ -90,7 +90,7 @@
       </div>
       <div
         v-if="order.items.length > 3"
-        class="w-11 h-11 rounded-lg ring-2 ring-white dark:ring-[#111] bg-gray-100 dark:bg-white/[0.08] flex items-center justify-center text-[11px] font-bold text-gray-600 dark:text-zinc-300"
+        class="w-11 h-11 rounded-lg ring-2 ring-white dark:ring-[#111] bg-gray-100 dark:bg-white/[0.08] flex items-center justify-center text-micro font-bold text-gray-600 dark:text-zinc-300"
       >
         +{{ order.items.length - 3 }}
       </div>
@@ -106,7 +106,7 @@
       </p>
       <p
         v-if="order.trackingNumber"
-        class="text-[11px] text-gray-400 dark:text-zinc-500 truncate font-mono mt-0.5"
+        class="text-micro text-gray-400 dark:text-zinc-500 truncate font-mono mt-0.5"
       >
         {{ order.trackingNumber }}
       </p>
@@ -118,7 +118,7 @@
         RM {{ order.total.toFixed(2) }}
       </p>
       <span
-        class="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+        class="inline-block mt-1 text-micro font-semibold px-2 py-0.5 rounded-full"
         :class="statusColor"
       >
         {{ statusLabel }}
@@ -137,7 +137,7 @@
       <button
         v-else-if="order.status === 'shipped'"
         @click="$emit('mark-delivered', order.id)"
-        class="w-full px-3 py-2 rounded-lg text-xs font-bold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+        class="w-full px-3 py-2 rounded-lg text-xs font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
       >
         Mark received
       </button>

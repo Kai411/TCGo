@@ -10,7 +10,7 @@
     <div
       v-for="card in cards"
       :key="card.item.cardId"
-      class="fan-card absolute left-1/2 top-2 w-24 sm:w-28 aspect-[63/88] origin-bottom rounded-xl overflow-hidden bg-white dark:bg-[#1B1B20] ring-1 ring-black/[0.08] dark:ring-white/[0.10] shadow-card-hover"
+      class="fan-card absolute left-1/2 top-2 w-24 sm:w-28 aspect-[63/88] origin-bottom rounded-xl overflow-hidden bg-white dark:bg-night-raised ring-1 ring-black/[0.08] dark:ring-white/[0.10] shadow-card-hover"
       :style="card.style"
     >
       <CardImage :src="card.item.imageUrl" :alt="card.item.cardName" />
@@ -81,7 +81,7 @@ const cards = computed(() => {
 
 const TONE: Record<PaymentBadge, string> = {
   check: "bg-emerald-500 text-white",
-  spinner: "bg-white dark:bg-[#1B1B20] text-pokemon-red",
+  spinner: "bg-white dark:bg-night-raised text-pokemon-red",
   cross: "bg-pokemon-red text-white",
   alert: "bg-amber-500 text-white",
   clock: "bg-gray-200 dark:bg-white/[0.12] text-gray-600 dark:text-zinc-200",

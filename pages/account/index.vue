@@ -69,7 +69,7 @@
         aria-haspopup="dialog"
       >
         <IconQr class="w-6 h-6" />
-        <span class="text-[10px] font-semibold">My code</span>
+        <span class="text-2xs font-semibold">My code</span>
       </button>
     </div>
 
@@ -100,7 +100,7 @@
     </div>
 
     <template v-if="user">
-      <!-- Quick shortcuts. The last column is wider: "Manage Listings" is
+      <!-- Quick shortcuts. The last column is wider: "Manage listings" is
            the longest label. -->
       <div class="grid grid-cols-[1fr_1fr_1fr_1.3fr]">
         <NuxtLink
@@ -113,7 +113,7 @@
             <component :is="s.icon" class="w-6 h-6" />
             <span
               v-if="s.badge"
-              class="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-[10px] font-bold flex items-center justify-center tabular-nums"
+              class="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-2xs font-bold flex items-center justify-center tabular-nums"
             >
               {{ badgeLabel(s.badge) }}
             </span>
@@ -128,7 +128,7 @@
       <NuxtLink
         v-if="!sellerLoading && !isSeller"
         to="/seller/onboarding"
-        class="press block rounded-2xl p-5 bg-pokemon-red text-white shadow-glow"
+        class="press block rounded-2xl p-5 bg-pokemon-red text-white"
       >
         <template v-if="sellerSetup.percent === 0">
           <p class="text-lg font-bold">Start selling on TCGo</p>
@@ -161,7 +161,7 @@
         </span>
         <span class="min-w-0 flex-1">
           <span class="flex items-center gap-2 text-sm font-bold text-ink dark:text-white">
-            Seller Dashboard
+            Seller dashboard
             <span
               v-if="sellerHasUnread"
               class="w-2 h-2 rounded-full bg-pokemon-red"
@@ -183,7 +183,7 @@
           to="/activity"
           class="press flex items-center justify-between lg:px-4 min-h-[48px]"
         >
-          <span class="text-base font-bold text-ink dark:text-white">My Orders</span>
+          <span class="text-base font-bold text-ink dark:text-white">My orders</span>
           <span class="flex items-center gap-0.5 text-xs font-medium text-ink-soft dark:text-zinc-500">
             View all
             <IconChevron class="w-4 h-4" />
@@ -200,7 +200,7 @@
               <component :is="g.icon" class="w-6 h-6" />
               <span
                 v-if="g.badge"
-                class="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-[10px] font-bold flex items-center justify-center tabular-nums"
+                class="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-2xs font-bold flex items-center justify-center tabular-nums"
               >
                 {{ badgeLabel(g.badge) }}
               </span>
