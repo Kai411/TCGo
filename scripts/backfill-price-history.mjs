@@ -10,7 +10,9 @@
 //   - Dates a card already has are never touched (merge_price_history in
 //     supabase/schema.sql only adds missing dates), so nightly rows win.
 //   - Archives are cached in .cache/tcgcsv-archive and never downloaded twice
-//     (TCGCSV asks for exactly that), one download per second at most.
+//     (TCGCSV asks for exactly that), one download every 3 seconds at most.
+//     If TCGCSV rate-limits (HTTP 429) the script waits it out and carries on;
+//     if it stops anyway, running it again resumes from the cache.
 //
 // Needs, once, in Supabase > SQL editor: the merge_price_history function and
 // the new snapshot_prices_range from supabase/schema.sql. Without the new
@@ -44,6 +46,7 @@ import {
   planDates,
   pointsFor,
   priceRowsFrom,
+  retryDelayMs,
   toDate,
 } from "./lib/price-history.mjs";
 
@@ -89,7 +92,13 @@ const PAGE_SIZE = 1000;
 // Each row carries up to ~450 points; 100 rows keeps one call well under a
 // couple of MB and inside PostgREST's statement timeout.
 const WRITE_BATCH = 100;
-const DOWNLOAD_SPACING_MS = 1000;
+// TCGCSV throttles an IP for about 10 minutes once it goes past its
+// requests-per-second threshold (its FAQ), so stay well under it: one
+// archive every 3 seconds, about 25 minutes for every day of the archive.
+const DOWNLOAD_SPACING_MS = 3000;
+// When it does say "slow down" (429), wait it out rather than give up.
+const MAX_RATE_LIMITED_WAITS = 12; // ≈ 2 hours at TCGCSV's 10-minute throttle
+const MAX_OTHER_FAILURES = 5;
 const USER_AGENT = "tcgo-price-backfill/1.0";
 
 const sevenZa = sevenZip.path7za;
@@ -108,7 +117,9 @@ async function archiveFor(date) {
   const file = join(CACHE_DIR, `prices-${date}.ppmd.7z`);
   if (existsSync(file)) return file;
   if (existsSync(`${file}.missing`)) return null;
-  for (let attempt = 1; ; attempt++) {
+  let rateLimited = 0;
+  let failures = 0;
+  for (;;) {
     const wait = lastDownloadAt + DOWNLOAD_SPACING_MS - Date.now();
     if (wait > 0) await sleep(wait);
     lastDownloadAt = Date.now();
@@ -118,6 +129,19 @@ async function archiveFor(date) {
         writeFileSync(`${file}.missing`, "");
         return null;
       }
+      if (res.status === 429 || res.status === 503) {
+        rateLimited++;
+        if (rateLimited > MAX_RATE_LIMITED_WAITS) {
+          throw new Error(`still rate limited (HTTP ${res.status}) after ${MAX_RATE_LIMITED_WAITS} waits`);
+        }
+        const ms = retryDelayMs(res.headers.get("retry-after"), Date.now());
+        const until = new Date(Date.now() + ms).toLocaleTimeString();
+        console.log(
+          `  ${date}: TCGCSV says slow down (HTTP ${res.status}). Waiting ${Math.round(ms / 60000)} min, until about ${until}…`,
+        );
+        await sleep(ms);
+        continue;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = Buffer.from(await res.arrayBuffer());
       // Write then rename, so a cut-off download is never mistaken for a
@@ -126,8 +150,11 @@ async function archiveFor(date) {
       renameSync(`${file}.part`, file);
       return file;
     } catch (err) {
-      if (attempt >= 3) throw new Error(`download ${date} failed: ${err.message}`);
-      await sleep(5000 * attempt);
+      if (/still rate limited/.test(err.message)) throw new Error(`download ${date} failed: ${err.message}`);
+      failures++;
+      if (failures >= MAX_OTHER_FAILURES) throw new Error(`download ${date} failed: ${err.message}`);
+      console.log(`  ${date}: ${err.message}, trying again in ${30 * failures}s`);
+      await sleep(30_000 * failures);
     }
   }
 }

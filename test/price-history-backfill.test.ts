@@ -13,6 +13,7 @@ import {
   planDates,
   pointsFor,
   priceRowsFrom,
+  retryDelayMs,
 } from "../scripts/lib/price-history.mjs";
 
 describe("which days are kept", () => {
@@ -104,5 +105,25 @@ describe("Supabase SQL", () => {
     assert.match(body, /WHERE NOT EXISTS/);
     assert.match(body, /e->>'date' = n->>'date'/);
     assert.match(sql, /REVOKE EXECUTE ON FUNCTION merge_price_history\(JSONB\) FROM PUBLIC, anon, authenticated/);
+  });
+});
+
+describe("waiting out TCGCSV's rate limit", () => {
+  const now = Date.parse("2026-11-18T05:00:00Z");
+
+  it("uses the 10-minute throttle when there is no Retry-After", () => {
+    assert.equal(retryDelayMs(null, now), 600_000);
+    assert.equal(retryDelayMs("", now), 600_000);
+    assert.equal(retryDelayMs("soon", now), 600_000);
+  });
+
+  it("honours Retry-After in seconds, at least a minute and at most 30", () => {
+    assert.equal(retryDelayMs("120", now), 120_000);
+    assert.equal(retryDelayMs("5", now), 60_000);
+    assert.equal(retryDelayMs("99999", now), 1_800_000);
+  });
+
+  it("honours Retry-After as a date", () => {
+    assert.equal(retryDelayMs("Wed, 18 Nov 2026 05:05:00 GMT", now), 300_000);
   });
 });

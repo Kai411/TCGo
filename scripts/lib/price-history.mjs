@@ -87,3 +87,20 @@ export const pointsFor = (dates, values) => {
   }
   return points;
 };
+
+/** TCGCSV's FAQ: past its threshold an IP is "temporarily throttled for 10 minutes". */
+export const DEFAULT_THROTTLE_MS = 10 * 60_000;
+
+/**
+ * How long to wait after a 429. Honours Retry-After (seconds or an HTTP
+ * date), never less than a minute or more than 30, and falls back to
+ * TCGCSV's 10-minute throttle when the header is missing or unreadable.
+ */
+export const retryDelayMs = (retryAfter, now = Date.now()) => {
+  const clamp = (ms) => Math.min(30 * 60_000, Math.max(60_000, ms));
+  if (retryAfter == null || String(retryAfter).trim() === "") return DEFAULT_THROTTLE_MS;
+  const text = String(retryAfter).trim();
+  if (/^\d+$/.test(text)) return clamp(Number(text) * 1000);
+  const at = Date.parse(text);
+  return Number.isFinite(at) ? clamp(at - now) : DEFAULT_THROTTLE_MS;
+};
