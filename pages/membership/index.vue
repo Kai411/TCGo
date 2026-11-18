@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-2xl mx-auto">
     <div class="text-center mb-10">
-      <h1 class="text-3xl font-extrabold text-ink dark:text-white mb-2">Simple, fair pricing</h1>
+      <h1 class="text-3xl font-bold text-ink dark:text-white mb-2">Simple, fair pricing</h1>
       <p class="text-gray-500 dark:text-zinc-400">Start free. Upgrade when you need more.</p>
     </div>
 
@@ -9,7 +9,7 @@
       <!-- Free tier -->
       <div class="bg-white dark:bg-white/[0.04] rounded-2xl border border-gray-200 dark:border-white/[0.08] p-6 flex flex-col">
         <div class="mb-4">
-          <span class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-zinc-500">Free</span>
+          <span class="text-xs font-semibold text-gray-400 dark:text-zinc-500">Free</span>
           <p class="text-3xl font-extrabold mt-1 text-ink dark:text-white">RM 0</p>
           <p class="text-sm text-gray-400 dark:text-zinc-500">/ month</p>
         </div>
@@ -36,9 +36,9 @@
 
       <!-- Premium tier -->
       <div class="bg-white dark:bg-white/[0.04] rounded-2xl border-2 border-amber-400 dark:border-amber-500 p-6 flex flex-col relative overflow-hidden">
-        <div class="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full">Popular</div>
+        <div class="absolute top-3 right-3 text-micro font-semibold bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full">Popular</div>
         <div class="mb-4">
-          <span class="text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">Premium</span>
+          <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">Premium</span>
           <!-- Must match the Stripe Price object behind
                NUXT_STRIPE_PRICE_ID_PREMIUM_MONTHLY. Changing this number alone
                shows one price and charges another — update Stripe first. -->
@@ -102,7 +102,7 @@
       <button
         @click="handleClaimBonus"
         :disabled="claimingBonus"
-        class="shrink-0 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-60"
+        class="shrink-0 bg-pokemon-red hover:bg-pokemon-red-dark text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors disabled:opacity-60"
       >
         {{ claimingBonus ? '...' : 'Claim +5' }}
       </button>

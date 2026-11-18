@@ -15,7 +15,7 @@
       <label class="block">
         <span class="lbl">Account number</span>
         <input v-model="form.bankAccountNumber" inputmode="numeric" class="field tabular-nums" />
-        <span v-if="accountHint" :class="accountOk ? 'hint' : 'err mt-1.5 block text-[11px]'">
+        <span v-if="accountHint" :class="accountOk ? 'hint' : 'err mt-1.5 block text-micro'">
           {{ accountHint }}
         </span>
       </label>
@@ -27,12 +27,12 @@
         class="rounded-xl border border-black/[0.08] dark:border-white/[0.10] px-3.5 py-3"
       >
         <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400">From your MyKad</p>
-        <p class="mt-1 text-[14px] text-ink dark:text-white">{{ form.bankAccountHolder }}</p>
-        <p class="text-[13px] text-ink-muted dark:text-zinc-400 tabular-nums">IC ending {{ form.identityNumber.slice(-4) }}</p>
-        <p class="mt-1.5 text-[11px] text-ink-soft dark:text-zinc-500">
+        <p class="mt-1 text-body-sm text-ink dark:text-white">{{ form.bankAccountHolder }}</p>
+        <p class="text-label text-ink-muted dark:text-zinc-400 tabular-nums">IC ending {{ form.identityNumber.slice(-4) }}</p>
+        <p class="mt-1.5 text-micro text-ink-soft dark:text-zinc-500">
           The account must be in this name, or the bank returns the transfer.
         </p>
-        <button type="button" class="mt-2 text-[13px] font-semibold text-pokemon-red hover:underline" @click="fromScan = false">
+        <button type="button" class="mt-2 text-label font-semibold text-pokemon-red hover:underline" @click="fromScan = false">
           Change
         </button>
       </div>
@@ -40,8 +40,15 @@
         <label class="block">
           <span class="lbl">Account holder</span>
           <input v-model="form.bankAccountHolder" placeholder="As per bank records" class="field" />
+          <span v-if="nameDiffers" class="hint !text-amber-600 dark:!text-amber-400">
+            This isn't the name on your verified ID ({{ verifiedName }}). You can still save it,
+            but payouts to it wait until our team has checked the account.
+          </span>
         </label>
-        <label class="block">
+        <p v-if="verifiedIc" class="text-[13px] text-ink-muted dark:text-zinc-400 tabular-nums">
+          IC ending {{ verifiedIc.slice(-4) }}, from your MyKad. Payouts are always sent with this one.
+        </p>
+        <label v-else class="block">
           <span class="lbl">IC number</span>
           <input v-model="form.identityNumber" inputmode="numeric" placeholder="e.g. 900101101234" class="field tabular-nums" />
           <span class="hint">Required by the bank to release a transfer. Never shown to buyers.</span>
@@ -69,6 +76,7 @@ import {
   normaliseAccountNumber,
   resolveBankCode,
 } from "~/shared/banks";
+import { namesLooselyMatch } from "~/shared/payout-identity";
 
 withDefaults(
   defineProps<{ submitLabel?: string; cancellable?: boolean }>(),
@@ -111,13 +119,26 @@ watch(
     form.bankAccountNumber = p.bankAccountNumber || "";
     // The name Didit read off their MyKad is the one the bank will have.
     form.bankAccountHolder = p.bankAccountHolder || p.kycVerifiedName || "";
-    form.identityNumber = p.identityNumber || "";
+    form.identityNumber = p.kycIdentityNumber || p.identityNumber || "";
     fromScan.value = !!(form.bankAccountHolder && /^\d{12}$/.test(form.identityNumber));
   },
   { immediate: true },
 );
 
 const selectedBank = computed(() => bankByCode(form.bankCode));
+
+// The IC Didit read is server-kept and can't be changed here
+// (server/api/account/payout-details.post.ts).
+const verifiedIc = computed(() => String(profile.value?.kycIdentityNumber || ""));
+const verifiedName = computed(() => String(profile.value?.kycVerifiedName || ""));
+// A different name isn't refused: joint and business accounts look the same.
+// Payouts to it wait for a staff check (shared/payout-identity.ts).
+const nameDiffers = computed(
+  () =>
+    !!verifiedName.value &&
+    !!form.bankAccountHolder.trim() &&
+    !namesLooselyMatch(verifiedName.value, form.bankAccountHolder),
+);
 
 const accountCheck = computed(() =>
   form.bankCode && form.bankAccountNumber
@@ -181,17 +202,17 @@ const save = async () => {
   @apply mb-1.5 block text-xs font-semibold text-ink-muted dark:text-zinc-400;
 }
 .hint {
-  @apply mt-1.5 block text-[11px] text-ink-soft dark:text-zinc-500;
+  @apply mt-1.5 block text-micro text-ink-soft dark:text-zinc-500;
 }
 .lock {
-  @apply mb-4 rounded-xl bg-amber-50 px-3.5 py-2.5 text-[13px] text-amber-800
+  @apply mb-4 rounded-xl bg-amber-50 px-3.5 py-2.5 text-label text-amber-800
          dark:bg-amber-400/10 dark:text-amber-300;
 }
 .err {
-  @apply mt-3 text-[13px] text-rose-600 dark:text-rose-400;
+  @apply mt-3 text-label text-rose-600 dark:text-rose-400;
 }
 .field {
-  @apply w-full rounded-xl border border-black/[0.10] bg-white px-3.5 py-2.5 text-[15px]
+  @apply w-full rounded-xl border border-black/[0.10] bg-white px-3.5 py-2.5 text-body-ui
          text-ink outline-none transition-colors placeholder:text-ink-soft
          focus:border-pokemon-red focus:ring-2 focus:ring-pokemon-red/20
          dark:border-white/[0.12] dark:bg-white/[0.04] dark:text-white;

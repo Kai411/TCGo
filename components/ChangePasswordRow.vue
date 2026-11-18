@@ -68,7 +68,7 @@
             <svg class="w-4 h-4 mt-0.5 shrink-0 text-ink-muted dark:text-zinc-400" v-bind="stroke">
               <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6z" />
             </svg>
-            <p class="text-[13px] leading-snug text-ink-muted dark:text-zinc-400">
+            <p class="text-label leading-snug text-ink-muted dark:text-zinc-400">
               For your safety, payouts and bank detail changes pause for 24 hours after your password changes.
               You'll be asked to sign in again on your devices.
             </p>

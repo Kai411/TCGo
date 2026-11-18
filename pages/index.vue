@@ -3,7 +3,7 @@
     <!-- ── Filter sidebar (desktop only) ─────────────────────────────── -->
     <aside
       v-if="!loading"
-      class="hidden lg:block w-56 xl:w-60 shrink-0 sticky top-[8.75rem] self-start max-h-[calc(100vh-10.25rem)] overflow-y-auto no-scrollbar"
+      class="hidden lg:block w-56 xl:w-60 shrink-0 sticky top-[8.75rem] self-start max-h-[calc(100vh-12.5rem)] overflow-y-auto no-scrollbar"
     >
       <ListingFilters :filters="filters" :sidebar="true" :tcg-counts="tcgCounts" />
     </aside>
@@ -21,7 +21,7 @@
         v-if="showIntro"
         class="mb-3 flex items-start gap-3 rounded-2xl bg-pokemon-red/[0.06] dark:bg-pokemon-red/[0.12] px-4 py-3"
       >
-        <p class="min-w-0 flex-1 text-[13px] leading-relaxed text-ink dark:text-zinc-200">
+        <p class="min-w-0 flex-1 text-label leading-relaxed text-ink dark:text-zinc-200">
           Cards from Malaysian collectors. Your payment is held until your card
           arrives.
           <NuxtLink to="/refund-policy" class="font-semibold text-pokemon-red hover:underline">How Buyer Protection works</NuxtLink>
@@ -83,7 +83,7 @@
         <NuxtLink
           v-if="user"
           to="/seller/listings/new"
-          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow ease-premium"
+          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-pokemon-red text-white transition-colors ease-premium"
         >
           List your first card
         </NuxtLink>

@@ -64,9 +64,33 @@ service cloud.firestore {
     // The short-circuit matters for cost as well as policy: while the gate is
     // off, the profileOf() lookup never runs, so listing a card doesn't pay
     // for an extra document read on every write.
+    //
+    // A seller TCGo staff suspended (sellingSuspended, written only by
+    // /api/mc/users/suspend) fails the gate whatever the switch says, so they
+    // can neither list nor edit until the suspension is lifted. That check
+    // always reads the profile, even with the switch off; Firestore counts
+    // repeated get()s of one document in a request once.
     function kycGatePassed() {
       return signedIn() && (!kycRequired() ||
-        profileOf(request.auth.uid).kycStatus == 'verified');
+        profileOf(request.auth.uid).kycStatus == 'verified')
+        && profileOf(request.auth.uid).get('sellingSuspended', false) != true;
+    }
+
+    // Staff moderation on a listing (shared/moderation.ts). Written by the
+    // Admin SDK from Mint Condition; a seller may never set or clear them, so
+    // a listing TCGo took down stays down.
+    function moderationListingFields() {
+      return ['hidden', 'hiddenReason', 'hiddenMessage', 'hiddenAt',
+        'hiddenBy', 'hiddenVia'];
+    }
+
+    function createsModerationFields() {
+      return request.resource.data.keys().hasAny(moderationListingFields());
+    }
+
+    function touchesModerationFields() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(moderationListingFields().toSet());
     }
 
     // Fields the client must never set or change on its own profile. Each is
@@ -81,9 +105,15 @@ service cloud.firestore {
         'tier', 'subscriptionStatus', 'stripeCustomerId',
         'stripeSubscriptionId', 'currentPeriodEnd', 'cancelAtPeriodEnd',
         'trustScore',
+        // Staff suspension (shared/moderation.ts).
+        'sellingSuspended', 'sellingSuspendedReason', 'sellingSuspendedAt',
+        'sellingSuspendedBy',
         // Payout bank, saved through /api/account/payout-details so the
         // 24-hour hold after a password change can be enforced there.
-        'bankCode', 'bankName'
+        'bankCode', 'bankName',
+        // Individual or business, saved through /api/account/seller-disclosure
+        // with what buyers see (sellerDisclosures/{uid}, server-only).
+        'sellerType'
       ];
     }
 
@@ -144,7 +174,8 @@ service cloud.firestore {
         'pickupAddress1', 'pickupAddress2', 'pickupPostcode', 'pickupCity',
         'pickupState',
         'kycVerifiedName', 'kycDocumentType', 'kycIssuingState',
-        'kycDeclineReason', 'hitpayAccessToken', 'hitpayMerchantKey'
+        'kycDeclineReason', 'kycIdentityNumber', 'payoutNameApproval',
+        'hitpayAccessToken', 'hitpayMerchantKey'
       ];
     }
 
@@ -169,7 +200,9 @@ service cloud.firestore {
              'kycSessionId', 'kycStartedAt', 'kycDocumentType',
              'kycIssuingState', 'kycDeclineReason',
              'subscriptionStatus', 'stripeCustomerId', 'stripeSubscriptionId',
-             'currentPeriodEnd', 'cancelAtPeriodEnd'
+             'currentPeriodEnd', 'cancelAtPeriodEnd',
+             'sellingSuspended', 'sellingSuspendedReason',
+             'sellingSuspendedAt', 'sellingSuspendedBy', 'sellerType'
            ])
         // keys() is a list, and list.hasAny() takes a list: passing a set
         // made this an evaluation error, which refused every new profile.
@@ -197,15 +230,18 @@ service cloud.firestore {
                'pickupPostcode', 'pickupCity', 'pickupState',
                // Server-written; may be present, never changed by the owner.
                'kycVerifiedName', 'kycDocumentType', 'kycIssuingState',
-               'kycDeclineReason', 'hitpayAccessToken', 'hitpayMerchantKey'
+               'kycDeclineReason', 'kycIdentityNumber', 'payoutNameApproval',
+               'hitpayAccessToken', 'hitpayMerchantKey'
              ])
           && (resource == null
               ? !request.resource.data.keys().hasAny(['kycVerifiedName',
                   'kycDocumentType', 'kycIssuingState', 'kycDeclineReason',
+                  'kycIdentityNumber', 'payoutNameApproval',
                   'hitpayAccessToken', 'hitpayMerchantKey'])
               : !request.resource.data.diff(resource.data).affectedKeys()
                   .hasAny(['kycVerifiedName', 'kycDocumentType',
                     'kycIssuingState', 'kycDeclineReason',
+                    'kycIdentityNumber', 'payoutNameApproval',
                     'hitpayAccessToken', 'hitpayMerchantKey'].toSet()))
           && bankFieldsKept(uid);
         allow delete: if false;
@@ -219,7 +255,8 @@ service cloud.firestore {
       allow read: if true; // public shop
 
       allow create: if isOwner(request.resource.data.sellerUid)
-        && kycGatePassed();
+        && kycGatePassed()
+        && !createsModerationFields();
 
       // Edits stay with the seller, and the listing can't be handed to
       // someone else. `sold` is flipped by the payment webhook server-side.
@@ -227,26 +264,55 @@ service cloud.firestore {
         || onlyEngagementCounters()
         || (isOwner(resource.data.sellerUid)
             && kycGatePassed()
-            && request.resource.data.sellerUid == resource.data.sellerUid);
+            && request.resource.data.sellerUid == resource.data.sellerUid
+            && !touchesModerationFields());
 
-      allow delete: if isAdmin() || isOwner(resource.data.sellerUid);
+      // A listing TCGo took down is evidence: its seller can't delete it.
+      allow delete: if isAdmin() || (isOwner(resource.data.sellerUid)
+        && resource.data.get('hidden', false) != true);
     }
 
     // ── auctions ─────────────────────────────────────────────────────
-    // Same gate. Bids live in RTDB and are governed by its own rules.
+    // Same gate. Bids live in RTDB (database.rules.json): only the server
+    // writes them, through /api/auctions/bid.
+    //
+    // Bidders are told bids are binding, so once anyone has bid the seller
+    // can't change what they bid on or delete it. /api/auctions/bid copies the
+    // bid count here after every bid so these rules can see it.
     match /auctions/{auctionId} {
+      // Written only by the server: the bid count, the settlement result,
+      // and staff's Hide listing.
+      function auctionServerFields() {
+        return ['bidCount', 'orderId', 'winnerUid', 'winnerName', 'winningBid',
+                'endedAt', 'paymentDueAt', 'soldAt', 'expiredAt',
+                'hidden', 'hiddenReason', 'hiddenMessage', 'hiddenAt', 'hiddenBy', 'hiddenVia'];
+      }
+
+      function noBidsYet() {
+        return resource.data.get('bidCount', 0) == 0
+          && resource.data.get('status', 'active') == 'active';
+      }
+
       allow read: if true;
 
       allow create: if isOwner(request.resource.data.sellerUid)
-        && kycGatePassed();
+        && kycGatePassed()
+        && request.resource.data.get('status', 'active') == 'active'
+        && !request.resource.data.keys().hasAny(auctionServerFields());
 
       allow update: if isAdmin()
         || onlyEngagementCounters()
         || (isOwner(resource.data.sellerUid)
             && kycGatePassed()
-            && request.resource.data.sellerUid == resource.data.sellerUid);
+            && noBidsYet()
+            && request.resource.data.sellerUid == resource.data.sellerUid
+            && !request.resource.data.diff(resource.data).affectedKeys()
+                 .hasAny(auctionServerFields().concat(['status'])));
 
-      allow delete: if isAdmin() || isOwner(resource.data.sellerUid);
+      // A listing TCGo took down is evidence: its seller can't delete it.
+      allow delete: if isAdmin()
+        || (isOwner(resource.data.sellerUid) && noBidsYet()
+            && resource.data.get('hidden', false) != true);
     }
 
     // ── inventory (private stock ledger) ─────────────────────────────

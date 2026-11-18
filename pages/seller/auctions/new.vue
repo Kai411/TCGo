@@ -98,7 +98,7 @@
                 </div>
                 <div
                   v-else-if="item.status === 'failed'"
-                  class="absolute top-1 right-1 w-5 h-5 rounded-full bg-pokemon-red text-white text-[10px] flex items-center justify-center"
+                  class="absolute top-1 right-1 w-5 h-5 rounded-full bg-pokemon-red text-white text-2xs flex items-center justify-center"
                   title="Identification failed"
                 >
                   !
@@ -130,7 +130,7 @@
                     >
                       <span
                         v-if="item.language && item.language !== 'EN'"
-                        class="inline-block bg-black/85 text-white text-[10px] font-bold tracking-wide px-1.5 py-0.5 rounded"
+                        class="inline-block bg-black/85 text-white text-2xs font-bold px-1.5 py-0.5 rounded"
                       >
                         {{ item.language }}
                       </span>
@@ -187,11 +187,11 @@
                         :alt="m.name"
                         class="w-full aspect-[2.5/3.5] object-cover"
                       />
-                      <p class="px-1 py-0.5 text-[10px] font-semibold truncate">
+                      <p class="px-1 py-0.5 text-2xs font-semibold truncate">
                         {{ m.name }}
                       </p>
                       <p
-                        class="px-1 pb-1 text-[9px] text-gray-500 dark:text-zinc-400 truncate"
+                        class="px-1 pb-1 text-2xs text-gray-500 dark:text-zinc-400 truncate"
                       >
                         {{ m.set.name }} · {{ m.number }}
                       </p>
@@ -297,7 +297,7 @@
                       <span
                         class="flex items-center px-2 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 text-xs font-medium whitespace-nowrap select-none"
                       >
-                        <span class="hidden sm:inline">Start Price</span>
+                        <span class="hidden sm:inline">Start price</span>
                         <span class="sm:hidden">SB</span>
                       </span>
                       <input
@@ -426,7 +426,7 @@
                   <!-- Extra photos -->
                   <div>
                     <p
-                      class="text-[11px] font-medium text-gray-600 dark:text-zinc-300 mb-1.5"
+                      class="text-micro font-medium text-gray-600 dark:text-zinc-300 mb-1.5"
                     >
                       Extra photos (optional) — your scan is already attached
                     </p>
@@ -463,7 +463,7 @@
                         <button
                           type="button"
                           @click="removeDraftFile(item.id, i)"
-                          class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pokemon-red text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pokemon-red text-white text-2xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           ✕
                         </button>
@@ -603,9 +603,10 @@
             </div>
             <p
               v-if="isPrivate"
-              class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"
+              class="flex items-start gap-1.5 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"
             >
-              🔒 This auction will only be visible to people with the direct
+              <svg class="w-3.5 h-3.5 mt-px shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+              This auction will only be visible to people with the direct
               link.
             </p>
 
@@ -622,8 +623,8 @@
                   <span
                     class="flex items-center px-3 bg-gray-50 dark:bg-white/[0.06] border-r border-gray-300 dark:border-white/[0.10] text-gray-500 dark:text-zinc-400 text-sm font-medium whitespace-nowrap select-none"
                   >
-                    <span class="hidden sm:inline">Start Price: MYR</span>
-                    <span class="sm:hidden">SB: MYR</span>
+                    <span class="hidden sm:inline">Start price (RM)</span>
+                    <span class="sm:hidden">Start (RM)</span>
                   </span>
                   <input
                     v-model.number="startingPrice"

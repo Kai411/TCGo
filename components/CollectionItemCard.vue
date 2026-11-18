@@ -9,7 +9,7 @@
       :aria-label="`View ${card.name} price details`"
     >
       <div
-        class="aspect-[2.5/3.5] overflow-hidden bg-canvas-sunken dark:bg-white/[0.04] transition-transform duration-300 ease-premium group-hover:scale-[1.02]"
+        class="aspect-[2.5/3.5] overflow-hidden bg-canvas-sunken dark:bg-white/[0.04]"
       >
         <CardImage :src="card.imageUrl" :alt="card.name" />
       </div>
@@ -53,15 +53,15 @@
             v-if="card.price && dense"
             class="sm:hidden min-w-0 truncate tabular-nums font-bold text-[10px] leading-none text-ink dark:text-white"
           >
-            RM{{ card.price.market.toLocaleString("en-MY", { minimumFractionDigits: Number.isInteger(card.price.market) ? 0 : 2, maximumFractionDigits: 2 }) }}
+            RM {{ card.price.market.toLocaleString("en-MY", { minimumFractionDigits: Number.isInteger(card.price.market) ? 0 : 2, maximumFractionDigits: 2 }) }}
           </p>
           <p
             v-if="card.price"
-            class="text-md font-[900] text-ink dark:text-white tabular-nums"
+            class="text-md font-extrabold text-ink dark:text-white tabular-nums"
             :class="dense ? 'hidden sm:block' : ''"
           >
+            <span class="text-xs font-semibold">RM</span>
             {{ card.price.market.toFixed(2) }}
-            <span class="text-xs font-semibold">MYR</span>
           </p>
           <p v-else class="text-[11px] text-gray-400 dark:text-zinc-500">
             No price
@@ -82,7 +82,7 @@
       <div
         v-if="!readonly && showQuantity"
         :class="dense ? 'bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5' : 'bottom-2.5 right-2.5'"
-        class="pointer-events-auto absolute z-10 flex items-center gap-0.5 rounded-full bg-canvas-raised dark:bg-[#1B1B20] border border-black/[0.08] dark:border-white/[0.12] shadow-sm"
+        class="pointer-events-auto absolute z-10 flex items-center gap-0.5 rounded-full bg-canvas-raised dark:bg-night-raised border border-black/[0.08] dark:border-white/[0.12] shadow-sm"
       >
         <button
           type="button"

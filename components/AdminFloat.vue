@@ -15,13 +15,13 @@
       <div>
         <p class="text-xs text-ink-soft dark:text-zinc-500">Daily burn</p>
         <p class="text-base font-bold tabular-nums text-ink dark:text-white mt-0.5">
-          RM{{ money(projection.dailyBurn) }}
+          RM {{ money(projection.dailyBurn) }}
         </p>
       </div>
       <div>
         <p class="text-xs text-ink-soft dark:text-zinc-500">Next 30 days</p>
         <p class="text-base font-bold tabular-nums text-ink dark:text-white mt-0.5">
-          RM{{ money(projection.projected) }}
+          RM {{ money(projection.projected) }}
         </p>
       </div>
       <div>
@@ -34,7 +34,7 @@
               : 'text-ink-muted dark:text-zinc-400'
           "
         >
-          RM{{ money(projection.recommended) }}
+          RM {{ money(projection.recommended) }}
         </p>
       </div>
     </div>

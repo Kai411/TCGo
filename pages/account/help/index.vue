@@ -52,7 +52,7 @@
           class="h-12 flex items-center justify-center transition-colors duration-150"
           :class="tab === t.id ? 'text-ink dark:text-white' : 'text-ink-soft dark:text-zinc-500'"
         >
-          <span :ref="(el) => setTabRef(t.id, el)" class="text-[15px] font-semibold">{{ t.label }}</span>
+          <span :ref="(el) => setTabRef(t.id, el)" class="text-body-ui font-semibold">{{ t.label }}</span>
         </button>
         <span
           aria-hidden="true"
@@ -118,7 +118,7 @@
       <HelpWelcomeArt class="max-w-[320px] mx-auto" />
 
       <h2 class="mt-1 text-xl font-bold text-ink dark:text-white">We're here to help</h2>
-      <p class="mt-1 text-[15px] leading-relaxed text-ink-muted dark:text-zinc-400">
+      <p class="mt-1 text-body-ui leading-relaxed text-ink-muted dark:text-zinc-400">
         Stuck on an order, a listing or your account? Send us an enquiry and we'll reply right here, or email us.
       </p>
 

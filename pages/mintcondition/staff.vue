@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between gap-3 mb-6 flex-wrap">
       <div>
         <h1 class="text-2xl font-bold">Staff &amp; roles</h1>
-        <p class="text-[13px] text-ink-muted dark:text-zinc-400 mt-0.5">
+        <p class="text-label text-ink-muted dark:text-zinc-400 mt-0.5">
           Who can get in, and what each of them can do.
         </p>
       </div>
@@ -32,8 +32,8 @@
       </button>
     </div>
 
-    <p v-if="error" class="mb-4 text-[13px] text-red-600 dark:text-red-400">{{ error }}</p>
-    <p v-if="loading" class="text-[13px] text-ink-soft dark:text-zinc-500">Loading…</p>
+    <p v-if="error" class="mb-4 text-label text-red-600 dark:text-red-400">{{ error }}</p>
+    <p v-if="loading" class="text-label text-ink-soft dark:text-zinc-500">Loading…</p>
 
     <!-- ── People ──────────────────────────────────────────────── -->
     <div v-else-if="tab === 'people'" class="space-y-3">
@@ -48,26 +48,26 @@
               <span class="font-mono tracking-wide">{{ s.staffId }}</span>
               <span class="text-ink-muted dark:text-zinc-400 font-semibold">{{ s.name }}</span>
               <span
-                class="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-black/[0.05] dark:bg-white/[0.08]"
+                class="px-1.5 py-0.5 rounded-md text-micro font-semibold bg-black/[0.05] dark:bg-white/[0.08]"
                 >{{ s.roleName }}</span
               >
               <span
                 v-if="!s.active"
-                class="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300"
+                class="px-1.5 py-0.5 rounded-md text-micro font-semibold bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300"
                 >Deactivated</span
               >
               <span
                 v-else-if="s.lockedUntil && s.lockedUntil > now"
-                class="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+                class="px-1.5 py-0.5 rounded-md text-micro font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                 >Locked out</span
               >
               <span
                 v-if="s.mustChangePassword"
-                class="px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
+                class="px-1.5 py-0.5 rounded-md text-micro font-semibold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
                 >Password not set by them</span
               >
             </p>
-            <p class="text-[12px] text-ink-soft dark:text-zinc-500 mt-1">
+            <p class="text-caption text-ink-soft dark:text-zinc-500 mt-1">
               {{ s.email || "no email" }} ·
               {{ s.lastLoginAt ? `last in ${fmt(s.lastLoginAt)}` : "never signed in" }}
             </p>
@@ -95,7 +95,7 @@
 
         <p
           v-if="s.deniedPermissions?.length || s.extraPermissions?.length"
-          class="mt-2.5 text-[11px] text-ink-soft dark:text-zinc-500"
+          class="mt-2.5 text-micro text-ink-soft dark:text-zinc-500"
         >
           <span v-if="s.extraPermissions?.length">
             Extra: {{ s.extraPermissions.map(labelFor).join(", ") }}.
@@ -106,7 +106,7 @@
         </p>
       </div>
 
-      <p v-if="!staff.length" class="text-[13px] text-ink-soft dark:text-zinc-500">
+      <p v-if="!staff.length" class="text-label text-ink-soft dark:text-zinc-500">
         No staff accounts yet. You're signed in through the marketplace admin
         bridge — create the first account, then use that from now on.
       </p>
@@ -124,15 +124,15 @@
             <p class="font-bold text-sm flex items-center gap-2">
               {{ r.name }}
               <span
-                class="font-mono px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-black/[0.05] dark:bg-white/[0.08]"
+                class="font-mono px-1.5 py-0.5 rounded-md text-2xs font-bold bg-black/[0.05] dark:bg-white/[0.08]"
                 >{{ r.prefix }}····</span
               >
-              <span v-if="r.builtin" class="text-[10px] uppercase tracking-wide text-ink-soft dark:text-zinc-600">Built-in</span>
+              <span v-if="r.builtin" class="text-micro text-ink-soft dark:text-zinc-600">Built-in</span>
             </p>
-            <p class="text-[12px] text-ink-muted dark:text-zinc-400 mt-1 max-w-lg leading-relaxed">
+            <p class="text-caption text-ink-muted dark:text-zinc-400 mt-1 max-w-lg leading-relaxed">
               {{ r.description }}
             </p>
-            <p class="text-[11px] text-ink-soft dark:text-zinc-500 mt-1.5">
+            <p class="text-micro text-ink-soft dark:text-zinc-500 mt-1.5">
               {{ r.memberCount }} {{ r.memberCount === 1 ? "person" : "people" }} ·
               {{ r.permissions.includes("*") ? "every permission" : `${r.permissions.length} permission(s)` }}
             </p>
@@ -183,7 +183,7 @@
             </select>
             <p
               v-if="dialog.mode === 'create'"
-              class="mt-1.5 text-[11px] text-ink-soft dark:text-zinc-500"
+              class="mt-1.5 text-micro text-ink-soft dark:text-zinc-500"
             >
               The ID is issued automatically from the role's prefix.
             </p>
@@ -193,7 +193,7 @@
               {{ dialog.mode === "create" ? "Password" : "Reset password (leave blank to keep)" }}
             </label>
             <input v-model="form.password" type="text" autocomplete="off" class="inp font-mono" />
-            <p class="mt-1.5 text-[11px] text-ink-soft dark:text-zinc-500">
+            <p class="mt-1.5 text-micro text-ink-soft dark:text-zinc-500">
               At least {{ MIN_PASSWORD_LENGTH }} characters. They'll be asked to
               change it — you know this one.
             </p>
@@ -203,13 +203,13 @@
             <summary class="text-xs font-semibold cursor-pointer text-ink-muted dark:text-zinc-400">
               Per-person exceptions
             </summary>
-            <p class="mt-2 text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500">
+            <p class="mt-2 text-micro leading-relaxed text-ink-soft dark:text-zinc-500">
               Use sparingly — a role everyone understands beats a dozen
               one-off exceptions. A denial wins over the role, including an
               admin's blanket access.
             </p>
             <div class="mt-3 space-y-2">
-              <div v-for="p in catalogue" :key="p.key" class="flex items-start gap-2 text-[12px]">
+              <div v-for="p in catalogue" :key="p.key" class="flex items-start gap-2 text-caption">
                 <span class="flex-1 min-w-0">
                   {{ p.label }}
                   <span class="text-ink-soft dark:text-zinc-600">{{ p.group }}</span>
@@ -226,10 +226,10 @@
             </div>
           </details>
 
-          <p v-if="dialogError" class="text-[13px] text-red-600 dark:text-red-400">
+          <p v-if="dialogError" class="text-label text-red-600 dark:text-red-400">
             {{ dialogError }}
           </p>
-          <p v-if="createdId" class="text-[13px] text-emerald-600 dark:text-emerald-400">
+          <p v-if="createdId" class="text-label text-emerald-600 dark:text-emerald-400">
             Created <strong class="font-mono">{{ createdId }}</strong>. Give them
             that ID and the password — the password isn't recoverable from here.
           </p>
@@ -285,14 +285,14 @@
 
           <p
             v-if="roleForm.wildcard"
-            class="rounded-lg bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-[12px] leading-relaxed text-amber-800 dark:text-amber-300"
+            class="rounded-lg bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-caption leading-relaxed text-amber-800 dark:text-amber-300"
           >
             This role holds every permission, including ones added in future
             releases. Unticking anything below converts it to a fixed list.
           </p>
 
           <div v-for="(perms, group) in grouped" :key="group">
-            <p class="text-[11px] font-bold uppercase tracking-wide text-ink-soft dark:text-zinc-500 mb-1.5">
+            <p class="text-xs font-semibold text-ink-soft dark:text-zinc-500 mb-1.5">
               {{ group }}
             </p>
             <label
@@ -307,18 +307,18 @@
                 @change="toggleRolePerm(p.key, ($event.target as HTMLInputElement).checked)"
               />
               <span class="min-w-0">
-                <span class="text-[13px] font-semibold">
+                <span class="text-label font-semibold">
                   {{ p.label }}
-                  <span v-if="p.dangerous" class="ml-1 text-[10px] font-bold uppercase tracking-wide text-red-600 dark:text-red-400">sensitive</span>
+                  <span v-if="p.dangerous" class="ml-1 text-micro font-semibold text-red-600 dark:text-red-400">sensitive</span>
                 </span>
-                <span class="block text-[11px] leading-relaxed text-ink-soft dark:text-zinc-500">
+                <span class="block text-micro leading-relaxed text-ink-soft dark:text-zinc-500">
                   {{ p.description }}
                 </span>
               </span>
             </label>
           </div>
 
-          <p v-if="dialogError" class="text-[13px] text-red-600 dark:text-red-400">
+          <p v-if="dialogError" class="text-label text-red-600 dark:text-red-400">
             {{ dialogError }}
           </p>
 

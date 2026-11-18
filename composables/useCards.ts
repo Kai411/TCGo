@@ -37,6 +37,8 @@ export interface Card {
   listedAt?: number;
   /** Set by a soft delete — the document is kept, just hidden. */
   deletedAt?: number | null;
+  /** Taken down by TCGo staff; see shared/moderation.ts. */
+  hidden?: boolean;
   sold: boolean;
   interestedCount: number;
   favouriteCount: number;

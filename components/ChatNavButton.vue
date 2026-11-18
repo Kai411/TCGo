@@ -10,7 +10,7 @@
     </svg>
     <span
       v-if="unreadConversations"
-      class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-pokemon-red text-white text-[10px] font-bold flex items-center justify-center tabular-nums ring-2 ring-white dark:ring-[#17171c]"
+      class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-pokemon-red text-white text-2xs font-bold flex items-center justify-center tabular-nums ring-2 ring-white dark:ring-night-sunken"
     >
       {{ badgeLabel(unreadConversations) }}
     </span>

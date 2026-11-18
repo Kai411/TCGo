@@ -80,6 +80,13 @@ export const PERMISSIONS: PermissionDef[] = [
     description: "Uphold a report and apply a trust penalty, or dismiss it.",
   },
   {
+    key: "listings.moderate",
+    group: "Moderation",
+    label: "Hide listings and suspend sellers",
+    description:
+      "Take a listing off the marketplace, or stop a member selling and hide their live listings. The seller is told why. Both can be undone.",
+  },
+  {
     key: "identity.view",
     group: "Moderation",
     label: "View verified identities",
@@ -198,7 +205,13 @@ export const BUILTIN_ROLES: RoleDef[] = [
     prefix: "ST",
     description:
       "Day-to-day support and moderation. No access to bank details or identity documents until an admin grants it.",
-    permissions: ["overview.view", "reports.view", "reports.resolve", "logs.view"],
+    permissions: [
+      "overview.view",
+      "reports.view",
+      "reports.resolve",
+      "listings.moderate",
+      "logs.view",
+    ],
     builtin: true,
   },
 ];

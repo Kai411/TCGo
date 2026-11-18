@@ -19,7 +19,10 @@ import {
 import { noteError } from "~/server/utils/oplog";
 import { toPayoutRecipient } from "~/shared/payout-details";
 import type { PayoutBatch } from "~/shared/payout-ledger";
-import { getUserProfile } from "~/server/utils/user-profile";
+import { privateProfileRef } from "~/server/utils/user-profile";
+import { mergeProfile } from "~/shared/private-profile";
+import { checkPayoutIdentity, payoutIdentityNumber } from "~/shared/payout-identity";
+import { problemHoldsPayout } from "~/shared/payouts";
 
 export interface ExecuteActor {
   staffId: string;
@@ -54,22 +57,75 @@ export const executePayoutBatch = async (
 ): Promise<ExecuteResult> => {
   const ref = db.collection("payouts").doc(payoutId);
 
-  const claimed = await db.runTransaction(async (tx) => {
+  // Claimed in a transaction that also re-reads the seller and the orders, so
+  // nothing is sent for a seller who lost verification, was suspended or has
+  // an unapproved account name since requesting, or for an order that has
+  // left this batch (refunded, disputed, re-queued elsewhere).
+  const outcome = await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new PayoutClaimError("Payout not found", 404);
     const p = snap.data() as PayoutBatch;
     if (p.status !== "queued") {
       throw new PayoutClaimError(`Payout is already ${p.status}`, 409);
     }
+
+    const [pubSnap, privSnap] = await tx.getAll(
+      db.collection("users").doc(p.sellerUid),
+      privateProfileRef(db, p.sellerUid),
+    );
+    const profile = mergeProfile(
+      pubSnap?.exists ? (pubSnap.data() as Record<string, any>) : null,
+      privSnap?.exists ? (privSnap.data() as Record<string, any>) : null,
+    );
+    const identity = checkPayoutIdentity(profile as any, p.recipient);
+    const orderSnaps = p.orderIds.length
+      ? await tx.getAll(...p.orderIds.map((id) => db.collection("compiledOrders").doc(id)))
+      : [];
+    const strayOrder = orderSnaps.find((o) => {
+      const d = o.data() as any;
+      return (
+        !o.exists ||
+        d?.payoutId !== payoutId ||
+        d?.payoutStatus !== "queued" ||
+        !d?.paidAt ||
+        problemHoldsPayout(d)
+      );
+    });
+
+    let refusal: string | null = null;
+    if (!identity.ok) {
+      refusal =
+        identity.reason === "name_mismatch"
+          ? "On hold: the account name doesn't match the seller's verified ID. Approve the name in the seller's identity panel first."
+          : identity.reason === "selling_suspended"
+            ? "On hold: this seller's selling account is suspended."
+            : "On hold: this seller is no longer identity-verified.";
+    } else if (strayOrder) {
+      refusal = `On hold: order ${strayOrder.id} has changed since the request (refund, problem or payment). Check it before sending.`;
+    }
+    if (refusal) {
+      tx.update(ref, {
+        failureReason: refusal,
+        identityHold: !identity.ok && identity.kind === "hold" ? identity.reason : null,
+      });
+      return { refusal, batch: p, profile };
+    }
+
     tx.update(ref, {
       status: "processing",
       executedAt: Date.now(),
       executedByUid: actor.staffId,
       executedByName: actor.name ?? null,
       failureReason: null,
+      identityHold: null,
     });
-    return p;
+    return { refusal: null, batch: p, profile };
   });
+
+  if (outcome.refusal) {
+    return { ok: false, permanent: true, error: outcome.refusal };
+  }
+  const claimed = outcome.batch;
 
   const release = async (failureReason: string | null) => {
     await ref.update({
@@ -92,8 +148,10 @@ export const executePayoutBatch = async (
   }
 
   // The IC is never stored on the ledger — read it fresh from the profile.
-  const recipient = toPayoutRecipient((await getUserProfile(db, claimed.sellerUid)) as any);
-  if (!recipient) {
+  // The one Didit read wins over a typed one (shared/payout-identity.ts).
+  const recipient = toPayoutRecipient(outcome.profile as any);
+  const identityNumber = payoutIdentityNumber(outcome.profile as any);
+  if (!recipient || !identityNumber) {
     await release("Seller payout details are incomplete");
     noteError({
       area: "payout",
@@ -117,7 +175,7 @@ export const executePayoutBatch = async (
       // what the seller agreed to); only the IC is read live.
       bankCode: claimed.recipient.bankCode,
       bankAccountNumber: claimed.recipient.bankAccountNumber,
-      identityNumber: recipient.identityNumber,
+      identityNumber,
       name: claimed.recipient.name,
       description: `TCGo seller payout - ${claimed.orderIds.length} order(s)`,
       amount: claimed.amount,

@@ -13,7 +13,7 @@
     >
       <div
         v-if="visible && !showIosSheet"
-        class="fixed left-0 right-0 bottom-24 px-3 z-50 sm:left-auto sm:right-4 sm:bottom-4 sm:px-0 sm:max-w-sm pointer-events-none"
+        class="fixed left-0 right-0 bottom-24 px-3 z-50 sm:left-auto sm:right-4 sm:bottom-4 lg:bottom-14 sm:px-0 sm:max-w-sm pointer-events-none"
       >
         <div
           class="pointer-events-auto rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-xl shadow-black/10 p-4 flex items-center gap-3"

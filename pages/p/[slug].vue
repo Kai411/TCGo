@@ -26,7 +26,7 @@
 
     <span
       v-if="isDraft"
-      class="fixed right-3 z-30 rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-bold text-ink"
+      class="fixed right-3 z-30 rounded-full bg-amber-400 px-2.5 py-1 text-micro font-bold text-ink"
       style="top: calc(env(safe-area-inset-top) + 18px)"
     >
       Draft preview

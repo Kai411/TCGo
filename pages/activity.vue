@@ -16,7 +16,7 @@
       <!-- Phones: back to Account (where these screens are opened from), the
            title, then full-width tabs with a sliding underline. -->
       <div class="lg:hidden">
-        <SubpageHeader :title="activeTab === 'purchases' ? 'My Orders' : 'My Activity'" />
+        <SubpageHeader :title="activeTab === 'purchases' ? 'My orders' : 'My Activity'" />
         <div
           class="relative -mx-4 px-4 flex border-b border-black/[0.06] dark:border-white/[0.08] mb-4 select-none"
           role="tablist"
@@ -45,7 +45,7 @@
       </div>
 
       <div class="hidden lg:flex items-center justify-between mb-6 gap-3 flex-wrap">
-        <h1 class="text-2xl font-bold text-ink dark:text-white">{{ activeTab === "purchases" ? "My Orders" : "My Activity" }}</h1>
+        <h1 class="text-2xl font-bold text-ink dark:text-white">{{ activeTab === "purchases" ? "My orders" : "My Activity" }}</h1>
         <TabStrip v-model="activeTab" :tabs="tabs" />
       </div>
 
@@ -93,7 +93,7 @@
                 v-for="f in orderFilters"
                 :key="f.id"
                 @click="orderFilter = f.id"
-                class="shrink-0 inline-flex items-center min-h-[36px] px-4 text-[13px] lg:min-h-0 lg:px-3 lg:py-1.5 lg:text-xs rounded-full font-semibold border transition-colors"
+                class="shrink-0 inline-flex items-center min-h-[36px] px-4 text-label lg:min-h-0 lg:px-3 lg:py-1.5 lg:text-xs rounded-full font-semibold border transition-colors"
                 :class="orderFilter === f.id
                   ? 'bg-ink text-white border-ink dark:bg-white dark:text-ink dark:border-white'
                   : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 lg:hover:border-gray-300'"
@@ -108,7 +108,7 @@
               v-if="orderFilter === 'all' && needsAction.length"
               class="panel surface rounded-2xl border border-amber-200 dark:border-amber-500/20 lg:overflow-hidden"
             >
-              <p class="flex items-center gap-1.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300 lg:px-4 lg:py-2 lg:bg-amber-50 lg:dark:bg-amber-500/10">
+              <p class="flex items-center gap-1.5 pb-1 text-xs font-semibold text-amber-700 dark:text-amber-300 lg:px-4 lg:py-2 lg:bg-amber-50 lg:dark:bg-amber-500/10">
                 <span class="w-1.5 h-1.5 rounded-full bg-amber-500 lg:hidden" aria-hidden="true" />
                 Needs your action
               </p>
@@ -128,7 +128,7 @@
             <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] lg:overflow-hidden">
               <p
                 v-if="orderFilter === 'all' && needsAction.length && visibleOrders.length"
-                class="lg:hidden pb-3 text-[11px] font-bold uppercase tracking-wide text-ink-muted dark:text-zinc-400"
+                class="lg:hidden pb-3 text-xs font-semibold text-ink-muted dark:text-zinc-400"
               >
                 All orders
               </p>
@@ -174,7 +174,7 @@
                 <!-- Phones: where you stand and how long is left, as one line
                      under the price. -->
                 <span
-                  class="lg:hidden text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                  class="lg:hidden text-micro font-semibold px-2 py-0.5 rounded-full"
                   :class="item.isLeading
                     ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
                     : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'"

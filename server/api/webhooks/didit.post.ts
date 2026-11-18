@@ -9,6 +9,7 @@
 // unauthenticated caller burn event ids.
 
 import crypto from "node:crypto";
+import { FieldValue } from "firebase-admin/firestore";
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { noteError } from "~/server/utils/oplog";
 import {
@@ -18,6 +19,7 @@ import {
 } from "~/shared/didit";
 import { splitProfileWrite } from "~/shared/private-profile";
 import { privateProfileRef } from "~/server/utils/user-profile";
+import { SELLER_DISCLOSURES } from "~/shared/seller-disclosure";
 
 /**
  * Whole-number floats (1.0) → integers (1), recursively, matching Didit's
@@ -162,7 +164,7 @@ export default defineEventHandler(async (event) => {
 
   if (next === "verified") {
     patch.kycVerifiedAt = now;
-    // Store the verified name and the IC number only. The name is what the
+    // Store the verified name and the IC number only (see below for where). The name is what the
     // payout account holder should match, and Billplz needs the IC to send a
     // payout, so keeping it saves the seller typing it. The document images,
     // race and religion Didit also returns are things we have no business
@@ -174,7 +176,13 @@ export default defineEventHandler(async (event) => {
       if (idv.document_type) patch.kycDocumentType = idv.document_type;
       if (idv.issuing_state) patch.kycIssuingState = idv.issuing_state;
       const ic = myKadNumberFrom(idv);
-      if (ic) patch.identityNumber = ic;
+      if (ic) {
+        // kycIdentityNumber is server-only: payouts are sent with it and the
+        // payout form can't replace it. identityNumber is the owner's copy,
+        // kept so the seller's bank form shows "IC ending …".
+        patch.kycIdentityNumber = ic;
+        patch.identityNumber = ic;
+      }
     }
   }
 
@@ -197,6 +205,17 @@ export default defineEventHandler(async (event) => {
   await db.collection("users").doc(uid).set(pub, { merge: true });
   if (Object.keys(priv).length) {
     await privateProfileRef(db, uid).set(priv, { merge: true });
+  }
+
+  // An individual seller's listings show their verified name, so a new
+  // verification (a renewed MyKad, a corrected name) updates it there too.
+  // Only when they already agreed to show it: this never creates one.
+  if (typeof patch.kycVerifiedName === "string") {
+    const ref = db.collection(SELLER_DISCLOSURES).doc(uid);
+    const shown = await ref.get();
+    if (shown.exists && shown.data()?.type === "individual" && shown.data()?.name !== patch.kycVerifiedName) {
+      await ref.set({ name: patch.kycVerifiedName, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    }
   }
 
   // 6. 2xx promptly. Nothing slow happens above; if that changes, queue it.

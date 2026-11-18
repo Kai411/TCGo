@@ -13,9 +13,13 @@
     </div>
 
     <EmptyState
-      v-else-if="!auction"
+      v-else-if="!auction || auction.hidden"
       headline="This auction isn't available"
-      caption="It may have been removed by the seller. There are more auctions running."
+      :caption="
+        auction?.hidden
+          ? 'TCGo took this auction down because it broke the marketplace rules. There are more auctions running.'
+          : 'It may have been removed by the seller. There are more auctions running.'
+      "
     >
       <NuxtLink
         to="/auctions"
@@ -107,7 +111,7 @@
               v-if="isEnded"
               class="absolute inset-0 bg-black/40 flex items-center justify-center z-10 pointer-events-none"
             >
-              <span class="px-3 py-1 rounded-full text-sm font-bold bg-black/70 text-white tracking-wide uppercase">Ended</span>
+              <span class="px-3 py-1 rounded-full text-sm font-semibold bg-black/70 text-white">Ended</span>
             </div>
           </div>
 
@@ -132,7 +136,7 @@
         <div class="min-w-0">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink dark:text-white">
+              <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-ink dark:text-white">
                 {{ auction.title }}
               </h1>
               <p v-if="auction.cardSet" class="mt-1 text-sm font-medium text-ink-muted dark:text-zinc-400">{{ auction.cardSet }}</p>
@@ -151,7 +155,7 @@
                 <svg v-else class="w-[18px] h-[18px] text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span v-if="copied" role="status" class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap pointer-events-none">
+                <span v-if="copied" role="status" class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-2xs font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap pointer-events-none">
                   Copied!
                 </span>
               </button>
@@ -165,7 +169,7 @@
               v-if="auction.productType === 'Graded' && auction.grade"
               class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 border border-amber-600"
             >
-              <span class="uppercase tracking-wide">{{ gradingProviderLabel }}</span>
+              <span class="">{{ gradingProviderLabel }}</span>
               <span>{{ auction.grade }}</span>
             </span>
             <span
@@ -180,7 +184,7 @@
             >
               {{ auction.condition }}
             </span>
-            <span v-if="auction.language && auction.language !== 'EN'" class="text-xs font-bold tracking-wide px-2 py-0.5 rounded-md bg-black/85 text-white">
+            <span v-if="auction.language && auction.language !== 'EN'" class="text-xs font-bold px-2 py-0.5 rounded-md bg-black/85 text-white">
               {{ auction.language }}
             </span>
             <span v-if="auction.isPrivate" class="text-xs font-medium px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300">
@@ -226,7 +230,7 @@
               v-if="!user && !isEnded"
               type="button"
               @click="goToLogin"
-              class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
+              class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-colors"
             >
               Sign in to bid
             </button>
@@ -293,7 +297,7 @@
                   type="button"
                   @click="bidMode === 'manual' ? handleQuickBid() : handleAutoBid()"
                   :disabled="bidding"
-                  class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow disabled:opacity-50"
+                  class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-colors disabled:opacity-50"
                 >
                   {{ bidButtonLabel }}
                 </button>
@@ -320,14 +324,35 @@
                 </p>
                 <p v-else-if="settleError" class="text-xs text-red-600 dark:text-red-400">{{ settleError }}</p>
 
+                <p v-else-if="auctionStatus === 'expired'" class="text-xs text-ink-muted dark:text-zinc-400">
+                  The winner didn't pay in time, so this auction was voided.
+                </p>
+
                 <template v-else-if="settledOrderId">
-                  <NuxtLink
-                    v-if="isWinner"
-                    :to="`/orders/${settledOrderId}`"
-                    class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:shadow-glow transition-shadow"
-                  >
-                    Pay now (FPX)
-                  </NuxtLink>
+                  <!-- Paid: the order takes it from here. -->
+                  <template v-if="isWinner && winnerPaid">
+                    <p class="text-xs font-medium text-emerald-700 dark:text-emerald-300">Paid. The seller is preparing your order.</p>
+                    <NuxtLink
+                      :to="`/orders/${settledOrderId}`"
+                      class="w-full inline-flex items-center justify-center py-3 rounded-xl text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+                    >
+                      View order
+                    </NuxtLink>
+                  </template>
+                  <template v-else-if="isWinner">
+                    <!-- Desktop button; on phones the fixed bar carries it, so
+                         the deadline line keeps this card from looking empty. -->
+                    <NuxtLink
+                      :to="`/orders/${settledOrderId}`"
+                      class="hidden lg:flex w-full items-center justify-center py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:bg-pokemon-red-dark transition-colors"
+                    >
+                      Pay now (FPX)
+                    </NuxtLink>
+                    <p class="text-xs text-ink-muted dark:text-zinc-400">
+                      <template v-if="paymentDueAt">Pay by {{ formatDue(paymentDueAt) }} to keep it.</template>
+                      <template v-else>Pay within {{ AUCTION_PAYMENT_WINDOW_HOURS }} hours to keep it.</template>
+                    </p>
+                  </template>
                   <NuxtLink
                     v-else-if="isSeller"
                     :to="`/orders/${settledOrderId}`"
@@ -339,10 +364,6 @@
                     You'll be notified when the buyer pays. Funds are released after delivery.
                   </p>
                 </template>
-
-                <p v-else-if="auctionStatus === 'expired'" class="text-xs text-ink-muted dark:text-zinc-400">
-                  The winner didn't pay in time, so this auction was voided.
-                </p>
               </div>
             </div>
 
@@ -388,6 +409,7 @@
               icon-only
             />
           </div>
+          <SellerDisclosure :uid="auction.sellerUid" />
 
           <!-- Description -->
           <section v-if="auction.description" class="mt-8">
@@ -436,7 +458,7 @@
                   class="shrink-0 text-sm font-semibold tabular-nums"
                   :class="index === 0 ? 'text-pokemon-red' : 'text-ink dark:text-white'"
                 >
-                  <span v-if="bid.triggeredAntiSnipe" title="Extended the clock" aria-label="Extended the clock">⚡</span>
+                  <span v-if="bid.triggeredAntiSnipe" title="Extended the clock" aria-label="Extended the clock" class="inline-flex align-[-2px] mr-0.5"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2 2M9 2h6" /></svg></span>
                   RM {{ formatRM(bid.amount) }}
                 </p>
               </li>
@@ -453,6 +475,14 @@
               </div>
             </dl>
           </section>
+
+          <ReportListingButton
+            listing-kind="auction"
+            :listing-id="auction.id"
+            :seller-uid="auction.sellerUid"
+            :seller-name="auction.seller"
+            :item-name="(auction.title || auction.cardName)"
+          />
         </div>
       </div>
 
@@ -465,7 +495,7 @@
       <Teleport to="body">
         <div
           v-if="showActionBar"
-          class="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-white dark:bg-[#111114] border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]"
+          class="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-white dark:bg-canvas-inverse border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]"
         >
           <!-- The page's own message may be scrolled away, so the bar repeats it. -->
           <p v-if="!isEnded && (bidError || bidSuccess)" class="mb-2 text-xs font-medium text-center" :class="bidError ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'">
@@ -474,7 +504,7 @@
           <div class="flex items-center gap-3">
             <div class="min-w-0 flex-1">
               <p class="text-xs text-ink-muted dark:text-zinc-400 truncate tabular-nums">
-                {{ isEnded ? "You won" : `Ends in ${timeLeft}` }}
+                {{ isEnded ? (winnerPaid ? "You won · paid" : "You won") : `Ends in ${timeLeft}` }}
               </p>
               <p class="tabular-price font-extrabold text-ink dark:text-white">
               RM {{ formatRM(auction.currentPrice) }}
@@ -482,7 +512,14 @@
             </p>
             </div>
             <NuxtLink
-              v-if="isEnded"
+              v-if="isEnded && winnerPaid"
+              :to="`/orders/${settledOrderId}`"
+              class="h-12 px-5 shrink-0 inline-flex items-center justify-center rounded-xl text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white transition-transform duration-150 active:scale-[0.97]"
+            >
+              View order
+            </NuxtLink>
+            <NuxtLink
+              v-else-if="isEnded"
               :to="`/orders/${settledOrderId}`"
               class="h-12 px-5 shrink-0 inline-flex items-center justify-center rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-transform duration-150 active:scale-[0.97]"
             >
@@ -542,7 +579,7 @@
         >
           <div class="mx-auto mb-4 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15 sm:hidden" aria-hidden="true" />
           <h2 id="bid-intro-title" class="text-lg font-bold text-ink dark:text-white">Before your first bid</h2>
-          <ul class="mt-3 space-y-2.5 text-[14px] leading-relaxed text-ink-muted dark:text-zinc-300">
+          <ul class="mt-3 space-y-2.5 text-body-sm leading-relaxed text-ink-muted dark:text-zinc-300">
             <li>A bid is a promise to buy at that price if you win.</li>
             <li>If you win, you have {{ AUCTION_PAYMENT_WINDOW_HOURS }} hours to pay. Not paying cancels the win and can get your bidding restricted.</li>
             <li>The seller's shipping fee is added to the winning price when you pay.</li>
@@ -631,6 +668,17 @@ const settling = ref(false);
 const settleError = ref("");
 const settledOrderId = ref("");
 const auctionStatus = computed(() => (auction.value as any)?.status ?? "active");
+// The payment webhook marks the auction sold, so the winner stops being
+// asked to pay for something they've paid for.
+const winnerPaid = computed(() => auctionStatus.value === "sold");
+const paymentDueAt = computed(() => Number((auction.value as any)?.paymentDueAt ?? 0));
+const formatDue = (ts: number) =>
+  new Date(ts).toLocaleString("en-MY", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
 const settle = async () => {
   if (settling.value || !user.value || !auction.value) return;
@@ -809,12 +857,11 @@ const placeQuickBid = async () => {
   bidSuccess.value = "";
   bidding.value = true;
   try {
-    await placeBid(
-      user.value!.uid,
-      myProfile.value?.customName || user.value!.displayName || "Anonymous",
-      minBidAmount.value,
-    );
-    bidSuccess.value = `Bid placed: RM ${minBidAmount.value.toFixed(2)}`;
+    const amount = minBidAmount.value;
+    const res = await placeBid(amount);
+    // Someone's auto bid can answer straight away and stay on top.
+    if (res.leading) bidSuccess.value = `Bid placed: RM ${amount.toFixed(2)}`;
+    else bidError.value = `Bid placed, but another bidder's auto bid already covered it, so they're still on top at RM ${res.currentPrice.toFixed(2)}.`;
   } catch (e: any) {
     bidError.value = e.message || "Failed to place bid";
   } finally {
@@ -836,12 +883,10 @@ const placeAutoBid = async () => {
   if (!autoBidMax.value) return;
   bidding.value = true;
   try {
-    await setAutoBid(
-      user.value!.uid,
-      myProfile.value?.customName || user.value!.displayName || "Anonymous",
-      autoBidMax.value,
-    );
-    bidSuccess.value = `Auto bid set! Max: RM ${autoBidMax.value.toFixed(2)}`;
+    const max = autoBidMax.value;
+    const res = await setAutoBid(max);
+    if (res.leading) bidSuccess.value = `Auto bid set! Max: RM ${max.toFixed(2)}`;
+    else bidError.value = `Another bidder's maximum is at least as high as yours, so they're still on top at RM ${res.currentPrice.toFixed(2)}. Try a higher maximum.`;
     autoBidMax.value = null;
   } catch (e: any) {
     bidError.value = e.message || "Failed to set auto bid";
@@ -868,7 +913,10 @@ const bidButtonLabel = computed(() => {
 // once there's an order to pay. The seller manages theirs from the page.
 const showActionBar = computed(() => {
   if (!auction.value) return false;
-  if (isEnded.value) return !!(isWinner.value && settledOrderId.value);
+  // A voided result has nothing left to pay.
+  if (isEnded.value) {
+    return !!(isWinner.value && settledOrderId.value) && auctionStatus.value !== "expired";
+  }
   return !isSeller.value;
 });
 

@@ -138,7 +138,6 @@
   /* Price numerals line up vertically */
   .tabular-price {
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.01em;
   }
 }
 
@@ -197,7 +196,7 @@
     @apply bg-white/95 border-b border-black/[0.06];
   }
   .dark .glass {
-    @apply bg-[#111114]/95 border-white/[0.06];
+    @apply bg-canvas-inverse/95 border-white/[0.06];
   }
 
   /* Plain raised surface — used for cards, panels */
@@ -205,17 +204,18 @@
     @apply bg-canvas-raised border border-black/[0.06] shadow-card;
   }
   .dark .surface {
-    @apply bg-[#1B1B20] border-white/[0.06] shadow-none;
+    @apply bg-night-raised border-white/[0.06] shadow-none;
   }
 
-  /* Eyebrow label — small caps, lots of tracking */
+  /* Section label: a small heading in sentence case. No capitals or
+     tracking (both read as template UI, see the 2026-11 design audit). */
   .eyebrow {
-    @apply inline-block text-[11px] font-semibold tracking-[0.18em] uppercase text-ink-muted dark:text-zinc-400;
+    @apply inline-block text-[13px] font-semibold text-ink-muted dark:text-zinc-400;
   }
 
   /* Pill chip — for conditions, tags, metadata */
   .chip {
-    @apply inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold tracking-wide uppercase bg-ink/[0.04] text-ink-muted dark:bg-white/[0.06] dark:text-zinc-300;
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-ink/[0.04] text-ink-muted dark:bg-white/[0.06] dark:text-zinc-300;
   }
   .chip-accent {
     @apply bg-pokemon-red/[0.08] text-pokemon-red;
@@ -259,12 +259,12 @@
     display: none;
   }
 
-  /* Landing scroll-reveal resting state. Declared in CSS rather than as inline
-     styles so elements are already hidden on first paint — otherwise there's a
-     visible flash of the finished layout before GSAP attaches its timeline. */
+  /* Landing scroll-reveal marker. Content is visible at rest (2026-11
+     design audit, Hallmark gate 62): a link preview, a slow phone or a
+     failed script must never see blank sections. The class stays as a
+     selector for the timelines, which now animate only position. */
   .reveal-init {
-    opacity: 0;
-    transform: translateY(18px);
+    opacity: 1;
   }
 
   /* Reduced motion never sees the animation, so it must never see the hidden

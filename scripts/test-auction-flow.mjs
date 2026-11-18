@@ -209,7 +209,7 @@ const api = async (path, { as, method = "POST", body, form } = {}) => {
 const settle = (auctionId, as) => api("/api/auctions/settle", { as, body: { auctionId } });
 
 // Billplz signs a callback as HMAC-SHA256 over `<key><value>` parts, sorted,
-// joined with `|` — mirrors verifyBillplzSignature in server/utils/billplz.ts.
+// joined with `|` — mirrors signBillplzCallback in server/utils/billplz-callback.ts.
 const signCallback = (params) => {
   const parts = Object.entries(params).map(([k, v]) => `${k}${v ?? ""}`);
   parts.sort((a, b) => {

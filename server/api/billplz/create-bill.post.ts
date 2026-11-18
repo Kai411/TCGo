@@ -14,9 +14,9 @@ import {
   billplzDeleteBill,
 } from "~/server/utils/billplz";
 import { requireUser } from "~/server/utils/auth";
-import { regionForState, totalForRegion } from "~/shared/shipping";
 import { isAvailable, unavailableReason } from "~/shared/card-availability";
-import { quoteOrderShipping } from "~/server/utils/shipping";
+import { isHiddenByStaff, isSellingSuspended } from "~/shared/moderation";
+import { priceOrderForPayment } from "~/server/utils/order-pricing";
 import { noteError } from "~/server/utils/oplog";
 
 // An order is payable while the seller hasn't shipped it. `pending` and
@@ -49,6 +49,29 @@ export default defineEventHandler(async (event) => {
   }
   if (!order.deliveryAddress?.postcode) {
     throw createError({ statusCode: 400, message: "Delivery address required before payment" });
+  }
+
+  // A seller TCGo has suspended can't be paid, and neither can a listing TCGo
+  // took down: the order may have been made before staff acted, and taking
+  // the money would put it in the hands of the seller under review.
+  // 403 rather than 409: waiting won't make it payable.
+  if (order.sellerUid) {
+    const sellerSnap = await db.collection("users").doc(order.sellerUid).get();
+    if (isSellingSuspended(sellerSnap.data() as any)) {
+      throw createError({
+        statusCode: 403,
+        message: "This seller can't take payments right now, so the order can't be paid. You haven't been charged.",
+      });
+    }
+  }
+  if (order.auctionId) {
+    const auctionSnap = await db.collection("auctions").doc(order.auctionId).get();
+    if (isHiddenByStaff(auctionSnap.data() as any)) {
+      throw createError({
+        statusCode: 403,
+        message: "TCGo took this auction down, so it can't be paid. You haven't been charged.",
+      });
+    }
   }
 
   // Every card must still be for sale AT THE MOMENT OF PAYMENT. Orders are
@@ -85,7 +108,9 @@ export default defineEventHandler(async (event) => {
           blocked.length === 1
             ? blocked[0]!.reason === "reserved"
               ? `${blocked[0]!.cardName} is being paid for in store right now. Try again in a few minutes.`
-              : `${blocked[0]!.cardName} has just been sold.`
+              : blocked[0]!.reason === "removed"
+                ? `${blocked[0]!.cardName} was taken down by TCGo, so it can't be bought.`
+                : `${blocked[0]!.cardName} has just been sold.`
             : `${blocked.length} cards in this order are no longer available.`,
         data: { unavailable: blocked },
       });
@@ -95,54 +120,8 @@ export default defineEventHandler(async (event) => {
   const requestUrl = getRequestURL(event);
   const siteUrl = (config.public.siteUrl as string) || requestUrl.origin;
 
-  // Region always comes from the delivery address, never from what the buyer
-  // picked earlier — you can't ship to Sabah at West Malaysia rates.
-  const region = regionForState(order.deliveryAddress.state);
-
-  // Orders placed through the cart already carry a live courier quote, frozen
-  // at the price the buyer was shown. Anything else — auction wins, legacy
-  // orders priced off seller-set figures — gets quoted now, against the
-  // address they just entered.
-  let shipping: number;
-  let total: number;
-  const patch: Record<string, unknown> = {};
-
-  if (order.shippingQuoted) {
-    ({ shipping, total } = totalForRegion(order, region));
-  } else {
-    const quote = await quoteOrderShipping(db, { ...order, sellerUid: order.sellerUid });
-    if (!quote) {
-      throw createError({
-        statusCode: 400,
-        message:
-          "We couldn't get a shipping rate for this order. The seller may not have set a pickup address yet.",
-      });
-    }
-    shipping = quote.shipping;
-    total = Math.round(((order.subtotal || 0) + shipping) * 100) / 100;
-    Object.assign(patch, {
-      shippingQuoted: true,
-      shippingWM: shipping,
-      shippingEM: shipping,
-      shippingCourier: quote.courier,
-      shippingQuotedRate: quote.quotedRate,
-      shippingServiceId: quote.serviceId,
-      shippingServiceCode: quote.serviceCode,
-      shippingWeightKg: quote.weightKg,
-    });
-  }
-
-  if (
-    Object.keys(patch).length ||
-    region !== order.region ||
-    shipping !== order.shipping ||
-    total !== order.total
-  ) {
-    await orderRef.update({ ...patch, region, shipping, total });
-    order.region = region;
-    order.shipping = shipping;
-    order.total = total;
-  }
+  // Same pricing the buyer was shown on the order page before tapping Pay.
+  const { total } = await priceOrderForPayment(db, orderRef, order);
   const amount = Math.round(total * 100); // MYR sen
 
   // A re-created bill supersedes the previous one. Void the old bill so a

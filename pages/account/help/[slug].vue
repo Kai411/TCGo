@@ -24,7 +24,7 @@
             >
               {{ i + 1 }}
             </span>
-            <span class="pt-0.5 text-[15px] leading-relaxed text-ink dark:text-zinc-100">{{ step }}</span>
+            <span class="pt-0.5 text-body-ui leading-relaxed text-ink dark:text-zinc-100">{{ step }}</span>
           </li>
         </ol>
       </section>

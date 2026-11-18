@@ -33,6 +33,7 @@
   "devDependencies": {
     "@supabase/supabase-js": "^2.106.2",
     "@vite-pwa/nuxt": "^1.1.1",
+    "7zip-bin": "^5.2.0",
     "dotenv": "^17.4.2"
   }
 }

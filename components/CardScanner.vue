@@ -9,16 +9,16 @@
         class="flex items-center justify-between px-4 h-14 bg-black text-white"
       >
         <div class="flex items-center gap-3">
-          <h2 class="text-base font-semibold">Scan Card</h2>
+          <h2 class="text-base font-semibold">Scan card</h2>
           <span
             v-if="premiumEnabled && user && isPremium"
-            class="text-[11px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300"
+            class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300"
           >
             Premium · Unlimited
           </span>
           <span
             v-else-if="user"
-            class="text-[11px] font-semibold tracking-wide px-2 py-0.5 rounded-full bg-white/10 text-white/80"
+            class="text-micro font-semibold px-2 py-0.5 rounded-full bg-white/10 text-white/80"
             :class="{ 'text-red-300 bg-red-500/20': remaining === 0 }"
           >
             {{ used }}/{{ FREE_SCAN_LIMIT }} this month
@@ -168,7 +168,7 @@
           <!-- Live queue status -->
           <div
             v-if="queue.length"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/70 text-white text-[11px] font-semibold backdrop-blur"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/70 text-white text-micro font-semibold backdrop-blur"
           >
             <span
               v-if="processingCount() > 0"
@@ -257,7 +257,7 @@
             <button
               v-if="queue.length > 0"
               @click="finishScanning"
-              class="absolute right-6 inline-flex items-center gap-1.5 bg-emerald-500 text-white px-4 py-2.5 rounded-full text-sm font-semibold shadow-lg hover:bg-emerald-600 transition-colors"
+              class="absolute right-6 inline-flex items-center gap-1.5 bg-white text-ink px-4 py-2.5 rounded-full text-sm font-semibold shadow-lg hover:bg-zinc-100 transition-colors"
             >
               Done · {{ queue.length }}
               <svg

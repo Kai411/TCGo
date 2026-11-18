@@ -9,7 +9,7 @@
             <span class="hidden sm:inline">Marketplace</span>
           </NuxtLink>
           <span class="text-ink-soft dark:text-zinc-600">/</span>
-          <span class="font-bold text-ink dark:text-white truncate">Seller Dashboard</span>
+          <span class="font-bold text-ink dark:text-white truncate">Seller dashboard</span>
         </div>
         <!-- Inventory and Auctions each have their own add button on-page, so
              duplicating them up here just crowded the bar. Settings takes the
@@ -55,7 +55,7 @@
 
           <!-- Coming soon (roadmap signposts) -->
           <div v-if="soonItems.length" class="pt-3 mt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
-            <p class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-soft dark:text-zinc-600">Coming soon</p>
+            <p class="px-3 pb-1 text-micro font-semibold text-ink-soft dark:text-zinc-600">Coming soon</p>
             <div
               v-for="item in soonItems"
               :key="item.label"
@@ -63,14 +63,14 @@
             >
               <component :is="item.icon" class="w-4 h-4 shrink-0 opacity-60" />
               {{ item.label }}
-              <span class="ml-auto text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-black/[0.05] dark:bg-white/[0.06]">Soon</span>
+              <span class="ml-auto text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-black/[0.05] dark:bg-white/[0.06]">Soon</span>
             </div>
           </div>
 
           <!-- Learn: things *about* the product rather than parts of it, so
                they sit apart from the working destinations above. -->
           <div class="pt-3 mt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
-            <p class="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-soft dark:text-zinc-600">Learn</p>
+            <p class="px-3 pb-1 text-micro font-semibold text-ink-soft dark:text-zinc-600">Learn</p>
             <NuxtLink
               to="/landing"
               data-tour="nav-pricing"
@@ -114,7 +114,7 @@
           :key="item.to"
           :to="item.to"
           :data-tour="item.tour"
-          class="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
+          class="relative flex flex-col items-center justify-center gap-0.5 text-2xs font-semibold text-ink-soft dark:text-zinc-500 transition-colors"
           :class="isActive(item) ? '!text-pokemon-red' : ''"
         >
           <component :is="item.icon" class="w-5 h-5" />
@@ -127,7 +127,7 @@
           @click="openSheet = key"
           :aria-expanded="openSheet === key"
           aria-haspopup="menu"
-          class="relative flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold tracking-wide text-ink-soft dark:text-zinc-500 transition-colors"
+          class="relative flex flex-col items-center justify-center gap-0.5 text-2xs font-semibold text-ink-soft dark:text-zinc-500 transition-colors"
           :class="sheetIsActive(key) ? '!text-pokemon-red' : ''"
         >
           <component :is="sheet.icon" class="w-5 h-5" />
@@ -159,14 +159,14 @@
       >
         <div
           v-if="openSheet"
-          class="lg:hidden fixed bottom-0 inset-x-0 z-50 rounded-t-2xl bg-white dark:bg-[#17171c] border-t border-black/[0.06] dark:border-white/[0.08] pb-[env(safe-area-inset-bottom,16px)]"
+          class="lg:hidden fixed bottom-0 inset-x-0 z-50 rounded-t-2xl bg-white dark:bg-night-sunken border-t border-black/[0.06] dark:border-white/[0.08] pb-[env(safe-area-inset-bottom,16px)]"
           role="menu"
           :aria-label="SHEETS[openSheet].label"
         >
           <div class="flex justify-center pt-2.5 pb-1">
             <span class="h-1 w-9 rounded-full bg-black/15 dark:bg-white/20" />
           </div>
-          <p class="px-4 pb-1 text-[11px] font-bold uppercase tracking-wide text-ink-soft dark:text-zinc-500">
+          <p class="px-4 pb-1 text-xs font-semibold text-ink-soft dark:text-zinc-500">
             {{ SHEETS[openSheet].label }}
           </p>
           <div class="grid grid-cols-3 gap-1 px-3 pb-4 pt-1">
@@ -176,7 +176,7 @@
               :to="item.to"
               :data-tour="item.tour"
               role="menuitem"
-              class="flex flex-col items-center justify-center gap-1.5 rounded-xl px-1 py-3.5 text-center text-[11px] font-semibold leading-tight text-ink dark:text-zinc-200 active:bg-black/[0.04] dark:active:bg-white/[0.06]"
+              class="flex flex-col items-center justify-center gap-1.5 rounded-xl px-1 py-3.5 text-center text-micro font-semibold leading-tight text-ink dark:text-zinc-200 active:bg-black/[0.04] dark:active:bg-white/[0.06]"
               :class="isActive(item) ? '!text-pokemon-red' : ''"
             >
               <component :is="item.icon" class="w-[22px] h-[22px]" />
@@ -331,7 +331,7 @@ const SHEETS: Record<
       // Spelled out rather than "Inventory" twice: the sheet is already
       // titled Inventory, so a row repeating it says nothing about what it
       // does. This is the one that manages stock.
-      { to: "/seller/items", label: "Manage Inventory", icon: IconBox, tour: "nav-items" },
+      { to: "/seller/items", label: "Manage inventory", icon: IconBox, tour: "nav-items" },
       { to: "/seller/listings", label: "Listings", icon: IconTag, tour: "nav-listings" },
       { to: "/seller/auctions", label: "Auctions", icon: IconGavel, tour: "nav-auctions" },
     ],

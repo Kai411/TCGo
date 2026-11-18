@@ -6,7 +6,7 @@
       caption="Tap the heart on any card or auction to save it here."
     />
     <template v-else>
-      <p class="mb-3 text-[11px] text-ink-soft dark:text-zinc-500 tabular-price">
+      <p class="mb-3 text-micro text-ink-soft dark:text-zinc-500 tabular-price">
         {{ total }} saved
       </p>
       <!-- Flat cells divided by hairlines, edge to edge on phones: the same

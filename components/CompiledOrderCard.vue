@@ -3,7 +3,7 @@
     <!-- Header: counterparty + status -->
     <div class="flex items-center justify-between gap-3 mb-3">
       <div class="min-w-0">
-        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+        <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">
           {{ role === "buyer" ? "From seller" : "To buyer" }}
         </p>
         <NuxtLink
@@ -14,7 +14,7 @@
         </NuxtLink>
       </div>
       <span
-        class="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-full"
+        class="shrink-0 text-micro font-semibold px-2 py-1 rounded-full"
         :class="statusColor"
       >
         {{ statusLabel }}
@@ -73,7 +73,7 @@
     <div class="mt-3 flex flex-wrap gap-2">
       <NuxtLink
         :to="`/orders/${order.id}`"
-        class="inline-flex items-center min-h-[40px] px-4 lg:min-h-0 lg:px-3 lg:py-1.5 rounded-lg text-[13px] lg:text-xs font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200 lg:hover:bg-black/[0.04] lg:dark:hover:bg-white/[0.06] transition-[background-color,transform] duration-150 active:scale-[0.97] lg:active:scale-100"
+        class="inline-flex items-center min-h-[40px] px-4 lg:min-h-0 lg:px-3 lg:py-1.5 rounded-lg text-label lg:text-xs font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200 lg:hover:bg-black/[0.04] lg:dark:hover:bg-white/[0.06] transition-[background-color,transform] duration-150 active:scale-[0.97] lg:active:scale-100"
       >
         View order
       </NuxtLink>
@@ -83,7 +83,7 @@
         <button
           v-if="order.status === 'shipped'"
           @click="$emit('mark-delivered', order.id)"
-          class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
         >
           Mark received
         </button>

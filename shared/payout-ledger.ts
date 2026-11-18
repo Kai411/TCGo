@@ -54,6 +54,15 @@ export interface PayoutBatch {
   billplzStatus?: string; // raw status string, for debugging
   executedByUid?: string;
   manualReference?: string; // bank reference when transferred by hand
+
+  /** When the request confirmed every order's bill as paid with Billplz. */
+  paymentsConfirmedAt?: number;
+  /**
+   * Set when the account name doesn't match the verified identity. The batch
+   * waits in the queue until staff approve that name and account (Mint
+   * Condition > Payouts). Advisory: execute re-checks the live profile.
+   */
+  identityHold?: "name_mismatch" | null;
 }
 
 export const PAYOUT_STATUS_LABEL: Record<PayoutBatchStatus, string> = {

@@ -19,7 +19,7 @@
         <path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59A2 2 0 0 0 3.83 11l9.58 9.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83z" />
         <circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" />
       </svg>
-      <span class="whitespace-nowrap">Manage Listings</span>
+      <span class="whitespace-nowrap">Manage listings</span>
     </button>
 
     <Transition name="ml-menu">

@@ -52,7 +52,7 @@
               RM {{ fmt(p.amount) }}
               <span class="ml-1.5 chip" :class="chipFor(p.status)">{{ LABEL[p.status] }}</span>
             </p>
-            <p class="text-[11px] text-ink-muted dark:text-zinc-400 mt-0.5">
+            <p class="text-micro text-ink-muted dark:text-zinc-400 mt-0.5">
               {{ p.orderIds?.length ?? 0 }} order{{ (p.orderIds?.length ?? 0) === 1 ? "" : "s" }}
               · {{ p.recipient?.bankName }} {{ p.recipient?.bankAccountNumber }}
               · {{ when(p.requestedAt) }}

@@ -8,6 +8,8 @@ import { requireStaff } from "~/server/utils/staff-auth";
 import { noteAction } from "~/server/utils/oplog";
 import { settlePayout } from "~/server/utils/payouts";
 import type { PayoutBatch } from "~/shared/payout-ledger";
+import { checkPayoutIdentity } from "~/shared/payout-identity";
+import { getUserProfile } from "~/server/utils/user-profile";
 
 export default defineEventHandler(async (event) => {
   const actor = await requireStaff(event, "payouts.manual");
@@ -28,6 +30,22 @@ export default defineEventHandler(async (event) => {
   const batch = snap.data() as PayoutBatch;
   if (batch.status === "paid") {
     return { ok: true, status: "paid", unchanged: true };
+  }
+
+  // A queued batch hasn't gone through Billplz, so this is the only check it
+  // gets: the same identity rule as Send (shared/payout-identity.ts). Approve
+  // a mismatched name in the seller's identity panel first.
+  if (batch.status === "queued") {
+    const identity = checkPayoutIdentity((await getUserProfile(db, batch.sellerUid)) as any, batch.recipient);
+    if (!identity.ok) {
+      throw createError({
+        statusCode: 409,
+        message:
+          identity.reason === "name_mismatch"
+            ? "This account name doesn't match the seller's verified ID. Approve it in the identity panel before recording a transfer."
+            : "This seller is suspended or no longer verified, so the payout can't be recorded.",
+      });
+    }
   }
 
   await ref.update({ executedByUid: actor.staffId,

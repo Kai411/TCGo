@@ -11,7 +11,7 @@
         Remove
       </button>
     </div>
-    <p v-if="hint" class="mt-0.5 text-[11px] text-ink-soft dark:text-zinc-500">{{ hint }}</p>
+    <p v-if="hint" class="mt-0.5 text-micro text-ink-soft dark:text-zinc-500">{{ hint }}</p>
 
     <label
       class="mt-2 flex cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-black/[0.15] bg-black/[0.02] text-center transition-colors active:bg-black/[0.05] dark:border-white/[0.18] dark:bg-white/[0.03]"
@@ -23,7 +23,7 @@
         {{ uploading ? "Uploading…" : "Upload image" }}
       </span>
     </label>
-    <p v-if="modelValue" class="mt-1.5 text-[11px] text-ink-soft dark:text-zinc-500">
+    <p v-if="modelValue" class="mt-1.5 text-micro text-ink-soft dark:text-zinc-500">
       {{ uploading ? "Uploading…" : "Tap the image to replace it." }}
     </p>
     <p v-if="error" class="mt-1.5 text-xs text-red-600 dark:text-red-400">{{ error }}</p>

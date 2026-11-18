@@ -1,11 +1,11 @@
 <template>
-  <article class="legal w-[90%] sm:w-[70%] lg:w-[60%] max-w-3xl mx-auto pt-8 pb-[120px]">
+  <article class="legal w-[90%] sm:w-[70%] lg:w-[60%] max-w-[65ch] mx-auto pt-8 pb-[120px]">
     <header>
       <h1>{{ title }}</h1>
       <p class="mt-2 text-sm italic text-ink-soft">
         Effective {{ LEGAL_EFFECTIVE_DATE }}
       </p>
-      <p v-if="summary" class="mt-5 rounded-xl bg-black/[0.03] p-4 text-[15px] leading-relaxed">
+      <p v-if="summary" class="mt-5 rounded-xl bg-black/[0.03] p-4 text-body-ui leading-relaxed">
         <b>In short:</b> {{ summary }}
       </p>
     </header>
@@ -48,8 +48,21 @@ defineProps<{ title: string; summary?: string }>();
 </script>
 
 <style scoped>
+/* Measure capped at 65 characters (was ~90 at max-w-3xl): policies are
+   the one place people read long runs of text. */
 h1 {
   @apply text-3xl font-bold;
+  text-wrap: balance;
+}
+
+.legal-body :deep(h2),
+.legal-body :deep(h3) {
+  text-wrap: balance;
+}
+
+.legal-body :deep(p),
+.legal-body :deep(li) {
+  text-wrap: pretty;
 }
 
 .legal-body :deep(h2) {

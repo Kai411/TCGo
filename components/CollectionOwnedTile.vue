@@ -41,7 +41,7 @@
          sits on the Qty line. -->
     <div class="mt-auto pt-1.5 tabular-nums">
       <p class="flex flex-wrap items-baseline gap-x-[3px] leading-tight text-[10px] sm:text-[13px] text-ink dark:text-white">
-        <span v-if="card.price" class="font-bold">RM{{ formatPrice(card.price.market) }}</span>
+        <span v-if="card.price" class="font-bold">RM {{ formatPrice(card.price.market) }}</span>
         <span v-else class="text-gray-400 dark:text-zinc-500">No price</span>
         <!-- Arrow shape and colour both carry the direction, and a screen
              reader gets it in words. -->

@@ -7,7 +7,7 @@
         <button
           v-if="filters.activeCount.value > 0"
           @click="filters.reset()"
-          class="text-[11px] font-semibold text-ink-muted dark:text-zinc-400 hover:text-pokemon-red transition-colors"
+          class="text-micro font-semibold text-ink-muted dark:text-zinc-400 hover:text-pokemon-red transition-colors"
         >
           Clear all
         </button>
@@ -23,7 +23,7 @@
             :key="opt.value"
             type="button"
             @click="filters.sort.value = opt.value"
-            class="text-left text-[13px] px-2.5 py-1.5 rounded-lg font-medium transition-colors"
+            class="text-left text-label px-2.5 py-1.5 rounded-lg font-medium transition-colors"
             :class="
               filters.sort.value === opt.value
                 ? 'bg-ink text-white dark:bg-white dark:text-ink'
@@ -92,14 +92,14 @@
             type="number" inputmode="decimal" placeholder="Min"
             :value="filters.priceMin.value ?? ''"
             @input="onPriceInput($event, 'min')"
-            class="no-spin flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[13px] text-ink dark:text-white"
+            class="no-spin flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-label text-ink dark:text-white"
           />
           <span class="text-xs text-ink-soft dark:text-zinc-500">—</span>
           <input
             type="number" inputmode="decimal" placeholder="Max"
             :value="filters.priceMax.value ?? ''"
             @input="onPriceInput($event, 'max')"
-            class="no-spin flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[13px] text-ink dark:text-white"
+            class="no-spin flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-label text-ink dark:text-white"
           />
         </div>
 
@@ -107,7 +107,7 @@
         <input
           v-else-if="g.id === 'set'"
           type="text" v-model="filters.setQuery.value" placeholder="Search set…"
-          class="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[13px] text-ink dark:text-white"
+          class="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-label text-ink dark:text-white"
         />
 
         <!-- Product type -->
@@ -163,7 +163,7 @@
           Filters
           <span
             v-if="filters.activeCount.value > 0"
-            class="inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-pokemon-red text-white text-[10px] font-bold tabular-nums"
+            class="inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-pokemon-red text-white text-2xs font-bold tabular-nums"
             aria-hidden="true"
           >
             {{ filters.activeCount.value }}
@@ -242,7 +242,7 @@
                 <button
                   type="button"
                   @click="pickSort(opt.value)"
-                  class="w-full flex items-center justify-between gap-3 px-4 min-h-[48px] text-left text-[15px] transition-colors active:bg-black/[0.04] dark:active:bg-white/[0.06]"
+                  class="w-full flex items-center justify-between gap-3 px-4 min-h-[48px] text-left text-body-ui transition-colors active:bg-black/[0.04] dark:active:bg-white/[0.06]"
                   :class="filters.sort.value === opt.value ? 'font-semibold text-ink dark:text-white' : 'text-ink-muted dark:text-zinc-300'"
                   :aria-pressed="filters.sort.value === opt.value"
                 >
@@ -277,7 +277,7 @@
             <div class="flex-1 overflow-y-auto p-4 space-y-5">
               <!-- Game -->
               <section v-if="tcgCounts && tcgCounts.length > 1">
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">Game</p>
+                <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-2">Game</p>
                 <div class="flex flex-wrap gap-1.5">
                   <ListingFilterPill v-for="{ type, count } in tcgCounts" :key="type" :active="filters.tcg.value === type" @click="filters.tcg.value = type">{{ type }} <span class="ml-0.5 opacity-60 tabular-nums">{{ count }}</span></ListingFilterPill>
                 </div>
@@ -285,7 +285,7 @@
 
               <!-- Status (auction only) -->
               <section v-if="showAuctionSort">
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">Status</p>
+                <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-2">Status</p>
                 <div class="flex flex-wrap gap-1.5">
                   <ListingFilterPill v-for="o in [{ v: 'live', l: 'Live' }, { v: 'ended', l: 'Ended' }]" :key="o.v" :active="filters.statuses.value.includes(o.v as any)" @click="toggle(filters.statuses, o.v)">{{ o.l }}</ListingFilterPill>
                 </div>
@@ -293,7 +293,7 @@
 
               <!-- Time left (auction only) -->
               <section v-if="showAuctionSort">
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">Time left</p>
+                <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-2">Time left</p>
                 <div class="flex flex-wrap gap-1.5">
                   <ListingFilterPill v-for="o in [{ v: 'ending-soon', l: '< 1 hour' }, { v: 'today', l: 'Today' }, { v: 'longer', l: 'Later' }]" :key="o.v" :active="filters.timeBuckets.value.includes(o.v as any)" @click="toggle(filters.timeBuckets, o.v)">{{ o.l }}</ListingFilterPill>
                 </div>
@@ -301,7 +301,7 @@
 
               <!-- Price -->
               <section>
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">Price (RM)</p>
+                <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-2">Price (RM)</p>
                 <div class="flex items-center gap-2">
                   <input type="number" inputmode="decimal" placeholder="Min" :value="filters.priceMin.value ?? ''" @input="onPriceInput($event, 'min')" class="no-spin flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-ink dark:text-white" />
                   <span class="text-ink-muted dark:text-zinc-500">—</span>
@@ -311,13 +311,13 @@
 
               <!-- Set -->
               <section>
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">Set</p>
+                <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-2">Set</p>
                 <input type="text" v-model="filters.setQuery.value" placeholder="Search set name…" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm text-ink dark:text-white" />
               </section>
 
               <!-- Product -->
               <section>
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">Product</p>
+                <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-2">Product</p>
                 <div class="flex flex-wrap gap-1.5">
                   <ListingFilterPill v-for="t in PRODUCT_TYPES" :key="t" :active="filters.productTypes.value.includes(t as any)" @click="toggle(filters.productTypes, t)">{{ t }}</ListingFilterPill>
                 </div>
@@ -325,7 +325,7 @@
 
               <!-- Condition -->
               <section>
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">Condition</p>
+                <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-2">Condition</p>
                 <div class="flex flex-wrap gap-1.5">
                   <ListingFilterPill v-for="c in UNGRADED_CONDITIONS" :key="c" :active="filters.conditions.value.includes(c)" @click="toggle(filters.conditions, c)">{{ shortCondition(c) }}</ListingFilterPill>
                 </div>
@@ -333,7 +333,7 @@
 
               <!-- Language -->
               <section>
-                <p class="text-xs font-bold uppercase tracking-wider text-ink-muted dark:text-zinc-400 mb-2">Language</p>
+                <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400 mb-2">Language</p>
                 <div class="flex flex-wrap gap-1.5">
                   <ListingFilterPill v-for="l in CARD_LANGUAGES" :key="l.code" :active="filters.languages.value.includes(l.code)" @click="toggle(filters.languages, l.code)">{{ l.code }}</ListingFilterPill>
                 </div>
@@ -585,11 +585,9 @@ const chips = computed(() => {
 }
 /* Compact sidebar section label */
 .sb-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.5;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.7;
   margin-bottom: 4px;
 }
 </style>

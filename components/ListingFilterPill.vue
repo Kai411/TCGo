@@ -5,7 +5,7 @@
     class="rounded-full font-semibold transition-colors"
     :class="[
       size === 'sm'
-        ? 'px-2 py-0.5 text-[11px]'
+        ? 'px-2 py-0.5 text-micro'
         : 'px-3 py-1.5 text-xs',
       active
         ? 'bg-ink text-white dark:bg-white dark:text-ink'

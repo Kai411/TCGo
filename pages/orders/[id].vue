@@ -80,30 +80,52 @@
         <!-- ═══ LEFT: what was bought, and what it cost ═══ -->
         <div class="space-y-4 min-w-0">
 
+          <!-- Pay: first, so it's on the first screen of a phone rather than
+               below the items and invoice. -->
+          <div v-if="role === 'buyer' && isPayable" class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">To pay</p>
+                <p class="text-xl font-extrabold tabular-nums text-ink dark:text-white">RM {{ order.total.toFixed(2) }}</p>
+              </div>
+              <button
+                @click="startPayment"
+                :disabled="paying"
+                class="h-12 px-5 shrink-0 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 inline-flex items-center gap-2"
+              >
+                <span v-if="paying" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
+                Pay online (FPX)
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-zinc-400 mt-3">
+              You'll check the delivery address and shipping before going to your bank.
+            </p>
+          </div>
+
           <!-- Header -->
           <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
             <div class="flex items-start justify-between gap-3 mb-4">
               <div class="min-w-0">
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">
                   Order
                 </p>
                 <p class="text-sm text-ink dark:text-white font-mono">#{{ order.id.slice(0, 8) }}</p>
                 <p class="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">{{ formatDate(order.createdAt) }}</p>
               </div>
-              <span class="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-full" :class="statusColor">
+              <span class="shrink-0 text-micro font-semibold px-2 py-1 rounded-full" :class="statusColor">
                 {{ statusLabel }}
               </span>
             </div>
 
             <div class="grid grid-cols-2 gap-4 text-sm">
               <div class="min-w-0">
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-0.5">Buyer</p>
+                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-0.5">Buyer</p>
                 <NuxtLink :to="`/profile/${order.buyerUid}`" class="font-semibold text-ink dark:text-white hover:underline truncate block">
                   {{ order.buyerName }}
                 </NuxtLink>
               </div>
               <div class="min-w-0">
-                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-0.5">Seller</p>
+                <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-0.5">Seller</p>
                 <NuxtLink :to="`/profile/${order.sellerUid}`" class="font-semibold text-ink dark:text-white hover:underline truncate block">
                   {{ order.sellerName }}
                 </NuxtLink>
@@ -123,7 +145,7 @@
 
           <!-- Items + money -->
           <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-3">
+            <h2 class="text-base font-semibold text-ink dark:text-white mb-3">
               Items ({{ order.items.length }})
             </h2>
             <div class="space-y-3">
@@ -166,7 +188,7 @@
                 </span>
                 <span class="tabular-nums">RM {{ order.shipping.toFixed(2) }}</span>
               </div>
-              <p v-if="isJoinFee" class="-mt-1 text-[11px] leading-relaxed text-gray-400 dark:text-zinc-500">
+              <p v-if="isJoinFee" class="-mt-1 text-micro leading-relaxed text-gray-400 dark:text-zinc-500">
                 Ships in the same parcel as your earlier order, so there's no
                 second delivery to pay for.
               </p>
@@ -177,11 +199,11 @@
             </div>
           </div>
 
-          <!-- Invoice -->
-          <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+          <!-- Invoice. Hidden until paid: an unpaid order has no invoice coming. -->
+          <div v-if="!isPayable" class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
-                <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">Invoice</h2>
+                <h2 class="text-base font-semibold text-ink dark:text-white">Invoice</h2>
                 <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1">
                   <template v-if="invoiceAvailable">
                     Tax invoice for order #{{ order.id.slice(0, 8) }}.
@@ -194,7 +216,7 @@
                   {{ invoiceStatus }}
                 </p>
               </div>
-              <div class="shrink-0 flex gap-2">
+              <div v-if="invoiceAvailable" class="shrink-0 flex gap-2">
                 <button
                   @click="emailInvoice"
                   :disabled="!invoiceAvailable || emailingInvoice"
@@ -221,18 +243,9 @@
               <!-- Buyer actions -->
               <template v-if="role === 'buyer'">
                 <button
-                  v-if="isPayable"
-                  @click="startPayment"
-                  :disabled="paying"
-                  class="px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center gap-2"
-                >
-                  <span v-if="paying" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
-                  Pay online (FPX) · RM {{ order.total.toFixed(2) }}
-                </button>
-                <button
                   v-if="order.status === 'shipped'"
                   @click="handleMarkDelivered"
-                  class="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+                  class="px-4 py-2 rounded-lg text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity"
                 >
                   Mark received
                 </button>
@@ -281,9 +294,6 @@
             <p v-if="order.shipmentError && role === 'seller'" class="text-xs text-amber-600 dark:text-amber-400 mt-3">
               Automatic booking didn't go through: {{ order.shipmentError }}
             </p>
-            <p v-if="role === 'buyer' && isPayable" class="text-xs text-gray-500 dark:text-zinc-400 mt-3">
-              Pay securely online via FPX. Your order is confirmed to the seller the moment payment clears.
-            </p>
             <p v-if="order.paymentAmountMismatch" class="text-xs text-red-600 dark:text-red-400 mt-3 font-medium">
               We couldn't match the amount received against this order's total. It hasn't been settled — please contact support before paying again.
             </p>
@@ -298,7 +308,7 @@
 
           <!-- Delivery address -->
           <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
+            <h2 class="text-base font-semibold text-ink dark:text-white mb-2">
               Delivery address
             </h2>
             <template v-if="order.deliveryAddress">
@@ -309,12 +319,12 @@
                 {{ order.deliveryAddress.postcode }} {{ order.deliveryAddress.city }}<br/>
                 {{ stateName(order.deliveryAddress.state) }}
               </p>
-              <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-2">
+              <p class="text-micro text-gray-400 dark:text-zinc-500 mt-2">
                 {{ order.region === "WM" ? "West Malaysia" : "East Malaysia" }}
               </p>
             </template>
             <p v-else class="text-sm text-gray-500 dark:text-zinc-400">
-              No address yet — added at payment.
+              {{ role === "buyer" && isPayable ? "You'll confirm where it goes when you pay." : "No address yet. The buyer adds it at payment." }}
             </p>
           </div>
 
@@ -327,7 +337,7 @@
           <template v-else>
             <!-- Waybill / tracking -->
             <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
-              <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-2">
+              <h2 class="text-base font-semibold text-ink dark:text-white mb-2">
                 Waybill
               </h2>
 
@@ -344,7 +354,7 @@
                   </div>
                   <button
                     @click="copyTracking"
-                    class="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 hover:border-pokemon-red hover:text-pokemon-red transition-colors"
+                    class="shrink-0 text-micro font-semibold px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 hover:border-pokemon-red hover:text-pokemon-red transition-colors"
                   >
                     {{ copied ? "Copied" : "Copy" }}
                   </button>
@@ -358,13 +368,13 @@
                      scan-by-scan progress. -->
                 <div v-if="role === 'buyer'" class="mt-4 pt-4 border-t border-gray-100 dark:border-white/[0.06]">
                   <div class="flex items-center justify-between gap-2 mb-3">
-                    <h3 class="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-zinc-400">
+                    <h3 class="text-xs font-semibold text-gray-500 dark:text-zinc-400">
                       Delivery progress
                     </h3>
                     <button
                       @click="loadTracking"
                       :disabled="trackingBusy"
-                      class="text-[11px] font-semibold text-pokemon-red hover:underline disabled:opacity-50"
+                      class="text-micro font-semibold text-pokemon-red hover:underline disabled:opacity-50"
                     >
                       {{ trackingBusy ? "Refreshing…" : "Refresh" }}
                     </button>
@@ -388,7 +398,7 @@
                         class="w-full h-44 pointer-events-none"
                         title="Waybill preview"
                       />
-                      <span class="block text-[11px] font-semibold text-gray-600 dark:text-zinc-300 py-1.5 group-hover:text-pokemon-red">
+                      <span class="block text-micro font-semibold text-gray-600 dark:text-zinc-300 py-1.5 group-hover:text-pokemon-red">
                         Open full size ↗
                       </span>
                     </button>
@@ -402,7 +412,7 @@
                     <span v-if="labelBusy" class="animate-spin rounded-full h-3 w-3 border-b-2 border-pokemon-red"/>
                     {{ labelBusy ? "Fetching…" : labelUrl ? "Refresh label" : "Get consignment note" }}
                   </button>
-                  <p v-if="labelError" class="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                  <p v-if="labelError" class="text-micro text-amber-600 dark:text-amber-400 mt-1">
                     {{ labelError }}
                   </p>
                 </template>
@@ -441,7 +451,7 @@
               RM {{ (order.refundAmount ?? order.total ?? 0).toFixed(2) }}
             </p>
           </div>
-          <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-1.5">
+          <p class="text-micro text-gray-400 dark:text-zinc-500 mt-1.5">
             {{
               order.refundStatus === "refunded"
                 ? "Back on the account you paid from."
@@ -462,7 +472,7 @@
           <div class="flex items-center justify-between gap-2 mb-3">
             <h2 class="text-sm font-bold text-ink dark:text-white">Settlement</h2>
             <span
-              class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+              class="text-micro font-semibold px-2 py-0.5 rounded-full"
               :class="settlementBadge.cls"
             >
               {{ settlementBadge.label }}
@@ -572,7 +582,7 @@
           <div class="flex justify-between font-bold text-ink dark:text-white pt-1 border-t border-black/[0.06] dark:border-white/[0.08]">
             <span>You'll receive</span><span>RM {{ refundSummary.amount.toFixed(2) }}</span>
           </div>
-          <p class="text-[11px] text-gray-500 dark:text-zinc-400 pt-1">
+          <p class="text-micro text-gray-500 dark:text-zinc-400 pt-1">
             A 5% payment processing fee (capped at RM 2) covers the payment and transfer charges. Refunds are sent to your bank after review.
           </p>
         </div>
@@ -598,6 +608,76 @@
       </form>
     </div>
 
+    <!-- Teleported: the page's enter animation leaves a transform on an
+         ancestor, which pins fixed overlays to the content, not the screen. -->
+    <Teleport to="body">
+    <!-- Check and pay: the address and the real shipping price, before the
+         buyer leaves for the bank. The total here is what Billplz will ask
+         for: /api/orders/price and create-bill price the order the same way. -->
+    <div
+      v-if="confirmOpen && order"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40"
+      @click.self="confirmOpen = false"
+    >
+      <div class="surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 pb-[max(20px,env(safe-area-inset-bottom))] border border-black/[0.06] dark:border-white/[0.08] max-h-[90vh] overflow-y-auto">
+        <h3 class="text-base font-bold text-ink dark:text-white">Check and pay</h3>
+
+        <div class="mt-4 flex items-start justify-between gap-3">
+          <div class="min-w-0 text-sm">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400 mb-1">Delivering to</p>
+            <template v-if="order.deliveryAddress">
+              <p class="font-medium text-ink dark:text-white">{{ order.deliveryAddress.name }} · {{ order.deliveryAddress.phone }}</p>
+              <p class="text-gray-600 dark:text-zinc-300 leading-relaxed">
+                {{ order.deliveryAddress.address1 }}<template v-if="order.deliveryAddress.address2">, {{ order.deliveryAddress.address2 }}</template><br/>
+                {{ order.deliveryAddress.postcode }} {{ order.deliveryAddress.city }}, {{ stateName(order.deliveryAddress.state) }}
+              </p>
+            </template>
+          </div>
+          <button
+            type="button"
+            @click="changeAddress"
+            :disabled="paying"
+            class="shrink-0 px-3 py-2 rounded-lg text-xs font-bold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200"
+          >
+            Change
+          </button>
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-gray-100 dark:border-white/[0.06] space-y-1 text-sm">
+          <div class="flex justify-between text-gray-600 dark:text-zinc-300">
+            <span>Subtotal</span>
+            <span class="tabular-nums">RM {{ order.subtotal.toFixed(2) }}</span>
+          </div>
+          <div class="flex justify-between text-gray-600 dark:text-zinc-300">
+            <span>Shipping<template v-if="price?.courier"> · {{ price.courier }}</template></span>
+            <span class="tabular-nums">{{ pricing ? "Checking…" : price ? `RM ${price.shipping.toFixed(2)}` : "–" }}</span>
+          </div>
+          <div class="flex justify-between font-bold text-base pt-2 border-t border-gray-100 dark:border-white/[0.06]">
+            <span class="text-ink dark:text-white">Total</span>
+            <span class="text-pokemon-red tabular-nums">{{ price && !pricing ? `RM ${price.total.toFixed(2)}` : "–" }}</span>
+          </div>
+        </div>
+
+        <p v-if="priceError" role="alert" class="mt-3 text-xs text-red-600 dark:text-red-400">{{ priceError }}</p>
+        <p v-else class="mt-3 text-xs text-gray-500 dark:text-zinc-400">
+          Shipping is the courier's price to this address. You pay by FPX on your bank's page.
+        </p>
+
+        <div class="flex gap-2 mt-4">
+          <button type="button" @click="confirmOpen = false" class="flex-1 h-12 rounded-xl text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200">Cancel</button>
+          <button
+            type="button"
+            @click="createBillAndRedirect"
+            :disabled="paying || pricing || !price"
+            class="flex-[2] h-12 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            <span v-if="paying" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
+            {{ price && !pricing ? `Pay RM ${price.total.toFixed(2)}` : "Pay" }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Delivery address dialog (buyer, before online payment) -->
     <div
       v-if="addressOpen"
@@ -607,7 +687,7 @@
       <div class="surface rounded-2xl w-full max-w-md p-5 border border-black/[0.06] dark:border-white/[0.08] max-h-[90vh] overflow-y-auto">
         <h3 class="text-base font-bold text-ink dark:text-white mb-1">Delivery address</h3>
         <p class="text-xs text-gray-500 dark:text-zinc-400 mb-4">Where should the seller ship this order?</p>
-        <form @submit.prevent="saveAddressAndPay" class="space-y-3">
+        <form @submit.prevent="saveAddressAndConfirm" class="space-y-3">
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Full name <span class="text-pokemon-red">*</span></label>
@@ -651,12 +731,13 @@
               class="flex-1 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
             >
               <span v-if="paying" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
-              Continue to payment
+              Continue
             </button>
           </div>
         </form>
       </div>
     </div>
+    </Teleport>
 
   </div>
 </template>
@@ -765,10 +846,9 @@ const buyerActions = computed(() => {
   const o = order.value;
   if (!o || role.value !== "buyer") return false;
   return (
-    isPayable.value ||
     o.status === "shipped" ||
-    o.status === "pending" ||
-    o.status === "confirmed"
+    (o.status === "pending" && !o.auctionId) ||
+    canCancelPaid.value
   );
 });
 
@@ -786,7 +866,6 @@ const actionHints = computed(() => {
   if (!o) return false;
   return (
     (!!o.shipmentError && role.value === "seller") ||
-    (role.value === "buyer" && isPayable.value) ||
     !!o.paymentAmountMismatch
   );
 });
@@ -986,29 +1065,59 @@ const profileAddress = computed(() => {
   };
 });
 
+// Pay → check and pay (address + real shipping) → bank. An address already
+// on the order, or the one saved in settings, goes straight to the check;
+// with neither, the form comes first.
+const confirmOpen = ref(false);
+const pricing = ref(false);
+const priceError = ref("");
+const price = ref<{ shipping: number; total: number; courier: string | null } | null>(null);
+
+const writeOrderAddress = async (address: Record<string, string>) => {
+  const { doc: docRef, updateDoc } = await import("firebase/firestore");
+  await updateDoc(docRef(firestore!, "compiledOrders", order.value!.id), {
+    deliveryAddress: address,
+  });
+};
+
+const openConfirm = async () => {
+  if (!order.value) return;
+  confirmOpen.value = true;
+  pricing.value = true;
+  priceError.value = "";
+  price.value = null;
+  try {
+    price.value = await authedFetch<{ shipping: number; total: number; courier: string | null }>(
+      "/api/orders/price",
+      { method: "POST", body: { orderId: order.value.id } },
+    );
+  } catch (e: any) {
+    priceError.value = e?.data?.message || "Couldn't get the shipping price. Try again in a moment.";
+  } finally {
+    pricing.value = false;
+  }
+};
+
 const startPayment = async () => {
   if (!order.value) return;
 
-  // Already captured on the order — nothing to ask for.
   if (order.value.deliveryAddress) {
-    void createBillAndRedirect();
+    void openConfirm();
     return;
   }
 
-  // Otherwise use the address from settings rather than asking again. It's
-  // the same address the cart quoted shipping against, so re-prompting was
-  // both redundant and a chance to enter something that doesn't match.
+  // The address from settings, the same one the cart quoted shipping
+  // against. It's shown on the check step with a Change button, rather than
+  // asked for again.
   if (profileAddress.value) {
     paying.value = true;
     try {
-      const { doc: docRef, updateDoc } = await import("firebase/firestore");
-      await updateDoc(docRef(firestore!, "compiledOrders", order.value.id), {
-        deliveryAddress: profileAddress.value,
-      });
-      await createBillAndRedirect();
+      await writeOrderAddress(profileAddress.value);
+      paying.value = false;
+      void openConfirm();
     } catch (e: any) {
       paying.value = false;
-      alert(e?.data?.message || e?.message || "Couldn't start the payment.");
+      alert(e?.message || "Couldn't start the payment.");
     }
     return;
   }
@@ -1026,25 +1135,39 @@ const startPayment = async () => {
   addressOpen.value = true;
 };
 
-const saveAddressAndPay = async () => {
+const changeAddress = () => {
+  const a = order.value?.deliveryAddress;
+  addr.value = {
+    name: a?.name || "",
+    phone: a?.phone || "",
+    address1: a?.address1 || "",
+    address2: a?.address2 || "",
+    postcode: a?.postcode || "",
+    city: a?.city || "",
+    state: a?.state || "",
+  };
+  confirmOpen.value = false;
+  addressOpen.value = true;
+};
+
+const saveAddressAndConfirm = async () => {
   if (!order.value || !firestore) return;
   paying.value = true;
   try {
-    const { doc: docRef, updateDoc } = await import("firebase/firestore");
-    await updateDoc(docRef(firestore, "compiledOrders", order.value.id), {
-      deliveryAddress: {
-        name: addr.value.name.trim(),
-        phone: addr.value.phone.trim(),
-        address1: addr.value.address1.trim(),
-        address2: addr.value.address2.trim(),
-        postcode: addr.value.postcode.trim(),
-        city: addr.value.city.trim(),
-        state: addr.value.state,
-      },
+    await writeOrderAddress({
+      name: addr.value.name.trim(),
+      phone: addr.value.phone.trim(),
+      address1: addr.value.address1.trim(),
+      address2: addr.value.address2.trim(),
+      postcode: addr.value.postcode.trim(),
+      city: addr.value.city.trim(),
+      state: addr.value.state,
     });
-    await createBillAndRedirect();
+    addressOpen.value = false;
+    void openConfirm();
   } catch (e: any) {
-    alert(e?.data?.message || e?.message || "Couldn't start the payment.");
+    alert(e?.message || "Couldn't save the address.");
+  } finally {
     paying.value = false;
   }
 };

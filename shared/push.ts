@@ -63,6 +63,11 @@ const KIND_CATEGORY: Record<NotificationKind, PushCategory> = {
   auction_sold: "auctions",
   // A reply from TCGo reads like a message, so it follows the Messages switch.
   enquiry_reply: "messages",
+  // Moderation is about the seller's own listings and account, like orders.
+  listing_hidden: "orders",
+  listing_restored: "orders",
+  selling_suspended: "orders",
+  selling_restored: "orders",
 };
 
 export const categoryForKind = (kind: NotificationKind): PushCategory =>

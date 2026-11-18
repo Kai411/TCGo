@@ -4,7 +4,7 @@
       <h2 class="eyebrow">
         {{ order.items.length }} {{ order.items.length === 1 ? "item" : "items" }} · {{ order.sellerName }}
       </h2>
-      <span class="text-[11px] font-mono text-gray-400 dark:text-zinc-500">#{{ order.id.slice(0, 8) }}</span>
+      <span class="text-micro font-mono text-gray-400 dark:text-zinc-500">#{{ order.id.slice(0, 8) }}</span>
     </div>
 
     <ul class="mt-3 divide-y divide-black/[0.05] dark:divide-white/[0.06]">

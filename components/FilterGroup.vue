@@ -9,7 +9,7 @@
       <span class="sb-label !mb-0 flex-1">{{ label }}</span>
       <span
         v-if="count > 0"
-        class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-[10px] font-bold tabular-nums"
+        class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-pokemon-red text-white text-2xs font-bold tabular-nums"
       >
         {{ count }}
       </span>
@@ -50,10 +50,8 @@ defineEmits<{ (e: "toggle"): void }>();
 
 <style scoped>
 .sb-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.55;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.7;
 }
 </style>

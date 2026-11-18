@@ -225,10 +225,11 @@ const seller = {
   bankAccountHolder: "Kai Tan",
   identityNumber: "900101101234",
   handoverPreference: "dropoff",
+  sellerType: "individual",
 };
 
 describe("seller onboarding", () => {
-  it("is complete when all four are done", () => {
+  it("is complete when every step is done", () => {
     const s = sellerOnboardingState(seller);
     assert.equal(s.complete, true);
     assert.equal(s.current, null);
@@ -238,6 +239,13 @@ describe("seller onboarding", () => {
   it("asks for identity first — before any money can move", () => {
     const s = sellerOnboardingState({ ...seller, kycStatus: "none" });
     assert.equal(s.current, "identity");
+  });
+
+  it("asks individual or business right after identity", () => {
+    const s = sellerOnboardingState({ ...seller, sellerType: undefined });
+    assert.equal(s.current, "seller");
+    assert.equal(sellerOnboardingState({ ...seller, sellerType: "business" }).complete, true);
+    assert.equal(sellerOnboardingState({ ...seller, sellerType: "shop" }).complete, false);
   });
 
   it("requires identity to sell, unlike buying", () => {

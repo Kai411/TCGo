@@ -10,7 +10,7 @@
         : 'text-gray-500 dark:text-zinc-400'">
         {{ etaLabel }}
       </p>
-      <p v-if="tracking.origin && tracking.destination" class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">
+      <p v-if="tracking.origin && tracking.destination" class="text-micro text-gray-400 dark:text-zinc-500 mt-0.5">
         {{ tracking.origin }} → {{ tracking.destination }}
       </p>
     </div>
@@ -48,7 +48,7 @@
           >
             {{ label(e.description) }}
           </p>
-          <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">
+          <p class="text-micro text-gray-400 dark:text-zinc-500 mt-0.5">
             {{ fmt(e.createdAt) }}<template v-if="e.location"> · {{ e.location }}</template>
           </p>
         </div>

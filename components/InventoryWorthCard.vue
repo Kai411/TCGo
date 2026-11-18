@@ -47,38 +47,38 @@
            margin that quietly skips half the shelf is worse than none. -->
       <dl class="flex flex-wrap gap-5 sm:gap-7">
         <div>
-          <dt class="text-[11px] text-ink-muted dark:text-zinc-400">Cost basis</dt>
+          <dt class="text-micro text-ink-muted dark:text-zinc-400">Cost basis</dt>
           <dd class="mt-1 text-lg font-bold text-ink dark:text-white tabular-price">
             <template v-if="costedHeld > 0">RM {{ formatMyr(holdings.costBasis) }}</template>
             <template v-else>—</template>
-            <span class="block text-[10px] font-normal text-ink-soft dark:text-zinc-500">
+            <span class="block text-2xs font-normal text-ink-soft dark:text-zinc-500">
               {{ costedHeld }} of {{ holdings.rows }} with a cost
             </span>
           </dd>
         </div>
         <div>
-          <dt class="text-[11px] text-ink-muted dark:text-zinc-400">Unrealised</dt>
+          <dt class="text-micro text-ink-muted dark:text-zinc-400">Unrealised</dt>
           <dd
             class="mt-1 text-lg font-bold tabular-price"
             :class="holdings.costedRows > 0 ? toneClass(holdings.unrealisedGain) : 'text-ink-soft dark:text-zinc-600'"
           >
             <template v-if="holdings.costedRows > 0">{{ signed(holdings.unrealisedGain) }}</template>
             <template v-else>—</template>
-            <span class="block text-[10px] font-normal text-ink-soft dark:text-zinc-500">
+            <span class="block text-2xs font-normal text-ink-soft dark:text-zinc-500">
               <template v-if="holdings.unrealisedPct !== null">{{ signedPct(holdings.unrealisedPct) }} on cost</template>
               <template v-else>market vs what you paid</template>
             </span>
           </dd>
         </div>
         <div>
-          <dt class="text-[11px] text-ink-muted dark:text-zinc-400">Realised · 30 days</dt>
+          <dt class="text-micro text-ink-muted dark:text-zinc-400">Realised · 30 days</dt>
           <dd
             class="mt-1 text-lg font-bold tabular-price"
             :class="realised.last30.costedRows > 0 ? toneClass(realised.last30.profit) : 'text-ink-soft dark:text-zinc-600'"
           >
             <template v-if="realised.last30.costedRows > 0">{{ signed(realised.last30.profit) }}</template>
             <template v-else>—</template>
-            <span class="block text-[10px] font-normal text-ink-soft dark:text-zinc-500">
+            <span class="block text-2xs font-normal text-ink-soft dark:text-zinc-500">
               <template v-if="realised.allTime.costedRows > 0">
                 {{ signed(realised.allTime.profit) }} all time · after TCGo fees
               </template>

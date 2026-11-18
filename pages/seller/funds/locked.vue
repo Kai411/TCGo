@@ -28,7 +28,7 @@
         <p class="text-3xl font-extrabold text-ink dark:text-white tabular-nums mt-1">
           RM {{ fmt(lockedTotal) }}
         </p>
-        <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-1">
+        <p class="text-micro text-gray-400 dark:text-zinc-500 mt-1">
           {{ locked.length }} order{{ locked.length === 1 ? "" : "s" }}
           <template v-if="nextUnlock"> · next unlocks {{ nextUnlock }}</template>
         </p>
@@ -55,7 +55,7 @@
                 {{ e.order.buyerName }} ·
                 {{ e.order.items.length }} item{{ e.order.items.length === 1 ? "" : "s" }}
               </p>
-              <p class="text-[11px] text-gray-500 dark:text-zinc-400">{{ lockReason(e) }}</p>
+              <p class="text-micro text-gray-500 dark:text-zinc-400">{{ lockReason(e) }}</p>
             </div>
             <span class="shrink-0 text-sm font-bold text-ink dark:text-white tabular-nums">
               RM {{ fmt(e.amount) }}
