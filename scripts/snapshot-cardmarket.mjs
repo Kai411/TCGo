@@ -14,7 +14,9 @@
 //
 // Usage:
 //   1. Run supabase/schema.sql once so card_price_sources exists.
-//   2. node scripts/snapshot-cardmarket.mjs            # dry run
+//   2. Nightly: .github/workflows/snapshot-cardmarket.yml runs it with --yes.
+//      By hand (reads SUPABASE_URL / SUPABASE_SERVICE_KEY from .env):
+//      node scripts/snapshot-cardmarket.mjs            # dry run
 //      node scripts/snapshot-cardmarket.mjs --yes      # write
 //      node scripts/snapshot-cardmarket.mjs --yes --set ex8
 //
@@ -23,15 +25,17 @@
 // that it reports an empty set as confidently as a real one, which reads as
 // "the card isn't there" when it is.
 
-import { readFileSync } from "node:fs";
+import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
 
-const env = Object.fromEntries(
-  readFileSync(new URL("../.env", import.meta.url), "utf8")
-    .split("\n")
-    .filter((l) => l.trim() && !l.trim().startsWith("#") && l.includes("="))
-    .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; }),
-);
+// Env comes from .env locally (dotenv) or from the workflow's secrets in
+// GitHub Actions, same as snapshot-pokemon-prices.mjs. This used to read .env
+// by hand, which is why it could only ever run on a laptop.
+const env = process.env;
+if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_KEY) {
+  console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_KEY in env");
+  process.exit(1);
+}
 const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY, {
   auth: { persistSession: false },
 });
@@ -56,7 +60,9 @@ async function api(path, attempt = 1) {
   // A key raises the rate limit; the endpoint works without one.
   if (env.POKEMONTCG_API_KEY) headers["X-Api-Key"] = env.POKEMONTCG_API_KEY;
   try {
-    const res = await fetch(`${API}${path}`, { headers });
+    // The upstream can hang rather than fail; a stuck request must not stall
+    // the whole run.
+    const res = await fetch(`${API}${path}`, { headers, signal: AbortSignal.timeout(60_000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -128,13 +134,21 @@ const main = async () => {
   console.log(`Fetching ${wanted.length} set(s) from the second source.\n`);
 
   const rows = [];
-  let seen = 0, ambiguous = 0, unmatched = 0;
+  let seen = 0, ambiguous = 0, unmatched = 0, failedSets = 0;
 
   for (const set of wanted) {
+    // Pages of 250: a set bigger than that (with its secret rares) would
+    // otherwise silently lose its last cards, which are the scarce ones.
     let cards = [];
     try {
-      cards = (await api(`/cards?q=${encodeURIComponent(`set.id:${set.id}`)}&pageSize=250`)).data ?? [];
+      for (let page = 1; ; page += 1) {
+        const res = await api(`/cards?q=${encodeURIComponent(`set.id:${set.id}`)}&pageSize=250&page=${page}`);
+        const batch = res.data ?? [];
+        cards.push(...batch);
+        if (batch.length < 250 || cards.length >= (res.totalCount ?? 0)) break;
+      }
     } catch (err) {
+      failedSets += 1;
       console.log(`  ${set.id.padEnd(10)} FAILED: ${err.message}`);
       continue;
     }
@@ -168,7 +182,10 @@ const main = async () => {
   }
 
   console.log(`\n${rows.length} priced match(es). ${ambiguous} ambiguous, ${unmatched} not in our catalogue, ${seen} priced upstream.`);
-  if (!rows.length) { console.log("Nothing to write."); return; }
+  if (failedSets) console.log(`${failedSets} of ${wanted.length} set(s) failed to fetch.`);
+  // Writing nothing is a failure, not a quiet success: an empty table is
+  // exactly what this script exists to prevent, so make the run go red.
+  if (!rows.length) { console.error("Nothing to write."); process.exit(1); }
 
   if (!confirmed) {
     console.log("\nSample:");
