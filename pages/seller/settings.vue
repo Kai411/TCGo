@@ -155,6 +155,9 @@
           <p v-else-if="bankLine" class="mt-2 text-sm text-ink-subtle dark:text-zinc-200 tabular-nums">{{ bankLine }}</p>
         </div>
 
+        <!-- The shop's own QR for counter (POS) payments -->
+        <SellerPaymentQr id="payment-qr" class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08] scroll-mt-24" />
+
         <!-- Handover preference -->
         <div class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08]">
           <p class="text-sm font-semibold text-ink dark:text-zinc-100 mb-1">Parcel handover</p>

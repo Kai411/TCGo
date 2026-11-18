@@ -50,7 +50,7 @@ useHead({ title: "Privacy Policy · TCGo" });
         </tr>
         <tr>
           <td>Payment records: amount, status, reference and payment method. Not your online banking password or full card number</td>
-          <td>When you pay through Billplz, subscribe through Stripe or pay at a counter through HitPay</td>
+          <td>When you pay through Billplz or subscribe through Stripe</td>
         </tr>
         <tr>
           <td>Bank account name, bank and account number</td>
@@ -114,7 +114,6 @@ useHead({ title: "Privacy Policy · TCGo" });
       <li><b>Google Gemini</b>: identifying cards from photos you choose to scan or upload.</li>
       <li><b>Billplz</b>: online payments, seller payouts and refunds.</li>
       <li><b>Stripe</b>: Premium subscription billing.</li>
-      <li><b>HitPay</b>: QR payments at the POS counter.</li>
       <li><b>Didit</b>: seller identity verification.</li>
       <li><b>Delyva and its courier partners</b>: shipping quotes, labels and tracking.</li>
       <li><b>Cloudinary</b>: storing and serving images.</li>

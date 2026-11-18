@@ -8,7 +8,7 @@
 // that invoice is accurate.
 //
 // At a counter we are in none of it. The money went from the customer to the
-// shop's own bank through HitPay; we supplied the till. A receipt headed with
+// shop's own bank through the shop's own QR; we supplied the till. A receipt headed with
 // our logo would misstate who sold the card and, more importantly, who the
 // customer's recourse is against — a dispute over an in-person sale is with
 // the shop. We are also not SST-registered and not the supplier, so it must
@@ -50,6 +50,7 @@ export interface ReceiptInput {
 }
 
 const METHOD_LABEL: Record<string, string> = {
+  shop_qr: "QR",
   duitnow_qr: "DuitNow QR",
   tap_to_pay: "Card",
   cash: "Cash",

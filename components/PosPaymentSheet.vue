@@ -24,8 +24,8 @@
 
         <div class="space-y-2">
           <button
-            v-if="qrEnabled"
-            @click="$emit('pay', 'duitnow_qr')"
+            v-if="shopQr"
+            @click="$emit('pay', 'shop_qr')"
             class="w-full flex items-center gap-3 p-3 rounded-xl border border-black/[0.08] dark:border-white/[0.10] hover:border-pokemon-red transition-colors text-left"
           >
             <span class="w-9 h-9 shrink-0 rounded-lg bg-ink/[0.04] dark:bg-white/[0.06] flex items-center justify-center">
@@ -37,12 +37,36 @@
               </svg>
             </span>
             <span class="min-w-0 flex-1">
-              <span class="block text-sm font-semibold text-ink dark:text-white">DuitNow QR</span>
+              <span class="block text-sm font-semibold text-ink dark:text-white">Your shop's QR</span>
               <span class="block text-micro text-gray-500 dark:text-zinc-400">
-                Customer scans with any banking app
+                Customer scans it and pays you directly
               </span>
             </span>
           </button>
+
+          <!-- No QR saved yet. Shown in place of the option rather than
+               hidden, so the seller learns where QR payments come from. -->
+          <NuxtLink
+            v-else
+            to="/seller/settings#payment-qr"
+            class="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-black/[0.12] dark:border-white/[0.14] hover:border-pokemon-red transition-colors text-left"
+          >
+            <span class="w-9 h-9 shrink-0 rounded-lg bg-ink/[0.04] dark:bg-white/[0.06] flex items-center justify-center">
+              <svg class="w-5 h-5 text-ink-muted dark:text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <path d="M17.5 14v7M14 17.5h7" />
+              </svg>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm font-semibold text-ink dark:text-white">Add your shop's QR</span>
+              <span class="block text-micro text-gray-500 dark:text-zinc-400">
+                Upload your DuitNow, TNG or bank QR in Seller settings to take QR payments
+              </span>
+            </span>
+            <span class="shrink-0 text-xs font-semibold text-pokemon-red">Set up</span>
+          </NuxtLink>
 
           <!-- Kept visible rather than hidden: sellers were promised it on the
                landing page, so saying "not yet" beats saying nothing. -->
@@ -88,7 +112,7 @@
         </button>
       </template>
 
-      <!-- ── Reserving stock / talking to the acquirer ────────────────── -->
+      <!-- ── Reserving stock ─────────────────────────────────────────── -->
       <template v-else-if="phase === 'starting'">
         <div class="py-10 text-center">
           <span class="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-pokemon-red" />
@@ -99,54 +123,54 @@
         </div>
       </template>
 
-      <!-- ── The QR itself ───────────────────────────────────────────── -->
+      <!-- ── The shop's own QR ───────────────────────────────────────────
+           Turned toward the customer. The amount is the biggest thing on
+           screen because a static QR doesn't carry one: the customer types
+           it into their app, so it has to be readable from across a counter. -->
       <template v-else-if="phase === 'awaiting'">
         <div class="text-center">
-          <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">
-            DuitNow QR
-          </p>
-          <p class="mt-1 text-2xl font-extrabold text-ink dark:text-white tabular-nums">
+          <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">Scan to pay</p>
+          <p class="mt-1 text-3xl font-extrabold text-ink dark:text-white tabular-nums">
             RM {{ total.toFixed(2) }}
           </p>
 
-          <div class="mt-4 mx-auto w-56 h-56 rounded-2xl bg-white p-3 shadow-card flex items-center justify-center">
-            <img v-if="qrImage" :src="qrImage" alt="DuitNow QR code" class="w-full h-full" />
-            <span v-else class="text-xs text-gray-400">Generating…</span>
+          <div class="mt-4 mx-auto w-60 max-w-full aspect-square rounded-2xl bg-white p-2 shadow-card flex items-center justify-center overflow-hidden">
+            <img :src="shopQr" alt="Shop payment QR code" class="w-full h-full object-contain" />
           </div>
 
           <p class="mt-4 text-sm text-ink dark:text-white font-medium">
-            Ask the customer to scan this
+            Ask the customer to pay exactly RM {{ total.toFixed(2) }}
           </p>
           <p class="mt-1 text-xs text-gray-500 dark:text-zinc-400">
-            Any Malaysian banking or e-wallet app
+            Check the money arrived in your bank or e-wallet app, then mark it paid.
           </p>
 
-          <!-- A decline is not the end of the sale: the same QR still
-               works, and most customers just try another account. -->
-          <div
-            v-if="attemptDeclined"
-            class="mt-4 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 px-3 py-2"
+          <p
+            class="mt-3 text-xs tabular-nums"
+            :class="secondsLeft > 0 ? 'text-gray-500 dark:text-zinc-400' : 'text-amber-700 dark:text-amber-300 font-semibold'"
           >
-            <p class="text-xs font-bold text-amber-800 dark:text-amber-200">
-              That payment was declined
-            </p>
-            <p class="mt-0.5 text-micro text-amber-700 dark:text-amber-300">
-              The QR still works — ask them to try again, or cancel and take cash.
-            </p>
-          </div>
+            <template v-if="secondsLeft > 0">Cards held for {{ countdown }}</template>
+            <template v-else>The hold ended. Mark paid only if the money arrived.</template>
+          </p>
 
-          <div class="mt-4 flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-zinc-400">
-            <span class="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400" />
-            Waiting for payment
-            <span v-if="secondsLeft > 0" class="tabular-nums">· {{ countdown }}</span>
-          </div>
+          <p v-if="markError" class="mt-3 text-label text-rose-600 dark:text-rose-400">
+            {{ markError }}
+          </p>
 
           <button
-            @click="$emit('cancel')"
-            :disabled="cancelling"
-            class="w-full mt-5 py-2.5 rounded-xl text-sm font-semibold text-ink-subtle dark:text-zinc-300 border border-black/[0.06] dark:border-white/[0.08] disabled:opacity-50"
+            @click="$emit('mark-paid')"
+            :disabled="marking || cancelling"
+            class="w-full mt-5 py-3 rounded-xl text-sm font-bold bg-pokemon-red text-white hover:bg-pokemon-red-dark transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            {{ cancelling ? "Cancelling…" : "Cancel payment" }}
+            <span v-if="marking" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+            {{ marking ? "Marking paid…" : "Mark as paid" }}
+          </button>
+          <button
+            @click="$emit('cancel')"
+            :disabled="cancelling || marking"
+            class="w-full mt-2 py-2.5 rounded-xl text-sm font-semibold text-ink-subtle dark:text-zinc-300 border border-black/[0.06] dark:border-white/[0.08] disabled:opacity-50"
+          >
+            {{ cancelling ? "Cancelling…" : "Cancel sale" }}
           </button>
         </div>
       </template>
@@ -234,7 +258,7 @@
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </div>
-          <p class="mt-4 text-lg font-bold text-ink dark:text-white">Payment didn't go through</p>
+          <p class="mt-4 text-lg font-bold text-ink dark:text-white">Sale not completed</p>
           <p class="mt-1 text-sm text-gray-500 dark:text-zinc-400">
             {{ failedReason || "Nothing was charged. The cards are back on sale." }}
           </p>
@@ -269,22 +293,24 @@ const props = defineProps<{
   discountTotal: number;
   discountedCount: number;
   count: number;
-  qrImage: string;
+  /** The seller's own payment QR image. Empty when none is saved. */
+  shopQr: string;
   /** Epoch ms when the hold lapses. */
   reservedUntil: number;
   cancelling: boolean;
+  /** "Mark as paid" in flight, and why it last failed. */
+  marking: boolean;
+  markError?: string;
   /** Set once a receipt has gone out, so the form gives way to a confirmation. */
   receiptSentTo?: string;
   sendingReceipt?: boolean;
   receiptError?: string;
-  /** Latest attempt declined, but the QR is still live for a retry. */
-  attemptDeclined: boolean;
   failedReason: string;
-  qrEnabled: boolean;
 }>();
 
 defineEmits<{
   (e: "pay", method: PosPaymentMethod): void;
+  (e: "mark-paid"): void;
   (e: "cancel"): void;
   (e: "close"): void;
   (e: "retry"): void;

@@ -172,10 +172,9 @@ service cloud.firestore {
         'addresses', 'deliveryName', 'deliveryPhone', 'deliveryAddress1',
         'deliveryAddress2', 'deliveryPostcode', 'deliveryCity', 'deliveryState',
         'pickupAddress1', 'pickupAddress2', 'pickupPostcode', 'pickupCity',
-        'pickupState',
+        'pickupState', 'posPaymentQr',
         'kycVerifiedName', 'kycDocumentType', 'kycIssuingState',
-        'kycDeclineReason', 'kycIdentityNumber', 'payoutNameApproval',
-        'hitpayAccessToken', 'hitpayMerchantKey'
+        'kycDeclineReason', 'kycIdentityNumber', 'payoutNameApproval'
       ];
     }
 
@@ -214,9 +213,9 @@ service cloud.firestore {
       allow delete: if false;
 
       // The personal half of the profile. Only its owner and admins read it.
-      // The owner writes their own contact and address details; payout bank
-      // details, the identity result and merchant credentials are written
-      // by the server.
+      // The owner writes their own contact and address details and their
+      // shop's payment QR; payout bank details and the identity result are
+      // written by the server.
       match /private/{docId} {
         allow read: if isOwner(uid) || isAdmin();
         allow create, update: if isOwner(uid)
@@ -228,21 +227,20 @@ service cloud.firestore {
                'deliveryAddress2', 'deliveryPostcode', 'deliveryCity',
                'deliveryState', 'pickupAddress1', 'pickupAddress2',
                'pickupPostcode', 'pickupCity', 'pickupState',
+               // The shop's own payment QR (a Cloudinary URL) for the POS.
+               'posPaymentQr',
                // Server-written; may be present, never changed by the owner.
                'kycVerifiedName', 'kycDocumentType', 'kycIssuingState',
-               'kycDeclineReason', 'kycIdentityNumber', 'payoutNameApproval',
-               'hitpayAccessToken', 'hitpayMerchantKey'
+               'kycDeclineReason', 'kycIdentityNumber', 'payoutNameApproval'
              ])
           && (resource == null
               ? !request.resource.data.keys().hasAny(['kycVerifiedName',
                   'kycDocumentType', 'kycIssuingState', 'kycDeclineReason',
-                  'kycIdentityNumber', 'payoutNameApproval',
-                  'hitpayAccessToken', 'hitpayMerchantKey'])
+                  'kycIdentityNumber', 'payoutNameApproval'])
               : !request.resource.data.diff(resource.data).affectedKeys()
                   .hasAny(['kycVerifiedName', 'kycDocumentType',
                     'kycIssuingState', 'kycDeclineReason',
-                    'kycIdentityNumber', 'payoutNameApproval',
-                    'hitpayAccessToken', 'hitpayMerchantKey'].toSet()))
+                    'kycIdentityNumber', 'payoutNameApproval'].toSet()))
           && bankFieldsKept(uid);
         allow delete: if false;
       }
