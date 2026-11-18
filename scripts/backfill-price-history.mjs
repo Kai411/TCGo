@@ -23,6 +23,14 @@
 //   node scripts/backfill-price-history.mjs --product 12345 --yes  one card only
 //   node scripts/backfill-price-history.mjs --yes                writes everything
 // Options: --from YYYY-MM-DD, --to YYYY-MM-DD (default: two days ago).
+//
+// Slow mode, for the scheduled workflow (.github/workflows/backfill-price-history.yml):
+//   node scripts/backfill-price-history.mjs --chunk 30 --yes
+// does the next 30 days not yet done (newest first), records them in the
+// price_backfill_days table, and does nothing once every day is done. It
+// pauses (exits 0 without writing) if the database is over --max-db-mb
+// (default 450, under the free plan's 500 MB). A full --yes run records its
+// days too, so the workflow never repeats them.
 
 import { createClient } from "@supabase/supabase-js";
 import "dotenv/config";
@@ -43,6 +51,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   marketByProduct,
+  nextChunk,
   planDates,
   pointsFor,
   priceRowsFrom,
@@ -63,6 +72,20 @@ const today = toDate(Date.now());
 const from = option("--from");
 const to = option("--to") ?? toDate(Date.now() - 2 * 86_400_000);
 const onlyProduct = option("--product") ? Number(option("--product")) : null;
+const chunk = option("--chunk") ? Number(option("--chunk")) : null;
+const maxDbMb = Number(option("--max-db-mb") ?? process.env.BACKFILL_MAX_DB_MB ?? 450);
+if (chunk !== null && (!Number.isInteger(chunk) || chunk < 1)) {
+  console.error("--chunk must be a whole number of days, e.g. --chunk 30");
+  process.exit(1);
+}
+if (chunk !== null && onlyProduct !== null) {
+  console.error("--chunk and --product can't be used together");
+  process.exit(1);
+}
+if (!Number.isFinite(maxDbMb) || maxDbMb <= 0) {
+  console.error("--max-db-mb must be a number of megabytes");
+  process.exit(1);
+}
 for (const [name, value] of [["--from", from], ["--to", to]]) {
   if (value !== undefined && !DATE_RE.test(value)) {
     console.error(`${name} must be YYYY-MM-DD`);
@@ -91,13 +114,16 @@ const CATEGORY_IDS = ["3", "85"];
 const PAGE_SIZE = 1000;
 // Each row carries up to ~450 points; 100 rows keeps one call well under a
 // couple of MB and inside PostgREST's statement timeout.
-const WRITE_BATCH = 100;
+// In slow mode each row carries only one run's days (≤ 30 points), so send more.
+const WRITE_BATCH = chunk !== null ? 250 : 100;
 // TCGCSV throttles an IP for about 10 minutes once it goes past its
 // requests-per-second threshold (its FAQ), so stay well under it: one
 // archive every 3 seconds, about 25 minutes for every day of the archive.
 const DOWNLOAD_SPACING_MS = 3000;
 // When it does say "slow down" (429), wait it out rather than give up.
-const MAX_RATE_LIMITED_WAITS = 12; // ≈ 2 hours at TCGCSV's 10-minute throttle
+// ≈ 2 hours at TCGCSV's 10-minute throttle by hand; in slow mode the next
+// scheduled run simply tries again, so give up sooner.
+const MAX_RATE_LIMITED_WAITS = chunk !== null ? 3 : 12;
 const MAX_OTHER_FAILURES = 5;
 const USER_AGENT = "tcgo-price-backfill/1.0";
 
@@ -228,11 +254,90 @@ async function writeBatch(batch) {
   }
 }
 
+const PROGRESS_TABLE = "price_backfill_days";
+const missingSetup = (error) =>
+  /does not exist|not find|schema cache/i.test(error?.message ?? "");
+
+/** Days already backfilled (or known to have no archive). */
+async function loadDoneDates() {
+  const done = new Set();
+  for (let fromRow = 0; ; fromRow += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from(PROGRESS_TABLE)
+      .select("date")
+      .order("date")
+      .range(fromRow, fromRow + PAGE_SIZE - 1);
+    if (error) {
+      if (missingSetup(error)) {
+        throw new Error(
+          `${PROGRESS_TABLE} is missing in Supabase. Paste the SQL from the PR into Supabase > SQL editor first.`,
+        );
+      }
+      throw new Error(`${PROGRESS_TABLE} read failed: ${error.message}`);
+    }
+    for (const row of data) done.add(String(row.date).slice(0, 10));
+    if (data.length < PAGE_SIZE) break;
+  }
+  return done;
+}
+
+async function markDone(dates, missing) {
+  const rows = dates.map((date) => ({ date, missing: missing.includes(date) }));
+  const { error } = await supabase.from(PROGRESS_TABLE).upsert(rows, { onConflict: "date" });
+  if (error) {
+    // Only bookkeeping: the prices are already written, and redoing a day
+    // changes nothing, so a by-hand run without the table carries on.
+    if (chunk === null && missingSetup(error)) {
+      console.log(`(Not recorded in ${PROGRESS_TABLE}: the table isn't set up. Harmless.)`);
+      return;
+    }
+    throw new Error(`${PROGRESS_TABLE} write failed: ${error.message}`);
+  }
+}
+
+async function databaseMb() {
+  const { data, error } = await supabase.rpc("price_backfill_db_mb");
+  if (error) {
+    if (missingSetup(error)) {
+      throw new Error(
+        "price_backfill_db_mb is missing in Supabase. Paste the SQL from the PR into Supabase > SQL editor first.",
+      );
+    }
+    throw new Error(`database size check failed: ${error.message}`);
+  }
+  return Number(data);
+}
+
 async function main() {
   const startedAt = Date.now();
   mkdirSync(CACHE_DIR, { recursive: true });
 
-  const dates = planDates({ from, to, today });
+  let dates = planDates({ from, to, today });
+  if (chunk !== null) {
+    if (!WRITE) {
+      console.error("--chunk is for the scheduled workflow and needs --yes");
+      process.exit(1);
+    }
+    const mb = await databaseMb();
+    if (mb > maxDbMb) {
+      console.log(
+        `PAUSED: the database is ${mb} MB, over the ${maxDbMb} MB limit. Nothing written.\n` +
+          "Raise BACKFILL_MAX_DB_MB in the workflow if the Supabase plan has room.",
+      );
+      return;
+    }
+    const done = await loadDoneDates();
+    const { next, remaining } = nextChunk(dates, done, chunk);
+    if (!next.length) {
+      console.log(`COMPLETE: all ${dates.length} days are backfilled. Nothing to do.`);
+      return;
+    }
+    const todoCount = remaining;
+    dates = next;
+    console.log(
+      `Database ${mb} MB (limit ${maxDbMb}). ${done.size} days done, ${todoCount} to go; this run does ${dates.length}.`,
+    );
+  }
   if (!dates.length) {
     console.log("No dates to fetch in that range.");
     return;
@@ -313,6 +418,13 @@ async function main() {
     }
   }
   console.log(`\n${updated.toLocaleString()} cards gained history.`);
+  if (onlyProduct === null) await markDone(dates, missing);
+  if (chunk !== null) {
+    const doneNow = await loadDoneDates();
+    const planned = planDates({ from, to, today });
+    const count = planned.filter((date) => doneNow.has(date)).length;
+    console.log(`Progress: ${count} of ${planned.length} days done.`);
+  }
   console.log(`Done in ${((Date.now() - startedAt) / 60000).toFixed(1)} min.`);
 }
 

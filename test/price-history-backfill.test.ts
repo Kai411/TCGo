@@ -10,6 +10,7 @@ import {
   isKeptDate,
   isMonday,
   marketByProduct,
+  nextChunk,
   planDates,
   pointsFor,
   priceRowsFrom,
@@ -125,5 +126,20 @@ describe("waiting out TCGCSV's rate limit", () => {
 
   it("honours Retry-After as a date", () => {
     assert.equal(retryDelayMs("Wed, 18 Nov 2026 05:05:00 GMT", now), 300_000);
+  });
+});
+
+describe("the scheduled backfill's next chunk", () => {
+  const planned = ["2024-02-12", "2024-02-19", "2026-11-14", "2026-11-15", "2026-11-16"];
+
+  it("takes the newest days not done, oldest first", () => {
+    const { next, remaining } = nextChunk(planned, new Set(["2026-11-16"]), 2);
+    assert.deepEqual(next, ["2026-11-14", "2026-11-15"]);
+    assert.equal(remaining, 4);
+  });
+
+  it("is empty once every planned day is done, even with extra done days", () => {
+    const done = new Set([...planned, "2024-02-13"]);
+    assert.deepEqual(nextChunk(planned, done, 30), { next: [], remaining: 0 });
   });
 });

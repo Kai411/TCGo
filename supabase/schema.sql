@@ -227,6 +227,27 @@ $$ LANGUAGE plpgsql;
 REVOKE EXECUTE ON FUNCTION merge_price_history(JSONB) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION merge_price_history(JSONB) TO service_role;
 
+------------------------------------------------------------------
+-- price_backfill_days : which archive days the backfill has done, so the
+-- scheduled workflow (.github/workflows/backfill-price-history.yml) can do
+-- a few each run and stop once all are done. RLS on with no policies:
+-- only the service role reads or writes it.
+------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS price_backfill_days (
+  date    DATE PRIMARY KEY,
+  missing BOOLEAN NOT NULL DEFAULT false, -- TCGCSV had no archive that day
+  done_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE price_backfill_days ENABLE ROW LEVEL SECURITY;
+
+-- Database size in MB, so the workflow pauses before the plan's limit.
+CREATE OR REPLACE FUNCTION price_backfill_db_mb()
+RETURNS INT AS $$
+  SELECT (pg_database_size(current_database()) / 1048576)::int;
+$$ LANGUAGE sql STABLE;
+REVOKE EXECUTE ON FUNCTION price_backfill_db_mb() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION price_backfill_db_mb() TO service_role;
+
 -- Whole-table form, kept for running by hand from the SQL editor (which
 -- has no PostgREST timeout). The cron calls snapshot_prices_range.
 CREATE OR REPLACE FUNCTION snapshot_prices_today()

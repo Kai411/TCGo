@@ -104,3 +104,12 @@ export const retryDelayMs = (retryAfter, now = Date.now()) => {
   const at = Date.parse(text);
   return Number.isFinite(at) ? clamp(at - now) : DEFAULT_THROTTLE_MS;
 };
+
+/**
+ * The next `size` planned days not done yet, newest first (so the 1Y chart and
+ * recent gaps fill in soonest), returned oldest-first as the script expects.
+ */
+export const nextChunk = (planned, done, size) => {
+  const todo = planned.filter((date) => !done.has(date));
+  return { next: todo.slice(-size), remaining: todo.length };
+};
