@@ -101,10 +101,29 @@ const denom = (v) => {
   return tail.trim().replace(/^0+/, "");
 };
 
-const setsOverlap = (ours, theirs) => {
+// Sets whose names share no words between the two catalogues, mostly the
+// promo series ("Wizards Black Star Promos" upstream is "WoTC Promo" on
+// TCGPlayer). Keyed by upstream set id; each value is text our group name
+// must contain. Best-effort from TCGPlayer's naming: a wrong alias matches
+// nothing rather than the wrong card, because name + number must agree too.
+// Add to this when a dry run shows a set at 0 matched.
+const SET_ALIASES = {
+  basep: ["wotc promo"],
+  np: ["nintendo promo"],
+  dpp: ["diamond and pearl promo", "dp promo"],
+  hsp: ["hgss promo"],
+  bwp: ["black and white promo", "bw promo"],
+  xyp: ["xy promo"],
+  smp: ["sm promo"],
+  swshp: ["swsh: sword & shield promo", "swsh promo"],
+  svp: ["sv: scarlet & violet promo", "sv promo"],
+};
+
+const setsOverlap = (ours, theirs, theirId) => {
   const a = norm(ours);
   const b = norm(theirs);
   if (!a || !b) return false;
+  if ((SET_ALIASES[theirId] ?? []).some((alias) => a.includes(alias))) return true;
   // Ours often carries a code prefix: "SV08: Surging Sparks".
   const tail = a.includes(":") ? norm(a.split(":").pop()) : a;
   return tail.includes(b) || b.includes(tail);
@@ -176,7 +195,7 @@ const main = async () => {
 
       const key = `${norm(card.name)}::${numKey(card.number)}`;
       let candidates = (index.get(key) ?? []).filter((c) =>
-        setsOverlap(c.group_name, set.name),
+        setsOverlap(c.group_name, set.name, set.id),
       );
       if (!candidates.length) { unmatched += 1; continue; }
       // "Base" overlaps Base Set, Base Set 2 and Base Set (Shadowless), so a
@@ -203,6 +222,15 @@ const main = async () => {
       });
     }
     console.log(`  ${set.id.padEnd(10)} ${String(cards.length).padStart(4)} cards, ${String(matched).padStart(4)} matched  ${set.name}`);
+    // On a dry run, show what a set that matched nothing looks like upstream
+    // and which of our groups hold the same card, so an alias can be added.
+    if (!confirmed && !matched && cards.length) {
+      for (const card of cards.slice(0, 2)) {
+        const same = (index.get(`${norm(card.name)}::${numKey(card.number)}`) ?? [])
+          .map((c) => `${c.group_name} #${c.number}`).slice(0, 3);
+        console.log(`             e.g. ${card.name} #${card.number} -> ours: ${same.join("; ") || "none with this name+number"}`);
+      }
+    }
   }
 
   console.log(`\n${rows.length} priced match(es). ${ambiguous} ambiguous, ${unmatched} not in our catalogue, ${seen} priced upstream.`);
