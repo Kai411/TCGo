@@ -111,6 +111,8 @@ export interface UserProfile {
   // allowed to quote — the cheapest rate is usually drop-off only, and quoting
   // it to a seller who expects collection gives a price they can't book at.
   handoverPreference?: "dropoff" | "pickup";
+  /** The shop's own payment QR image (Cloudinary URL), shown on the POS. Private. */
+  posPaymentQr?: string;
 
   // ── Identity verification (Didit) ───────────────────────────────────
   // Written ONLY by the Didit webhook, never by the client. Firestore rules
@@ -280,7 +282,7 @@ export const useMyProfile = () => {
                   // Server-written fields can't be copied by the owner; the
                   // migration script moves those.
                   const { priv } = splitProfileWrite(legacy);
-                  for (const k of ["kycVerifiedName", "kycDocumentType", "kycIssuingState", "kycDeclineReason", "hitpayAccessToken", "hitpayMerchantKey"]) {
+                  for (const k of ["kycVerifiedName", "kycDocumentType", "kycIssuingState", "kycDeclineReason"]) {
                     delete priv[k];
                     delete removals[k];
                   }

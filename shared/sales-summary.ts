@@ -102,6 +102,7 @@ export const summariseByPeriod = (
 
 export const METHOD_LABELS: Record<string, string> = {
   cash: "Cash",
+  shop_qr: "QR",
   duitnow_qr: "DuitNow QR",
   tap_to_pay: "Tap to Pay",
   // Marketplace checkout. Not a POS method, but it shares the takings split

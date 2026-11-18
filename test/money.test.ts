@@ -16,10 +16,6 @@ import {
   effectiveRate,
   planById,
   sstOn,
-  posPlatformFee,
-  POS_PLATFORM_RATE,
-  POS_PROVIDER_RATE,
-  POS_ALL_IN_RATE,
   WITHDRAWAL_FEE,
   breakdownFee,
   feeComponentRates,
@@ -193,24 +189,6 @@ describe("no rail loses money", () => {
   it("leaves a standalone order profitable at any price", () => {
     const breakEven = (BILLPLZ_FPX_FEE - BUFFER) / STANDARD_RATE;
     assert.ok(breakEven < 0.5, `break-even drifted to RM ${breakEven}`);
-  });
-});
-
-describe("the counter", () => {
-  it("adds up to the round number the shop is quoted", () => {
-    assert.equal(POS_PLATFORM_RATE + POS_PROVIDER_RATE, POS_ALL_IN_RATE);
-    assert.equal(Math.round(POS_ALL_IN_RATE * 1000) / 1000, 0.02);
-  });
-
-  it("rounds the fee to the sen HitPay will deduct", () => {
-    assert.equal(posPlatformFee(100), 0.8);
-    assert.equal(posPlatformFee(37.5), 0.3);
-    assert.equal(posPlatformFee(12.34), 0.1);
-  });
-
-  it("never returns a negative or NaN fee", () => {
-    assert.equal(posPlatformFee(0), 0);
-    assert.equal(posPlatformFee(-50), 0);
   });
 });
 

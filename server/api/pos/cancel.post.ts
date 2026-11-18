@@ -1,14 +1,13 @@
-// Seller backs out of a counter payment — customer changed their mind, wrong
-// card scanned, whatever. Releases the holds and voids the charge.
+// Seller backs out of a counter QR payment — customer changed their mind,
+// wrong card scanned, whatever. Releases the holds.
 //
-// Deliberately re-checks with the provider first. A customer can pay in the
-// second between the seller reaching for Cancel and the tap landing, and
-// cancelling a paid sale would hand back stock that has been sold.
+// There is no gateway to ask whether the customer paid: the money goes to the
+// shop's own QR, and only the seller can see it arrive. So Cancel means
+// exactly what the seller says. If they did get paid, they tap "Mark as paid"
+// instead, which settles the sale.
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
-import { posPaymentProvider } from "~/server/utils/pos-payment";
-import { sellerMerchant } from "~/server/utils/pos-merchant";
 import { finalisePosSale } from "~/server/utils/pos-settle";
 
 export default defineEventHandler(async (event) => {
@@ -26,27 +25,6 @@ export default defineEventHandler(async (event) => {
   }
   if (sale.status !== "awaiting_payment") {
     return { status: sale.status, cancelled: false };
-  }
-
-  const merchant = await sellerMerchant(db, caller.uid);
-
-  if (sale.chargeId) {
-    try {
-      const { status: providerStatus } = await posPaymentProvider().chargeStatus(
-        sale.chargeId,
-        merchant,
-      );
-      if (providerStatus === "paid") {
-        // Too late — the customer paid. Settle instead of cancelling.
-        const result = await finalisePosSale(db, saleId, "paid");
-        return { status: result.status, cancelled: false, paidInstead: true };
-      }
-    } catch {
-      // Can't reach the provider. Cancelling is still the right call: an
-      // unpaid QR left live is worse than a hold released early, and the
-      // webhook will settle it if the customer does pay.
-    }
-    await posPaymentProvider().cancelCharge(sale.chargeId, merchant).catch(() => {});
   }
 
   const result = await finalisePosSale(db, saleId, "cancelled", "Cancelled by seller");

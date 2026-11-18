@@ -1,9 +1,9 @@
-// Closing out a counter sale, from whichever side reports the outcome first.
+// Closing out a counter sale.
 //
-// Two things race: the provider's webhook and the till's own polling. Both
-// call this. It is idempotent on the sale's status — the first caller to move
-// it out of `awaiting_payment` wins, and the loser is a no-op — so a webhook
-// that arrives while the seller is staring at the QR can't double-settle.
+// Two things can race: the seller tapping "Mark as paid" (or Cancel) and a
+// second till, or a double tap, doing the same. It is idempotent on the
+// sale's status — the first caller to move it out of `awaiting_payment` wins,
+// and the loser is a no-op — so a sale can't be settled twice.
 
 import type { Firestore } from "firebase-admin/firestore";
 import { settleItems, releaseItems } from "~/server/utils/pos-reservations";
@@ -39,9 +39,6 @@ export const finalisePosSale = async (
       status: outcome,
       ...(outcome === "paid" ? { paidAt: Date.now() } : {}),
       ...(reason ? { failedReason: reason } : {}),
-      // The QR is worthless once the sale is closed, and it's the one field
-      // here that's sensitive to leave lying around.
-      qrPayload: null,
       updatedAt: Date.now(),
     });
     return { alreadyDone: false, status: outcome, sale };
