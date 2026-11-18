@@ -44,7 +44,10 @@ const API = "https://api.pokemontcg.io/v2";
 const SOURCE = "cardmarket";
 const CURRENCY = "EUR";
 const confirmed = process.argv.includes("--yes");
-const onlySet = process.argv[process.argv.indexOf("--set") + 1];
+// indexOf is -1 without --set, and argv[-1 + 1] is the node binary's path,
+// which then "matched" no set at all. Only read the value when the flag is there.
+const setFlag = process.argv.indexOf("--set");
+const onlySet = setFlag === -1 ? undefined : process.argv[setFlag + 1];
 const REQUEST_SPACING_MS = 120;
 
 let lastRequestAt = 0;
@@ -131,6 +134,10 @@ const main = async () => {
 
   const sets = (await api("/sets?pageSize=250")).data ?? [];
   const wanted = onlySet ? sets.filter((s) => s.id === onlySet) : sets;
+  if (!wanted.length) {
+    console.error(onlySet ? `No set with id "${onlySet}" upstream.` : "The second source returned no sets.");
+    process.exit(1);
+  }
   console.log(`Fetching ${wanted.length} set(s) from the second source.\n`);
 
   const rows = [];
