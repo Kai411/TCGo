@@ -10,9 +10,11 @@ import {
   isKeptDate,
   isMonday,
   marketByProduct,
+  nextChunk,
   planDates,
   pointsFor,
   priceRowsFrom,
+  retryDelayMs,
 } from "../scripts/lib/price-history.mjs";
 
 describe("which days are kept", () => {
@@ -104,5 +106,40 @@ describe("Supabase SQL", () => {
     assert.match(body, /WHERE NOT EXISTS/);
     assert.match(body, /e->>'date' = n->>'date'/);
     assert.match(sql, /REVOKE EXECUTE ON FUNCTION merge_price_history\(JSONB\) FROM PUBLIC, anon, authenticated/);
+  });
+});
+
+describe("waiting out TCGCSV's rate limit", () => {
+  const now = Date.parse("2026-11-18T05:00:00Z");
+
+  it("uses the 10-minute throttle when there is no Retry-After", () => {
+    assert.equal(retryDelayMs(null, now), 600_000);
+    assert.equal(retryDelayMs("", now), 600_000);
+    assert.equal(retryDelayMs("soon", now), 600_000);
+  });
+
+  it("honours Retry-After in seconds, at least a minute and at most 30", () => {
+    assert.equal(retryDelayMs("120", now), 120_000);
+    assert.equal(retryDelayMs("5", now), 60_000);
+    assert.equal(retryDelayMs("99999", now), 1_800_000);
+  });
+
+  it("honours Retry-After as a date", () => {
+    assert.equal(retryDelayMs("Wed, 18 Nov 2026 05:05:00 GMT", now), 300_000);
+  });
+});
+
+describe("the scheduled backfill's next chunk", () => {
+  const planned = ["2024-02-12", "2024-02-19", "2026-11-14", "2026-11-15", "2026-11-16"];
+
+  it("takes the newest days not done, oldest first", () => {
+    const { next, remaining } = nextChunk(planned, new Set(["2026-11-16"]), 2);
+    assert.deepEqual(next, ["2026-11-14", "2026-11-15"]);
+    assert.equal(remaining, 4);
+  });
+
+  it("is empty once every planned day is done, even with extra done days", () => {
+    const done = new Set([...planned, "2024-02-13"]);
+    assert.deepEqual(nextChunk(planned, done, 30), { next: [], remaining: 0 });
   });
 });
