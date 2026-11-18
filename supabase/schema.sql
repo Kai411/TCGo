@@ -75,7 +75,9 @@ CREATE TABLE IF NOT EXISTS card_prices (
   --   { "Normal": { market, low, mid, high, directLow },
   --     "Holofoil": { ... }, "Reverse Holofoil": { ... } }
   prices     JSONB NOT NULL DEFAULT '{}'::jsonb,
-  -- Capped time series — append latest, trim to 365 entries.
+  -- Time series, newest first: daily for the last 365 days, then one
+  -- point a week (Mondays) back to 2024-02-12, the start of TCGCSV's
+  -- archive (scripts/backfill-price-history.mjs).
   --   [{ "date": "2026-05-29", "market": 22.50 }, ...]
   history    JSONB NOT NULL DEFAULT '[]'::jsonb,
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -126,8 +128,9 @@ CREATE POLICY "prices public read"
 -- the current prices, once per slice of product_ids. Reads each row's
 -- current market price (preferring Holofoil → Normal → Reverse Holofoil),
 -- prepends today's snapshot to the history array, drops any duplicate
--- today entry, and trims to 365. Skips rows whose current prices have no
--- usable market value.
+-- today entry, and thins anything older than 365 days to Mondays only
+-- (one point a week), so the backfilled long history survives. Skips rows
+-- whose current prices have no usable market value.
 --
 -- Sliced because one UPDATE over the whole table outgrew PostgREST's
 -- statement timeout once the JP catalogue roughly doubled the row count:
@@ -156,8 +159,11 @@ BEGIN
                      SELECT elem
                      FROM jsonb_array_elements(cp.history) elem
                      WHERE elem->>'date' != today_date
+                       AND (
+                         (elem->>'date')::date > (NOW() AT TIME ZONE 'UTC')::date - 365
+                         OR EXTRACT(ISODOW FROM (elem->>'date')::date) = 1
+                       )
                      ORDER BY (elem->>'date') DESC
-                     LIMIT 364
                    ) sub),
                   '[]'::jsonb
                 )
@@ -172,6 +178,54 @@ BEGIN
   RETURN rows_affected;
 END;
 $$ LANGUAGE plpgsql;
+
+------------------------------------------------------------------
+-- merge_price_history : used once by scripts/backfill-price-history.mjs.
+-- `payload` is [{ "product_id": 123, "history": [{ "date", "market" }, ...] }].
+-- Adds only dates a row doesn't already have, so a nightly snapshot is never
+-- overwritten, and running it twice changes nothing. Rows missing from
+-- card_prices are ignored. Returns how many rows gained at least one point.
+------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION merge_price_history(payload JSONB)
+RETURNS INT AS $$
+DECLARE
+  rows_affected INT;
+BEGIN
+  WITH incoming AS (
+    SELECT (r->>'product_id')::bigint AS product_id, r->'history' AS history
+    FROM jsonb_array_elements(payload) r
+  ),
+  merged AS (
+    SELECT cp.product_id,
+           (SELECT jsonb_agg(elem ORDER BY (elem->>'date') DESC)
+            FROM (
+              SELECT elem FROM jsonb_array_elements(cp.history) elem
+              UNION ALL
+              SELECT n FROM jsonb_array_elements(i.history) n
+              WHERE NOT EXISTS (
+                SELECT 1 FROM jsonb_array_elements(cp.history) e
+                WHERE e->>'date' = n->>'date'
+              )
+            ) all_points) AS history,
+           jsonb_array_length(cp.history) AS old_len
+    FROM card_prices cp
+    JOIN incoming i ON i.product_id = cp.product_id
+  )
+  UPDATE card_prices cp
+  SET history = m.history
+  FROM merged m
+  WHERE cp.product_id = m.product_id
+    AND jsonb_array_length(m.history) > m.old_len;
+
+  GET DIAGNOSTICS rows_affected = ROW_COUNT;
+  RETURN rows_affected;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Runs as the caller, so RLS already stops anyone but the service role
+-- writing; this keeps the anon and signed-in roles from calling it at all.
+REVOKE EXECUTE ON FUNCTION merge_price_history(JSONB) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION merge_price_history(JSONB) TO service_role;
 
 -- Whole-table form, kept for running by hand from the SQL editor (which
 -- has no PostgREST timeout). The cron calls snapshot_prices_range.
