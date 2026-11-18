@@ -69,8 +69,10 @@ async function api(path, attempt = 1) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
-    if (attempt >= 4) throw err;
-    await new Promise((r) => setTimeout(r, 800 * attempt));
+    // Six tries over ~20s: kai's first full run saw base3/base4 still
+    // returning 500 after four quick ones.
+    if (attempt >= 6) throw err;
+    await new Promise((r) => setTimeout(r, 1500 * attempt));
     return api(path, attempt + 1);
   }
 }
@@ -91,6 +93,12 @@ const numKey = (v) => {
   const head = String(v ?? "").trim().split("/")[0] ?? "";
   const digits = head.replace(/^0+/, "");
   return digits.toLowerCase();
+};
+
+// "4/102" -> "102"; "" when the number has no printed total.
+const denom = (v) => {
+  const tail = String(v ?? "").split("/")[1] ?? "";
+  return tail.trim().replace(/^0+/, "");
 };
 
 const setsOverlap = (ours, theirs) => {
@@ -167,10 +175,19 @@ const main = async () => {
       seen += 1;
 
       const key = `${norm(card.name)}::${numKey(card.number)}`;
-      const candidates = (index.get(key) ?? []).filter((c) =>
+      let candidates = (index.get(key) ?? []).filter((c) =>
         setsOverlap(c.group_name, set.name),
       );
       if (!candidates.length) { unmatched += 1; continue; }
+      // "Base" overlaps Base Set, Base Set 2 and Base Set (Shadowless), so a
+      // name+number like Charizard 4 has several candidates. Our numbers
+      // carry the set's printed size ("4/102"); keep the ones that agree with
+      // upstream's printedTotal. Still more than one (Shadowless is /102 too)
+      // means genuinely ambiguous, and stays skipped.
+      if (candidates.length > 1 && set.printedTotal) {
+        const sized = candidates.filter((c) => denom(c.number) === String(set.printedTotal));
+        if (sized.length) candidates = sized;
+      }
       if (candidates.length > 1) { ambiguous += 1; continue; }
 
       matched += 1;
