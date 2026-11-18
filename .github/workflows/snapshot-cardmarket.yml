@@ -1,0 +1,45 @@
+name: Snapshot Cardmarket prices
+
+# Fills Supabase card_price_sources, the Cardmarket EUR "second price" shown
+# on a Dex card when TCGPlayer has none. Until this workflow existed the
+# script only ran by hand, so the table stayed empty.
+
+on:
+  schedule:
+    # 07:00 Asia/Kuala_Lumpur = 23:00 UTC, an hour after the TCGPlayer
+    # snapshot (22:00 UTC) and two after the catalogue seed (21:00 UTC): it
+    # matches against cards_catalog, so a set seeded tonight is matched tonight.
+    #
+    # Its own workflow rather than a step in snapshot-pokemon-prices.yml on
+    # purpose: pokemontcg.io is flaky, and a bad night there must not turn the
+    # main price job red or stop it.
+    - cron: "0 23 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: snapshot-cardmarket
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    # ~170 sets, one or two pages each at 120ms spacing plus retries; the
+    # upstream is slow, so leave room, but fail a hung run.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # package-lock.json is gitignored; see snapshot-pokemon-prices.yml.
+      - run: npm install --no-audit --no-fund
+
+      - name: Snapshot Cardmarket prices
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          # Optional: raises pokemontcg.io's rate limit. Empty is fine.
+          POKEMONTCG_API_KEY: ${{ secrets.POKEMONTCG_API_KEY }}
+        run: node scripts/snapshot-cardmarket.mjs --yes
