@@ -23,13 +23,15 @@ concurrency:
 jobs:
   snapshot:
     runs-on: ubuntu-latest
-    # ~170 sets, one or two pages each at 120ms spacing plus retries; the
-    # upstream is slow, so leave room, but fail a hung run.
-    timeout-minutes: 30
+    # ~177 sets; pokemontcg.io can take tens of seconds per request. The
+    # script stops starting new sets at 50 minutes (CARDMARKET_BUDGET_MINUTES)
+    # and writes as it goes, so this ceiling only catches a truly hung run.
+    # The first run (2026-11-20) hit the old 30-minute limit and wrote nothing.
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 
