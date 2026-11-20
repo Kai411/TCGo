@@ -113,3 +113,13 @@ export const nextChunk = (planned, done, size) => {
   const todo = planned.filter((date) => !done.has(date));
   return { next: todo.slice(-size), remaining: todo.length };
 };
+
+/**
+ * 20:30 to 00:30 UTC: TCGCSV's rebuild (~20:05) and the nightly catalogue
+ * seed (21:00), price snapshot (22:00) and Cardmarket job (23:00), with room
+ * for a slow night. The scheduled backfill must not write then.
+ */
+export const inNightlyWindow = (when) => {
+  const minutes = when.getUTCHours() * 60 + when.getUTCMinutes();
+  return minutes >= 20 * 60 + 30 || minutes < 30;
+};

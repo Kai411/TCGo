@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 
 import {
   ARCHIVE_START,
+  inNightlyWindow,
   isKeptDate,
   isMonday,
   marketByProduct,
@@ -141,5 +142,21 @@ describe("the scheduled backfill's next chunk", () => {
   it("is empty once every planned day is done, even with extra done days", () => {
     const done = new Set([...planned, "2024-02-13"]);
     assert.deepEqual(nextChunk(planned, done, 30), { next: [], remaining: 0 });
+  });
+});
+
+describe("the scheduled backfill stays out of the nightly jobs", () => {
+  const at = (hhmm: string) => new Date(`2026-11-19T${hhmm}:00Z`);
+
+  it("skips from 20:30 to 00:30 UTC, including the late 22:19 run", () => {
+    for (const t of ["20:30", "22:00", "22:19", "23:59", "00:00", "00:29"]) {
+      assert.equal(inNightlyWindow(at(t)), true, t);
+    }
+  });
+
+  it("runs the rest of the day", () => {
+    for (const t of ["00:30", "02:30", "10:31", "17:23", "20:29"]) {
+      assert.equal(inNightlyWindow(at(t)), false, t);
+    }
   });
 });

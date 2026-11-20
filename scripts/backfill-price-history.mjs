@@ -50,6 +50,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  inNightlyWindow,
   marketByProduct,
   nextChunk,
   planDates,
@@ -317,6 +318,13 @@ async function main() {
     if (!WRITE) {
       console.error("--chunk is for the scheduled workflow and needs --yes");
       process.exit(1);
+    }
+    // GitHub often starts scheduled runs hours late (one fired at 22:19 UTC,
+    // during the nightly price snapshot). The two must not overlap: both
+    // rewrite each card's history. So skip the nightly window outright.
+    if (inNightlyWindow(new Date())) {
+      console.log("SKIPPED: too close to the nightly price jobs (20:30–00:30 UTC). The next run carries on.");
+      return;
     }
     const mb = await databaseMb();
     if (mb > maxDbMb) {
