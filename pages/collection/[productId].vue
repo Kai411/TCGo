@@ -309,7 +309,7 @@
                   {{ trend.changePct >= 0 ? "▲" : "▼" }}
                   {{ Math.abs(trend.changePct).toFixed(1) }}%
                   <span class="font-semibold text-ink-soft dark:text-zinc-500"
-                    >{{ selectedRangeLabel }}</span
+                    >past {{ selectedRangeLabel }}</span
                   >
                 </p>
               </div>
@@ -990,9 +990,7 @@ import {
   priceConfidence,
 } from "~/shared/price-confidence";
 
-// ALL_DAYS is simply wider than any history we hold (it starts Feb 2024).
-const ALL_DAYS = 36_500;
-type HistoryDays = 30 | 90 | 365 | typeof ALL_DAYS;
+type HistoryDays = 30 | 90 | 365;
 
 interface RawPriceRow {
   key: string;
@@ -1068,7 +1066,6 @@ const rangeDefinitions: Array<{ label: string; days: HistoryDays }> = [
   { label: "1M", days: 30 },
   { label: "3M", days: 90 },
   { label: "1Y", days: 365 },
-  { label: "All", days: ALL_DAYS },
 ];
 
 const rangeTrends = computed(() =>
@@ -1098,18 +1095,11 @@ const rangeOptions = computed(() =>
 );
 
 const RANGE_WORDS: Record<HistoryDays, string> = {
-  30: "past month",
-  90: "past 3 months",
-  365: "past year",
-  [ALL_DAYS]: "",
+  30: "month",
+  90: "3 months",
+  365: "year",
 };
-const selectedRangeLabel = computed(() => {
-  if (selectedRange.value !== ALL_DAYS) return RANGE_WORDS[selectedRange.value];
-  const oldest = trend.value?.points[0]?.date;
-  return oldest
-    ? `since ${new Date(`${oldest}T00:00:00Z`).toLocaleDateString("en-MY", { month: "short", year: "numeric", timeZone: "UTC" })}`
-    : "all time";
-});
+const selectedRangeLabel = computed(() => RANGE_WORDS[selectedRange.value]);
 
 const trend = computed<PriceTrend | null>(
   () =>
@@ -1472,7 +1462,7 @@ const loadDetail = async () => {
     // The range buttons derive their smaller calendar windows locally.
     const [nextCard, nextFullTrend] = await Promise.all([
       getCardWithPrice(id),
-      getPriceHistory(id, ALL_DAYS),
+      getPriceHistory(id, 365),
     ]);
     if (request !== detailRequest || productId.value !== id) return;
 

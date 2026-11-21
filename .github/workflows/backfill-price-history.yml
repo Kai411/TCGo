@@ -1,6 +1,6 @@
 name: Backfill price history
 
-# Slowly fills card_prices.history back to February 2024 from TCGCSV's daily
+# Slowly fills the last year of card_prices.history from TCGCSV's daily
 # TCGPlayer price archive (scripts/backfill-price-history.mjs). Each run does
 # the next 30 days not done yet, newest first, and records them in Supabase's
 # price_backfill_days table. Once every day is done a run does nothing and

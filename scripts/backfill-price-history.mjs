@@ -1,9 +1,8 @@
-// One-off: fill card_prices.history back to February 2024 from TCGCSV's
+// One-off: fill the last year of card_prices.history from TCGCSV's
 // daily price archive (TCGPlayer's own prices, one immutable file per day).
 //
 // What it writes: for every card already in card_prices, one point per day
-// for the last 365 days and one point per week (Mondays) before that, back to
-// the archive's first Monday (2024-02-12). Same market price the nightly
+// for the last 365 days (history is capped at one year). Same market price the nightly
 // snapshot uses (Holofoil → Normal → Reverse Holofoil, USD).
 //
 // Safe to re-run:
@@ -352,7 +351,7 @@ async function main() {
   }
   console.log(
     `${WRITE ? "WRITE" : "DRY RUN"}: ${dates.length} archive days, ${dates[0]} to ${dates[dates.length - 1]}` +
-      " (daily for the last year, Mondays before that).",
+      " (one point a day, last 365 days only).",
   );
 
   console.log("Loading cards from card_prices…");
