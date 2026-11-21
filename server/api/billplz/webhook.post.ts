@@ -25,6 +25,7 @@ import {
 import { effectiveRate, sstOn } from "~/shared/pricing";
 import { joinPaidOrderToParcel } from "~/server/utils/join-parcel";
 import { noteError } from "~/server/utils/oplog";
+import { shadowPaymentToLedger } from "~/server/utils/ledger";
 import { notify } from "~/server/utils/notify";
 import { sendBuyerOrderEmail, sendSellerOrderEmail } from "~/server/utils/order-emails";
 import { orderCreated, orderPlaced } from "~/shared/notifications";
@@ -212,6 +213,17 @@ export default defineEventHandler(async (event) => {
     }
   }
   await batch.commit();
+
+  // Stage 1 of the ledger: record the same payment in the Cloudflare ledger,
+  // beside Firestore. Off until NUXT_LEDGER_WORKER_URL/SECRET are set, and it
+  // never throws, so this callback settles exactly as before either way.
+  await shadowPaymentToLedger({
+    orderId: orderRef.id,
+    order,
+    fees: { platformFee, feeRate, sstAmount: sstForOrder(order), sellerPayout },
+    paidSen,
+    callback: body as Record<string, string>,
+  });
 
   // Sync linked inventory items (listingId → sold, online channel).
   for (const item of order.items ?? []) {
