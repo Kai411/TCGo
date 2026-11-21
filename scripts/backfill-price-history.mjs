@@ -1,9 +1,8 @@
-// One-off: fill card_prices.history back to February 2024 from TCGCSV's
+// One-off: fill the last year of card_prices.history from TCGCSV's
 // daily price archive (TCGPlayer's own prices, one immutable file per day).
 //
 // What it writes: for every card already in card_prices, one point per day
-// for the last 365 days and one point per week (Mondays) before that, back to
-// the archive's first Monday (2024-02-12). Same market price the nightly
+// for the last 365 days (history is capped at one year). Same market price the nightly
 // snapshot uses (Holofoil → Normal → Reverse Holofoil, USD).
 //
 // Safe to re-run:
@@ -50,6 +49,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  inNightlyWindow,
   marketByProduct,
   nextChunk,
   planDates,
@@ -318,6 +318,13 @@ async function main() {
       console.error("--chunk is for the scheduled workflow and needs --yes");
       process.exit(1);
     }
+    // GitHub often starts scheduled runs hours late (one fired at 22:19 UTC,
+    // during the nightly price snapshot). The two must not overlap: both
+    // rewrite each card's history. So skip the nightly window outright.
+    if (inNightlyWindow(new Date())) {
+      console.log("SKIPPED: too close to the nightly price jobs (20:30–00:30 UTC). The next run carries on.");
+      return;
+    }
     const mb = await databaseMb();
     if (mb > maxDbMb) {
       console.log(
@@ -344,7 +351,7 @@ async function main() {
   }
   console.log(
     `${WRITE ? "WRITE" : "DRY RUN"}: ${dates.length} archive days, ${dates[0]} to ${dates[dates.length - 1]}` +
-      " (daily for the last year, Mondays before that).",
+      " (one point a day, last 365 days only).",
   );
 
   console.log("Loading cards from card_prices…");

@@ -75,9 +75,8 @@ CREATE TABLE IF NOT EXISTS card_prices (
   --   { "Normal": { market, low, mid, high, directLow },
   --     "Holofoil": { ... }, "Reverse Holofoil": { ... } }
   prices     JSONB NOT NULL DEFAULT '{}'::jsonb,
-  -- Time series, newest first: daily for the last 365 days, then one
-  -- point a week (Mondays) back to 2024-02-12, the start of TCGCSV's
-  -- archive (scripts/backfill-price-history.mjs).
+  -- Time series, newest first: one point a day for the last 365 days,
+  -- nothing older (scripts/backfill-price-history.mjs fills gaps).
   --   [{ "date": "2026-05-29", "market": 22.50 }, ...]
   history    JSONB NOT NULL DEFAULT '[]'::jsonb,
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -128,9 +127,8 @@ CREATE POLICY "prices public read"
 -- the current prices, once per slice of product_ids. Reads each row's
 -- current market price (preferring Holofoil → Normal → Reverse Holofoil),
 -- prepends today's snapshot to the history array, drops any duplicate
--- today entry, and thins anything older than 365 days to Mondays only
--- (one point a week), so the backfilled long history survives. Skips rows
--- whose current prices have no usable market value.
+-- today entry, and drops anything older than 365 days. Skips rows whose
+-- current prices have no usable market value.
 --
 -- Sliced because one UPDATE over the whole table outgrew PostgREST's
 -- statement timeout once the JP catalogue roughly doubled the row count:
@@ -159,10 +157,7 @@ BEGIN
                      SELECT elem
                      FROM jsonb_array_elements(cp.history) elem
                      WHERE elem->>'date' != today_date
-                       AND (
-                         (elem->>'date')::date > (NOW() AT TIME ZONE 'UTC')::date - 365
-                         OR EXTRACT(ISODOW FROM (elem->>'date')::date) = 1
-                       )
+                       AND (elem->>'date')::date > (NOW() AT TIME ZONE 'UTC')::date - 365
                      ORDER BY (elem->>'date') DESC
                    ) sub),
                   '[]'::jsonb

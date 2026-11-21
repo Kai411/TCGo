@@ -1,6 +1,6 @@
 name: Backfill price history
 
-# Slowly fills card_prices.history back to February 2024 from TCGCSV's daily
+# Slowly fills the last year of card_prices.history from TCGCSV's daily
 # TCGPlayer price archive (scripts/backfill-price-history.mjs). Each run does
 # the next 30 days not done yet, newest first, and records them in Supabase's
 # price_backfill_days table. Once every day is done a run does nothing and
@@ -14,7 +14,8 @@ on:
     # Kept well clear of the nightly jobs (seed 21:00, prices 22:00,
     # Cardmarket 23:00 UTC). The backfill's merge
     # and the nightly snapshot both rewrite each card's history, so they
-    # must never run at the same time.
+    # must never run at the same time. GitHub can start a scheduled run hours
+    # late, so the script also skips 20:30–00:30 UTC itself.
     #   02:30 UTC = 10:30, 08:30 UTC = 16:30, 14:30 UTC = 22:30 Malaysia time
     - cron: "30 2,8,14 * * *"
   workflow_dispatch:
@@ -32,9 +33,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
 

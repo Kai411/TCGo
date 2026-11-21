@@ -103,9 +103,8 @@ export interface CatalogPrice {
 }
 
 /**
- * One day of the series kept in card_prices.history (daily for the last year,
- * weekly before that, back to Feb 2024), which a daily cron prepends via the
- * snapshot_prices_range() RPC. `market` is USD as
+ * One day of the 365-day series kept in card_prices.history, which a daily
+ * cron prepends via the snapshot_prices_range() RPC. `market` is USD as
  * stored; callers get MYR from getPriceHistory().
  */
 export interface PricePoint {
