@@ -15,14 +15,53 @@ on:
     paths:
       - "workers/ledger/**"
       - ".github/workflows/deploy-ledger-worker.yml"
+  # On a pull request only the secrets check runs (nothing is deployed), so
+  # the PR shows whether setup is finished before it is merged.
+  pull_request:
+    branches: [staging, main]
+    paths:
+      - "workers/ledger/**"
+      - ".github/workflows/deploy-ledger-worker.yml"
   workflow_dispatch:
 
 concurrency:
-  group: ledger-${{ github.ref_name }}
+  group: ledger-${{ github.event_name }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
+  check-secrets:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    environment: ledger-${{ github.base_ref == 'main' && 'production' || 'staging' }}
+    steps:
+      - name: Check secrets are set
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          LEDGER_WORKER_SECRET: ${{ secrets.LEDGER_WORKER_SECRET }}
+          BILLPLZ_X_SIGNATURE_KEY: ${{ secrets.BILLPLZ_X_SIGNATURE_KEY }}
+        run: |
+          ok=1
+          check() { if [ -n "$2" ]; then echo "OK      $1"; else echo "MISSING $1"; ok=0; fi; }
+          check CLOUDFLARE_API_TOKEN "$CLOUDFLARE_API_TOKEN"
+          check CLOUDFLARE_ACCOUNT_ID "$CLOUDFLARE_ACCOUNT_ID"
+          check BILLPLZ_X_SIGNATURE_KEY "$BILLPLZ_X_SIGNATURE_KEY"
+          if [ ${#LEDGER_WORKER_SECRET} -ge 32 ]; then echo "OK      LEDGER_WORKER_SECRET (${#LEDGER_WORKER_SECRET} characters)";
+          elif [ -n "$LEDGER_WORKER_SECRET" ]; then echo "SHORT   LEDGER_WORKER_SECRET (${#LEDGER_WORKER_SECRET} characters, needs 32+)"; ok=0;
+          else echo "MISSING LEDGER_WORKER_SECRET"; ok=0; fi
+          # Token is real and can see the account (no change is made).
+          if [ -n "$CLOUDFLARE_API_TOKEN" ]; then
+            code=$(curl -s -o /tmp/verify.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/user/tokens/verify)
+            if [ "$code" = 200 ] && grep -q '"status":"active"' /tmp/verify.json; then echo "OK      Cloudflare accepts the token"; else echo "FAILED  Cloudflare rejected the token (HTTP $code)"; ok=0; fi
+          fi
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database")
+            if [ "$code" = 200 ]; then echo "OK      token can use D1 on this account"; else echo "FAILED  token can't list D1 databases on this account (HTTP $code): check the D1 Edit permission and the account ID"; ok=0; fi
+          fi
+          [ "$ok" = 1 ] || { echo "::error::Ledger setup isn't finished, see the lines above"; exit 1; }
+
   deploy:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment: ledger-${{ github.ref_name == 'main' && 'production' || 'staging' }}
     env:
