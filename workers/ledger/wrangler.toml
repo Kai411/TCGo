@@ -1,0 +1,19 @@
+# tcgo-ledger Worker. Deployed by .github/workflows/deploy-ledger-worker.yml,
+# which creates the D1 database on first run (location hint apac) and fills
+# in its database_id below. One production Worker; Billplz sandbox or live is
+# decided only by which BILLPLZ_X_SIGNATURE_KEY it is given. Secrets (LEDGER_WORKER_SECRET,
+# BILLPLZ_X_SIGNATURE_KEY) come from the GitHub environment, never this file.
+
+name = "tcgo-ledger"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[env.production]
+name = "tcgo-ledger"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "tcgo-ledger"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"

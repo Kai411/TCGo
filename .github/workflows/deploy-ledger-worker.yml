@@ -1,0 +1,162 @@
+name: Deploy ledger Worker
+
+# Builds and deploys workers/ledger to Cloudflare as one production Worker
+# (tcgo-ledger) with one D1 database. Pushes to staging or main both deploy
+# it. The first run creates the database (location hint apac). Every run
+# applies new migrations, deploys, and sets the Worker's secrets.
+#
+# Needs repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, and
+# the GitHub environment ledger-production with secrets LEDGER_WORKER_SECRET
+# and BILLPLZ_X_SIGNATURE_KEY (sandbox key for now, the live key later).
+
+on:
+  push:
+    branches: [staging, main]
+    paths:
+      - "workers/ledger/**"
+      - ".github/workflows/deploy-ledger-worker.yml"
+  # On a pull request only the secrets check runs (nothing is deployed), so
+  # the PR shows whether setup is finished before it is merged.
+  pull_request:
+    branches: [staging, main]
+    paths:
+      - "workers/ledger/**"
+      - ".github/workflows/deploy-ledger-worker.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ledger-${{ github.event_name == 'pull_request' && github.ref_name || 'deploy' }}
+  cancel-in-progress: false
+
+jobs:
+  check-secrets:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    environment: ledger-production
+    steps:
+      - name: Check secrets are set
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          LEDGER_WORKER_SECRET: ${{ secrets.LEDGER_WORKER_SECRET }}
+          BILLPLZ_X_SIGNATURE_KEY: ${{ secrets.BILLPLZ_X_SIGNATURE_KEY }}
+        run: |
+          ok=1
+          check() { if [ -n "$2" ]; then echo "OK      $1"; else echo "MISSING $1"; ok=0; fi; }
+          check CLOUDFLARE_API_TOKEN "$CLOUDFLARE_API_TOKEN"
+          check CLOUDFLARE_ACCOUNT_ID "$CLOUDFLARE_ACCOUNT_ID"
+          check BILLPLZ_X_SIGNATURE_KEY "$BILLPLZ_X_SIGNATURE_KEY"
+          if [ ${#LEDGER_WORKER_SECRET} -ge 32 ]; then echo "OK      LEDGER_WORKER_SECRET (${#LEDGER_WORKER_SECRET} characters)";
+          elif [ -n "$LEDGER_WORKER_SECRET" ]; then echo "SHORT   LEDGER_WORKER_SECRET (${#LEDGER_WORKER_SECRET} characters, needs 32+)"; ok=0;
+          else echo "MISSING LEDGER_WORKER_SECRET"; ok=0; fi
+          # Token is real and can see the account (no change is made).
+          # User tokens verify at /user/tokens/verify, account-owned tokens at
+          # /accounts/<id>/tokens/verify; either one answering "active" is fine.
+          if [ -n "$CLOUDFLARE_API_TOKEN" ]; then
+            active=0
+            for path in user/tokens/verify "accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify"; do
+              code=$(curl -s -o /tmp/verify.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/$path")
+              if [ "$code" = 200 ] && grep -q '"status":"active"' /tmp/verify.json; then active=1; break; fi
+            done
+            if [ "$active" = 1 ]; then echo "OK      Cloudflare accepts the token"; else echo "FAILED  Cloudflare rejected the token"; ok=0; fi
+          fi
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database")
+            if [ "$code" = 200 ]; then echo "OK      token can use D1 on this account"; else echo "FAILED  token can't list D1 databases on this account (HTTP $code): check the D1 Edit permission and the account ID"; ok=0; fi
+          fi
+          [ "$ok" = 1 ] || { echo "::error::Ledger setup isn't finished, see the lines above"; exit 1; }
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: ledger-production
+    env:
+      TARGET: production
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: "false"
+    defaults:
+      run:
+        working-directory: workers/ledger
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check secrets are set
+        env:
+          LEDGER_WORKER_SECRET: ${{ secrets.LEDGER_WORKER_SECRET }}
+          BILLPLZ_X_SIGNATURE_KEY: ${{ secrets.BILLPLZ_X_SIGNATURE_KEY }}
+        run: |
+          missing=""
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          [ -n "$BILLPLZ_X_SIGNATURE_KEY" ] || missing="$missing BILLPLZ_X_SIGNATURE_KEY"
+          [ ${#LEDGER_WORKER_SECRET} -ge 32 ] || missing="$missing LEDGER_WORKER_SECRET(32+ characters)"
+          if [ -n "$missing" ]; then echo "::error::Missing secrets:$missing"; exit 1; fi
+
+      - name: Install wrangler
+        run: npm install --global wrangler@4.157.0
+
+      - name: Create the D1 database if it doesn't exist
+        run: |
+          NAME=tcgo-ledger
+          find_id() {
+            wrangler d1 list --json | node -e '
+              let s = ""; process.stdin.on("data", d => s += d).on("end", () => {
+                const db = JSON.parse(s).find(d => d.name === process.argv[1]);
+                process.stdout.write(db ? (db.uuid || db.id || "") : "");
+              });' "$NAME"
+          }
+          ID=$(find_id)
+          if [ -z "$ID" ]; then
+            wrangler d1 create "$NAME" --location apac
+            ID=$(find_id)
+          fi
+          [ -n "$ID" ] || { echo "::error::Couldn't find or create D1 database $NAME"; exit 1; }
+          # Write the id into this environment's block of wrangler.toml.
+          node -e '
+            const fs = require("fs");
+            const [target, id] = process.argv.slice(1);
+            const header = `[[env.${target}.d1_databases]]`;
+            const s = fs.readFileSync("wrangler.toml", "utf8");
+            const at = s.indexOf(header);
+            if (at < 0) throw new Error("no " + header);
+            const rest = s.slice(at).replace(/database_id = "[^"]*"/, `database_id = "${id}"`);
+            fs.writeFileSync("wrangler.toml", s.slice(0, at) + rest);
+          ' "$TARGET" "$ID"
+          echo "D1 database $NAME: $ID"
+
+      - name: Apply migrations
+        run: wrangler d1 migrations apply DB --remote --env "$TARGET"
+
+      - name: Deploy
+        run: |
+          wrangler deploy --env "$TARGET" | tee deploy.log
+          URL=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          echo "WORKER_URL=$URL" >> "$GITHUB_ENV"
+
+      - name: Set Worker secrets
+        env:
+          LEDGER_WORKER_SECRET: ${{ secrets.LEDGER_WORKER_SECRET }}
+          BILLPLZ_X_SIGNATURE_KEY: ${{ secrets.BILLPLZ_X_SIGNATURE_KEY }}
+        run: |
+          printf '%s' "$LEDGER_WORKER_SECRET" | wrangler secret put LEDGER_WORKER_SECRET --env "$TARGET"
+          printf '%s' "$BILLPLZ_X_SIGNATURE_KEY" | wrangler secret put BILLPLZ_X_SIGNATURE_KEY --env "$TARGET"
+
+      - name: Health check
+        run: |
+          [ -n "$WORKER_URL" ] || { echo "::warning::Deploy output had no workers.dev URL"; exit 0; }
+          for i in 1 2 3 4 5; do
+            if curl -fsS "$WORKER_URL/health"; then break; fi
+            sleep 5
+          done
+          {
+            echo "### Ledger Worker deployed ($TARGET)"
+            echo ""
+            echo "Set this on the matching Netlify site as NUXT_LEDGER_WORKER_URL:"
+            echo ""
+            echo "\`$WORKER_URL\`"
+          } >> "$GITHUB_STEP_SUMMARY"
