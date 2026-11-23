@@ -1,14 +1,15 @@
-// Stage 1: record every payment Firestore settles into the D1 ledger as well,
-// without changing what buyers see. Firestore is still the source of truth;
-// this runs beside it so the two can be reconciled before anything switches.
+// Stage 1: record every payment Firestore settles into the ledger database
+// (Turso, which is SQLite) as well, without changing what buyers see.
+// Firestore is still the source of truth; this runs beside it so the two can
+// be reconciled before anything switches.
 //
-// Each call is one D1 batch (one SQL transaction). The batch ends with an
-// assert that the ledger transaction balances, so a half-posted payment can't
-// exist. Problems the shadow notices (a card already sold to another order,
-// a second paid bill on one order) are recorded, not refused: noticing them
-// is the point of stage 1.
+// Each call is one batch (one SQL transaction). The batch ends with an assert
+// that the ledger transaction balances, so a half-posted payment can't exist.
+// Problems the shadow notices (a card already sold to another order, a second
+// paid bill on one order) are recorded, not refused: noticing them is the
+// point of stage 1.
 
-import type { D1Like, D1StatementLike } from "./d1.ts";
+import type { D1Like, D1StatementLike } from "./db.ts";
 
 export const ACCOUNTS = {
   billplzReceivable: 1,
@@ -246,6 +247,42 @@ export const shadowPayment = async (
 
   await db.batch(s);
   return { outcome, orderId, conflicts };
+};
+
+// ── Entry point for the Billplz callback ─────────────────────────────
+
+export class LedgerInputError extends Error {}
+
+const RACE = /UNIQUE constraint failed: (provider_events\.dedupe_key|payments\.provider_bill_id|ledger_transactions\.source_key)/;
+
+/**
+ * Record a paid Billplz callback that the caller has already verified
+ * (server/api/billplz/webhook.post.ts checks the X-Signature first).
+ * Throws LedgerInputError for input the schema would refuse.
+ */
+export const recordBillplzPayment = async (
+  db: D1Like,
+  input: { callback: Record<string, string>; paidSen: number; order: ShadowOrder },
+  now: number,
+): Promise<ShadowResult> => {
+  const { x_signature: _sig, ...callback } = input.callback ?? {};
+  if (callback.paid !== "true") throw new LedgerInputError("callback is not a paid bill");
+  const shadowInput = {
+    billId: callback.id,
+    paidSen: input.paidSen,
+    billplzPaidAt: callback.paid_at ?? "",
+    callback,
+    order: input.order,
+  };
+  const invalid = validateShadowInput(shadowInput);
+  if (invalid) throw new LedgerInputError(invalid);
+  try {
+    return await shadowPayment(db, shadowInput, now);
+  } catch (e: any) {
+    // A concurrent retry of the same callback loses the race on a unique key.
+    if (RACE.test(String(e?.message ?? e))) return { outcome: "already_recorded", orderId: "", conflicts: [] };
+    throw e;
+  }
 };
 
 // ── Reconciliation read ──────────────────────────────────────────────

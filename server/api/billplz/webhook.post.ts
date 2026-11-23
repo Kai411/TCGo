@@ -214,8 +214,8 @@ export default defineEventHandler(async (event) => {
   }
   await batch.commit();
 
-  // Stage 1 of the ledger: record the same payment in the Cloudflare ledger,
-  // beside Firestore. Off until NUXT_LEDGER_WORKER_URL/SECRET are set, and it
+  // Stage 1 of the ledger: record the same payment in the ledger database
+  // (Turso), beside Firestore. Off until NUXT_LEDGER_DATABASE_URL/TOKEN are set, and it
   // never throws, so this callback settles exactly as before either way.
   await shadowPaymentToLedger({
     orderId: orderRef.id,

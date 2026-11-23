@@ -1,4 +1,4 @@
-// Ledger stage 1 check: does the Cloudflare ledger agree with Firestore?
+// Ledger stage 1 check: does the ledger database (Turso) agree with Firestore?
 //
 // Lists, for paid online orders in the last N days (default 7, at most 30):
 // orders Firestore settled that the ledger is missing, ledger payments with no
@@ -7,24 +7,22 @@
 
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireStaff } from "~/server/utils/staff-auth";
-import { callLedger, ledgerEnabled } from "~/server/utils/ledger";
+import { ledgerDb } from "~/server/utils/ledger";
+import { summary } from "~/server/ledger/shadow";
 import { toSen } from "~/server/utils/ledger-shadow";
 
 export default defineEventHandler(async (event) => {
   await requireStaff(event, "finance.view");
-  if (!ledgerEnabled()) {
-    throw createError({ statusCode: 503, message: "Ledger Worker isn't configured on this site" });
+  const db = ledgerDb();
+  if (!db) {
+    throw createError({ statusCode: 503, message: "The ledger database isn't configured on this site" });
   }
 
   const days = Math.min(30, Math.max(1, Math.floor(Number(getQuery(event).days) || 7)));
   const toMs = Date.now();
   const fromMs = toMs - days * 864e5;
 
-  const ledger = await callLedger<{
-    orders: { firestoreId: string; totalSen: number; paidSen: number; paymentStatus: string; billId: string }[];
-    conflicts: { billId: string; outcome: string; at: number }[];
-    balances: { code: string; balanceSen: number }[];
-  }>("/v1/summary", { fromMs, toMs });
+  const ledger = await summary(db, fromMs, toMs);
 
   const snap = await getAdminFirestore()
     .collection("compiledOrders")

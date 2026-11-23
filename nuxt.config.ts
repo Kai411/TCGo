@@ -266,11 +266,11 @@ export default defineNuxtConfig({
     billplzCollectionId: "",
     billplzXSignatureKey: "",
     billplzSandbox: "",
-    // Ledger Worker on Cloudflare (workers/ledger). Both unset = the ledger
-    // shadow is off and nothing else changes. NUXT_LEDGER_WORKER_URL /
-    // NUXT_LEDGER_WORKER_SECRET; the secret matches the Worker's own.
-    ledgerWorkerUrl: "",
-    ledgerWorkerSecret: "",
+    // Ledger database on Turso (server/ledger). Both unset = the ledger shadow
+    // is off and nothing else changes. NUXT_LEDGER_DATABASE_URL (libsql://...)
+    // and NUXT_LEDGER_DATABASE_TOKEN (a database token from Turso).
+    ledgerDatabaseUrl: "",
+    ledgerDatabaseToken: "",
     // Mailtrap. mailtrapInboxId set = sandbox (captured, not delivered);
     // clear it once a sending domain is verified to deliver for real.
     mailtrapApiToken: "",
