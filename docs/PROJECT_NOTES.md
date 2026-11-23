@@ -39,10 +39,10 @@ Server environment variables come from `runtimeConfig` in `nuxt.config.ts` (came
 
 ## Firestore rules and indexes
 
-- `firestore.rules` and `firestore.indexes.json` in the repo are the source of truth, but they are **not deployed automatically**. kai pastes them into the Firebase console by hand.
-- A paste **replaces everything**, so a rules change must always be the full file from latest staging, never a fragment. If you add an index, list its exact collection and fields in the PR.
-- A feature that needs new rules will not work in production until the paste happens. Say so in the PR.
-- `database.rules.json` is the Realtime Database rules (live auction prices and bids), pasted the same way under Realtime Database > Rules. Browsers can only read summaries, the bid list and their own bid index; nothing is browser-writable.
+- `firestore.rules`, `firestore.indexes.json` and `database.rules.json` in the repo are the source of truth. `.github/workflows/firebase-rules.yml` compiles them on every PR that touches them (plus a diff of live Firestore rules against the PR) and deploys them from `staging`: on every push once the repo variable `FIREBASE_AUTO_DEPLOY` is `true`, or on demand with Run workflow. Until then kai pastes them into the Firebase console by hand. It needs the `FIREBASE_DEPLOY_KEY` secret (service-account JSON).
+- A deploy or a paste **replaces everything**, so the file must always be the full file from latest staging, never a fragment. The workflow only adds indexes; one removed from the file stays in Firebase until deleted there. If you add an index, list its exact collection and fields in the PR.
+- A feature that needs new rules will not work in production until the deploy (or paste) happens. Say so in the PR.
+- `database.rules.json` is the Realtime Database rules (live auction prices and bids); by hand it is pasted under Realtime Database > Rules. Browsers can only read summaries, the bid list and their own bid index; nothing is browser-writable.
 
 ## Business and legal decisions
 
