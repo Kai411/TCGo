@@ -4,16 +4,10 @@
 // Firestore orders hold ringgit as floats; the ledger holds whole sen. The
 // conversion happens once, here.
 
-import crypto from "node:crypto";
-
 export const toSen = (rm: unknown): number => {
   const n = Number(rm);
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
 };
-
-/** Must match workers/ledger/src/crypto.ts signRequest. */
-export const signLedgerRequest = (secret: string, timestamp: number, body: string): string =>
-  crypto.createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex");
 
 export interface ShadowFees {
   platformFee: number;
@@ -22,7 +16,7 @@ export interface ShadowFees {
   sellerPayout: number;
 }
 
-/** The order as the Worker's /v1/shadow-payment expects it. */
+/** The order as server/ledger/shadow.ts expects it. */
 export const buildShadowOrder = (orderId: string, order: any, fees: ShadowFees) => {
   const isAuction = !!order?.auctionId;
   const subtotalSen = toSen(order?.subtotal);

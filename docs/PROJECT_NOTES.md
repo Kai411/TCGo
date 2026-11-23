@@ -15,6 +15,7 @@ A Pokémon TCG marketplace for Malaysia: fixed-price listings (Shop), auctions, 
 | Main backend | Firebase Auth and Firestore |
 | Card prices | Supabase (`cards_catalog`, `card_prices`) |
 | Marketplace payments | Billplz (FPX) |
+| Order and payout ledger | Turso Free (libSQL), `server/ledger`. Stage 1 only shadows Billplz payments beside Firestore; see `server/ledger/README.md` |
 | Pro membership | Stripe (subscriptions only, not marketplace payments) |
 | Email | Mailtrap (sign-up codes, admin test email). Password reset uses Firebase's own reset link |
 | Seller ID check | Didit |

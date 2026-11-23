@@ -1,47 +1,41 @@
-// Calls to the ledger Worker (workers/ledger) on Cloudflare.
+// The ledger database (Turso, libSQL) for Netlify functions.
 //
 // Stage 1 only shadows: Firestore still settles every order, and a ledger
-// failure must never fail the Billplz callback. So every call here has a short
-// timeout, never throws, and reports problems to the operations log.
+// failure must never fail the Billplz callback. So shadowPaymentToLedger has a
+// short timeout, never throws, and reports problems to the operations log.
 
+import { createClient } from "@libsql/client/web";
 import { noteError } from "~/server/utils/oplog";
-import { buildShadowOrder, signLedgerRequest, type ShadowFees } from "~/server/utils/ledger-shadow";
+import { buildShadowOrder, type ShadowFees } from "~/server/utils/ledger-shadow";
+import { fromLibsql, type D1Like } from "~/server/ledger/db";
+import { recordBillplzPayment } from "~/server/ledger/shadow";
 
 const TIMEOUT_MS = 4000;
 
-const ledgerConfig = () => {
+let cached: { key: string; db: D1Like } | null = null;
+
+/** The ledger database, or null when NUXT_LEDGER_DATABASE_URL/TOKEN aren't set. */
+export const ledgerDb = (): D1Like | null => {
   const config = useRuntimeConfig();
-  const url = String(config.ledgerWorkerUrl || "").replace(/\/+$/, "");
-  const secret = String(config.ledgerWorkerSecret || "");
-  return url && secret ? { url, secret } : null;
+  const url = String(config.ledgerDatabaseUrl || "");
+  const authToken = String(config.ledgerDatabaseToken || "");
+  if (!url || !authToken) return null;
+  const key = `${url}|${authToken}`;
+  if (cached?.key !== key) cached = { key, db: fromLibsql(createClient({ url, authToken }) as any) };
+  return cached.db;
 };
 
-export const ledgerEnabled = () => !!ledgerConfig();
+export const ledgerEnabled = () => !!ledgerDb();
 
-/** POST a signed action. Throws on network errors and non-2xx answers. */
-export const callLedger = async <T = any>(path: string, payload: unknown): Promise<T> => {
-  const cfg = ledgerConfig();
-  if (!cfg) throw new Error("ledger worker not configured");
-  const body = JSON.stringify(payload);
-  const ts = Date.now();
-  const res = await fetch(`${cfg.url}${path}`, {
-    method: "POST",
-    body,
-    headers: {
-      "content-type": "application/json",
-      "x-tcgo-timestamp": String(ts),
-      "x-tcgo-signature": signLedgerRequest(cfg.secret, ts, body),
-    },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  const data = (await res.json().catch(() => ({}))) as any;
-  if (!res.ok) throw new Error(`ledger ${path} ${res.status}: ${data?.error ?? "no detail"}`);
-  return data as T;
-};
+const withTimeout = <T,>(p: Promise<T>): Promise<T> =>
+  Promise.race([
+    p,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`timed out after ${TIMEOUT_MS} ms`)), TIMEOUT_MS)),
+  ]);
 
 /**
- * Mirror a payment Firestore just settled. `callback` is Billplz's raw signed
- * body, forwarded so the Worker can check Billplz's signature itself.
+ * Mirror a payment Firestore just settled. `callback` is Billplz's body, whose
+ * signature the webhook has already checked.
  */
 export const shadowPaymentToLedger = async (input: {
   orderId: string;
@@ -50,15 +44,19 @@ export const shadowPaymentToLedger = async (input: {
   paidSen: number;
   callback: Record<string, string>;
 }): Promise<void> => {
-  if (!ledgerEnabled()) return;
+  const db = ledgerDb();
+  if (!db) return;
   try {
-    const result = await callLedger<{ outcome: string; conflicts: { listingId: string; heldByOrder: string | null }[] }>(
-      "/v1/shadow-payment",
-      {
-        callback: input.callback,
-        paidSen: input.paidSen,
-        order: buildShadowOrder(input.orderId, input.order, input.fees),
-      },
+    const result = await withTimeout(
+      recordBillplzPayment(
+        db,
+        {
+          callback: input.callback,
+          paidSen: input.paidSen,
+          order: buildShadowOrder(input.orderId, input.order, input.fees) as any,
+        },
+        Date.now(),
+      ),
     );
     if (result.conflicts?.length) {
       noteError({

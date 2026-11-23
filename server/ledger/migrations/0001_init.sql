@@ -1,24 +1,24 @@
--- TCGo ledger, Cloudflare D1 (SQLite). Migration 0001.
+-- TCGo ledger, Turso (libSQL, which is SQLite). Migration 0001.
 -- Design: https://claude.ai/artifact/4Yk63zjf7reDKwEK2kMAdV (section 0). Same tables and rules as commerce-schema.sql (Postgres);
 -- what changes:
 --   * no schemas, enums, plpgsql, deferred triggers or row locks in SQLite.
 --   * enums become CHECK (... IN (...)).
 --   * timestamps are integer epoch milliseconds (same as Firestore today).
---   * ids are text UUIDs made by the Worker (crypto.randomUUID()).
---   * the money functions (place_order, record_payment, ...) move into the
---     Worker as db.batch() calls. A batch is one SQL transaction: if any
+--   * ids are text UUIDs made by the server (crypto.randomUUID()).
+--   * the money functions (place_order, record_payment, ...) move into
+--     server/ledger/shadow.ts as batch() calls. A batch is one SQL transaction: if any
 --     statement fails, the whole batch rolls back.
 --   * "raise exception" becomes an INSERT into an assert_* view whose trigger
 --     aborts the batch when the condition is false. That is how a batch checks
 --     a card is still free, an order is still payable, or a ledger
 --     transaction balances, inside the same transaction that writes.
---   * D1 runs one writer per database, so batches never interleave: there is
+--   * SQLite runs one writer per database, so batches never interleave: there is
 --     no lost-update race to lock against, only stale reads between calls,
 --     which the asserts catch.
 
 
 -- ── Assertions (abort the batch when ok is not 1) ──────────────────
--- One view per reason, with literal messages, so the Worker can map the
+-- One view per reason, with literal messages, so the server can map the
 -- error to a clear answer ("This card has just been sold").
 CREATE VIEW assert_listing_free AS SELECT NULL AS ok;
 CREATE TRIGGER assert_listing_free_t INSTEAD OF INSERT ON assert_listing_free
