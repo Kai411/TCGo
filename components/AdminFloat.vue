@@ -1,53 +1,42 @@
 <template>
-  <div
-    class="panel rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5"
-  >
+  <div class="mc-card mc-card-pad min-w-0">
     <div class="flex items-start justify-between gap-3">
       <div class="min-w-0">
-        <h3 class="text-sm font-semibold text-ink dark:text-white">{{ name }}</h3>
-        <p class="text-xs text-ink-muted dark:text-zinc-400 mt-1 leading-relaxed">
-          {{ purpose }}
-        </p>
+        <h3 class="mc-h3 text-[14px]">{{ name }}</h3>
+        <p class="mc-small mt-1">{{ purpose }}</p>
       </div>
+      <span v-if="projection.recommended > 0" class="mc-tag shrink-0 gap-1.5">
+        <span class="mc-dot" data-tone="warn" aria-hidden="true" />
+        Top up
+      </span>
     </div>
 
-    <div class="mt-4 grid grid-cols-3 gap-3">
-      <div>
-        <p class="text-xs text-ink-soft dark:text-zinc-500">Daily burn</p>
-        <p class="text-base font-bold tabular-nums text-ink dark:text-white mt-0.5">
-          RM {{ money(projection.dailyBurn) }}
-        </p>
+    <dl class="mt-4 grid grid-cols-3 gap-3">
+      <div class="min-w-0">
+        <dt class="mc-label">Daily burn</dt>
+        <dd class="mc-num mt-0.5 text-[15px] font-semibold">RM {{ money(projection.dailyBurn) }}</dd>
       </div>
-      <div>
-        <p class="text-xs text-ink-soft dark:text-zinc-500">Next 30 days</p>
-        <p class="text-base font-bold tabular-nums text-ink dark:text-white mt-0.5">
-          RM {{ money(projection.projected) }}
-        </p>
+      <div class="min-w-0">
+        <dt class="mc-label">Next 30 days</dt>
+        <dd class="mc-num mt-0.5 text-[15px] font-semibold">RM {{ money(projection.projected) }}</dd>
       </div>
-      <div>
-        <p class="text-xs text-ink-soft dark:text-zinc-500">Top up</p>
-        <p
-          class="text-base font-bold tabular-nums mt-0.5"
-          :class="
-            projection.recommended > 0
-              ? 'text-pokemon-red'
-              : 'text-ink-muted dark:text-zinc-400'
-          "
+      <div class="min-w-0">
+        <dt class="mc-label">Top up by</dt>
+        <dd
+          class="mc-num mt-0.5 text-[15px] font-semibold"
+          :class="projection.recommended > 0 ? '' : 'text-[var(--ink-3)]'"
         >
           RM {{ money(projection.recommended) }}
-        </p>
+        </dd>
       </div>
-    </div>
+    </dl>
 
-    <p
-      v-if="projection.runwayDays !== null"
-      class="text-xs text-ink-muted dark:text-zinc-400 mt-3"
-    >
+    <p v-if="projection.runwayDays !== null" class="mc-meta mt-3">
       About {{ projection.runwayDays }} days of runway left.
     </p>
-    <p v-else class="text-xs text-ink-soft dark:text-zinc-500 mt-3 leading-relaxed">
-      Runway needs a balance to measure against, and neither provider exposes one
-      we poll — the burn above is measured, the balance isn't.
+    <p v-else class="mc-small mt-3">
+      Runway needs a balance to measure against, and neither provider exposes
+      one we poll. The burn above is measured, the balance isn't.
     </p>
   </div>
 </template>

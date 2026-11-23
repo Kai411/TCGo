@@ -1,25 +1,19 @@
 <template>
   <div
     class="flex items-baseline justify-between gap-4"
-    :class="divider ? 'border-t border-black/[0.06] dark:border-white/[0.08] pt-2.5 mt-2.5' : ''"
+    :class="divider ? 'mc-divider pt-2.5 mt-1' : ''"
   >
-    <dt :class="strong ? 'font-semibold text-ink dark:text-white' : 'text-ink-muted dark:text-zinc-400'">
+    <dt class="min-w-0" :class="strong ? 'font-semibold' : 'text-[var(--ink-2)]'">
       {{ label }}
-      <span v-if="note" class="text-xs font-normal text-ink-soft dark:text-zinc-500">
-        · {{ note }}
-      </span>
+      <span v-if="note" class="mc-small font-normal whitespace-nowrap">· {{ note }}</span>
     </dt>
-    <dd
-      class="tabular-nums shrink-0"
-      :class="[
-        strong ? 'font-bold' : '',
-        highlight
-          ? value >= 0
-            ? 'text-emerald-600 dark:text-emerald-400'
-            : 'text-red-600 dark:text-red-400'
-          : 'text-ink dark:text-zinc-100',
-      ]"
-    >
+    <dd class="mc-num shrink-0 flex items-center gap-2" :class="strong ? 'font-semibold' : ''">
+      <span
+        v-if="highlight"
+        class="mc-dot"
+        :data-tone="value >= 0 ? 'good' : 'bad'"
+        aria-hidden="true"
+      />
       {{ value < 0 ? "−" : "" }}RM {{ money(Math.abs(value)) }}
     </dd>
   </div>
