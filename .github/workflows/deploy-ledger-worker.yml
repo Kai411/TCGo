@@ -1,13 +1,13 @@
 name: Deploy ledger Worker
 
-# Builds and deploys workers/ledger to Cloudflare. A push to staging deploys
-# tcgo-ledger-staging; a push to main deploys tcgo-ledger. The first run
-# creates the D1 database (location hint apac). Every run applies new
-# migrations, deploys, and sets the Worker's secrets.
+# Builds and deploys workers/ledger to Cloudflare as one production Worker
+# (tcgo-ledger) with one D1 database. Pushes to staging or main both deploy
+# it. The first run creates the database (location hint apac). Every run
+# applies new migrations, deploys, and sets the Worker's secrets.
 #
 # Needs repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, and
-# GitHub environments ledger-staging / ledger-production with secrets
-# LEDGER_WORKER_SECRET and BILLPLZ_X_SIGNATURE_KEY.
+# the GitHub environment ledger-production with secrets LEDGER_WORKER_SECRET
+# and BILLPLZ_X_SIGNATURE_KEY (sandbox key for now, the live key later).
 
 on:
   push:
@@ -25,14 +25,14 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ledger-${{ github.event_name }}-${{ github.ref_name }}
+  group: ledger-${{ github.event_name == 'pull_request' && github.ref_name || 'deploy' }}
   cancel-in-progress: false
 
 jobs:
   check-secrets:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    environment: ledger-${{ github.base_ref == 'main' && 'production' || 'staging' }}
+    environment: ledger-production
     steps:
       - name: Check secrets are set
         env:
@@ -69,9 +69,9 @@ jobs:
   deploy:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    environment: ledger-${{ github.ref_name == 'main' && 'production' || 'staging' }}
+    environment: ledger-production
     env:
-      TARGET: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+      TARGET: production
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       WRANGLER_SEND_METRICS: "false"
@@ -102,7 +102,7 @@ jobs:
 
       - name: Create the D1 database if it doesn't exist
         run: |
-          if [ "$TARGET" = production ]; then NAME=tcgo-ledger; else NAME=tcgo-ledger-staging; fi
+          NAME=tcgo-ledger
           find_id() {
             wrangler d1 list --json | node -e '
               let s = ""; process.stdin.on("data", d => s += d).on("end", () => {

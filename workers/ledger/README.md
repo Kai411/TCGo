@@ -13,18 +13,19 @@ then sends the same payment here (`/v1/shadow-payment`). Mint Condition staff ca
 
 ## Deploys
 
-`.github/workflows/deploy-ledger-worker.yml` runs on pushes to `staging` (tcgo-ledger-staging) and `main`
-(tcgo-ledger) that touch this folder. It creates the D1 database on first run (`--location apac`),
+`.github/workflows/deploy-ledger-worker.yml` deploys one production Worker, `tcgo-ledger`, on pushes to
+`staging` or `main` that touch this folder (pull requests only run the secrets check). It creates the D1 database on first run (`--location apac`),
 applies migrations, deploys and sets the secrets. The run summary prints the Worker URL.
 
 One-time setup: repository secrets `CLOUDFLARE_API_TOKEN` (Workers template + Account > D1 > Edit) and
-`CLOUDFLARE_ACCOUNT_ID`; environments `ledger-staging` / `ledger-production`, each with
-`LEDGER_WORKER_SECRET` (64+ random characters) and `BILLPLZ_X_SIGNATURE_KEY` (that site's Billplz key).
-Then on the matching Netlify site: `NUXT_LEDGER_WORKER_URL` and `NUXT_LEDGER_WORKER_SECRET`.
+`CLOUDFLARE_ACCOUNT_ID`; environment `ledger-production` with `LEDGER_WORKER_SECRET` (64+ random
+characters) and `BILLPLZ_X_SIGNATURE_KEY` (the Billplz sandbox key for now; swap in the live key when
+going live, then clear the sandbox rows). Then on the Netlify site: `NUXT_LEDGER_WORKER_URL` and
+`NUXT_LEDGER_WORKER_SECRET`.
 
 ## Local check
 
-    npx wrangler@4.157.0 d1 migrations apply DB --local --env staging
-    npx wrangler@4.157.0 dev --local --env staging   # needs a .dev.vars with both secrets
+    npx wrangler@4.157.0 d1 migrations apply DB --local --env production
+    npx wrangler@4.157.0 dev --local --env production   # needs a .dev.vars with both secrets
 
 Tests: `npm test` at the repo root runs `test/ledger-worker.test.ts` against the migration on node:sqlite.
