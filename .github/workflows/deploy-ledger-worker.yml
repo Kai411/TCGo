@@ -134,6 +134,8 @@ jobs:
 
       - name: Deploy
         run: |
+          # pipefail so a failed deploy fails the step instead of being hidden by tee.
+          set -o pipefail
           wrangler deploy --env "$TARGET" | tee deploy.log
           URL=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
           echo "WORKER_URL=$URL" >> "$GITHUB_ENV"
@@ -148,11 +150,13 @@ jobs:
 
       - name: Health check
         run: |
-          [ -n "$WORKER_URL" ] || { echo "::warning::Deploy output had no workers.dev URL"; exit 0; }
-          for i in 1 2 3 4 5; do
-            if curl -fsS "$WORKER_URL/health"; then break; fi
+          [ -n "$WORKER_URL" ] || { echo "::error::Deploy output had no workers.dev URL"; exit 1; }
+          ok=0
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS "$WORKER_URL/health"; then ok=1; break; fi
             sleep 5
           done
+          [ "$ok" = 1 ] || { echo "::error::$WORKER_URL/health did not answer"; exit 1; }
           {
             echo "### Ledger Worker deployed ($TARGET)"
             echo ""
