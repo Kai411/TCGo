@@ -50,9 +50,15 @@ jobs:
           elif [ -n "$LEDGER_WORKER_SECRET" ]; then echo "SHORT   LEDGER_WORKER_SECRET (${#LEDGER_WORKER_SECRET} characters, needs 32+)"; ok=0;
           else echo "MISSING LEDGER_WORKER_SECRET"; ok=0; fi
           # Token is real and can see the account (no change is made).
+          # User tokens verify at /user/tokens/verify, account-owned tokens at
+          # /accounts/<id>/tokens/verify; either one answering "active" is fine.
           if [ -n "$CLOUDFLARE_API_TOKEN" ]; then
-            code=$(curl -s -o /tmp/verify.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" https://api.cloudflare.com/client/v4/user/tokens/verify)
-            if [ "$code" = 200 ] && grep -q '"status":"active"' /tmp/verify.json; then echo "OK      Cloudflare accepts the token"; else echo "FAILED  Cloudflare rejected the token (HTTP $code)"; ok=0; fi
+            active=0
+            for path in user/tokens/verify "accounts/$CLOUDFLARE_ACCOUNT_ID/tokens/verify"; do
+              code=$(curl -s -o /tmp/verify.json -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/$path")
+              if [ "$code" = 200 ] && grep -q '"status":"active"' /tmp/verify.json; then active=1; break; fi
+            done
+            if [ "$active" = 1 ]; then echo "OK      Cloudflare accepts the token"; else echo "FAILED  Cloudflare rejected the token"; ok=0; fi
           fi
           if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
             code=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database")
