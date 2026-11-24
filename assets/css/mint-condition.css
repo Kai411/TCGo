@@ -373,6 +373,40 @@
     background: var(--surface-2);
   }
 }
+/* A row with its own buttons: the link covers the thumb and text only, so
+   no link sits inside another. */
+.mc-row--split {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.mc-row-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .mc-row--split {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 8px;
+  }
+  .mc-row--split > :last-child:not(.mc-row-link) {
+    padding-left: 42px;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .mc-row--split:has(.mc-row-link:hover) {
+    background: var(--surface-2);
+  }
+}
+
+/* Finished items fade, never strike through. */
+.mc-row.is-done .mc-row-title,
+.mc-row.is-done .mc-num {
+  color: var(--ink-3);
+}
+.mc-row.is-done .mc-thumb {
+  opacity: 0.6;
+}
 .mc-thumb {
   width: 30px;
   aspect-ratio: 5 / 7;

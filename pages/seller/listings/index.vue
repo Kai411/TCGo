@@ -1,96 +1,68 @@
 <template>
-  <div class="max-w-4xl mx-auto">
-    <div v-if="!user" class="text-center py-16">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to manage your listings.</p>
-      <button @click="goToLogin" class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors">
-        Sign in
-      </button>
-    </div>
+  <div class="sl-page">
+    <SellerGate v-if="!user" message="Sign in to manage your listings." />
 
     <template v-else>
-      <div class="flex items-center justify-between gap-3 mb-5">
-        <h1 class="text-2xl font-bold text-ink dark:text-white">Listings</h1>
-        <NuxtLink
-          to="/seller/listings/new"
-          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors"
-        >
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      <SellerPageHead
+        title="Listings"
+        description="Cards on sale at a fixed price on the marketplace."
+      >
+        <NuxtLink to="/seller/listings/new" class="mc-btn mc-btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
           Add card
         </NuxtLink>
-      </div>
+      </SellerPageHead>
 
-      <TabStrip v-model="tab" :tabs="tabs" />
+      <McTabs v-model="tab" :tabs="tabs" class="mb-4" />
 
-      <div v-if="cardsLoading" class="flex justify-center py-16">
-        <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red"/>
-      </div>
+      <div v-if="cardsLoading" class="mc-skel h-[200px]" aria-busy="true" aria-label="Loading listings" />
 
-      <template v-else>
-        <!-- Active -->
-        <div v-if="tab === 'active'" class="mt-5">
-          <p v-if="!activeCards.length" class="text-sm text-gray-400 dark:text-zinc-500 py-3">
-            No cards listed.
-            <NuxtLink to="/seller/listings/new" class="text-pokemon-red hover:underline ml-1">List one →</NuxtLink>
-          </p>
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 lg:gap-3 items-start">
-            <ActivityRow
-              v-for="card in activeCards"
-              :key="card.id"
-              :image="card.imageUrls?.[0] || card.imageUrl"
-              :title="card.cardName"
-              :subtitle="`${card.cardSet || ''} · ${card.condition || ''}`"
-              :to="`/cards/${card.id}`"
-            >
-              <template #meta>
-                <span class="text-pokemon-red font-semibold">RM {{ card.price.toFixed(2) }}</span>
-              </template>
-              <template #actions>
-                <div class="flex items-center gap-1.5">
-                  <NuxtLink
-                    :to="`/seller/listings/${card.id}/edit`"
-                    @click.stop
-                    class="text-xs bg-gray-100 dark:bg-white/[0.06] text-gray-700 dark:text-zinc-200 hover:bg-gray-200 dark:hover:bg-white/[0.10] inline-flex items-center min-h-[36px] px-3 lg:min-h-0 lg:py-1.5 rounded-lg font-medium"
-                  >
-                    Edit
-                  </NuxtLink>
-                  <button
-                    @click.stop.prevent="handleMarkAsSold(card.id)"
-                    :disabled="markingAsSold === card.id"
-                    class="text-xs bg-green-100 text-green-700 hover:bg-green-200 inline-flex items-center min-h-[36px] px-3 lg:min-h-0 lg:py-1.5 rounded-lg font-medium disabled:opacity-50"
-                  >
-                    {{ markingAsSold === card.id ? "..." : "Mark sold" }}
-                  </button>
-                </div>
-              </template>
-            </ActivityRow>
+      <div v-else class="mc-card overflow-hidden">
+        <template v-if="tab === 'active'">
+          <div v-if="!activeCards.length" class="mc-empty flex items-center justify-between gap-3">
+            <span>No cards listed yet.</span>
+            <NuxtLink to="/seller/listings/new" class="mc-btn mc-btn-sm">List a card</NuxtLink>
           </div>
-        </div>
-
-        <!-- Sold -->
-        <div v-if="tab === 'sold'" class="mt-5">
-          <p v-if="!soldCards.length" class="text-sm text-gray-400 dark:text-zinc-500 py-3">
-            No completed sales yet.
-          </p>
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 lg:gap-3 items-start">
-            <ActivityRow
-              v-for="card in soldCards"
-              :key="card.id"
-              :image="card.imageUrls?.[0] || card.imageUrl"
-              :title="card.cardName"
-              :subtitle="`${card.cardSet || ''} · ${card.condition || ''}`"
-              :to="`/cards/${card.id}`"
-              :dim="true"
-            >
-              <template #meta>
-                <span class="text-gray-500 dark:text-zinc-400">RM {{ card.price.toFixed(2) }}</span>
-              </template>
-              <template #actions>
-                <span class="text-xs bg-gray-100 dark:bg-white/[0.04] text-gray-500 dark:text-zinc-400 inline-flex items-center min-h-[36px] px-3 lg:min-h-0 lg:py-1.5 rounded-lg font-medium">Sold</span>
-              </template>
-            </ActivityRow>
+          <div v-for="card in activeCards" v-else :key="card.id" class="mc-row mc-row--split">
+            <NuxtLink :to="`/cards/${card.id}`" class="mc-row-link">
+              <img :src="card.imageUrls?.[0] || card.imageUrl" alt="" class="mc-thumb" loading="lazy" />
+              <div class="min-w-0">
+                <p class="mc-row-title">{{ card.cardName }}</p>
+                <p class="mc-meta truncate">
+                  <span class="mc-num font-semibold text-[var(--ink)]">RM {{ card.price.toFixed(2) }}</span>
+                  · {{ [card.cardSet, card.condition].filter(Boolean).join(" · ") }}
+                </p>
+              </div>
+            </NuxtLink>
+            <div class="flex items-center gap-1.5">
+              <NuxtLink :to="`/seller/listings/${card.id}/edit`" class="mc-btn mc-btn-sm">Edit</NuxtLink>
+              <button
+                type="button"
+                class="mc-btn mc-btn-sm"
+                :disabled="markingAsSold === card.id"
+                @click="handleMarkAsSold(card.id)"
+              >
+                {{ markingAsSold === card.id ? "Saving…" : "Mark sold" }}
+              </button>
+            </div>
           </div>
-        </div>
-      </template>
+        </template>
+
+        <template v-if="tab === 'sold'">
+          <p v-if="!soldCards.length" class="mc-empty">No completed sales yet.</p>
+          <NuxtLink v-for="card in soldCards" v-else :key="card.id" :to="`/cards/${card.id}`" class="mc-row is-done">
+            <img :src="card.imageUrls?.[0] || card.imageUrl" alt="" class="mc-thumb" loading="lazy" />
+            <div class="min-w-0">
+              <p class="mc-row-title">{{ card.cardName }}</p>
+              <p class="mc-meta truncate">{{ [card.cardSet, card.condition].filter(Boolean).join(" · ") }}</p>
+            </div>
+            <span class="text-right">
+              <span class="mc-num block">RM {{ card.price.toFixed(2) }}</span>
+              <span class="mc-small">Sold</span>
+            </span>
+          </NuxtLink>
+        </template>
+      </div>
     </template>
   </div>
 </template>
@@ -108,7 +80,6 @@ definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Listings | TCGo" });
 
 const {user} = useAuth();
-const { goToLogin } = useSignInGate();
 const { cards, loading: cardsLoading, markAsSold } = useCards();
 const { markSoldByListingId } = useInventory();
 
