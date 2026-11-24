@@ -1,0 +1,135 @@
+name: Firebase rules
+
+# Deploys firestore.rules, firestore.indexes.json and database.rules.json from
+# the repo, so nobody pastes them into the Firebase console by hand.
+#
+#   Pull request -> check: compiles the rules on Firebase (firebase deploy
+#                   --dry-run), validates the JSON files, and prints a diff of
+#                   the live Firestore rules against the PR's file. Changes
+#                   nothing.
+#   Push to staging -> the same check, then deploy, but ONLY when the repo
+#                   variable FIREBASE_AUTO_DEPLOY is "true". Until it is set,
+#                   a push just runs the check.
+#   Run workflow (Actions tab) on staging -> deploy now, whatever the
+#                   variable says. On any other branch it only checks.
+#
+# A deploy replaces the live rules with the repo's files, exactly like a full
+# paste into the console. Indexes are only added: an index that exists in the
+# project but not in firestore.indexes.json is listed in the log and left
+# alone (no --force).
+#
+# Needs repository secret FIREBASE_DEPLOY_KEY: the JSON key of a service
+# account with Firebase Rules Admin, Cloud Datastore Index Admin, Firebase
+# Realtime Database Admin, Firebase Viewer and Service Usage Consumer. The
+# project id is read from the key, so there is no .firebaserc.
+
+on:
+  pull_request:
+    branches: [staging]
+    paths:
+      - firestore.rules
+      - firestore.indexes.json
+      - database.rules.json
+      - firebase.json
+      - scripts/deploy-firestore-rules.mjs
+      - .github/workflows/firebase-rules.yml
+  push:
+    branches: [staging]
+    paths:
+      - firestore.rules
+      - firestore.indexes.json
+      - database.rules.json
+      - firebase.json
+      - scripts/deploy-firestore-rules.mjs
+      - .github/workflows/firebase-rules.yml
+  workflow_dispatch:
+
+# One deploy at a time; a newer push waits rather than racing an older one.
+concurrency:
+  group: firebase-rules-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # Pinned major so a CLI release can't change deploy behaviour unannounced.
+  FIREBASE_TOOLS: firebase-tools@14
+
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate JSON files
+        run: |
+          for f in firebase.json firestore.indexes.json database.rules.json; do
+            node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" \
+              || { echo "::error file=$f::$f is not valid JSON"; exit 1; }
+          done
+
+      - name: Load service account
+        id: key
+        env:
+          FIREBASE_DEPLOY_KEY: ${{ secrets.FIREBASE_DEPLOY_KEY }}
+        run: |
+          if [ -z "$FIREBASE_DEPLOY_KEY" ]; then
+            echo "::error::Repository secret FIREBASE_DEPLOY_KEY is not set. Add the service account's JSON key under Settings > Secrets and variables > Actions. Nothing was checked or deployed."
+            exit 1
+          fi
+          key="$RUNNER_TEMP/firebase-key.json"
+          # Accept the key as downloaded, or base64 of it.
+          if printf '%s' "$FIREBASE_DEPLOY_KEY" | grep -q '^[[:space:]]*{'; then
+            printf '%s' "$FIREBASE_DEPLOY_KEY" > "$key"
+          else
+            printf '%s' "$FIREBASE_DEPLOY_KEY" | base64 -d > "$key"
+          fi
+          project=$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('$key','utf8')).project_id||'')") \
+            || { echo "::error::FIREBASE_DEPLOY_KEY is not a service-account JSON key."; exit 1; }
+          if [ -z "$project" ]; then
+            echo "::error::FIREBASE_DEPLOY_KEY has no project_id."; exit 1
+          fi
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$key" >> "$GITHUB_ENV"
+          echo "project=$project" >> "$GITHUB_OUTPUT"
+          echo "Project: $project"
+
+      # firebase-admin for the diff script. --ignore-scripts skips nuxt
+      # prepare, which this job doesn't need. package-lock.json is
+      # gitignored; see snapshot-pokemon-prices.yml.
+      - run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Diff live Firestore rules against the repo
+        env:
+          FIREBASE_DEPLOY_KEY: ${{ secrets.FIREBASE_DEPLOY_KEY }}
+        run: node scripts/deploy-firestore-rules.mjs
+
+      - name: Compile rules on Firebase (dry run)
+        run: >
+          npx --yes "$FIREBASE_TOOLS" deploy
+          --only firestore:rules,firestore:indexes,database
+          --project "${{ steps.key.outputs.project }}"
+          --non-interactive --dry-run
+
+      - name: Deploy
+        if: >
+          github.ref == 'refs/heads/staging' && (github.event_name == 'workflow_dispatch' ||
+          (github.event_name == 'push' && vars.FIREBASE_AUTO_DEPLOY == 'true'))
+        run: >
+          npx --yes "$FIREBASE_TOOLS" deploy
+          --only firestore:rules,firestore:indexes,database
+          --project "${{ steps.key.outputs.project }}"
+          --non-interactive
+
+      - name: Note skipped deploy
+        if: github.event_name == 'push' && vars.FIREBASE_AUTO_DEPLOY != 'true'
+        run: echo "::notice::Checked only. Set repository variable FIREBASE_AUTO_DEPLOY=true to deploy on every push to staging, or use Run workflow to deploy once."
+
+      - name: Remove key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-key.json"

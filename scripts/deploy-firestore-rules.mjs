@@ -23,22 +23,37 @@ import { spawnSync } from "node:child_process";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getSecurityRules } from "firebase-admin/security-rules";
 
-const env = Object.fromEntries(
-  readFileSync(new URL("../.env", import.meta.url), "utf8")
-    .split("\n")
-    .filter((l) => l.trim() && !l.trim().startsWith("#") && l.includes("="))
-    .map((l) => {
-      const i = l.indexOf("=");
-      return [l.slice(0, i).trim(), l.slice(i + 1).trim()];
-    }),
-);
+// The key comes from .env on kai's machine, or from the environment in
+// GitHub Actions (.github/workflows/firebase-rules.yml), where
+// FIREBASE_DEPLOY_KEY is the service-account JSON as downloaded (raw or
+// base64, both accepted).
+const readDotEnv = () => {
+  try {
+    return Object.fromEntries(
+      readFileSync(new URL("../.env", import.meta.url), "utf8")
+        .split("\n")
+        .filter((l) => l.trim() && !l.trim().startsWith("#") && l.includes("="))
+        .map((l) => {
+          const i = l.indexOf("=");
+          return [l.slice(0, i).trim(), l.slice(i + 1).trim()];
+        }),
+    );
+  } catch {
+    return {};
+  }
+};
 
-const b64 = env.NUXT_FIREBASE_SERVICE_ACCOUNT;
-if (!b64) {
-  console.error("NUXT_FIREBASE_SERVICE_ACCOUNT missing from .env");
+const key =
+  process.env.FIREBASE_DEPLOY_KEY ||
+  process.env.NUXT_FIREBASE_SERVICE_ACCOUNT ||
+  readDotEnv().NUXT_FIREBASE_SERVICE_ACCOUNT;
+if (!key) {
+  console.error("No service account: set FIREBASE_DEPLOY_KEY, or NUXT_FIREBASE_SERVICE_ACCOUNT in .env");
   process.exit(1);
 }
-const serviceAccount = JSON.parse(Buffer.from(b64, "base64").toString("utf8"));
+const serviceAccount = JSON.parse(
+  key.trim().startsWith("{") ? key : Buffer.from(key, "base64").toString("utf8"),
+);
 if (!getApps().length) {
   initializeApp({ credential: cert(serviceAccount), projectId: serviceAccount.project_id });
 }
