@@ -1,104 +1,95 @@
 <template>
-  <div class="min-h-screen bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 transition-colors">
+  <!-- Calm UI shell (same tokens as Mint Condition, scoped by `.mc`). The
+       page area resets to the marketplace's 16px base so seller pages that
+       haven't moved onto mc-* classes render exactly as before. -->
+  <div class="mc sl-shell">
     <!-- Top bar -->
-    <header class="sticky top-0 z-40 glass select-none">
-      <div class="px-4 h-14 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2 min-w-0">
-          <NuxtLink to="/" class="inline-flex items-center gap-1 text-sm text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors shrink-0">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-            <span class="hidden sm:inline">Marketplace</span>
-          </NuxtLink>
-          <span class="text-ink-soft dark:text-zinc-600">/</span>
-          <span class="font-bold text-ink dark:text-white truncate">Seller dashboard</span>
-        </div>
-        <!-- Inventory and Auctions each have their own add button on-page, so
-             duplicating them up here just crowded the bar. Settings takes the
-             slot instead — it's the one destination with no other entry point. -->
-        <div class="flex items-center gap-2 shrink-0">
-          <ChatNavButton />
-          <NotificationBell />
-          <NuxtLink
-            to="/seller/settings"
-            data-tour="settings"
-            aria-label="Seller settings"
-            class="p-2 rounded-full text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors"
-            :class="route.path === '/seller/settings' ? '!text-pokemon-red' : ''"
-          >
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </NuxtLink>
-        </div>
+    <header class="sl-topbar">
+      <div class="flex items-center gap-2 min-w-0">
+        <NuxtLink to="/" class="mc-btn mc-btn-ghost mc-btn-sm sl-back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+          <span class="hidden sm:inline">Marketplace</span>
+        </NuxtLink>
+        <span class="sl-crumb-sep" aria-hidden="true">/</span>
+        <span class="sl-topbar-title truncate">Seller dashboard</span>
+      </div>
+      <!-- Inventory and Auctions each have their own add button on-page, so
+           duplicating them up here just crowded the bar. Settings takes the
+           slot instead — it's the one destination with no other entry point. -->
+      <div class="flex items-center gap-1 shrink-0">
+        <ChatNavButton />
+        <NotificationBell />
+        <NuxtLink
+          to="/seller/settings"
+          data-tour="settings"
+          aria-label="Seller settings"
+          class="mc-btn mc-btn-ghost mc-btn-icon rounded-full"
+          :aria-current="route.path === '/seller/settings' ? 'page' : undefined"
+        >
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </NuxtLink>
       </div>
     </header>
 
     <div class="lg:flex">
       <!-- Sidebar (desktop) -->
-      <aside class="hidden lg:block w-56 shrink-0 border-r border-black/[0.06] dark:border-white/[0.08] min-h-[calc(100vh-3.5rem)] sticky top-14 self-start">
-        <nav class="p-3 space-y-0.5">
-          <NuxtLink
-            v-for="item in navItems"
-            :key="item.to"
-            :to="item.to"
-            :data-tour="item.tour"
-            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
-            :class="
-              isActive(item)
-                ? 'bg-ink text-white dark:bg-white dark:text-ink'
-                : 'text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
-            "
-          >
-            <component :is="item.icon" class="w-4 h-4 shrink-0" />
-            {{ item.label }}
-          </NuxtLink>
+      <aside class="sl-side hidden lg:flex">
+        <nav class="sl-nav" aria-label="Seller">
+          <template v-for="group in navGroups" :key="group.label">
+            <p class="mc-eyebrow sl-nav-group">{{ group.label }}</p>
+            <NuxtLink
+              v-for="item in group.items"
+              :key="item.to"
+              :to="item.to"
+              :data-tour="item.tour"
+              class="sl-nav-link"
+              :aria-current="isActive(item) ? 'page' : undefined"
+            >
+              <component :is="item.icon" class="sl-nav-icon" />
+              <span class="truncate">{{ item.label }}</span>
+            </NuxtLink>
+          </template>
 
           <!-- Coming soon (roadmap signposts) -->
-          <div v-if="soonItems.length" class="pt-3 mt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
-            <p class="px-3 pb-1 text-micro font-semibold text-ink-soft dark:text-zinc-600">Coming soon</p>
+          <template v-if="soonItems.length">
+            <p class="mc-eyebrow sl-nav-group">Coming soon</p>
             <div
               v-for="item in soonItems"
               :key="item.label"
-              class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-ink-soft dark:text-zinc-600 cursor-not-allowed"
+              class="sl-nav-link is-soon"
+              aria-disabled="true"
             >
-              <component :is="item.icon" class="w-4 h-4 shrink-0 opacity-60" />
-              {{ item.label }}
-              <span class="ml-auto text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-black/[0.05] dark:bg-white/[0.06]">Soon</span>
+              <component :is="item.icon" class="sl-nav-icon" />
+              <span class="truncate">{{ item.label }}</span>
+              <span class="mc-tag ml-auto">Soon</span>
             </div>
-          </div>
+          </template>
 
           <!-- Learn: things *about* the product rather than parts of it, so
                they sit apart from the working destinations above. -->
-          <div class="pt-3 mt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
-            <p class="px-3 pb-1 text-micro font-semibold text-ink-soft dark:text-zinc-600">Learn</p>
-            <NuxtLink
-              to="/landing"
-              data-tour="nav-pricing"
-              class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-            >
-              <IconSparkle class="w-4 h-4 shrink-0" />
-              Plans &amp; pricing
-            </NuxtLink>
-            <button
-              type="button"
-              @click="startTour"
-              class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-            >
-              <IconCompass class="w-4 h-4 shrink-0" />
-              Take the tour
-            </button>
-          </div>
+          <p class="mc-eyebrow sl-nav-group">Learn</p>
+          <NuxtLink to="/landing" data-tour="nav-pricing" class="sl-nav-link">
+            <IconSparkle class="sl-nav-icon" />
+            Plans &amp; pricing
+          </NuxtLink>
+          <button type="button" class="sl-nav-link w-full" @click="startTour">
+            <IconCompass class="sl-nav-icon" />
+            Take the tour
+          </button>
         </nav>
       </aside>
 
       <!-- Main -->
-      <main class="flex-1 min-w-0 px-4 py-6 pb-28 lg:pb-10">
+      <main class="sl-main flex-1 min-w-0 px-4 py-6 pb-28 lg:pb-10">
         <slot />
       </main>
     </div>
 
     <!-- Mobile bottom nav -->
-    <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] pb-[16px]">
+    <nav class="sl-tabbar lg:hidden" aria-label="Seller">
       <!-- Three destinations and two sheets, rather than nine in a horizontal
            scroller. The scroller kept everything reachable but signalled
            nothing: with no hint there was more to the right, Funds and
@@ -114,8 +105,8 @@
           :key="item.to"
           :to="item.to"
           :data-tour="item.tour"
-          class="relative flex flex-col items-center justify-center gap-0.5 text-2xs font-semibold text-ink-soft dark:text-zinc-500 transition-colors"
-          :class="isActive(item) ? '!text-pokemon-red' : ''"
+          class="sl-tab"
+          :aria-current="isActive(item) ? 'page' : undefined"
         >
           <component :is="item.icon" class="w-5 h-5" />
           <span>{{ item.label }}</span>
@@ -127,8 +118,8 @@
           @click="openSheet = key"
           :aria-expanded="openSheet === key"
           aria-haspopup="menu"
-          class="relative flex flex-col items-center justify-center gap-0.5 text-2xs font-semibold text-ink-soft dark:text-zinc-500 transition-colors"
-          :class="sheetIsActive(key) ? '!text-pokemon-red' : ''"
+          class="sl-tab"
+          :class="{ 'is-current': sheetIsActive(key) }"
         >
           <component :is="sheet.icon" class="w-5 h-5" />
           <span>{{ sheet.label }}</span>
@@ -137,54 +128,45 @@
     </nav>
 
     <!-- One sheet, whichever button opened it. Two near-identical panels
-         would drift apart the first time either was touched. -->
+         would drift apart the first time either was touched. Teleported out
+         of the shell, so it carries its own `.mc` for the tokens. -->
     <Teleport to="body">
-      <Transition
-        enter-active-class="transition-opacity duration-150"
-        leave-active-class="transition-opacity duration-150"
-        enter-from-class="opacity-0"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="openSheet"
-          class="lg:hidden fixed inset-0 z-50 bg-black/40"
-          @click="openSheet = null"
-        />
-      </Transition>
-      <Transition
-        enter-active-class="transition-transform duration-200 ease-out"
-        leave-active-class="transition-transform duration-150 ease-in"
-        enter-from-class="translate-y-full"
-        leave-to-class="translate-y-full"
-      >
-        <div
-          v-if="openSheet"
-          class="lg:hidden fixed bottom-0 inset-x-0 z-50 rounded-t-2xl bg-white dark:bg-night-sunken border-t border-black/[0.06] dark:border-white/[0.08] pb-[env(safe-area-inset-bottom,16px)]"
-          role="menu"
-          :aria-label="SHEETS[openSheet].label"
-        >
-          <div class="flex justify-center pt-2.5 pb-1">
-            <span class="h-1 w-9 rounded-full bg-black/15 dark:bg-white/20" />
+      <div class="mc sl-sheet-root">
+        <Transition name="sl-scrim">
+          <div
+            v-if="openSheet"
+            class="lg:hidden fixed inset-0 z-50 sl-scrim"
+            @click="openSheet = null"
+          />
+        </Transition>
+        <Transition name="sl-sheet">
+          <div
+            v-if="openSheet"
+            class="sl-sheet lg:hidden"
+            role="menu"
+            :aria-label="SHEETS[openSheet].label"
+          >
+            <div class="flex justify-center pt-2.5 pb-1">
+              <span class="sl-grabber" />
+            </div>
+            <p class="mc-eyebrow px-4 pb-1">{{ SHEETS[openSheet].label }}</p>
+            <div class="grid grid-cols-3 gap-1 px-3 pb-4 pt-1">
+              <NuxtLink
+                v-for="item in SHEETS[openSheet].items"
+                :key="item.to"
+                :to="item.to"
+                :data-tour="item.tour"
+                role="menuitem"
+                class="sl-sheet-item"
+                :aria-current="isActive(item) ? 'page' : undefined"
+              >
+                <component :is="item.icon" class="w-[22px] h-[22px]" />
+                <span>{{ item.label }}</span>
+              </NuxtLink>
+            </div>
           </div>
-          <p class="px-4 pb-1 text-xs font-semibold text-ink-soft dark:text-zinc-500">
-            {{ SHEETS[openSheet].label }}
-          </p>
-          <div class="grid grid-cols-3 gap-1 px-3 pb-4 pt-1">
-            <NuxtLink
-              v-for="item in SHEETS[openSheet].items"
-              :key="item.to"
-              :to="item.to"
-              :data-tour="item.tour"
-              role="menuitem"
-              class="flex flex-col items-center justify-center gap-1.5 rounded-xl px-1 py-3.5 text-center text-micro font-semibold leading-tight text-ink dark:text-zinc-200 active:bg-black/[0.04] dark:active:bg-white/[0.06]"
-              :class="isActive(item) ? '!text-pokemon-red' : ''"
-            >
-              <component :is="item.icon" class="w-[22px] h-[22px]" />
-              <span>{{ item.label }}</span>
-            </NuxtLink>
-          </div>
-        </div>
-      </Transition>
+        </Transition>
+      </div>
     </Teleport>
 
     <SellerOnboardingTour />
@@ -193,6 +175,7 @@
 
 <script setup lang="ts">
 import { h } from "vue";
+import "~/assets/css/mint-condition.css";
 
 const route = useRoute();
 
@@ -295,6 +278,18 @@ const navItems = [
 
 const soonItems: { label: string; icon: any }[] = [];
 
+// The desktop sidebar groups the flat list by job, the way Mint Condition's
+// does. Same items and order as navItems, so the tour targets don't move.
+const NAV_GROUPS: { label: string; paths: string[] }[] = [
+  { label: "Sell", paths: ["/seller", "/seller/pos", "/seller/sales", "/seller/orders"] },
+  { label: "Stock", paths: ["/seller/items", "/seller/listings", "/seller/auctions"] },
+  { label: "Money", paths: ["/seller/funds"] },
+];
+const navGroups = NAV_GROUPS.map((g) => ({
+  label: g.label,
+  items: g.paths.map((to) => navItems.find((i) => i.to === to)!).filter(Boolean),
+}));
+
 const isActive = (item: { to: string; exact?: boolean }) => {
   if (item.exact) return route.path === item.to;
   return route.path === item.to || route.path.startsWith(item.to + "/");
@@ -360,3 +355,212 @@ watch(
 );
 
 </script>
+
+<style>
+.sl-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+/* Pages not yet on mc-* classes keep the marketplace's base type. */
+.sl-main {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.sl-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 52px;
+  padding: 0 12px 0 8px;
+  background: color-mix(in oklch, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  user-select: none;
+}
+.sl-back {
+  padding-left: 6px;
+}
+.sl-crumb-sep {
+  color: var(--line-strong);
+}
+.sl-topbar-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.sl-topbar .mc-btn-icon[aria-current="page"] {
+  color: var(--ink);
+  background: var(--surface-3);
+}
+
+.sl-side {
+  width: 248px;
+  flex-shrink: 0;
+  flex-direction: column;
+  position: sticky;
+  top: 52px;
+  align-self: flex-start;
+  height: calc(100dvh - 52px);
+  border-right: 1px solid var(--line);
+  user-select: none;
+}
+.sl-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 12px 16px;
+}
+.sl-nav-group {
+  padding: 16px 10px 6px;
+}
+.sl-nav-group:first-child {
+  padding-top: 12px;
+}
+.sl-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+  text-align: left;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+.sl-nav-link[aria-current="page"] {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.sl-nav-link.is-soon {
+  color: var(--ink-3);
+  cursor: default;
+}
+.sl-nav-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .sl-nav-link:not(.is-soon):not([aria-current="page"]):hover {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+}
+
+/* Phone tab bar */
+.sl-tabbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 40;
+  padding-bottom: 16px;
+  background: color-mix(in oklch, var(--bg) 92%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+}
+.sl-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 550;
+  color: var(--ink-3);
+  transition:
+    color 120ms ease,
+    transform 140ms var(--ease-out);
+}
+.sl-tab:active {
+  transform: scale(0.94);
+}
+.sl-tab[aria-current="page"],
+.sl-tab.is-current {
+  color: var(--accent);
+}
+
+/* Bottom sheet */
+.sl-scrim {
+  background: var(--scrim);
+}
+.sl-sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 50;
+  border-radius: var(--radius-l) var(--radius-l) 0 0;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  box-shadow: var(--shadow-3);
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+.mc.sl-sheet-root {
+  /* Only the tokens are wanted here, not the shell's paint. */
+  background: none;
+}
+.sl-grabber {
+  height: 4px;
+  width: 36px;
+  border-radius: 999px;
+  background: var(--line-strong);
+}
+.sl-sheet-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 4px;
+  border-radius: var(--radius);
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 550;
+  line-height: 1.25;
+  color: var(--ink);
+  transition:
+    background-color 120ms ease,
+    transform 140ms var(--ease-out);
+}
+.sl-sheet-item:active {
+  background: var(--surface-2);
+  transform: scale(0.97);
+}
+.sl-sheet-item[aria-current="page"] {
+  color: var(--accent);
+}
+.sl-scrim-enter-active {
+  transition: opacity 200ms ease;
+}
+.sl-scrim-leave-active {
+  transition: opacity 150ms ease;
+}
+.sl-scrim-enter-from,
+.sl-scrim-leave-to {
+  opacity: 0;
+}
+.sl-sheet-enter-active {
+  transition: transform 380ms var(--ease-drawer);
+}
+.sl-sheet-leave-active {
+  transition: transform 220ms ease;
+}
+.sl-sheet-enter-from,
+.sl-sheet-leave-to {
+  transform: translateY(100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sl-tab:active,
+  .sl-sheet-item:active {
+    transform: none;
+  }
+}
+</style>

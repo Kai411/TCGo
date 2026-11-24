@@ -1,20 +1,23 @@
 <template>
-  <div class="max-w-5xl mx-auto">
-    <div v-if="!user" class="text-center py-16">
-      <p class="text-ink-muted dark:text-zinc-400 text-lg mb-4">
-        Sign in to manage your inventory.
-      </p>
-      <button
-        @click="goToLogin"
-        class="bg-ink text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
-      >
-        Sign in
-      </button>
+  <!-- Calm UI page (tokens from the seller layout's `.mc` shell). -->
+  <div class="sd-page">
+    <div v-if="!user" class="mc-card sd-gate">
+      <p class="mc-ink-3">Sign in to manage your inventory.</p>
+      <button type="button" class="mc-btn sd-btn-primary" @click="goToLogin">Sign in</button>
     </div>
 
     <template v-else>
-      <div v-if="loadingSeller" class="flex justify-center py-16">
-        <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red" />
+      <header class="mc-page-head">
+        <div>
+          <p class="mc-eyebrow">Seller</p>
+          <h1 class="mc-h1 mt-1">Dashboard</h1>
+        </div>
+        <NuxtLink to="/seller/pos" class="mc-btn sd-btn-primary">Open POS</NuxtLink>
+      </header>
+
+      <div v-if="loadingSeller" class="flex flex-col gap-6" aria-busy="true" aria-label="Loading dashboard">
+        <div class="mc-skel h-[108px]" />
+        <div class="mc-skel h-[260px]" />
       </div>
 
       <!-- The dashboard is now purely an overview. Drilling into a number
@@ -84,3 +87,35 @@ watch(user, (u) => {
   if (u) start();
 });
 </script>
+
+<style>
+.sd-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  font-size: 14px;
+  color: var(--ink);
+}
+@media (min-width: 721px) {
+  .sd-page {
+    padding: 4px 16px 0;
+  }
+}
+.sd-gate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 16px;
+}
+/* Primary = ink fill, the one main action on the screen. */
+.mc .sd-btn-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mc .sd-btn-primary.mc-btn:hover {
+    background: color-mix(in oklch, var(--ink) 88%, var(--bg));
+  }
+}
+</style>

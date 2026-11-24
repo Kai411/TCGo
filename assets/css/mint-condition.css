@@ -335,7 +335,9 @@
 /* ---------- Callout ---------- */
 .mc-callout {
   --tone: var(--st-review);
-  background: color-mix(in oklch, var(--tone) 10%, var(--surface));
+  /* srgb, not oklch: mixing in oklch walks the hue from the grey surface
+     to the tone, so a 10% amber tint came out lavender. */
+  background: color-mix(in srgb, var(--tone) 10%, var(--surface));
   border: 1px solid color-mix(in oklch, var(--tone) 45%, transparent);
   border-radius: var(--radius);
   padding: 12px 14px;

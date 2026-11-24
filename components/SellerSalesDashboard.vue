@@ -1,37 +1,29 @@
 <template>
-  <div class="space-y-7">
+  <div class="sd">
     <!-- ── Needs attention ─────────────────────────────────────────────
          Actionable queues come first: the dashboard's job is to tell a
          seller what to do next, not to lead with a vanity number. -->
     <section data-tour="dashboard-attention">
-      <p class="eyebrow mb-2.5">Needs attention</p>
-      <div class="grid grid-cols-3 gap-2 sm:gap-3">
+      <h2 class="mc-h2 sd-section-title">Needs attention</h2>
+      <div class="mc-card mc-cells" :style="{ '--cols': actionTiles.length }">
         <button
           v-for="tile in actionTiles"
           :key="tile.key"
           type="button"
+          class="sd-tile"
           @click="$emit('select', tile.key)"
-          class="group text-left rounded-2xl border p-3 sm:p-4 transition-all"
-          :class="
-            tile.count > 0
-              ? `${tile.tone} hover:shadow-card`
-              : 'border-black/[0.06] dark:border-white/[0.08] bg-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.03]'
-          "
         >
-          <component
-            :is="tile.icon"
-            class="w-4 h-4 mb-2"
-            :class="tile.count > 0 ? tile.iconClass : 'text-ink-soft dark:text-zinc-600'"
-          />
-          <p
-            class="text-2xl sm:text-3xl font-bold tabular-price leading-none"
-            :class="tile.count > 0 ? 'text-ink dark:text-white' : 'text-ink-soft dark:text-zinc-600'"
-          >
+          <span class="mc-label flex items-center gap-2">
+            <component :is="tile.icon" class="w-4 h-4 shrink-0" />
+            <span class="min-w-0 truncate">{{ tile.label }}</span>
+          </span>
+          <span class="mc-stat-value mc-num mt-1 block" :class="tile.count ? '' : 'mc-ink-3'">
             {{ tile.count }}
-          </p>
-          <p class="mt-1 text-micro font-medium text-ink-muted dark:text-zinc-400 leading-tight">
-            {{ tile.label }}
-          </p>
+          </span>
+          <span class="mc-small mt-1.5 flex items-center gap-2">
+            <span v-if="tile.count" class="mc-dot" :data-tone="tile.tone" aria-hidden="true" />
+            {{ tile.count ? "Open the queue" : "Nothing waiting" }}
+          </span>
         </button>
       </div>
     </section>
@@ -41,95 +33,73 @@
     <slot name="after-attention" />
 
     <!-- ── Revenue + trend ─────────────────────────────────────────── -->
-    <section data-tour="dashboard-sales" class="panel surface rounded-2xl p-4 sm:p-5">
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p class="eyebrow">Completed sales</p>
-          <p class="mt-2 text-3xl sm:text-4xl font-bold text-ink dark:text-white tabular-price leading-none tracking-tightest">
-            RM {{ formatMyr(salesValue) }}
-          </p>
-          <p
-            v-if="momDelta !== null"
-            class="mt-2 text-xs font-semibold inline-flex items-center gap-1"
-            :class="momDelta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
-          >
-            <svg class="w-3 h-3" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-              <path
-                :d="momDelta >= 0 ? 'M6 9.5V2.5M6 2.5L3 5.5M6 2.5l3 3' : 'M6 2.5v7M6 9.5l-3-3M6 9.5l3-3'"
-                stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"
-              />
-            </svg>
-            {{ Math.abs(momDelta) }}%
-            <span class="font-normal text-ink-soft dark:text-zinc-500">vs last month</span>
-          </p>
-          <p v-else-if="pipelineValue > 0" class="mt-2 text-xs text-ink-soft dark:text-zinc-500">
-            RM {{ formatMyr(pipelineValue) }} still in the pipeline
-          </p>
-        </div>
+    <section data-tour="dashboard-sales" class="mc-card">
+      <div class="mc-card-pad">
+        <p class="mc-label">Completed sales</p>
+        <p class="sd-hero mc-num mt-1">RM {{ formatMyr(salesValue) }}</p>
+        <p v-if="momDelta !== null" class="mc-small mt-1.5 flex items-center gap-2">
+          <span class="mc-dot" :data-tone="momDelta >= 0 ? 'good' : 'bad'" aria-hidden="true" />
+          <span>
+            <span class="mc-num font-semibold text-[var(--ink-2)]">
+              {{ momDelta >= 0 ? "Up" : "Down" }} {{ Math.abs(momDelta) }}%
+            </span>
+            vs last month
+          </span>
+        </p>
+        <p v-else-if="pipelineValue > 0" class="mc-small mt-1.5">
+          RM {{ formatMyr(pipelineValue) }} still in the pipeline
+        </p>
+      </div>
 
-        <!-- Secondary figures: supporting, not competing with the headline -->
-        <dl class="flex gap-5 sm:gap-7">
-          <div>
-            <dt class="text-micro text-ink-muted dark:text-zinc-400">Items sold</dt>
-            <dd class="mt-1 text-lg font-bold text-ink dark:text-white tabular-price">{{ itemsSold }}</dd>
-          </div>
-          <div>
-            <dt class="text-micro text-ink-muted dark:text-zinc-400">Avg order</dt>
-            <dd class="mt-1 text-lg font-bold text-ink dark:text-white tabular-price">RM {{ formatMyr(avgOrder) }}</dd>
-          </div>
-          <div>
-            <dt class="text-micro text-ink-muted dark:text-zinc-400">Orders</dt>
-            <dd class="mt-1 text-lg font-bold text-ink dark:text-white tabular-price">
-              {{ completedCount }}
-              <span v-if="posCount > 0" class="block text-2xs font-normal text-ink-soft dark:text-zinc-500">
-                incl. {{ posCount }} in-person
-              </span>
-            </dd>
-          </div>
-          <!-- Haggling at the counter is invisible in revenue alone: a card
-               sold at RM 80 off list still books as a sale. This is the
-               margin actually given away. -->
-          <div v-if="counterDiscount.total > 0">
-            <dt class="text-micro text-ink-muted dark:text-zinc-400">Discounts</dt>
-            <dd class="mt-1 text-lg font-bold text-amber-600 dark:text-amber-400 tabular-price">
-              RM {{ formatMyr(counterDiscount.total) }}
-              <span class="block text-2xs font-normal text-ink-soft dark:text-zinc-500">
-                on {{ counterDiscount.count }}
-                {{ counterDiscount.count === 1 ? "item" : "items" }}
-              </span>
-            </dd>
-          </div>
-        </dl>
+      <!-- Secondary figures: supporting, not competing with the headline -->
+      <div
+        class="mc-divider mc-cells"
+        :data-cols="counterDiscount.total > 0 ? undefined : 3"
+        :style="{ '--cols': counterDiscount.total > 0 ? 4 : 3 }"
+      >
+        <AdminStat label="Items sold" :value="String(itemsSold)" />
+        <AdminStat label="Avg order" :value="`RM ${formatMyr(avgOrder)}`" />
+        <AdminStat
+          label="Orders"
+          :value="String(completedCount)"
+          :hint="posCount > 0 ? `incl. ${posCount} in-person` : undefined"
+        />
+        <!-- Haggling at the counter is invisible in revenue alone: a card
+             sold at RM 80 off list still books as a sale. This is the
+             margin actually given away. -->
+        <AdminStat
+          v-if="counterDiscount.total > 0"
+          label="Discounts"
+          :value="`RM ${formatMyr(counterDiscount.total)}`"
+          :hint="`on ${counterDiscount.count} ${counterDiscount.count === 1 ? 'item' : 'items'}`"
+          tone="warn"
+        />
       </div>
 
       <!-- Chart. One series, so no legend — the heading names it. -->
-      <div class="mt-6 pt-5 border-t border-black/[0.06] dark:border-white/[0.06]">
-        <div class="flex items-center justify-between mb-4">
-          <p class="text-sm font-semibold text-ink dark:text-white">Sales — last 8 weeks</p>
-        </div>
+      <div class="mc-divider mc-card-pad">
+        <h3 class="mc-h3 mb-4">Sales, last 8 weeks</h3>
 
-        <div v-if="chartMax === 0" class="py-8 text-center text-xs text-ink-soft dark:text-zinc-500">
-          No completed sales yet — your weekly trend will appear here.
-        </div>
+        <p v-if="chartMax === 0" class="mc-small py-6 text-center">
+          No completed sales yet. Your weekly trend will appear here.
+        </p>
 
         <div v-else class="relative pl-12">
+          <!-- Bars -->
+          <div class="relative flex items-end gap-2 h-32">
           <!-- Recessive gridlines + y-axis ticks -->
-          <div class="absolute inset-y-0 left-0 right-0 pointer-events-none" aria-hidden="true">
+          <div class="absolute inset-y-0 -left-12 right-0 pointer-events-none" aria-hidden="true">
             <div
               v-for="(tick, i) in yTicks"
               :key="i"
               class="absolute left-0 right-0 flex items-center gap-2"
               :style="{ bottom: `${(tick / axisMax) * 100}%` }"
             >
-              <span class="w-10 shrink-0 text-right text-2xs tabular-price text-ink-soft dark:text-zinc-600">
-                {{ shortMyr(tick) }}
-              </span>
-              <span class="flex-1 border-t border-dashed border-black/[0.07] dark:border-white/[0.07]" />
+              <span class="sd-axis w-10 shrink-0 text-right">{{ shortMyr(tick) }}</span>
+              <span class="sd-grid flex-1" />
             </div>
           </div>
 
-          <!-- Bars -->
-          <div class="relative flex items-end gap-2 h-32">
             <div
               v-for="(b, i) in weeklyBuckets"
               :key="i"
@@ -141,8 +111,8 @@
             >
               <button
                 type="button"
-                class="w-full max-w-[30px] rounded-t-[4px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-pokemon-red/40"
-                :class="b.value > 0 ? 'bg-pokemon-red' : 'bg-black/[0.06] dark:bg-white/[0.08]'"
+                class="sd-bar"
+                :class="{ 'is-empty': b.value === 0, 'is-hot': hovered === i }"
                 :style="{ height: barHeight(b.value) }"
                 :aria-label="`${b.label}: RM ${formatMyr(b.value)}`"
               />
@@ -150,7 +120,7 @@
               <!-- Selective direct label: only the peak week, never every bar -->
               <span
                 v-if="b.value > 0 && b.value === chartMax && hovered === null"
-                class="absolute left-1/2 -translate-x-1/2 text-2xs font-bold tabular-price text-ink dark:text-white pointer-events-none"
+                class="sd-peak absolute left-1/2 -translate-x-1/2 pointer-events-none"
                 :style="{ bottom: `calc(${barHeight(b.value)} + 6px)` }"
               >
                 {{ shortMyr(b.value) }}
@@ -159,24 +129,22 @@
               <!-- Hover tooltip -->
               <div
                 v-if="hovered === i"
-                class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap rounded-lg bg-ink dark:bg-white px-2.5 py-1.5 shadow-card-hover pointer-events-none"
+                class="sd-tip absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
               >
-                <p class="text-2xs font-semibold text-white dark:text-ink">{{ b.label }}</p>
-                <p class="text-micro font-bold text-white dark:text-ink tabular-price">
-                  RM {{ formatMyr(b.value) }}
-                </p>
+                <p class="mc-small">{{ b.label }}</p>
+                <p class="mc-num text-[13px] font-semibold">RM {{ formatMyr(b.value) }}</p>
               </div>
             </div>
           </div>
 
           <!-- Baseline + x labels -->
-          <div class="border-t border-black/[0.10] dark:border-white/[0.12]" />
+          <div class="sd-baseline" />
           <div class="flex gap-2 mt-1.5">
             <span
               v-for="(b, i) in weeklyBuckets"
               :key="i"
-              class="flex-1 text-center text-2xs tabular-price"
-              :class="hovered === i ? 'text-ink dark:text-white font-semibold' : 'text-ink-soft dark:text-zinc-600'"
+              class="sd-axis flex-1 min-w-0 text-center"
+              :class="{ 'is-hot': hovered === i, 'is-alt': (weeklyBuckets.length - 1 - i) % 2 === 1 }"
             >
               {{ b.short }}
             </span>
@@ -186,82 +154,69 @@
     </section>
 
     <!-- ── Funds ───────────────────────────────────────────────────── -->
-    <NuxtLink
-      to="/seller/funds"
-      class="flex items-center gap-4 rounded-2xl surface p-4 hover:shadow-card-hover transition-shadow"
-    >
-      <div class="w-10 h-10 shrink-0 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-        <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <NuxtLink to="/seller/funds" class="mc-card sd-link-row">
+      <span class="sd-icon-box" aria-hidden="true">
+        <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" />
         </svg>
-      </div>
-      <div class="min-w-0 flex-1">
-        <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400">Funds</p>
-        <p class="text-lg font-bold text-ink dark:text-white tabular-price leading-tight">
+      </span>
+      <span class="min-w-0">
+        <span class="mc-label block">Funds</span>
+        <span class="block mc-num text-[17px] font-semibold leading-tight mt-0.5">
           RM {{ formatMyr(fundsAvailable) }}
-          <span class="text-xs font-semibold text-ink-soft dark:text-zinc-500">available</span>
-        </p>
-        <p v-if="fundsHeld > 0" class="text-micro text-ink-soft dark:text-zinc-500">
-          + RM {{ formatMyr(fundsHeld) }} pending / locked
-        </p>
-      </div>
-      <svg class="w-4 h-4 shrink-0 text-ink-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+          <span class="mc-small font-normal">available</span>
+        </span>
+        <span v-if="fundsHeld > 0" class="mc-small block mt-0.5">
+          + RM {{ formatMyr(fundsHeld) }} pending or locked
+        </span>
+      </span>
+      <svg class="w-4 h-4 mc-ink-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
     </NuxtLink>
 
     <!-- ── Recent sales ────────────────────────────────────────────── -->
     <section>
-      <div class="flex items-center justify-between mb-2.5">
-        <p class="eyebrow">Recent sales</p>
-        <div class="flex items-center gap-3">
+      <div class="sd-section-head">
+        <h2 class="mc-h2">Recent sales</h2>
+        <div class="flex items-center gap-1">
           <!-- Two destinations because this list mixes two things: counter
                sales have their own page with receipts, marketplace orders
                live in the order queue. One "View all" could only ever be
                right for half the rows. -->
-          <NuxtLink
-            v-if="posCount"
-            to="/seller/sales"
-            class="text-micro font-semibold text-pokemon-red hover:underline inline-flex items-center gap-0.5"
-          >
+          <NuxtLink v-if="posCount" to="/seller/sales" class="mc-btn mc-btn-ghost mc-btn-sm">
             Counter sales
-            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </NuxtLink>
           <button
             v-if="orders.length"
+            type="button"
+            class="mc-btn mc-btn-ghost mc-btn-sm"
             @click="$emit('select', 'all')"
-            class="text-micro font-semibold text-pokemon-red hover:underline inline-flex items-center gap-0.5"
           >
             Orders
-            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </button>
         </div>
       </div>
-      <p v-if="!recentSales.length" class="text-sm text-ink-soft dark:text-zinc-500 py-3">
-        No sales yet.
-      </p>
-      <div v-else class="surface rounded-2xl divide-y divide-black/[0.05] dark:divide-white/[0.06] overflow-hidden">
+      <div class="mc-card overflow-hidden">
+        <p v-if="!recentSales.length" class="sd-empty">No sales yet.</p>
         <component
           :is="sale.href ? 'NuxtLink' : 'div'"
           v-for="sale in recentSales"
+          v-else
           :key="sale.id"
           :to="sale.href || undefined"
-          class="flex items-center gap-3 px-3 py-2.5"
-          :class="sale.href ? 'hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors' : ''"
+          class="sd-row"
+          :class="{ 'is-link': sale.href }"
         >
-          <div class="w-9 h-9 shrink-0 rounded-lg overflow-hidden">
+          <div class="sd-thumb">
             <CardImage :src="sale.image" :alt="sale.name" />
           </div>
-          <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-ink dark:text-white truncate">{{ sale.name }}</p>
-            <p class="text-micro text-ink-muted dark:text-zinc-400">
+          <div class="min-w-0">
+            <p class="sd-row-title truncate">{{ sale.name }}</p>
+            <p class="mc-meta mc-num">
               {{ sale.itemsCount }} {{ sale.itemsCount === 1 ? "item" : "items" }} · RM {{ formatMyr(sale.value) }}
             </p>
           </div>
-          <span
-            class="shrink-0 chip"
-            :class="sale.source === 'pos'
-              ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
-              : statusColor('delivered')"
-          >
+          <span class="mc-tag gap-1.5">
+            <span class="mc-dot sd-tag-dot" :data-tone="sale.source === 'pos' ? undefined : 'good'" aria-hidden="true" />
             {{ sale.source === "pos" ? "In-person" : "Delivered" }}
           </span>
         </component>
@@ -272,11 +227,7 @@
 
 <script setup lang="ts">
 import { h } from "vue";
-import {
-  type CompiledOrder,
-  type CompiledOrderStatus,
-  compiledOrderStatusColor,
-} from "~/composables/useCompiledOrders";
+import type { CompiledOrder, CompiledOrderStatus } from "~/composables/useCompiledOrders";
 import type { InventoryItem } from "~/composables/useInventory";
 import { categorizeFunds } from "~/composables/useSellerFunds";
 import { isAwaitingShipment } from "~/composables/useSellerOrders";
@@ -295,7 +246,6 @@ defineEmits<{
   (e: "select", queue: string): void;
 }>();
 
-const statusColor = (s: CompiledOrderStatus) => compiledOrderStatusColor(s);
 const byStatus = (s: CompiledOrderStatus) => props.orders.filter((o) => o.status === s);
 const deliveredOrders = computed(() => byStatus("delivered"));
 
@@ -339,16 +289,14 @@ const actionTiles = computed(() => [
     label: "To ship",
     icon: IconBox,
     count: props.orders.filter(isAwaitingShipment).length,
-    tone: "border-amber-300 dark:border-amber-500/40 bg-amber-50/70 dark:bg-amber-500/[0.07]",
-    iconClass: "text-amber-600 dark:text-amber-400",
+    tone: "warn",
   },
   {
     key: "awaiting",
     label: "Awaiting payment",
     icon: IconClock,
     count: byStatus("pending").length,
-    tone: "border-black/[0.08] dark:border-white/[0.10] bg-black/[0.02] dark:bg-white/[0.04]",
-    iconClass: "text-ink-muted dark:text-zinc-400",
+    tone: undefined,
   },
 ]);
 
@@ -529,3 +477,162 @@ const fundsHeld = computed(() =>
     .reduce((t, e) => t + e.amount, 0),
 );
 </script>
+
+<style>
+.sd {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.sd-section-title {
+  margin-bottom: 10px;
+}
+.sd-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.sd-hero {
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .sd-hero {
+    font-size: 24px;
+  }
+}
+
+/* Queue tiles: cells of one card, each a button. */
+.sd-tile {
+  text-align: left;
+  transition: background-color 120ms ease;
+}
+.sd-tile:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+.sd-tile:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .sd-tile:hover {
+    background: var(--surface-2);
+  }
+}
+
+/* Chart */
+.sd-axis {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+/* Narrow phones: label every other week, newest always shown. */
+@media (max-width: 480px) {
+  .sd-axis.is-alt {
+    visibility: hidden;
+  }
+}
+.sd-axis.is-hot {
+  color: var(--ink);
+  font-weight: 600;
+}
+.sd-grid {
+  border-top: 1px dashed var(--line);
+}
+.sd-baseline {
+  border-top: 1px solid var(--line-strong);
+}
+.sd-bar {
+  width: 100%;
+  max-width: 30px;
+  border-radius: 4px 4px 0 0;
+  background: var(--ink-2);
+  transition: background-color 120ms ease;
+}
+.sd-bar.is-hot {
+  background: var(--ink);
+}
+.sd-bar.is-empty {
+  background: var(--surface-3);
+}
+.sd-peak {
+  font-size: 11px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.sd-tip {
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-2);
+}
+
+/* Funds row */
+.sd-link-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  transition: background-color 120ms ease;
+}
+.sd-icon-box {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+}
+@media (hover: hover) and (pointer: fine) {
+  .sd-link-row:hover {
+    background: var(--surface-2);
+  }
+}
+
+/* Recent sales rows */
+.sd-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  transition: background-color 120ms ease;
+}
+.sd-row + .sd-row {
+  border-top: 1px solid var(--line);
+}
+@media (hover: hover) and (pointer: fine) {
+  .sd-row.is-link:hover {
+    background: var(--surface-2);
+  }
+}
+.sd-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.sd-row-title {
+  font-size: 14px;
+  font-weight: 550;
+}
+.sd-tag-dot {
+  width: 6px;
+  height: 6px;
+  box-shadow: none;
+}
+.sd-empty {
+  padding: 18px 16px;
+  color: var(--ink-3);
+}
+</style>
