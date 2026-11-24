@@ -41,12 +41,19 @@
          sits on the Qty line. -->
     <div class="mt-auto pt-1.5 tabular-nums">
       <p class="flex flex-wrap items-baseline gap-x-[3px] leading-tight text-[10px] sm:text-[13px] text-ink dark:text-white">
-        <span v-if="card.price" class="font-bold">RM {{ formatPrice(card.price.market) }}</span>
+        <!-- A second-source price (TCGPlayer had none) reads the same as the
+             card's page; its week's move is left off, as that history is
+             TCGPlayer's. -->
+        <span
+          v-if="card.price"
+          class="font-bold"
+          :title="card.price.secondary ? `Second source, ${card.price.subtype} converted to RM` : undefined"
+        >RM {{ formatPrice(card.price.market) }}</span>
         <span v-else class="text-gray-400 dark:text-zinc-500">No price</span>
         <!-- Arrow shape and colour both carry the direction, and a screen
              reader gets it in words. -->
         <span
-          v-if="card.price && change"
+          v-if="card.price && !card.price.secondary && change"
           class="inline-flex items-baseline gap-[0.5px] whitespace-nowrap font-semibold text-[8px] sm:text-[11px]"
           :class="
             change.direction === 'up'

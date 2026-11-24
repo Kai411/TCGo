@@ -1020,6 +1020,7 @@ const {
   getPriceHistory,
   getRelatedCards,
   getSecondaryPrice,
+  withSecondaryPrices,
 } = useCardCatalog();
 const { cards: marketplaceCards, loading: listingsLoading } = useCards();
 const { user } = useAuth();
@@ -1413,7 +1414,7 @@ const loadRelated = async (
   const request = ++relatedRequest;
   relatedLoading.value = true;
   try {
-    const nextCards = await getRelatedCards(sourceCard, 5);
+    const nextCards = await withSecondaryPrices(await getRelatedCards(sourceCard, 5));
     if (
       request === relatedRequest &&
       detailRequestAtStart === detailRequest &&
