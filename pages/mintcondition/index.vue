@@ -1,138 +1,121 @@
 <template>
-  <div class="max-w-6xl mx-auto">
-    <div v-if="!isAdmin" class="text-center py-12">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg">
-        Your role doesn't include access to the dashboard.
-      </p>
-      <p class="text-label text-ink-soft dark:text-zinc-500 mt-1.5">
-        Ask an admin to grant it if you need it.
-      </p>
+  <div class="mc-page">
+    <div v-if="!isAdmin" class="mc-card mc-card-pad">
+      <p class="mc-h2">Your role doesn't include access to the dashboard.</p>
+      <p class="mc-small mt-1">Ask an admin to grant it if you need it.</p>
     </div>
 
     <template v-else>
-      <!-- Header -->
-      <div class="flex items-end justify-between gap-4 flex-wrap mb-6">
+      <div class="mc-page-head">
         <div>
-          <h1 class="text-2xl font-bold text-ink dark:text-white">Operations</h1>
-          <p class="text-sm text-ink-muted dark:text-zinc-400 mt-0.5">
+          <p class="mc-eyebrow mb-1">Money</p>
+          <h1 class="mc-h1">Overview</h1>
+          <p class="mc-meta mt-1">
             <span v-if="data">
-              Updated {{ fmtTime(data.generatedAt) }} · {{ data.counts.orders }} orders,
-              {{ data.counts.users }} users
+              Updated {{ fmtTime(data.generatedAt) }} ·
+              <span class="mc-num">{{ data.counts.orders }}</span> orders,
+              <span class="mc-num">{{ data.counts.users }}</span> users
             </span>
             <span v-else>Platform revenue, costs and float.</span>
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <div class="flex rounded-lg bg-black/[0.04] dark:bg-white/[0.06] p-0.5">
+          <div class="mc-seg" role="group" aria-label="Period">
             <button
               v-for="p in periods"
               :key="p.key"
-              class="px-3 py-1.5 rounded-md text-xs font-semibold transition-colors"
-              :class="
-                period === p.key
-                  ? 'bg-white dark:bg-white/[0.12] text-ink dark:text-white shadow-sm'
-                  : 'text-ink-muted dark:text-zinc-400'
-              "
+              type="button"
+              :aria-pressed="period === p.key"
               @click="period = p.key"
             >
               {{ p.label }}
             </button>
           </div>
-          <button
-            :disabled="loading"
-            class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-black/[0.08] dark:border-white/[0.12] text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white disabled:opacity-50 transition-colors"
-            @click="load"
-          >
+          <button :disabled="loading" class="mc-btn" @click="load">
             {{ loading ? "Loading…" : "Refresh" }}
           </button>
         </div>
       </div>
 
-      <div
-        v-if="error"
-        class="mb-6 rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-300"
-      >
-        {{ error }}
-      </div>
+      <p v-if="error" class="mc-callout mb-6" data-tone="bad">{{ error }}</p>
 
-      <div v-if="loading && !data" class="flex justify-center py-20">
-        <div
-          class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red"
-        />
-      </div>
-
-      <template v-else-if="data && summary">
-        <div
-          v-if="data.truncated"
-          class="mb-6 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300"
-        >
-          The scan limit was reached — these figures cover only the most recent
-          records. Time to move this to a nightly rollup.
+      <!-- Loading -->
+      <div v-if="loading && !data" class="grid gap-3" aria-busy="true" aria-label="Loading">
+        <div class="mc-skel h-[104px]" />
+        <div class="grid gap-3 lg:grid-cols-3">
+          <div class="mc-skel h-[320px] lg:col-span-2" />
+          <div class="mc-skel h-[320px]" />
         </div>
+      </div>
+
+      <div v-else-if="data && summary" class="grid gap-6">
+        <p v-if="data.truncated" class="mc-callout">
+          The scan limit was reached, so these figures cover only the most
+          recent records. Time to move this to a nightly rollup.
+        </p>
 
         <!-- Headline -->
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-3">
+        <section class="mc-card mc-cells" aria-label="Headline figures">
           <AdminStat
             label="Revenue"
             :value="`RM ${fmt(summary.revenue)}`"
-            :hint="`Commission, shipping margin and subscriptions`"
-            tone="default"
+            hint="Commission, postage and subscriptions"
           />
           <AdminStat
             label="Costs"
             :value="`RM ${fmt(summary.costs)}`"
             hint="Courier labels, FPX and payout fees"
-            tone="default"
           />
           <AdminStat
             label="Net profit"
-            :value="`RM ${fmt(summary.netProfit)}`"
+            :value="`${summary.netProfit < 0 ? '−' : ''}RM ${fmt(Math.abs(summary.netProfit))}`"
             :hint="summary.margin !== null ? `${summary.margin}% margin` : 'No revenue yet'"
             :tone="summary.netProfit >= 0 ? 'good' : 'bad'"
           />
           <AdminStat
             label="GMV"
             :value="`RM ${fmt(summary.gmv)}`"
-            :hint="`${summary.orderCount} settled orders — sellers' money, not ours`"
-            tone="muted"
+            :hint="`${summary.orderCount} settled orders. Sellers' money, not ours`"
+            muted
           />
-        </div>
+        </section>
 
-        <!-- Beta giveaway -->
-        <div
-          v-if="summary.betaGiveaway > 0"
-          class="panel mb-6 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5"
-        >
-          <div class="flex items-start justify-between gap-4 flex-wrap">
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-ink dark:text-white">
-                The beta discount cost RM {{ fmt(summary.betaGiveaway) }} this period
-              </p>
-              <p class="text-xs text-ink-muted dark:text-zinc-400 mt-1 max-w-xl leading-relaxed">
-                Commission runs at the reduced beta rate of
-                {{ (BETA_RATE * 100).toFixed(0) }}%, earning
-                RM {{ fmt(summary.commission) }}. The same orders at launch rates
-                would have earned RM {{ fmt(summary.commissionIfCharged) }}.
-              </p>
-            </div>
-            <NuxtLink
-              to="/pricing"
-              class="shrink-0 text-xs font-semibold text-pokemon-red hover:underline"
-            >
-              Pricing →
+        <!-- Money owed -->
+        <section>
+          <div class="flex items-baseline justify-between gap-3 mb-3">
+            <h2 class="mc-h2">Seller payouts</h2>
+            <NuxtLink to="/mintcondition/payouts" class="mc-btn mc-btn-sm">
+              Open payout queue
             </NuxtLink>
           </div>
-        </div>
+          <div class="mc-card mc-cells" data-cols="3">
+            <AdminStat
+              label="Owed to sellers"
+              :value="`RM ${fmt(summary.payoutsPending)}`"
+              :hint="`${data.counts.payoutsQueued} ${data.counts.payoutsQueued === 1 ? 'batch' : 'batches'} awaiting execution`"
+              :tone="data.counts.payoutsQueued > 0 ? 'warn' : undefined"
+            />
+            <AdminStat
+              label="Paid out"
+              :value="`RM ${fmt(summary.payoutsPaid)}`"
+              hint="Transferred to sellers"
+            />
+            <AdminStat
+              label="Recurring revenue"
+              :value="`RM ${fmt(mrr)}`"
+              :hint="`${data.subscriptions.pro} Pro ${data.subscriptions.pro === 1 ? 'seller' : 'sellers'} at RM ${fmt(MARKETPLACE_MONTHLY)} a month`"
+            />
+          </div>
+        </section>
 
-        <div class="grid gap-3 lg:grid-cols-3 mb-3">
+        <div class="grid gap-3 lg:grid-cols-3">
           <!-- P&L -->
-          <div
-            class="panel lg:col-span-2 rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5"
+          <section
+            class="mc-card mc-card-pad"
+            :class="summary.betaGiveaway > 0 ? 'lg:col-span-2' : 'lg:col-span-3'"
           >
-            <h2 class="text-sm font-semibold text-ink dark:text-white mb-4">
-              Profit &amp; loss — {{ periodLabel }}
-            </h2>
-            <dl class="space-y-2.5 text-sm">
+            <h2 class="mc-h2 mb-4">Profit and loss, {{ periodLabel.toLowerCase() }}</h2>
+            <dl class="grid gap-2.5">
               <AdminRow label="Commission" :value="summary.commission" />
               <AdminRow label="Postage collected" :value="summary.shippingRevenue" />
               <AdminRow
@@ -151,141 +134,102 @@
               <AdminRow label="Costs" :value="-summary.costs" strong divider />
               <AdminRow label="Net profit" :value="summary.netProfit" strong divider highlight />
             </dl>
-          </div>
+          </section>
 
-          <!-- Subscriptions -->
-          <div
-            class="panel rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5"
-          >
-            <h2 class="text-sm font-semibold text-ink dark:text-white mb-4">
-              Subscriptions
-            </h2>
-            <div class="space-y-4">
-              <div>
-                <div class="flex items-baseline justify-between gap-3">
-                  <span class="text-sm text-ink dark:text-zinc-200">Pro</span>
-                  <span class="text-lg font-bold tabular-nums text-ink dark:text-white">{{
-                    data.subscriptions.pro
-                  }}</span>
-                </div>
-                <p class="text-xs text-ink-soft dark:text-zinc-500 mt-0.5">
-                  RM {{ fmt(data.subscriptions.pro * MARKETPLACE_MONTHLY) }} / month
-                </p>
-              </div>
-              <div>
-                <p class="text-xs text-ink-soft dark:text-zinc-500">
-                  The only paid plan. The till is free, and commission is 4% on
-                  every plan.
-                </p>
-              </div>
-              <div class="pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
-                <p class="text-xs text-ink-soft dark:text-zinc-500">Recurring revenue</p>
-                <p class="text-xl font-bold tabular-nums text-ink dark:text-white mt-0.5">
-                  RM {{ fmt(mrr) }}<span class="text-xs font-medium text-ink-soft"> / mo</span>
-                </p>
-              </div>
+          <!-- Beta discount + plan note -->
+          <section v-if="summary.betaGiveaway > 0" class="mc-card mc-card-pad flex flex-col gap-4">
+            <div>
+              <h2 class="mc-h2">Beta discount</h2>
+              <p class="mc-small mt-1">This period</p>
             </div>
-          </div>
+            <p class="text-[22px] font-[650] leading-tight mc-num">
+              RM {{ fmt(summary.betaGiveaway) }}
+              <span class="mc-small font-normal">not charged</span>
+            </p>
+            <p class="mc-meta leading-relaxed">
+              Commission runs at the beta rate of
+              {{ (BETA_RATE * 100).toFixed(0) }}%, earning
+              RM {{ fmt(summary.commission) }}. At launch rates the same orders
+              would have earned RM {{ fmt(summary.commissionIfCharged) }}.
+            </p>
+            <div class="mc-divider pt-4 mt-auto flex items-center justify-between gap-3">
+              <p class="mc-small">Pro is the only paid plan. Commission is 4% on every plan.</p>
+              <NuxtLink to="/pricing" class="mc-btn mc-btn-sm shrink-0">Pricing</NuxtLink>
+            </div>
+          </section>
         </div>
 
         <!-- Float -->
-        <div class="grid gap-3 lg:grid-cols-2 mb-3">
-          <AdminFloat
-            name="Delyva wallet"
-            purpose="Courier labels are bought from a prepaid wallet. If it empties, waybills stop printing."
-            :projection="data.float.delyva"
-          />
-          <AdminFloat
-            name="Billplz credit"
-            purpose="FPX and payout fees are deducted from the credit balance. If it empties, payouts stop."
-            :projection="data.float.billplz"
-          />
-        </div>
+        <section>
+          <h2 class="mc-h2 mb-3">Float</h2>
+          <div class="grid gap-3 lg:grid-cols-2">
+            <AdminFloat
+              name="Delyva wallet"
+              purpose="Courier labels are bought from a prepaid wallet. If it empties, waybills stop printing."
+              :projection="data.float.delyva"
+            />
+            <AdminFloat
+              name="Billplz credit"
+              purpose="FPX and payout fees are deducted from the credit balance. If it empties, payouts stop."
+              :projection="data.float.billplz"
+            />
+          </div>
+        </section>
 
         <!-- Tax -->
-        <div
-          class="panel rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-5 mb-3"
-        >
-          <h2 class="text-sm font-semibold text-ink dark:text-white">Tax position</h2>
-          <p class="text-xs text-ink-muted dark:text-zinc-400 mt-1">
-            Rolling 12 months. Indicative — a provision, not a return.
+        <section class="mc-card mc-card-pad">
+          <h2 class="mc-h2">Tax position</h2>
+          <p class="mc-small mt-1">
+            Rolling 12 months. Indicative: a provision, not a return.
           </p>
 
-          <div class="mt-5 grid gap-5 lg:grid-cols-2">
-            <div>
-              <div class="flex items-baseline justify-between gap-3 mb-2">
-                <span class="text-sm font-medium text-ink dark:text-zinc-200"
-                  >SST registration</span
-                >
-                <span class="text-xs tabular-nums text-ink-muted dark:text-zinc-400">
-                  RM {{ fmt(data.tax.sst.taxableTurnover) }} / RM {{
-                    fmt(data.tax.sst.threshold)
-                  }}
+          <div class="mt-5 grid gap-6 lg:grid-cols-2">
+            <div class="min-w-0">
+              <div class="flex items-baseline justify-between gap-3 flex-wrap mb-2">
+                <span class="mc-h3">SST registration</span>
+                <span class="mc-meta mc-num">
+                  RM {{ fmt(data.tax.sst.taxableTurnover) }} of RM {{ fmt(data.tax.sst.threshold) }}
                 </span>
               </div>
-              <div class="h-2 rounded-full bg-black/[0.06] dark:bg-white/[0.08] overflow-hidden">
-                <div
-                  class="h-full rounded-full transition-all"
-                  :class="data.tax.sst.registrationRequired ? 'bg-red-500' : 'bg-emerald-500'"
-                  :style="{ width: `${Math.max(1, data.tax.sst.percent)}%` }"
-                />
+              <div
+                class="mc-meter"
+                :data-tone="data.tax.sst.registrationRequired ? 'bad' : undefined"
+                role="meter"
+                aria-label="SST threshold used"
+                :aria-valuenow="data.tax.sst.percent"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <span :style="{ width: `${Math.max(1, data.tax.sst.percent)}%` }" />
               </div>
-              <p class="text-xs mt-2 leading-relaxed" :class="data.tax.sst.registrationRequired ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-ink-muted dark:text-zinc-400'">
-                <template v-if="data.tax.sst.registrationRequired">
-                  Threshold passed — registration is required within 30 days.
-                </template>
-                <template v-else>
-                  {{ data.tax.sst.percent }}% of the threshold. Service tax applies
-                  to our fees, never to GMV. At 8% today that would be
-                  RM {{ fmt(data.tax.sst.taxIfRegistered) }}.
-                </template>
+              <p
+                v-if="data.tax.sst.registrationRequired"
+                class="mc-callout mt-3"
+                data-tone="bad"
+              >
+                Threshold passed. Registration is required within 30 days.
+              </p>
+              <p v-else class="mc-small mt-2">
+                {{ data.tax.sst.percent }}% of the threshold. Service tax applies
+                to our fees, never to GMV. At 8% today that would be
+                RM {{ fmt(data.tax.sst.taxIfRegistered) }}.
               </p>
             </div>
 
-            <div>
-              <p class="text-sm font-medium text-ink dark:text-zinc-200 mb-2">
-                Income tax provision
-              </p>
-              <p class="text-2xl font-bold tabular-nums text-ink dark:text-white">
+            <div class="min-w-0">
+              <p class="mc-h3 mb-2">Income tax provision</p>
+              <p class="text-[22px] font-[650] leading-tight mc-num">
                 RM {{ fmt(data.tax.incomeTaxProvision) }}
               </p>
-              <p class="text-xs text-ink-muted dark:text-zinc-400 mt-1.5 leading-relaxed">
+              <p class="mc-small mt-2">
                 On RM {{ fmt(data.tax.rollingNet) }} trailing-year net, at resident
                 SME rates (15% to RM150k, 17% to RM600k, 24% above). Confirm with
                 your accountant before relying on it.
               </p>
             </div>
           </div>
-        </div>
-
-        <!-- Money owed -->
-        <div class="grid gap-3 sm:grid-cols-3">
-          <AdminStat
-            label="Owed to sellers"
-            :value="`RM ${fmt(summary.payoutsPending)}`"
-            :hint="`${data.counts.payoutsQueued} batch(es) awaiting execution`"
-            :tone="data.counts.payoutsQueued > 0 ? 'warn' : 'muted'"
-          />
-          <AdminStat
-            label="Paid out"
-            :value="`RM ${fmt(summary.payoutsPaid)}`"
-            hint="Transferred to sellers"
-            tone="muted"
-          />
-          <NuxtLink
-            to="/mintcondition/payouts"
-            class="rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-white/[0.04] p-4 flex items-center justify-between gap-3 hover:border-black/20 dark:hover:border-white/25 transition-colors"
-          >
-            <div>
-              <p class="text-sm font-semibold text-ink dark:text-white">Payout queue</p>
-              <p class="text-xs text-ink-muted dark:text-zinc-400 mt-0.5">
-                Review and execute
-              </p>
-            </div>
-            <span class="text-ink-soft dark:text-zinc-500" aria-hidden="true">→</span>
-          </NuxtLink>
-        </div>
-      </template>
+        </section>
+      </div>
     </template>
   </div>
 </template>
