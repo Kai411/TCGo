@@ -205,6 +205,9 @@
     border-top: 1px solid var(--line);
   }
 }
+.mc-cells[data-cols="2"] {
+  --cols: 2;
+}
 .mc-cells[data-cols="3"] {
   --cols: 3;
 }
