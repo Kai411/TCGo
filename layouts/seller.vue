@@ -361,10 +361,65 @@ watch(
   min-height: 100vh;
   min-height: 100dvh;
 }
-/* Pages not yet on mc-* classes keep the marketplace's base type. */
-.sl-main {
-  font-size: 16px;
-  line-height: 1.5;
+/* Every seller page sits in one calm column. */
+.sl-page {
+  max-width: 1120px;
+  margin: 0 auto;
+  color: var(--ink);
+}
+@media (min-width: 721px) {
+  .sl-page {
+    padding: 4px 16px 0;
+  }
+}
+.sl-page--narrow {
+  max-width: 760px;
+}
+
+/* The app-wide helper classes, re-pointed at the calm tokens inside the
+   seller area, so shared pieces (order cards, inventory rows, forms) match
+   the pages around them without a second copy of each component. */
+.sl-main .surface {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: none;
+}
+.sl-main .eyebrow {
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+.sl-main .chip {
+  border-radius: 999px;
+  font-weight: 550;
+}
+.sl-main .tcgo-input {
+  border-radius: var(--radius-s);
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+.sl-main .tcgo-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus);
+  --tw-ring-shadow: 0 0 #0000;
+}
+.sl-main .tcgo-input::placeholder {
+  color: var(--ink-3);
+}
+@media (pointer: coarse) {
+  .sl-main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .sl-main textarea,
+  .sl-main select {
+    font-size: 16px !important;
+  }
+}
+@media (max-width: 1023.98px) {
+  .sl-main .panel + .panel {
+    border-top-color: var(--line) !important;
+  }
 }
 
 .sl-topbar {

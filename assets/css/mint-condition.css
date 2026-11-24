@@ -272,6 +272,209 @@
   }
 }
 
+/* Primary = ink fill: the one main action on a screen. Danger = default
+   button with danger text. */
+.mc-btn-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.mc-btn-danger {
+  color: var(--danger);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mc-btn.mc-btn-primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--ink) 86%, var(--bg));
+  }
+}
+
+/* ---------- Figures ---------- */
+.mc-stat-value {
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.mc-hero-value {
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .mc-stat-value {
+    font-size: 18px;
+  }
+  .mc-hero-value {
+    font-size: 24px;
+  }
+}
+
+/* Cells that are buttons or links (a filter, a drill-down). */
+.mc-cell-btn {
+  text-align: left;
+  transition: background-color 120ms ease;
+}
+.mc-cell-btn[aria-pressed="true"] {
+  background: var(--surface-2);
+  box-shadow: inset 0 -2px 0 var(--ink);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mc-cell-btn:hover {
+    background: var(--surface-2);
+  }
+}
+
+/* ---------- Page head extras ---------- */
+.mc-desc {
+  margin-top: 4px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+.mc-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.mc-section {
+  margin-top: 24px;
+}
+
+/* ---------- List rows (inside one card) ---------- */
+.mc-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  min-width: 0;
+  transition: background-color 120ms ease;
+}
+.mc-row + .mc-row {
+  border-top: 1px solid var(--line);
+}
+.mc-row-title {
+  font-size: 14px;
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (hover: hover) and (pointer: fine) {
+  a.mc-row:hover,
+  button.mc-row:hover {
+    background: var(--surface-2);
+  }
+}
+.mc-thumb {
+  width: 30px;
+  aspect-ratio: 5 / 7;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.mc-empty {
+  padding: 18px 16px;
+  color: var(--ink-3);
+}
+
+/* ---------- Tabs ---------- */
+.mc-tabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.mc-tabs::-webkit-scrollbar {
+  display: none;
+}
+.mc-tabs > button {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  font-size: 13.5px;
+  font-weight: 550;
+  color: var(--ink-3);
+  white-space: nowrap;
+  transition: color 120ms ease;
+}
+.mc-tabs > button[aria-selected="true"] {
+  color: var(--ink);
+}
+.mc-tabs > button[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ink);
+}
+.mc-tabs .mc-count {
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+}
+@media (hover: hover) and (pointer: fine) {
+  .mc-tabs > button:hover {
+    color: var(--ink);
+  }
+}
+
+/* ---------- Fields ---------- */
+.mc-input,
+.mc-select {
+  height: var(--control-h);
+  padding: 6px 10px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13.5px;
+  min-width: 0;
+  max-width: 100%;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.mc-select {
+  appearance: none;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+.mc-input::placeholder {
+  color: var(--ink-3);
+}
+.mc-input:focus,
+.mc-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus);
+}
+@media (pointer: coarse) {
+  .mc-input,
+  .mc-select {
+    font-size: 16px !important;
+  }
+}
+
 /* ---------- Segmented control ---------- */
 .mc-seg {
   display: inline-flex;
@@ -317,6 +520,12 @@
 .mc-dot[data-tone="bad"] {
   --dot: var(--danger);
 }
+.mc-dot[data-tone="info"] {
+  --dot: var(--st-progress);
+}
+.mc-dot[data-tone="review"] {
+  --dot: var(--st-review);
+}
 
 /* ---------- Tag ---------- */
 .mc-tag {
@@ -330,6 +539,15 @@
   font-size: 12px;
   color: var(--ink-2);
   white-space: nowrap;
+}
+
+.mc-tag .mc-dot {
+  width: 6px;
+  height: 6px;
+  box-shadow: none;
+}
+.mc-tag:has(.mc-dot) {
+  gap: 6px;
 }
 
 /* ---------- Callout ---------- */
@@ -346,6 +564,12 @@
 }
 .mc-callout[data-tone="bad"] {
   --tone: var(--danger);
+}
+.mc-callout[data-tone="good"] {
+  --tone: var(--st-done);
+}
+.mc-callout[data-tone="info"] {
+  --tone: var(--st-progress);
 }
 
 /* ---------- Meter ---------- */

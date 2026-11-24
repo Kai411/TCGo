@@ -28,18 +28,3 @@ withDefaults(
   { muted: false },
 );
 </script>
-
-<style>
-.mc-stat-value {
-  font-size: 22px;
-  font-weight: 650;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-  overflow-wrap: anywhere;
-}
-@media (max-width: 480px) {
-  .mc-stat-value {
-    font-size: 18px;
-  }
-}
-</style>

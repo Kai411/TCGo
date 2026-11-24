@@ -4,7 +4,7 @@
     <div class="mc-card-pad">
       <p class="mc-label">Stock value</p>
       <template v-if="holdings.pricedRows > 0">
-        <p class="iw-hero mc-num mt-1">RM {{ formatMyr(holdings.marketValue) }}</p>
+        <p class="mc-hero-value mc-num mt-1">RM {{ formatMyr(holdings.marketValue) }}</p>
         <p v-if="changePct !== null" class="mc-small mt-1.5 flex items-center gap-2">
           <span class="mc-dot" :data-tone="changePct >= 0 ? 'good' : 'bad'" aria-hidden="true" />
           <span>
@@ -16,7 +16,7 @@
         </p>
       </template>
       <template v-else>
-        <p class="iw-hero mc-ink-3 mt-1">—</p>
+        <p class="mc-hero-value mc-ink-3 mt-1">—</p>
         <p class="mc-small mt-1.5">
           {{ loading ? "Looking up market prices…" : "No market prices yet for these cards." }}
         </p>
@@ -114,7 +114,7 @@ const signedPct = (n: number) => `${n < 0 ? "−" : "+"}${Math.abs(n)}%`;
 </script>
 
 <style>
-.iw-hero {
+.mc-hero-value {
   font-size: 28px;
   font-weight: 650;
   line-height: 1.15;
@@ -122,7 +122,7 @@ const signedPct = (n: number) => `${n < 0 ? "−" : "+"}${Math.abs(n)}%`;
   overflow-wrap: anywhere;
 }
 @media (max-width: 480px) {
-  .iw-hero {
+  .mc-hero-value {
     font-size: 24px;
   }
 }

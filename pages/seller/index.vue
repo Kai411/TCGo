@@ -1,19 +1,12 @@
 <template>
   <!-- Calm UI page (tokens from the seller layout's `.mc` shell). -->
-  <div class="sd-page">
-    <div v-if="!user" class="mc-card sd-gate">
-      <p class="mc-ink-3">Sign in to manage your inventory.</p>
-      <button type="button" class="mc-btn sd-btn-primary" @click="goToLogin">Sign in</button>
-    </div>
+  <div class="sl-page">
+    <SellerGate v-if="!user" message="Sign in to manage your inventory." />
 
     <template v-else>
-      <header class="mc-page-head">
-        <div>
-          <p class="mc-eyebrow">Seller</p>
-          <h1 class="mc-h1 mt-1">Dashboard</h1>
-        </div>
-        <NuxtLink to="/seller/pos" class="mc-btn sd-btn-primary">Open POS</NuxtLink>
-      </header>
+      <SellerPageHead title="Dashboard">
+        <NuxtLink to="/seller/pos" class="mc-btn mc-btn-primary">Open POS</NuxtLink>
+      </SellerPageHead>
 
       <div v-if="loadingSeller" class="flex flex-col gap-6" aria-busy="true" aria-label="Loading dashboard">
         <div class="mc-skel h-[108px]" />
@@ -46,7 +39,6 @@ useHead({ title: "Seller dashboard | TCGo" });
 
 const router = useRouter();
 const {user} = useAuth();
-const { goToLogin } = useSignInGate();
 const { sellerCompiledOrders, loadingSeller, listenSellerCompiledOrders } =
   useCompiledOrders();
 const { items: inventoryItems, listenMyInventory } = useInventory();
@@ -88,34 +80,3 @@ watch(user, (u) => {
 });
 </script>
 
-<style>
-.sd-page {
-  max-width: 1120px;
-  margin: 0 auto;
-  font-size: 14px;
-  color: var(--ink);
-}
-@media (min-width: 721px) {
-  .sd-page {
-    padding: 4px 16px 0;
-  }
-}
-.sd-gate {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 18px 16px;
-}
-/* Primary = ink fill, the one main action on the screen. */
-.mc .sd-btn-primary {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--bg);
-}
-@media (hover: hover) and (pointer: fine) {
-  .mc .sd-btn-primary.mc-btn:hover {
-    background: color-mix(in oklch, var(--ink) 88%, var(--bg));
-  }
-}
-</style>

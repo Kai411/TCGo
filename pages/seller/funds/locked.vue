@@ -1,89 +1,59 @@
 <template>
-  <div class="max-w-2xl mx-auto">
-    <div v-if="!user" class="text-center py-16">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to see your funds.</p>
-      <button @click="goToLogin" class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors">
-        Sign in
-      </button>
-    </div>
+  <div class="sl-page sl-page--narrow">
+    <SellerGate v-if="!user" message="Sign in to see your funds." />
 
     <template v-else>
-      <NuxtLink
-        to="/seller/funds"
-        class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white"
-      >
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-        Funds
-      </NuxtLink>
+      <SellerPageHead
+        title="Locked funds"
+        back="/seller/funds"
+        back-label="Funds"
+        :description="`Money from orders that haven't cleared the ${holdDays}-day hold yet. Open an order to see how its payout was worked out.`"
+      />
 
-      <h1 class="text-2xl font-bold text-ink dark:text-white mt-3 mb-1">Locked funds</h1>
-      <p class="text-sm text-gray-500 dark:text-zinc-400 mb-5">
-        Money from orders that haven't cleared the {{ holdDays }}-day hold yet.
-        Tap an order to see exactly how its payout was worked out.
-      </p>
-
-      <!-- Total -->
-      <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 mb-5">
-        <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">Locked total</p>
-        <p class="text-3xl font-extrabold text-ink dark:text-white tabular-nums mt-1">
-          RM {{ fmt(lockedTotal) }}
-        </p>
-        <p class="text-micro text-gray-400 dark:text-zinc-500 mt-1">
+      <section class="mc-card mc-card-pad">
+        <p class="mc-label">Locked total</p>
+        <p class="mc-hero-value mc-num mt-1">RM {{ fmt(lockedTotal) }}</p>
+        <p class="mc-small mt-1.5">
           {{ locked.length }} order{{ locked.length === 1 ? "" : "s" }}
           <template v-if="nextUnlock"> · next unlocks {{ nextUnlock }}</template>
         </p>
-      </div>
+      </section>
 
-      <p v-if="!locked.length" class="text-sm text-gray-400 dark:text-zinc-500 py-10 text-center">
-        Nothing locked right now.
-      </p>
-
-      <div v-else class="space-y-2">
-        <div
-          v-for="e in locked"
-          :key="e.order.id"
-          class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] overflow-hidden"
-        >
-          <button
-            type="button"
-            @click="toggle(e.order.id)"
-            class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
-            :aria-expanded="open === e.order.id"
-          >
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-ink dark:text-white truncate">
-                {{ e.order.buyerName }} ·
-                {{ e.order.items.length }} item{{ e.order.items.length === 1 ? "" : "s" }}
-              </p>
-              <p class="text-micro text-gray-500 dark:text-zinc-400">{{ lockReason(e) }}</p>
+      <section class="mc-section">
+        <div class="mc-card overflow-hidden">
+          <p v-if="!locked.length" class="mc-empty">Nothing locked right now.</p>
+          <div v-for="e in locked" v-else :key="e.order.id" class="fl-item">
+            <button
+              type="button"
+              class="mc-row w-full text-left"
+              :aria-expanded="open === e.order.id"
+              @click="toggle(e.order.id)"
+            >
+              <span class="mc-dot" aria-hidden="true" />
+              <div class="min-w-0">
+                <p class="mc-row-title">
+                  {{ e.order.buyerName }} ·
+                  {{ e.order.items.length }} item{{ e.order.items.length === 1 ? "" : "s" }}
+                </p>
+                <p class="mc-meta">{{ lockReason(e) }}</p>
+              </div>
+              <span class="flex items-center gap-2">
+                <span class="mc-num font-semibold">RM {{ fmt(e.amount) }}</span>
+                <svg
+                  class="w-4 h-4 mc-ink-3 fl-chev"
+                  :class="{ 'is-open': open === e.order.id }"
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                ><polyline points="6 9 12 15 18 9" /></svg>
+              </span>
+            </button>
+            <div v-if="open === e.order.id" class="px-4 pb-4 pt-1">
+              <SettlementBreakdown :order="e.order" :hint="lockReason(e)" />
+              <NuxtLink :to="`/orders/${e.order.id}`" class="mc-btn mc-btn-sm mt-3">Open order</NuxtLink>
             </div>
-            <span class="shrink-0 text-sm font-bold text-ink dark:text-white tabular-nums">
-              RM {{ fmt(e.amount) }}
-            </span>
-            <svg
-              class="shrink-0 w-4 h-4 text-gray-400 transition-transform"
-              :class="open === e.order.id ? 'rotate-180' : ''"
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-
-          <div
-            v-if="open === e.order.id"
-            class="px-4 pb-4 pt-1 border-t border-black/[0.05] dark:border-white/[0.06]"
-          >
-            <SettlementBreakdown :order="e.order" :hint="lockReason(e)" />
-            <NuxtLink
-              :to="`/orders/${e.order.id}`"
-              class="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-pokemon-red hover:underline"
-            >
-              Open order ↗
-            </NuxtLink>
           </div>
         </div>
-      </div>
+      </section>
     </template>
   </div>
 </template>
@@ -96,7 +66,6 @@ definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Locked funds | TCGo" });
 
 const {user} = useAuth();
-const { goToLogin } = useSignInGate();
 const { listenSellerCompiledOrders } = useCompiledOrders();
 const { locked, lockedTotal } = useSellerFunds();
 
@@ -132,3 +101,15 @@ const nextUnlock = computed(() => {
   return fmtDate(Math.min(...dates));
 });
 </script>
+
+<style>
+.fl-item + .fl-item {
+  border-top: 1px solid var(--line);
+}
+.fl-chev {
+  transition: transform 160ms var(--ease-out);
+}
+.fl-chev.is-open {
+  transform: rotate(180deg);
+}
+</style>

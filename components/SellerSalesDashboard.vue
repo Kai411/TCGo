@@ -36,7 +36,7 @@
     <section data-tour="dashboard-sales" class="mc-card">
       <div class="mc-card-pad">
         <p class="mc-label">Completed sales</p>
-        <p class="sd-hero mc-num mt-1">RM {{ formatMyr(salesValue) }}</p>
+        <p class="mc-hero-value mc-num mt-1">RM {{ formatMyr(salesValue) }}</p>
         <p v-if="momDelta !== null" class="mc-small mt-1.5 flex items-center gap-2">
           <span class="mc-dot" :data-tone="momDelta >= 0 ? 'good' : 'bad'" aria-hidden="true" />
           <span>
@@ -216,7 +216,7 @@
             </p>
           </div>
           <span class="mc-tag gap-1.5">
-            <span class="mc-dot sd-tag-dot" :data-tone="sale.source === 'pos' ? undefined : 'good'" aria-hidden="true" />
+            <span class="mc-dot" :data-tone="sale.source === 'pos' ? undefined : 'good'" aria-hidden="true" />
             {{ sale.source === "pos" ? "In-person" : "Delivered" }}
           </span>
         </component>
@@ -494,18 +494,6 @@ const fundsHeld = computed(() =>
   gap: 12px;
   margin-bottom: 8px;
 }
-.sd-hero {
-  font-size: 28px;
-  font-weight: 650;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  overflow-wrap: anywhere;
-}
-@media (max-width: 480px) {
-  .sd-hero {
-    font-size: 24px;
-  }
-}
 
 /* Queue tiles: cells of one card, each a button. */
 .sd-tile {
@@ -625,11 +613,6 @@ const fundsHeld = computed(() =>
 .sd-row-title {
   font-size: 14px;
   font-weight: 550;
-}
-.sd-tag-dot {
-  width: 6px;
-  height: 6px;
-  box-shadow: none;
 }
 .sd-empty {
   padding: 18px 16px;
