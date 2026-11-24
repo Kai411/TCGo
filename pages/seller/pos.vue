@@ -1,18 +1,16 @@
 <template>
-  <div class="max-w-2xl mx-auto">
-    <div v-if="!user" class="text-center py-16">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to use the POS.</p>
-      <button @click="goToLogin" class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors">Sign in</button>
-    </div>
+  <div class="sl-page sl-page--narrow">
+    <SellerGate v-if="!user" message="Sign in to use the POS." />
 
     <template v-else>
-      <h1 class="text-2xl font-bold text-ink dark:text-white mb-1">POS</h1>
-      <p class="text-sm text-gray-500 dark:text-zinc-400 mb-5">
-        Scan your inventory QR labels to ring up a sale, then take payment.
-      </p>
+      <SellerPageHead
+        title="POS"
+        description="Scan your inventory QR labels to ring up a sale, then take payment."
+      >
+        <NuxtLink to="/seller/sales" class="mc-btn mc-btn-ghost mc-btn-sm">Past sales</NuxtLink>
+      </SellerPageHead>
 
-      <!-- Scanner -->
-      <div class="surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] overflow-hidden mb-5">
+      <div class="mc-card overflow-hidden mb-5">
         <div class="relative bg-black aspect-[4/3]">
           <video ref="videoEl" autoplay playsinline muted class="w-full h-full object-cover" :class="scanning ? '' : 'opacity-0'" />
 
@@ -43,25 +41,25 @@
         </div>
 
         <!-- Manual fallback -->
-        <div class="p-3 border-t border-black/[0.06] dark:border-white/[0.08]">
-          <button @click="manualOpen = !manualOpen" class="text-xs font-semibold text-gray-600 dark:text-zinc-300 hover:text-ink dark:hover:text-white">
+        <div class="p-3 mc-divider">
+          <button @click="manualOpen = !manualOpen" class="mc-btn mc-btn-ghost mc-btn-sm -ml-1">
             {{ manualOpen ? "Hide manual add" : "Can't scan? Add manually" }}
           </button>
           <div v-if="manualOpen" class="mt-2">
-            <input v-model="manualSearch" type="search" placeholder="Search your inventory by name…" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white" />
+            <input v-model="manualSearch" type="search" placeholder="Search your inventory by name…" class="mc-input w-full" />
             <div v-if="manualResults.length" class="mt-2 space-y-1 max-h-48 overflow-y-auto">
               <button
                 v-for="item in manualResults"
                 :key="item.id"
                 @click="addItem(item)"
-                class="w-full flex items-center gap-2 p-1.5 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] text-left"
+                class="pos-result w-full flex items-center gap-2 p-1.5 text-left"
               >
                 <div class="w-7 h-9 shrink-0 rounded overflow-hidden"><CardImage :src="item.primaryImage" :alt="item.cardName" /></div>
                 <div class="min-w-0 flex-1">
                   <p class="text-xs font-medium text-ink dark:text-white truncate">{{ item.cardName }}</p>
                   <p class="text-2xs text-gray-500 dark:text-zinc-400 truncate">{{ [item.setName, item.number].filter(Boolean).join(" · ") }}</p>
                 </div>
-                <span class="text-xs font-semibold text-pokemon-red">+ Add</span>
+                <span class="mc-btn mc-btn-sm">Add</span>
               </button>
             </div>
           </div>
@@ -73,22 +71,22 @@
       <Transition enter-active-class="transition duration-200" enter-from-class="opacity-0 -translate-y-1">
         <div
           v-if="blocked.length"
-          class="mb-4 rounded-xl border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 p-3.5"
+          class="mc-callout mb-4" data-tone="bad"
         >
           <div class="flex items-start gap-2.5">
             <svg class="w-4 h-4 mt-0.5 shrink-0 text-red-600 dark:text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <div class="min-w-0 flex-1">
-              <p class="text-sm font-bold text-red-800 dark:text-red-200">
+              <p class="font-semibold">
                 {{ blocked.length === 1 ? "One card is no longer available" : `${blocked.length} cards are no longer available` }}
               </p>
-              <p class="mt-0.5 text-xs text-red-700 dark:text-red-300">
+              <p class="mc-meta mt-0.5">
                 Highlighted below. Remove {{ blocked.length === 1 ? "it" : "them" }} from the pile before taking payment.
               </p>
               <button
                 @click="removeBlocked"
-                class="mt-2.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 text-white hover:bg-red-700"
+                class="mc-btn mc-btn-sm mc-btn-danger mt-2.5"
               >
                 Remove {{ blocked.length === 1 ? "it" : `all ${blocked.length}` }}
               </button>
@@ -100,36 +98,33 @@
       <!-- Stash -->
       <div class="mb-44 lg:mb-28">
         <div class="flex items-center justify-between mb-2">
-          <h2 class="text-base font-semibold text-ink dark:text-white">Cart ({{ stash.length }})</h2>
-          <button v-if="stash.length" @click="clearCart" class="text-xs text-gray-400 dark:text-zinc-500 hover:text-red-500">Clear</button>
+          <h2 class="mc-h2">Cart <span class="mc-ink-3 mc-num">{{ stash.length }}</span></h2>
+          <button v-if="stash.length" @click="clearCart" class="mc-btn mc-btn-ghost mc-btn-sm">Clear</button>
         </div>
-        <p v-if="!stash.length" class="text-sm text-gray-400 dark:text-zinc-500 py-6 text-center">Scan a label to add it here.</p>
-        <div v-else class="space-y-2">
+        <p v-if="!stash.length" class="mc-card mc-empty">Scan a label to add it here.</p>
+        <div v-else class="mc-card overflow-hidden">
           <div
             v-for="(line, i) in stash"
             :key="line.id"
-            class="surface rounded-xl p-2.5 flex items-center gap-3 transition-colors"
-            :class="blockedIds.has(line.id)
-              ? 'border-2 border-red-500 bg-red-50 dark:bg-red-500/10'
-              : 'border border-black/[0.06] dark:border-white/[0.08]'"
+            class="pos-line"
+            :class="{ 'is-blocked': blockedIds.has(line.id) }"
           >
             <div class="w-10 h-14 shrink-0 rounded overflow-hidden"><CardImage :src="line.image" :alt="line.cardName" /></div>
             <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-ink dark:text-white truncate">{{ line.cardName }}</p>
-              <p class="text-micro text-gray-500 dark:text-zinc-400 truncate">{{ line.sub }}</p>
-              <p v-if="blockedIds.has(line.id)" class="text-2xs font-bold text-red-600 dark:text-red-400 mt-0.5">
+              <p class="mc-row-title">{{ line.cardName }}</p>
+              <p class="mc-meta truncate">{{ line.sub }}</p>
+              <p v-if="blockedIds.has(line.id)" class="mc-small flex items-center gap-1.5 mt-0.5 !text-[var(--danger)] font-semibold">
                 {{ blockedReason(line.id) }}
               </p>
-              <p v-else-if="discountOf(line) > 0" class="text-2xs text-amber-600 dark:text-amber-400 mt-0.5">
-                <span class="line-through">RM {{ line.listPrice.toFixed(2) }}</span>
-                · RM {{ discountOf(line).toFixed(2) }} off
+              <p v-else-if="discountOf(line) > 0" class="mc-small mc-num mt-0.5">
+                label RM {{ line.listPrice.toFixed(2) }} · RM {{ discountOf(line).toFixed(2) }} off
               </p>
             </div>
             <div class="shrink-0 flex items-center gap-1">
-              <span class="text-2xs text-gray-400">RM</span>
-              <input type="number" min="0" step="0.01" v-model.number="line.soldPrice" :disabled="paying" class="w-20 text-sm text-right px-2 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums disabled:opacity-50" />
+              <span class="mc-small">RM</span>
+              <input type="number" min="0" step="0.01" v-model.number="line.soldPrice" :disabled="paying" class="mc-input mc-num !w-20 text-right !h-[30px] disabled:opacity-50" />
             </div>
-            <button @click="removeLine(i)" :disabled="paying" class="shrink-0 text-gray-400 hover:text-red-500 disabled:opacity-40" aria-label="Remove">
+            <button @click="removeLine(i)" :disabled="paying" class="mc-btn mc-btn-ghost mc-btn-sm mc-btn-icon !w-7 shrink-0 disabled:opacity-40" aria-label="Remove">
               <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
@@ -138,21 +133,21 @@
 
       <!-- Checkout bar -->
       <Transition enter-active-class="transition duration-200" enter-from-class="translate-y-full">
-        <div v-if="stash.length" class="fixed bottom-20 lg:bottom-0 inset-x-0 lg:left-56 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] px-4 py-3 lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div class="max-w-2xl mx-auto flex items-center justify-between gap-3">
+        <div v-if="stash.length" class="pos-paybar fixed bottom-20 lg:bottom-0 inset-x-0 lg:left-[248px] z-40 px-4 py-3 lg:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div class="max-w-[760px] mx-auto flex items-center justify-between gap-3">
             <div>
-              <p class="text-micro text-gray-500 dark:text-zinc-400">
+              <p class="mc-small">
                 {{ stash.length }} {{ stash.length === 1 ? "item" : "items" }}
-                <span v-if="totals.discountTotal > 0" class="text-amber-600 dark:text-amber-400 font-semibold">
+                <span v-if="totals.discountTotal > 0" class="mc-num">
                   · RM {{ totals.discountTotal.toFixed(2) }} off
                 </span>
               </p>
-              <p class="text-xl font-extrabold text-ink dark:text-white tabular-nums">RM {{ totals.total.toFixed(2) }}</p>
+              <p class="mc-stat-value mc-num">RM {{ totals.total.toFixed(2) }}</p>
             </div>
             <button
               @click="openPayment"
               :disabled="paying"
-              class="px-8 py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:bg-pokemon-red-dark transition-colors disabled:opacity-60 flex items-center gap-2"
+              class="mc-btn mc-btn-primary pos-pay"
             >
               <span v-if="paying" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
               Pay
@@ -198,7 +193,6 @@ definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · POS | TCGo" });
 
 const {user} = useAuth();
-const { goToLogin } = useSignInGate();
 const { items, listenMyInventory } = useInventory();
 const { authedFetch } = useAuthedFetch();
 const qrEnabled = String(useRuntimeConfig().public.posQrEnabled ?? "") === "true";
@@ -734,3 +728,45 @@ onBeforeUnmount(() => {
   }
 });
 </script>
+
+<style>
+.pos-result {
+  border-radius: var(--radius-s);
+  transition: background-color 120ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pos-result:hover {
+    background: var(--surface-2);
+  }
+}
+.pos-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+}
+.pos-line > div:first-child {
+  width: 36px;
+  height: 50px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.pos-line + .pos-line {
+  border-top: 1px solid var(--line);
+}
+.pos-line.is-blocked {
+  background: var(--danger-soft);
+}
+.pos-paybar {
+  background: color-mix(in oklch, var(--bg) 92%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+}
+.pos-pay {
+  height: 44px;
+  padding: 0 32px;
+  font-size: 15px;
+}
+</style>

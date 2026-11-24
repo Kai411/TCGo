@@ -1,30 +1,21 @@
 <template>
-  <div class="max-w-5xl mx-auto">
-    <div v-if="loading" class="flex justify-center py-12">
-      <div
-        class="animate-spin rounded-full h-6 w-6 border-b-2 border-pokemon-red"
-      ></div>
-    </div>
+  <div class="sl-page">
+    <div v-if="loading" class="mc-skel h-[240px]" aria-busy="true" aria-label="Loading listing" />
 
-    <div v-else-if="!card || !isOwner" class="text-center py-12">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg">
-        Card not found or you don't have permission to edit.
-      </p>
-      <NuxtLink
-        to="/"
-        class="text-pokemon-blue hover:underline mt-2 inline-block text-sm"
-        >← Back to Marketplace</NuxtLink
-      >
+    <div v-else-if="!card || !isOwner" class="mc-card mc-empty flex items-center justify-between gap-3">
+      <span>Card not found, or you don't have permission to edit it.</span>
+      <NuxtLink to="/seller/listings" class="mc-btn mc-btn-sm">Back to listings</NuxtLink>
     </div>
 
     <template v-else>
-      <h1 class="text-2xl font-bold mb-6">Edit listing</h1>
+      <SellerPageHead
+        title="Edit listing"
+        back="/seller/listings"
+        back-label="Listings"
+        description="Only the price can change on a live listing. To change the card details or photos, delete this listing and add the card again."
+      />
 
       <form id="edit-listing-form" @submit.prevent="handleSubmit" class="space-y-4 pb-36 lg:pb-0">
-        <p class="text-xs text-gray-500 dark:text-zinc-400 -mt-2">
-          Only the price can be changed on a live listing. To change the card
-          details or photos, delete this listing and add the card again.
-        </p>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <!-- Everything but price is read-only. A disabled <fieldset> greys
@@ -41,7 +32,7 @@
               <!-- Photos (read-only) -->
               <div
                 v-if="existingImages.length > 0"
-                class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3 lg:col-span-2"
+                class="panel mc-card mc-card-pad space-y-3 lg:col-span-2"
               >
                 <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
                   Photos
@@ -60,7 +51,7 @@
 
           <!-- Price -->
           <div
-            class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5"
+            class="panel mc-card mc-card-pad"
           >
             <label
               class="block text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-2"
@@ -89,11 +80,11 @@
       </form>
 
       <!-- Actions: fixed above bottom-nav on mobile, sticky bottom on desktop -->
-      <div class="fixed bottom-20 inset-x-0 z-30 bg-white dark:bg-zinc-900 border-t border-gray-200 dark:border-white/[0.10] px-4 py-3 space-y-2 lg:sticky lg:bottom-0 lg:inset-x-auto lg:mt-4 lg:rounded-xl lg:border lg:border-gray-200 dark:lg:border-white/[0.08] lg:px-4 lg:py-4">
+      <div class="le-actions fixed bottom-20 inset-x-0 z-30 px-4 py-3 space-y-2 lg:sticky lg:bottom-0 lg:inset-x-auto lg:mt-4 lg:px-4 lg:py-4">
         <div class="flex gap-3">
           <NuxtLink
             :to="`/cards/${cardId}`"
-            class="flex-1 text-center py-3 rounded-lg border border-gray-300 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 font-medium hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
+            class="mc-btn flex-1"
           >
             Cancel
           </NuxtLink>
@@ -101,9 +92,9 @@
             type="submit"
             form="edit-listing-form"
             :disabled="submitting"
-            class="flex-1 bg-pokemon-red text-white py-3 rounded-xl font-semibold hover:bg-pokemon-red-dark transition-colors disabled:opacity-50"
+            class="mc-btn mc-btn-primary flex-1"
           >
-            {{ submitting ? "Saving..." : "Save Changes" }}
+            {{ submitting ? "Saving…" : "Save changes" }}
           </button>
         </div>
         <button
@@ -260,3 +251,16 @@ const handleDelete = async () => {
   }
 };
 </script>
+
+<style>
+.le-actions {
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+@media (min-width: 1024px) {
+  .le-actions {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+}
+</style>

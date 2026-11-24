@@ -220,6 +220,20 @@
   }
 }
 
+/* Three short figures that stay side by side even on a phone. */
+@media (max-width: 900px) {
+  .mc-cells.mc-cells--keep {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .mc-cells.mc-cells--keep > * {
+    padding: 12px 14px;
+    border-top: 0;
+  }
+  .mc-cells.mc-cells--keep > * + * {
+    border-left: 1px solid var(--line);
+  }
+}
+
 /* ---------- Buttons ---------- */
 .mc-btn {
   display: inline-flex;

@@ -29,10 +29,10 @@
         </button>
       </SellerPageHead>
 
-      <div v-if="count > 0 && !addOpen" class="mc-card mc-cells mb-5" data-cols="3">
+      <div v-if="count > 0 && !addOpen" class="mc-card mc-cells mc-cells--keep mb-5" style="--cols: 3">
         <AdminStat label="Units" :value="String(totalUnits)" />
         <AdminStat label="Entries" :value="String(count)" />
-        <AdminStat label="Estimated value" :value="`RM ${formatMyr(totalValue)}`" hint="at your list prices" />
+        <AdminStat label="Est. value" :value="`RM ${formatMyr(totalValue)}`" hint="at list prices" />
       </div>
 
       <!-- Add to inventory. Uses the same AddMethodPicker as Listings and

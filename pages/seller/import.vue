@@ -1,30 +1,20 @@
 <template>
-  <div class="max-w-3xl mx-auto">
-    <div v-if="!user" class="text-center py-16">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to import inventory.</p>
-      <button @click="goToLogin" class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors">Sign in</button>
-    </div>
+  <div class="sl-page sl-page--narrow">
+    <SellerGate v-if="!user" message="Sign in to import inventory." />
 
     <template v-else>
-      <SubpageHeader title="Bulk add" back="/seller/items" back-label="Items">
-        <div class="flex items-center gap-2 mb-1">
-          <NuxtLink to="/seller/items" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-            Items
-          </NuxtLink>
-        </div>
-      </SubpageHeader>
-      <h1 class="hidden lg:block text-2xl font-bold text-ink dark:text-white mb-1">Bulk add</h1>
-      <p class="text-sm text-gray-500 dark:text-zinc-400 mb-6">
-        Upload a file or paste rows — we'll match each card to the catalog and attach images automatically.
-      </p>
+      <SellerPageHead
+        title="Bulk add"
+        back="/seller/items"
+        back-label="Inventory"
+        description="Upload a file or paste rows. We match each card to the catalogue and attach images for you."
+      />
 
-      <!-- Step 1: choose a method -->
       <div v-if="step === 'upload'" class="space-y-4">
-        <TabStrip v-model="uploadMethod" :tabs="methodTabs" />
+        <McTabs v-model="uploadMethod" :tabs="methodTabs" />
 
         <!-- Method: file -->
-        <div v-if="uploadMethod === 'file'" class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-6">
+        <div v-if="uploadMethod === 'file'" class="panel mc-card mc-card-pad">
           <label class="block">
             <div class="border-2 border-dashed border-gray-300 dark:border-white/[0.12] rounded-xl py-10 text-center cursor-pointer hover:border-pokemon-blue transition-colors">
               <svg class="w-10 h-10 mx-auto text-gray-400 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -54,7 +44,7 @@
               <button
                 type="button"
                 @click="downloadTemplate"
-                class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+                class="mc-btn shrink-0"
               >
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Download template
@@ -64,7 +54,7 @@
         </div>
 
         <!-- Method: paste -->
-        <div v-else-if="uploadMethod === 'paste'" class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
+        <div v-else-if="uploadMethod === 'paste'" class="panel mc-card mc-card-pad space-y-3">
           <div>
             <p class="text-sm font-semibold text-ink dark:text-white">Paste your rows</p>
             <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
@@ -93,7 +83,7 @@
               type="button"
               @click="handlePaste"
               :disabled="!pasteText.trim()"
-              class="shrink-0 px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+              class="mc-btn mc-btn-primary shrink-0"
             >
               Continue
             </button>
@@ -101,7 +91,7 @@
         </div>
 
         <!-- Method: scan photos -->
-        <div v-else class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-3">
+        <div v-else class="panel mc-card mc-card-pad space-y-3">
           <div>
             <p class="text-sm font-semibold text-ink dark:text-white">Scan card photos</p>
             <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
@@ -125,7 +115,7 @@
               <button
                 type="button"
                 @click="removePhoto(i)"
-                class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pokemon-red text-white text-2xs flex items-center justify-center"
+                class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full sl-remove-dot text-2xs flex items-center justify-center"
                 aria-label="Remove photo"
               >✕</button>
             </div>
@@ -140,7 +130,7 @@
               type="button"
               @click="identifyPhotos"
               :disabled="!photoFiles.length"
-              class="shrink-0 px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+              class="mc-btn mc-btn-primary shrink-0"
             >
               Identify {{ photoFiles.length }} card{{ photoFiles.length === 1 ? "" : "s" }}
             </button>
@@ -150,7 +140,7 @@
 
       <!-- Step 2: map columns -->
       <div v-else-if="step === 'map'" class="space-y-4">
-        <div class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5">
+        <div class="panel mc-card mc-card-pad">
           <p class="text-sm font-semibold text-ink dark:text-white mb-1">Map your columns</p>
           <p class="text-xs text-gray-500 dark:text-zinc-400 mb-4">
             {{ parsedRows.length }} rows found. We guessed the mapping — adjust if needed. Only <span class="font-semibold">Name</span> is required.
@@ -196,11 +186,11 @@
         </div>
 
         <div class="flex gap-2">
-          <button @click="resetUpload" class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200">Back</button>
+          <button @click="resetUpload" class="mc-btn">Back</button>
           <button
             @click="reconcile"
             :disabled="mapping.name === -1"
-            class="flex-1 px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+            class="mc-btn mc-btn-primary flex-1"
           >
             Match {{ parsedRows.length }} rows to catalog
           </button>
@@ -208,7 +198,7 @@
       </div>
 
       <!-- Reconciling progress -->
-      <div v-else-if="step === 'reviewing'" class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-8 text-center">
+      <div v-else-if="step === 'reviewing'" class="panel mc-card mc-card-pad text-center">
         <div class="animate-spin rounded-full h-7 w-7 border-2 border-ink/10 border-t-pokemon-red mx-auto mb-4"/>
         <p class="text-sm font-semibold text-ink dark:text-white">
           {{ flow === "photos" ? "Identifying cards…" : "Matching to catalog…" }}
@@ -268,11 +258,11 @@
         </div>
 
         <div class="flex gap-2">
-          <button @click="step = flow === 'photos' ? 'upload' : 'map'" class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200">Back</button>
+          <button @click="step = flow === 'photos' ? 'upload' : 'map'" class="mc-btn">Back</button>
           <button
             @click="doImport"
             :disabled="importing || includedCount === 0"
-            class="flex-1 px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            class="mc-btn mc-btn-primary flex-1 justify-center"
           >
             <span v-if="importing" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
             {{ importing ? "Importing…" : `Import ${includedCount} items` }}
@@ -302,7 +292,6 @@ const CONDITIONS = [
 
 const router = useRouter();
 const {user} = useAuth();
-const { goToLogin } = useSignInGate();
 const { matchRow } = useCardCatalog();
 const { addMany } = useInventory();
 const { uploadImage } = useStorage();

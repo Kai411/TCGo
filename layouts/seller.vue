@@ -416,6 +416,11 @@ watch(
     font-size: 16px !important;
   }
 }
+.sl-main .sl-remove-dot {
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: 0 0 0 2px var(--surface);
+}
 @media (max-width: 1023.98px) {
   .sl-main .panel + .panel {
     border-top-color: var(--line) !important;
