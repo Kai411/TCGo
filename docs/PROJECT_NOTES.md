@@ -19,7 +19,7 @@ A Pokémon TCG marketplace for Malaysia: fixed-price listings (Shop), auctions, 
 | Pro membership | Stripe (subscriptions only, not marketplace payments) |
 | Email | Mailtrap (sign-up codes, admin test email). Password reset uses Firebase's own reset link |
 | Seller ID check | Didit |
-| Hosting | Netlify and Vercel. Both build PR previews |
+| Hosting | Netlify (builds PR previews) |
 | Node | 22 (`.nvmrc`) |
 
 Server environment variables come from `runtimeConfig` in `nuxt.config.ts` (camelCase key becomes `NUXT_` + SNAKE_CASE). Ask kai for values; never commit them or paste them in issues, PRs or chat. `NUXT_PUBLIC_SITE_URL` must be set on any new host because Billplz callbacks and Stripe return URLs are built from it.
@@ -35,7 +35,7 @@ Server environment variables come from `runtimeConfig` in `nuxt.config.ts` (came
   ```
   and say in the PR that they passed.
 - kai merges. When several PRs are ready they are merged into staging together with merge commits, then tested and built once.
-- Share PR preview links (Netlify deploy preview or the Vercel URL in the PR checks) with screenshots, not staging links. Server features only work on a preview whose site has the server variables set.
+- Share PR preview links (Netlify deploy preview) with screenshots, not staging links. Server features only work on a preview whose site has the server variables set.
 - Keep PRs to one task. Mention unrelated bugs you find instead of fixing them in the same PR.
 
 ## Firestore rules and indexes
