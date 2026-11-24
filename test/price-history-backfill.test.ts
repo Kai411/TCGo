@@ -7,8 +7,8 @@ import { readFileSync } from "node:fs";
 
 import {
   ARCHIVE_START,
+  inNightlyWindow,
   isKeptDate,
-  isMonday,
   marketByProduct,
   nextChunk,
   planDates,
@@ -25,27 +25,22 @@ describe("which days are kept", () => {
     assert.equal(isKeptDate("2025-11-19", today), true); // 364 days back
   });
 
-  it("keeps only Mondays before that", () => {
-    assert.equal(isMonday("2025-11-17"), true);
-    assert.equal(isKeptDate("2025-11-17", today), true);
-    assert.equal(isKeptDate("2025-11-18", today), false); // a Tuesday, 365 days back
-    assert.equal(isKeptDate("2024-02-13", today), false);
+  it("keeps nothing older, Mondays included", () => {
+    assert.equal(isKeptDate("2025-11-18", today), false); // 365 days back
+    assert.equal(isKeptDate("2025-11-17", today), false); // a Monday
+    assert.equal(isKeptDate("2024-02-12", today), false);
   });
 
-  it("plans daily for the last year and weekly before, from the archive start", () => {
+  it("plans one day each for the last year only", () => {
     const dates = planDates({ to: "2026-11-16", today });
-    assert.equal(dates[0], "2024-02-12"); // first Monday on or after 2024-02-08
-    assert.ok(dates[0] >= ARCHIVE_START);
+    assert.equal(dates[0], "2025-11-19");
     assert.equal(dates[dates.length - 1], "2026-11-16");
-    const old = dates.filter((d) => d < "2025-11-19");
-    assert.ok(old.every(isMonday));
-    const recent = dates.filter((d) => d >= "2025-11-19");
-    assert.equal(recent.length, 363); // 2025-11-19 … 2026-11-16
+    assert.equal(dates.length, 363); // 2025-11-19 … 2026-11-16
     assert.equal(new Set(dates).size, dates.length);
   });
 
   it("never plans before the archive starts", () => {
-    assert.equal(planDates({ from: "2023-01-01", to: "2024-02-12", today })[0], "2024-02-12");
+    assert.equal(planDates({ from: "2023-01-01", to: "2024-02-12", today: "2024-02-12" })[0], ARCHIVE_START);
   });
 });
 
@@ -92,12 +87,12 @@ describe("one archive day to a market price per card", () => {
 describe("Supabase SQL", () => {
   const sql = readFileSync(new URL("../supabase/schema.sql", import.meta.url), "utf8");
 
-  it("the nightly snapshot thins old points to Mondays instead of cutting at 365", () => {
+  it("the nightly snapshot keeps 365 days and nothing older", () => {
     const fn = sql.slice(sql.indexOf("FUNCTION snapshot_prices_range"));
     const body = fn.slice(0, fn.indexOf("$$ LANGUAGE"));
     assert.doesNotMatch(body, /LIMIT 364/);
-    assert.match(body, /- 365/);
-    assert.match(body, /ISODOW FROM \(elem->>'date'\)::date\) = 1/);
+    assert.doesNotMatch(body, /ISODOW/);
+    assert.match(body, /::date > \(NOW\(\) AT TIME ZONE 'UTC'\)::date - 365/);
   });
 
   it("the backfill merge only adds dates a card doesn't have", () => {
@@ -141,5 +136,21 @@ describe("the scheduled backfill's next chunk", () => {
   it("is empty once every planned day is done, even with extra done days", () => {
     const done = new Set([...planned, "2024-02-13"]);
     assert.deepEqual(nextChunk(planned, done, 30), { next: [], remaining: 0 });
+  });
+});
+
+describe("the scheduled backfill stays out of the nightly jobs", () => {
+  const at = (hhmm: string) => new Date(`2026-11-19T${hhmm}:00Z`);
+
+  it("skips from 20:30 to 00:30 UTC, including the late 22:19 run", () => {
+    for (const t of ["20:30", "22:00", "22:19", "23:59", "00:00", "00:29"]) {
+      assert.equal(inNightlyWindow(at(t)), true, t);
+    }
+  });
+
+  it("runs the rest of the day", () => {
+    for (const t of ["00:30", "02:30", "10:31", "17:23", "20:29"]) {
+      assert.equal(inNightlyWindow(at(t)), false, t);
+    }
   });
 });

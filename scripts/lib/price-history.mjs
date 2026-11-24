@@ -4,8 +4,8 @@
 /** TCGCSV's price archive starts here (its FAQ: "February 8, 2024 and onwards"). */
 export const ARCHIVE_START = "2024-02-08";
 
-/** Daily points are kept for this many days; older ones are thinned to Mondays. */
-export const DAILY_WINDOW_DAYS = 365;
+/** History is kept for this many days, one point a day (kai, 2026-11-21: "1 year max"). */
+export const HISTORY_DAYS = 365;
 
 // Same order as snapshot_prices_range() in supabase/schema.sql, so a
 // backfilled day reads exactly like a nightly one.
@@ -16,15 +16,12 @@ const DAY_MS = 86_400_000;
 export const toDate = (ms) => new Date(ms).toISOString().slice(0, 10);
 export const dayMs = (date) => Date.parse(`${date}T00:00:00Z`);
 
-/** Monday in ISO terms; getUTCDay() is 0 for Sunday. */
-export const isMonday = (date) => new Date(dayMs(date)).getUTCDay() === 1;
-
 /**
  * The same keep-rule as snapshot_prices_range(): every day inside the last
- * DAILY_WINDOW_DAYS days counted back from `today`, Mondays only before that.
+ * HISTORY_DAYS days counted back from `today`, nothing older.
  */
 export const isKeptDate = (date, today) =>
-  dayMs(date) > dayMs(today) - DAILY_WINDOW_DAYS * DAY_MS || isMonday(date);
+  dayMs(date) > dayMs(today) - HISTORY_DAYS * DAY_MS;
 
 /**
  * Archive days to fetch, oldest first: from `from` (no earlier than the
@@ -112,4 +109,14 @@ export const retryDelayMs = (retryAfter, now = Date.now()) => {
 export const nextChunk = (planned, done, size) => {
   const todo = planned.filter((date) => !done.has(date));
   return { next: todo.slice(-size), remaining: todo.length };
+};
+
+/**
+ * 20:30 to 00:30 UTC: TCGCSV's rebuild (~20:05) and the nightly catalogue
+ * seed (21:00), price snapshot (22:00) and Cardmarket job (23:00), with room
+ * for a slow night. The scheduled backfill must not write then.
+ */
+export const inNightlyWindow = (when) => {
+  const minutes = when.getUTCHours() * 60 + when.getUTCMinutes();
+  return minutes >= 20 * 60 + 30 || minutes < 30;
 };
