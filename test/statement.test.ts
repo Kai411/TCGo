@@ -33,7 +33,7 @@ import {
 } from "~/shared/order-joining";
 
 import { buyerShippingPrice, SHIPPING_BUFFER_MYR } from "~/shared/shipping-quote";
-import { posTotals, lineDiscount, recordedPosFee, toSen } from "~/shared/pos-sale";
+import { posTotals, lineDiscount, recordedPosFee } from "~/shared/pos-sale";
 
 const platformBooked = {
   subtotal: 100,
@@ -287,10 +287,5 @@ describe("counter sale totals", () => {
   it("reads no fee for a sale taken before the counter fee existed", () => {
     assert.equal(recordedPosFee({}), 0);
     assert.equal(recordedPosFee({ platformFee: 0.8 }), 0.8);
-  });
-
-  it("converts to sen without float drift", () => {
-    assert.equal(toSen(0.1 + 0.2), 30);
-    assert.equal(toSen(19.99), 1999);
   });
 });

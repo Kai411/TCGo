@@ -168,18 +168,19 @@
         :discount-total="totals.discountTotal"
         :discounted-count="totals.discountedCount"
         :count="stash.length || lastCount"
-        :qr-image="qrImage"
+        :shop-qr="shopQr"
         :reserved-until="reservedUntil"
         :cancelling="cancelling"
-        :attempt-declined="attemptDeclined"
+        :marking="marking"
+        :mark-error="markError"
         :failed-reason="failedReason"
-        :qr-enabled="qrEnabled"
         :receipt-sent-to="receiptSentTo"
         :sending-receipt="sendingReceipt"
         :receipt-error="receiptError"
         @send-receipt="sendReceipt"
         @scan-buyer="armBuyerScan"
         @pay="startPayment"
+        @mark-paid="markPaid"
         @cancel="cancelPayment"
         @close="closeSheet"
         @retry="retryPayment"
@@ -201,7 +202,10 @@ const {user} = useAuth();
 const { goToLogin } = useSignInGate();
 const { items, listenMyInventory } = useInventory();
 const { authedFetch } = useAuthedFetch();
-const qrEnabled = String(useRuntimeConfig().public.posQrEnabled ?? "") === "true";
+const { profile } = useMyProfile();
+// The seller's own static QR, from Seller settings. Empty = QR payment
+// shows a set-up prompt instead.
+const shopQr = computed(() => profile.value?.posPaymentQr || "");
 
 onMounted(() => {
   if (user.value) listenMyInventory();
@@ -507,14 +511,12 @@ const resolveBuyer = async (code: string) => {
       e?.data?.message || e?.message || "Couldn't read that customer code.";
   }
 };
-const qrImage = ref("");
 const reservedUntil = ref(0);
 const cancelling = ref(false);
+const marking = ref(false);
+const markError = ref("");
 const failedReason = ref("");
-// A declined attempt on a charge that is still open for a retry.
-const attemptDeclined = ref(false);
 const lastCount = ref(0);
-let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 const blockedReason = (itemId: string) => {
   const hit = blocked.value.find((b) => b.itemId === itemId);
@@ -565,37 +567,19 @@ const startPayment = async (method: PosPaymentMethod) => {
   if (method === "cash") return payCash();
   phase.value = "starting";
   failedReason.value = "";
-  attemptDeclined.value = false;
+  markError.value = "";
 
   try {
-    const res = await authedFetch<{
-      saleId: string;
-      qrPayload: string;
-      reservedUntil: number;
-    }>("/api/pos/create-charge", {
-      method: "POST",
-      body: {
-        method,
-        lines: stash.value.map((l) => ({ itemId: l.id, soldPrice: l.soldPrice })),
+    const res = await authedFetch<{ saleId: string; reservedUntil: number }>(
+      "/api/pos/qr-sale",
+      {
+        method: "POST",
+        body: { lines: stash.value.map((l) => ({ itemId: l.id, soldPrice: l.soldPrice })) },
       },
-    });
-
+    );
     saleId.value = res.saleId;
     reservedUntil.value = res.reservedUntil;
-
-    // The payload is a raw EMVCo string; the QR itself is drawn here.
-    const mod: any = await import("qrcode");
-    const QRCode = mod.default ?? mod;
-    qrImage.value = await QRCode.toDataURL(res.qrPayload, {
-      margin: 0,
-      width: 420,
-      // DuitNow payloads are long, and a till gets scanned in poor light at an
-      // angle — the extra redundancy of level Q is worth the density.
-      errorCorrectionLevel: "Q",
-    });
-
     phase.value = "awaiting";
-    startPolling();
   } catch (e: any) {
     // 409 carries the items that blocked the sale, so they can be highlighted
     // rather than just described.
@@ -606,8 +590,40 @@ const startPayment = async (method: PosPaymentMethod) => {
       showToast("Some cards are no longer available");
       return;
     }
-    failedReason.value = e?.data?.message || e?.message || "Couldn't start the payment.";
+    failedReason.value = e?.data?.message || e?.message || "Couldn't start the sale.";
     phase.value = "failed";
+  }
+};
+
+// The seller's word is the confirmation: the money went to their own QR, so
+// only they can see it arrive.
+const markPaid = async () => {
+  if (!saleId.value || marking.value) return;
+  marking.value = true;
+  markError.value = "";
+  try {
+    await authedFetch("/api/pos/mark-paid", {
+      method: "POST",
+      body: { saleId: saleId.value },
+    });
+    lastCount.value = stash.value.length;
+    phase.value = "paid";
+    stash.value = [];
+    recent.clear();
+    try { navigator.vibrate?.(120); } catch {}
+  } catch (e: any) {
+    // The hold ran out and something sold online meanwhile: the sale is
+    // closed, so say what happened and highlight the cards in the cart.
+    const conflict = e?.data?.data?.blocked as BlockedItem[] | undefined;
+    if (conflict?.length) {
+      blocked.value = conflict;
+      failedReason.value = e?.data?.message || "Some cards sold online while the hold was off.";
+      phase.value = "failed";
+      return;
+    }
+    markError.value = e?.data?.message || "Couldn't mark it paid. Try again.";
+  } finally {
+    marking.value = false;
   }
 };
 
@@ -635,68 +651,17 @@ const payCash = async () => {
   }
 };
 
-// The webhook is authoritative, but it can't reach localhost in development
-// and can lag in production — so the till asks too. Both settle idempotently.
-const startPolling = () => {
-  stopPolling();
-  pollTimer = setInterval(async () => {
-    if (!saleId.value) return;
-    try {
-      const res = await authedFetch<{
-        status: string;
-        settled: boolean;
-        lastAttemptFailed?: boolean;
-      }>("/api/pos/charge-status", {
-        method: "POST",
-        body: { saleId: saleId.value },
-      });
-      // Declined but retryable — tell the seller without killing the QR.
-      attemptDeclined.value = !!res.lastAttemptFailed;
-      if (res.status === "paid") {
-        stopPolling();
-        lastCount.value = stash.value.length;
-        phase.value = "paid";
-        stash.value = [];
-        recent.clear();
-        try { navigator.vibrate?.(120); } catch {}
-      } else if (res.status === "failed" || res.status === "cancelled") {
-        stopPolling();
-        failedReason.value =
-          res.status === "cancelled"
-            ? "The payment window expired. Nothing was charged."
-            : "The customer's payment was declined.";
-        phase.value = "failed";
-      }
-    } catch {
-      // Transient — keep waiting rather than dropping a live payment.
-    }
-  }, 2500);
-};
-
-const stopPolling = () => {
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = null;
-};
-
 const cancelPayment = async () => {
   if (!saleId.value || cancelling.value) return;
   cancelling.value = true;
   try {
-    const res = await authedFetch<{ paidInstead?: boolean }>("/api/pos/cancel", {
+    await authedFetch("/api/pos/cancel", {
       method: "POST",
       body: { saleId: saleId.value },
     });
-    stopPolling();
-    if (res.paidInstead) {
-      // They paid in the moment it took to reach for Cancel.
-      lastCount.value = stash.value.length;
-      phase.value = "paid";
-      stash.value = [];
-      recent.clear();
-    } else {
-      sheetOpen.value = false;
-      showToast("Payment cancelled — cards released");
-    }
+    sheetOpen.value = false;
+    saleId.value = "";
+    showToast("Sale cancelled — cards released");
   } catch (e: any) {
     showToast(e?.data?.message || "Couldn't cancel — try again");
   } finally {
@@ -710,13 +675,14 @@ const retryPayment = () => {
 };
 
 const closeSheet = () => {
-  stopPolling();
+  // While the QR is up, a stray tap on the backdrop must not drop a sale the
+  // customer may be paying: the only ways out are Mark as paid and Cancel.
+  if (phase.value === "awaiting" || phase.value === "starting") return;
   sheetOpen.value = false;
   phase.value = "choose";
-  qrImage.value = "";
   saleId.value = "";
   reservedUntil.value = 0;
-  attemptDeclined.value = false;
+  markError.value = "";
   // The next sale is a different customer. Carrying "sent to …" across would
   // tell the seller a receipt had gone out for a sale that hasn't happened.
   resetReceipt();
@@ -725,7 +691,6 @@ const closeSheet = () => {
 // A till left open with a live hold would keep stock locked for the full
 // window. Release it on the way out.
 onBeforeUnmount(() => {
-  stopPolling();
   if (saleId.value && phase.value === "awaiting") {
     void authedFetch("/api/pos/cancel", {
       method: "POST",

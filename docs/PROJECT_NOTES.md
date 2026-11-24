@@ -56,6 +56,7 @@ Server environment variables come from `runtimeConfig` in `nuxt.config.ts` (came
 - Every staff look-up of a member's identity record (`/api/admin/identity`) is written to the action log (Mint Condition > Logs, area Identity, `identity.viewed`). Any new staff route that shows identity, IC or bank details must log the same way with `noteAction`.
 - Data breaches and privacy requests follow `docs/privacy-runbook.md` (72-hour Commissioner notice, member notice, deletion by email request since there is no close-account feature). Its legal deadlines are marked for lawyer review.
 - Gateways compared: Billplz is the choice. HitPay is out for the marketplace (no Malaysian payout API). Curlec Route is the fallback if Billplz ever changes its mind.
+- **POS counter payments use each seller's own static QR** (DuitNow, TNG or a bank's), uploaded in Seller settings and stored privately (`posPaymentQr` on the private profile). The customer pays the shop directly and the seller taps "Mark as paid"; there is no gateway and no TCGo fee at the counter (`platformFee` 0). HitPay was removed on 2026-11-18.
 - **Pro membership costs RM5.99 a month.** It is one shared constant (`MARKETPLACE_MONTHLY` in `shared/pricing.ts`); the Stripe price must match it. Pro is hidden for now: `PREMIUM_ENABLED = false` in `composables/useFeatureFlags.ts`.
 - Launch promo: two months of Pro free for new users (never paid Pro) with code `TCGO2026`, until 31 Dec 2026. The coupon lives in Stripe.
 

@@ -238,7 +238,7 @@ export const releaseItems = async (db: Firestore, saleId: string): Promise<numbe
  * Money's in. Convert the holds into a sale.
  *
  * Mirrors what the Billplz webhook does for an online order, minus escrow:
- * the seller has already been paid directly by the acquirer, so there is no
+ * the seller has already been paid directly at the counter, so there is no
  * payout to schedule and nothing to settle later.
  */
 export const settleItems = async (

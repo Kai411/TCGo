@@ -290,15 +290,18 @@ export const HELP_TOPICS: HelpTopic[] = [
       {
         slug: "pos",
         title: "Sell at your counter (POS)",
-        summary: "Scan labels, take payment by DuitNow QR or cash.",
+        summary: "Scan labels, take payment by your shop's QR or cash.",
         steps: [
           "Open Seller dashboard, then POS, and tap Start scanning.",
           "Scan the QR label on each card to add it to the sale.",
-          "Tap Take payment. Choose DuitNow QR for the customer to scan with any Malaysian banking or e-wallet app, or Cash to record the sale.",
-          "While the customer pays, TCGo holds the cards so nobody buys them online.",
+          "Tap Pay. Choose Your shop's QR to show your own payment QR with the amount, or Cash to record the sale.",
+          "While the customer pays, TCGo holds the cards so nobody buys them online. Check the money arrived in your bank or e-wallet app, then tap Mark as paid.",
           "After payment, type the customer's email to send a receipt, or scan their TCGo code and the receipt is emailed to them.",
         ],
-        notes: ["Cards need QR labels first. Print them from Inventory, then Labels."],
+        notes: [
+          "Cards need QR labels first. Print them from Inventory, then Labels.",
+          "Add your shop's payment QR (DuitNow, TNG or your bank's) once in Seller settings.",
+        ],
         links: [{ to: "/seller/pos", label: "Open the POS" }],
       },
     ],

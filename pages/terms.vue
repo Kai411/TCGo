@@ -213,8 +213,9 @@ useHead({ title: "Terms of Use · TCGo" });
       <li>
         <b>POS counter:</b> sales you record or take through the counter are
         your own sales to your own customers. You are responsible for them,
-        for your receipts and for your taxes. QR payments at the counter are
-        processed by HitPay under its own terms.
+        for your receipts and for your taxes. QR payments at the counter go
+        straight to your own bank or e-wallet account, under that
+        provider's terms, and TCGo does not process or check them.
       </li>
       <li>
         <b>Shipping:</b> labels are booked with our courier partners on your

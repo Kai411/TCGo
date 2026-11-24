@@ -153,7 +153,7 @@ export interface FinanceSummary {
    *  implied by shippingRevenue minus courierCost, never added on top. */
   shippingMargin: number;
   subscriptionRevenue: number;
-  /** Counter sales that took money, and TCGo's 0.8% of them. */
+  /** Counter sales that took money, and any TCGo fee recorded on them (none since the counter went free). */
   posSaleCount: number;
   posVolume: number;
   posRevenue: number;

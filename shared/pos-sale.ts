@@ -17,7 +17,10 @@ export type PosSaleStatus =
   /** Seller backed out, or the hold lapsed before payment. */
   | "cancelled";
 
-export type PosPaymentMethod = "duitnow_qr" | "tap_to_pay" | "cash";
+// `shop_qr` is the seller's own static QR (DuitNow, TNG, bank): the customer
+// pays the shop directly and the seller marks the sale paid by hand.
+// `duitnow_qr` is kept only so any older row still has a label.
+export type PosPaymentMethod = "shop_qr" | "duitnow_qr" | "tap_to_pay" | "cash";
 
 export interface PosSaleLine {
   /** inventory doc id */
@@ -44,7 +47,8 @@ export interface PosSale {
    * TCGo's cut of this sale, in MYR. Taken out of `total` at settlement, not
    * added to it — the customer paid `total`.
    *
-   * Zero on cash: there is no rail to bill against. Recorded either way so a
+   * Zero at the counter: cash and the shop's own QR both pay the shop
+   * directly, so there is no rail to bill against. Recorded either way so a
    * row is never ambiguous about whether a fee was taken.
    */
   platformFee: number;
@@ -52,10 +56,6 @@ export interface PosSale {
   platformFeeRate: number;
   status: PosSaleStatus;
   method: PosPaymentMethod;
-  /** Provider-side charge id, for polling and webhook matching. */
-  chargeId?: string;
-  /** Raw EMVCo payload the POS renders as a QR. Not persisted after payment. */
-  qrPayload?: string;
   /** When the inventory holds lapse if nobody has paid. */
   reservedUntil?: number;
   createdAt: number;
@@ -105,6 +105,3 @@ export const recordedPosFee = (sale: { platformFee?: number }): number =>
 export function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
-
-/** Providers price in the minor unit. */
-export const toSen = (myr: number): number => Math.round(round2(myr) * 100);
