@@ -1,20 +1,10 @@
 <template>
   <!-- Banners | Microsites, the two halves of Mint Condition → Content. -->
-  <div class="mb-5 inline-flex rounded-lg bg-black/[0.04] p-0.5 dark:bg-white/[0.06]">
-    <NuxtLink
-      v-for="t in tabs"
-      :key="t.to"
-      :to="t.to"
-      class="rounded-md px-3.5 py-2 text-label font-semibold transition-colors"
-      :class="
-        active(t.to)
-          ? 'bg-white text-ink shadow-sm dark:bg-white/[0.12] dark:text-white'
-          : 'text-ink-muted dark:text-zinc-400'
-      "
-    >
+  <nav class="mc-tabs mb-5" aria-label="Content">
+    <NuxtLink v-for="t in tabs" :key="t.to" :to="t.to" class="mc-tab-link" :aria-current="active(t.to) ? 'page' : undefined">
       {{ t.label }}
     </NuxtLink>
-  </div>
+  </nav>
 </template>
 
 <script setup lang="ts">

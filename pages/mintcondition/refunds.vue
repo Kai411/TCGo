@@ -1,93 +1,107 @@
 <template>
-  <div class="max-w-6xl">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <div class="mc-page">
+    <div class="mc-page-head">
       <div>
-        <h1 class="text-2xl font-bold text-ink dark:text-white">Refunds</h1>
-        <p class="text-sm text-ink-muted dark:text-zinc-400">
-          Buyers who cancelled a paid order. Sending a refund creates a Billplz Payment Order to the buyer's bank.
+        <p class="mc-eyebrow mb-1">Money</p>
+        <h1 class="mc-h1">Refunds</h1>
+        <p class="mc-meta mt-1">
+          <template v-if="!loading && countFor('requested')">
+            <span class="mc-num">RM {{ fmt(totals.requested || 0) }}</span> to send to
+            {{ countFor("requested") }} {{ countFor("requested") === 1 ? "buyer" : "buyers" }}.
+          </template>
+          <template v-else>Buyers who cancelled a paid order.</template>
         </p>
       </div>
-      <button
-        type="button"
-        @click="load"
-        :disabled="loading"
-        class="px-3 py-2 rounded-lg text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white disabled:opacity-50"
-      >
+      <button type="button" :disabled="loading" class="mc-btn" @click="load">
         {{ loading ? "Loading…" : "Refresh" }}
       </button>
     </div>
 
-    <div class="flex flex-wrap gap-2 mb-4 text-xs">
-      <span v-for="(amt, status) in totals" :key="status" class="px-2.5 py-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08] text-ink dark:text-zinc-200">
-        {{ status }} · RM {{ Number(amt).toFixed(2) }}
-      </span>
+    <p v-if="error" class="mc-callout mb-6" data-tone="bad" role="alert">{{ error }}</p>
+
+    <div class="mc-tabs mb-4" role="tablist" aria-label="Refund status">
+      <button
+        v-for="t in TABS"
+        :key="t.key"
+        type="button"
+        role="tab"
+        :aria-selected="tab === t.key"
+        @click="tab = t.key"
+      >
+        {{ t.label }}<span class="mc-tab-count">{{ countFor(t.key) }}</span>
+      </button>
     </div>
 
-    <p v-if="error" class="mb-4 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-
-    <div v-if="!loading && !refunds.length" class="py-16 text-center text-sm text-ink-muted dark:text-zinc-400">
-      No refund requests yet.
+    <div v-if="loading && !refunds.length" class="grid gap-3" aria-busy="true" aria-label="Loading">
+      <div class="mc-skel h-[120px]" />
+      <div class="mc-skel h-[120px]" />
     </div>
 
-    <div v-else class="overflow-x-auto rounded-xl border border-black/[0.08] dark:border-white/[0.10]">
-      <table class="w-full min-w-[900px] text-sm">
-        <thead class="bg-black/[0.03] dark:bg-white/[0.04] text-left text-xs text-ink-muted dark:text-zinc-400">
-          <tr>
-            <th class="px-3 py-2.5">Order</th>
-            <th class="px-3 py-2.5">Refund</th>
-            <th class="px-3 py-2.5">Reason</th>
-            <th class="px-3 py-2.5">Pay to</th>
-            <th class="px-3 py-2.5">Status</th>
-            <th class="px-3 py-2.5"></th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-black/[0.06] dark:divide-white/[0.08]">
-          <tr v-for="r in refunds" :key="r.id" class="align-top">
-            <td class="px-3 py-3">
-              <NuxtLink :to="`/orders/${r.orderId}`" target="_blank" class="font-mono text-xs font-semibold text-pokemon-red hover:underline">
-                #{{ String(r.orderId).slice(0, 8).toUpperCase() }}
-              </NuxtLink>
-              <p class="text-xs text-ink-muted dark:text-zinc-400">{{ r.buyerName || r.buyerUid }}</p>
-              <p class="text-micro text-ink-soft dark:text-zinc-500">{{ fmt(r.createdAt) }}</p>
-            </td>
-            <td class="px-3 py-3 tabular-nums">
-              <p class="font-bold text-ink dark:text-white">RM {{ Number(r.amount).toFixed(2) }}</p>
-              <p class="text-micro text-ink-soft dark:text-zinc-500">
-                RM {{ Number(r.orderTotal).toFixed(2) }} − RM {{ Number(r.fee).toFixed(2) }} fee
+    <template v-else>
+      <p class="mc-small mb-3">
+        {{ TABS.find((t) => t.key === tab)?.hint }}
+        <template v-if="visible.length && tab !== 'other'">
+          Total <span class="mc-num">RM {{ fmt(totals[tab] || 0) }}</span>.
+        </template>
+      </p>
+
+      <p v-if="!visible.length" class="mc-card mc-empty">{{ TABS.find((t) => t.key === tab)?.empty }}</p>
+
+      <ul v-else class="mc-card mc-list">
+        <li v-for="r in visible" :key="r.id" class="mc-item">
+          <div class="mc-item-head">
+            <div>
+              <p class="mc-list-title">{{ r.buyerName || "Buyer" }}</p>
+              <p class="mc-small mt-0.5">
+                <NuxtLink :to="`/orders/${r.orderId}`" target="_blank" class="mc-link mc-mono">
+                  #{{ String(r.orderId).slice(0, 8).toUpperCase() }}
+                </NuxtLink>
+                · asked {{ fmtDate(r.createdAt) }}
+                <template v-if="r.paidAt"> · paid {{ fmtDate(r.paidAt) }}</template>
+                <template v-if="r.status !== tab && tab === 'other'"> · {{ r.status }}</template>
               </p>
-            </td>
-            <td class="px-3 py-3 text-xs text-ink dark:text-zinc-200 max-w-[16rem]">{{ r.reason }}</td>
-            <td class="px-3 py-3 text-xs text-ink dark:text-zinc-200">
-              <p class="font-semibold">{{ r.holderName }}</p>
-              <p>{{ r.bank }} · {{ r.account }}</p>
-              <p class="text-ink-soft dark:text-zinc-500">IC {{ r.ic }}</p>
-            </td>
-            <td class="px-3 py-3 text-xs">
-              <span class="inline-flex px-2 py-0.5 rounded-full font-semibold" :class="statusClass(r.status)">{{ r.status }}</span>
-              <p v-if="r.failureReason" class="mt-1 text-red-600 dark:text-red-400">{{ r.failureReason }}</p>
-              <p v-if="!r.autoPayoutSupported" class="mt-1 text-amber-600 dark:text-amber-400">Bank not automated — transfer by hand.</p>
-            </td>
-            <td class="px-3 py-3 text-right">
-              <button
-                v-if="r.status === 'requested'"
-                type="button"
-                @click="send(r)"
-                :disabled="busy === r.id"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold bg-pokemon-red text-white disabled:opacity-50"
-              >
-                {{ busy === r.id ? "Sending…" : "Send refund" }}
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </div>
+            <div class="text-right">
+              <p class="mc-amount">RM {{ fmt(r.amount) }}</p>
+              <p class="mc-small mc-num">RM {{ fmt(r.orderTotal) }} less RM {{ fmt(r.fee) }} fee</p>
+            </div>
+          </div>
+
+          <p class="mc-quote">{{ r.reason }}</p>
+
+          <dl class="mt-3 grid gap-x-6 gap-y-1 sm:grid-cols-[auto_minmax(0,1fr)] mc-meta">
+            <dt class="mc-ink-3">Pay to</dt>
+            <dd>{{ r.holderName }} · {{ r.bank }} · <span class="mc-num">{{ r.account }}</span></dd>
+            <dt class="mc-ink-3">IC</dt>
+            <dd class="mc-num">{{ r.ic }}</dd>
+          </dl>
+
+          <p v-if="r.failureReason" class="mc-callout mt-3" data-tone="bad">
+            Last attempt failed: {{ r.failureReason }}
+          </p>
+          <p v-if="!r.autoPayoutSupported && r.status === 'requested'" class="mc-callout mt-3" data-tone="info">
+            This bank can't take an automated transfer. Send it by hand.
+          </p>
+
+          <div v-if="r.status === 'requested'" class="mc-item-actions">
+            <button
+              type="button"
+              class="mc-btn mc-btn-sm mc-btn-primary"
+              :disabled="busy === r.id"
+              @click="send(r)"
+            >
+              {{ busy === r.id ? "Sending…" : "Send refund" }}
+            </button>
+          </div>
+        </li>
+      </ul>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
 definePageMeta({ layout: "admin", middleware: "mintcondition" });
-useHead({ title: "Refunds | Mintcondition" });
+useHead({ title: "Refunds — TCGo Admin" });
 
 interface RefundRow {
   id: string;
@@ -145,16 +159,26 @@ const send = async (r: RefundRow) => {
   }
 };
 
-const statusClass = (s: string) =>
-  s === "paid"
-    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-    : s === "failed"
-      ? "bg-red-500/10 text-red-700 dark:text-red-400"
-      : s === "processing"
-        ? "bg-blue-500/10 text-blue-700 dark:text-blue-400"
-        : "bg-amber-500/10 text-amber-700 dark:text-amber-400";
+type TabKey = "requested" | "processing" | "paid" | "other";
+const TABS: { key: TabKey; label: string; hint: string; empty: string }[] = [
+  { key: "requested", label: "To send", hint: "Sending one creates a Billplz Payment Order to the buyer's bank.", empty: "No refunds to send." },
+  { key: "processing", label: "Sending", hint: "Sent to Billplz and waiting for the bank to confirm.", empty: "No refunds in flight." },
+  { key: "paid", label: "Paid", hint: "Confirmed by the bank.", empty: "No refunds paid yet." },
+  { key: "other", label: "Other", hint: "Any other status.", empty: "Nothing else." },
+];
+const tab = ref<TabKey>("requested");
+const tabOf = (s: string): TabKey =>
+  s === "requested" || s === "processing" || s === "paid" ? s : "other";
+const visible = computed(() =>
+  refunds.value
+    .filter((r) => tabOf(r.status) === tab.value)
+    .sort((a, b) => (tab.value === "requested" ? a.createdAt - b.createdAt : b.createdAt - a.createdAt)),
+);
+const countFor = (k: TabKey) => refunds.value.filter((r) => tabOf(r.status) === k).length;
 
-const fmt = (ms?: number) =>
+const fmt = (n: number) =>
+  Number(n || 0).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtDate = (ms?: number | null) =>
   ms ? new Date(ms).toLocaleString("en-MY", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "";
 
 onMounted(load);

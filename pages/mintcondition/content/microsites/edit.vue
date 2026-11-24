@@ -1,25 +1,25 @@
 <template>
-  <div class="max-w-3xl">
+  <div class="mc-page"><div class="max-w-3xl">
     <NuxtLink
       to="/mintcondition/content/microsites"
-      class="-ml-2 mb-2 inline-flex min-h-[44px] items-center gap-1 px-2 text-sm font-medium text-ink-muted hover:text-ink dark:text-zinc-400 dark:hover:text-white"
+      class="-ml-2 mb-2 inline-flex min-h-[44px] items-center gap-1 px-2 text-sm font-medium text-[var(--ink-2)] hover:text-[var(--ink)]"
     >
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
       Microsites
     </NuxtLink>
-    <h1 class="mb-5 text-2xl font-bold text-ink dark:text-white">{{ originalSlug ? form.title || "Edit page" : "New page" }}</h1>
+    <h1 class="mc-h1 mb-5">{{ originalSlug ? form.title || "Edit page" : "New page" }}</h1>
 
     <div v-if="loading" class="flex justify-center py-16">
-      <div class="h-6 w-6 animate-spin rounded-full border-2 border-ink/10 border-t-pokemon-red" />
+      <div class="mc-spin" aria-label="Loading" />
     </div>
-    <p v-else-if="loadError" class="text-sm text-red-600 dark:text-red-400">{{ loadError }}</p>
+    <p v-else-if="loadError" class="text-sm text-[var(--danger)]">{{ loadError }}</p>
 
     <div v-else class="space-y-5">
       <!-- Published -->
-      <div class="flex items-center justify-between gap-3 rounded-xl border border-black/[0.06] bg-white px-4 py-3 dark:border-white/[0.08] dark:bg-white/[0.04]">
+      <div class="flex items-center justify-between gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
         <div class="min-w-0">
-          <p class="text-sm font-semibold text-ink dark:text-white">Published</p>
-          <p class="text-xs text-ink-muted dark:text-zinc-400">
+          <p class="text-sm font-semibold text-[var(--ink)]">Published</p>
+          <p class="text-xs text-[var(--ink-2)]">
             {{ form.published ? "Anyone with the link can open it." : "A draft: only staff can preview it." }}
           </p>
         </div>
@@ -28,35 +28,35 @@
 
       <!-- Type -->
       <div>
-        <p class="mb-1.5 text-xs font-semibold text-ink dark:text-white">Kind of page</p>
+        <p class="mb-1.5 text-xs font-semibold text-[var(--ink)]">Kind of page</p>
         <div class="grid grid-cols-2 gap-2">
           <button
             v-for="t in TYPES"
             :key="t.key"
             type="button"
             class="rounded-xl border px-3 py-3 text-left transition-colors"
-            :class="form.type === t.key ? 'border-ink bg-ink/[0.03] dark:border-white dark:bg-white/[0.06]' : 'border-black/[0.08] dark:border-white/[0.10]'"
+            :class="form.type === t.key ? 'border-ink bg-[var(--surface-2)]' : 'border-[var(--line)]'"
             :aria-pressed="form.type === t.key"
             @click="form.type = t.key"
           >
-            <span class="block text-sm font-semibold text-ink dark:text-white">{{ t.label }}</span>
-            <span class="mt-0.5 block text-micro leading-snug text-ink-muted dark:text-zinc-400">{{ t.hint }}</span>
+            <span class="block text-sm font-semibold text-[var(--ink)]">{{ t.label }}</span>
+            <span class="mt-0.5 block text-micro leading-snug text-[var(--ink-2)]">{{ t.hint }}</span>
           </button>
         </div>
       </div>
 
       <div>
-        <label class="mb-1.5 block text-xs font-semibold text-ink dark:text-white" for="ms-title">Title</label>
+        <label class="mb-1.5 block text-xs font-semibold text-[var(--ink)]" for="ms-title">Title</label>
         <input id="ms-title" v-model="form.title" :maxlength="MICROSITE_TITLE_MAX" type="text" class="mc-inp" placeholder="Weekend auction drop" @input="onTitle" />
-        <p v-if="form.type === 'image'" class="mt-1 text-micro text-ink-soft dark:text-zinc-500">
+        <p v-if="form.type === 'image'" class="mt-1 text-micro text-[var(--ink-3)]">
           Not shown on the page; used for the browser tab and read aloud for the image.
         </p>
       </div>
 
       <div>
-        <label class="mb-1.5 block text-xs font-semibold text-ink dark:text-white" for="ms-slug">Address</label>
-        <div class="flex items-stretch overflow-hidden rounded-lg border border-black/[0.10] bg-white dark:border-white/[0.12] dark:bg-white/[0.04]">
-          <span class="flex items-center pl-3 font-mono text-sm text-ink-soft dark:text-zinc-500">/p/</span>
+        <label class="mb-1.5 block text-xs font-semibold text-[var(--ink)]" for="ms-slug">Address</label>
+        <div class="flex items-stretch overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--surface)]">
+          <span class="flex items-center pl-3 font-mono text-sm text-[var(--ink-3)]">/p/</span>
           <input
             id="ms-slug"
             v-model="form.slug"
@@ -64,12 +64,12 @@
             autocapitalize="off"
             autocomplete="off"
             spellcheck="false"
-            class="min-w-0 flex-1 bg-transparent py-2.5 pr-3 font-mono text-base text-ink outline-none dark:text-white sm:text-sm"
+            class="min-w-0 flex-1 bg-transparent py-2.5 pr-3 font-mono text-base text-[var(--ink)] outline-none sm:text-sm"
             placeholder="weekend-drop"
             @input="onSlug"
           />
         </div>
-        <p v-if="originalSlug && form.slug !== originalSlug" class="mt-1 text-micro text-amber-700 dark:text-amber-400">
+        <p v-if="originalSlug && form.slug !== originalSlug" class="mt-1 text-micro text-[var(--ink-2)]">
           The old address /p/{{ originalSlug }} stops working, including any banner or shared link to it.
         </p>
       </div>
@@ -85,27 +85,27 @@
       />
 
       <div v-if="form.type === 'article'">
-        <label class="mb-1.5 block text-xs font-semibold text-ink dark:text-white" for="ms-body">Text</label>
+        <label class="mb-1.5 block text-xs font-semibold text-[var(--ink)]" for="ms-body">Text</label>
         <textarea id="ms-body" v-model="form.body" rows="12" :maxlength="MICROSITE_BODY_MAX" class="mc-inp leading-relaxed" placeholder="Write the article here." />
-        <p class="mt-1 text-micro leading-relaxed text-ink-soft dark:text-zinc-500">
+        <p class="mt-1 text-micro leading-relaxed text-[var(--ink-3)]">
           A blank line starts a new paragraph. Start a line with <span class="font-mono"># </span> for a heading,
           <span class="font-mono">## </span> for a smaller one, and <span class="font-mono">- </span> for a bullet.
         </p>
       </div>
 
       <!-- Article preview: the text as it will read. -->
-      <div v-if="form.type === 'article' && form.body.trim()" class="rounded-xl border border-black/[0.06] p-4 dark:border-white/[0.08]">
-        <p class="mb-2 text-xs font-semibold text-ink-soft dark:text-zinc-500">Text preview</p>
-        <p class="text-xl font-bold text-ink dark:text-white">{{ form.title }}</p>
+      <div v-if="form.type === 'article' && form.body.trim()" class="rounded-xl border border-[var(--line)] p-4">
+        <p class="mb-2 text-xs font-semibold text-[var(--ink-3)]">Text preview</p>
+        <p class="text-xl font-bold text-[var(--ink)]">{{ form.title }}</p>
         <ArticleBody :body="form.body" class="mt-3" />
       </div>
 
-      <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+      <p v-if="error" class="text-sm text-[var(--danger)]">{{ error }}</p>
 
       <div class="flex flex-wrap items-center gap-3 pt-1">
         <button
           type="button"
-          class="min-h-[44px] rounded-lg bg-ink px-5 text-sm font-semibold text-white transition-transform duration-150 active:scale-[0.97] disabled:opacity-40 dark:bg-white dark:text-ink"
+          class="mc-btn mc-btn-primary"
           :disabled="busy || (!!originalSlug && !dirty)"
           @click="save"
         >
@@ -116,34 +116,34 @@
           :href="`/p/${originalSlug}?preview`"
           target="_blank"
           rel="noopener"
-          class="inline-flex min-h-[44px] items-center rounded-lg border border-black/[0.10] px-4 text-sm font-semibold text-ink dark:border-white/[0.12] dark:text-white"
+          class="inline-flex min-h-[44px] items-center rounded-lg border border-[var(--line)] px-4 text-sm font-semibold text-[var(--ink)]"
         >
           {{ saved?.published ? "Open page" : "Preview draft" }}
         </a>
         <button
           v-if="originalSlug && saved?.published"
           type="button"
-          class="min-h-[44px] px-2 text-sm font-semibold text-ink-muted dark:text-zinc-400"
+          class="min-h-[44px] px-2 text-sm font-semibold text-[var(--ink-2)]"
           @click="copyLink"
         >
           {{ copied ? "Copied" : "Copy link" }}
         </button>
-        <span v-if="justSaved" class="text-sm text-emerald-600 dark:text-emerald-400">Saved</span>
+        <span v-if="justSaved" class="text-sm text-[var(--st-done)]">Saved</span>
         <button
           v-if="originalSlug"
           type="button"
-          class="ml-auto min-h-[44px] px-2 text-sm font-semibold text-red-600 dark:text-red-400"
+          class="ml-auto min-h-[44px] px-2 text-sm font-semibold text-[var(--danger)]"
           :disabled="busy"
           @click="remove"
         >
           Delete
         </button>
       </div>
-      <p v-if="dirty && originalSlug" class="text-micro text-ink-soft dark:text-zinc-500">
+      <p v-if="dirty && originalSlug" class="text-micro text-[var(--ink-3)]">
         Unsaved changes. Preview shows the saved version.
       </p>
     </div>
-  </div>
+  </div></div>
 </template>
 
 <script setup lang="ts">

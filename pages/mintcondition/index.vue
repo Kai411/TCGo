@@ -429,21 +429,3 @@ const fmtTime = (ms: number) =>
   });
 </script>
 
-<style>
-/* Action list: dot, text, button. Same row anatomy as the other mc lists. */
-.mc-list > li + li {
-  border-top: 1px solid var(--line);
-}
-.mc-list-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 14px;
-}
-.mc-list-title {
-  font-size: 14px;
-  font-weight: 550;
-  overflow-wrap: anywhere;
-}
-</style>

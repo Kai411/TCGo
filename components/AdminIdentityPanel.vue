@@ -1,74 +1,54 @@
 <template>
-  <div class="mt-3 rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-black/[0.015] dark:bg-white/[0.03] p-3">
-    <button
-      type="button"
-      class="flex items-center gap-2 text-xs font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors"
-      @click="toggle"
-    >
+  <div class="mt-3 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2.5">
+    <button type="button" class="flex items-center gap-2 mc-label w-full text-left" :aria-expanded="open" @click="toggle">
       <svg
-        class="w-3.5 h-3.5 transition-transform"
+        class="w-3.5 h-3.5 shrink-0 transition-transform duration-150"
         :class="open ? 'rotate-90' : ''"
         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-        stroke-linecap="round" stroke-linejoin="round"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
       ><path d="m9 18 6-6-6-6" /></svg>
-      Who is {{ name }}?
-      <span
-        v-if="data"
-        class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md text-micro font-semibold"
-        :class="badge.cls"
-      >{{ badge.text }}</span>
+      <span class="min-w-0 truncate">Who is {{ name }}?</span>
+      <span v-if="data" class="mc-tag ml-auto shrink-0">
+        <span class="mc-dot" :data-tone="badge.tone" aria-hidden="true" />{{ badge.text }}
+      </span>
     </button>
 
     <div v-if="open" class="mt-3">
-      <p v-if="loading" class="text-xs text-ink-soft dark:text-zinc-500">Loading…</p>
-      <p v-else-if="error" class="text-xs text-red-600 dark:text-red-400">{{ error }}</p>
-      <p v-else-if="data && !data.found" class="text-xs text-ink-soft dark:text-zinc-500">
-        No profile found for this account.
-      </p>
+      <p v-if="loading" class="mc-small">Loading…</p>
+      <p v-else-if="error" class="mc-small !text-[var(--danger)]">{{ error }}</p>
+      <p v-else-if="data && !data.found" class="mc-small">No profile found for this account.</p>
 
-      <dl v-else-if="data" class="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-xs">
+      <dl v-else-if="data" class="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-[12.5px]">
         <div v-for="row in rows" :key="row.label" class="flex justify-between gap-3">
-          <dt class="text-ink-soft dark:text-zinc-500 shrink-0">{{ row.label }}</dt>
-          <dd class="text-right text-ink dark:text-zinc-200 min-w-0 break-words">
-            {{ row.value }}
-          </dd>
+          <dt class="mc-ink-3 shrink-0">{{ row.label }}</dt>
+          <dd class="text-right min-w-0 break-words">{{ row.value }}</dd>
         </div>
 
-        <p
-          v-if="nameMismatch"
-          class="sm:col-span-2 mt-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 px-2.5 py-2 text-micro leading-relaxed text-amber-800 dark:text-amber-300"
-        >
+        <div v-if="nameMismatch" class="sm:col-span-2 mt-2 mc-callout">
           The payout account is in a different name from the verified document.
-          Not proof of anything on its own — a joint or business account looks
-          the same — but payouts to it are held until someone approves it.
+          Not proof of anything on its own (a joint or business account looks
+          the same), but payouts to it are held until someone approves it.
           Ask the seller whose account it is first.
           <button
             v-if="canApprove"
             type="button"
-            class="mt-2 block rounded-lg bg-amber-600 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-amber-700 disabled:opacity-50"
+            class="mc-btn mc-btn-sm mc-btn-primary mt-2 !whitespace-normal !h-auto min-h-[var(--control-h-sm)] py-1 text-left"
             :disabled="approving"
             @click="approve"
           >
             {{ approving ? "Approving…" : `Approve payouts to ${data.payoutNameOnFile} (ending ${data.payoutAccountLast4})` }}
           </button>
-          <span v-if="approveError" class="mt-1 block text-red-600 dark:text-red-400">{{ approveError }}</span>
-        </p>
-        <p
-          v-if="data.payoutNameApproved && data.payoutNameMatches === false"
-          class="sm:col-span-2 mt-1 text-[11px] leading-relaxed text-emerald-700 dark:text-emerald-300"
-        >
+          <span v-if="approveError" class="mt-1 block !text-[var(--danger)]">{{ approveError }}</span>
+        </div>
+        <p v-if="data.payoutNameApproved && data.payoutNameMatches === false" class="sm:col-span-2 mt-1 mc-small flex items-center gap-2">
+          <span class="mc-dot" data-tone="good" aria-hidden="true" />
           Payout name approved{{ data.payoutNameApprovedByName ? ` by ${data.payoutNameApprovedByName}` : "" }} for the account ending {{ data.payoutAccountLast4 }}.
         </p>
-        <p
-          v-if="data.sellingSuspended"
-          class="sm:col-span-2 mt-1 text-[11px] leading-relaxed text-red-600 dark:text-red-400"
-        >
+        <p v-if="data.sellingSuspended" class="sm:col-span-2 mt-1 mc-small flex items-center gap-2">
+          <span class="mc-dot" data-tone="bad" aria-hidden="true" />
           Selling is suspended, so no payout can be requested or sent.
         </p>
-        <p
-          v-if="data.kyc.status !== 'verified'"
-          class="sm:col-span-2 mt-1 text-micro leading-relaxed text-ink-soft dark:text-zinc-500"
-        >
+        <p v-if="data.kyc.status !== 'verified'" class="sm:col-span-2 mt-1 mc-small">
           This account has not completed identity verification, so we have no
           confirmed real-world identity behind it.
         </p>
@@ -132,12 +112,12 @@ const toggle = async () => {
 const badge = computed(() => {
   const s = data.value?.kyc?.status;
   if (s === "verified")
-    return { text: "Verified", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" };
+    return { text: "Verified", tone: "good" as const };
   if (s === "pending_review")
-    return { text: "In review", cls: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300" };
+    return { text: "In review", tone: "info" as const };
   if (s === "declined")
-    return { text: "Declined", cls: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300" };
-  return { text: "Unverified", cls: "bg-gray-100 text-gray-600 dark:bg-white/[0.06] dark:text-zinc-300" };
+    return { text: "Declined", tone: "bad" as const };
+  return { text: "Unverified", tone: undefined };
 });
 
 const fmtDate = (ms?: number | null) =>

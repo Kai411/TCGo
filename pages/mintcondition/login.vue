@@ -1,23 +1,15 @@
 <template>
-  <div
-    class="min-h-screen flex items-center justify-center px-4 bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100"
-  >
+  <div class="mc min-h-screen grid place-items-center px-4 py-10">
     <div class="w-full max-w-sm">
-      <div class="text-center mb-7">
-        <p
-          class="text-xs font-semibold text-ink-soft dark:text-zinc-500"
-        >
-          Mint Condition
-        </p>
-        <h1 class="mt-1.5 text-2xl font-bold">Operations sign-in</h1>
-        <p class="mt-2 text-label text-ink-muted dark:text-zinc-400">
-          Staff accounts only. This isn't your marketplace login.
-        </p>
+      <div class="text-center mb-6">
+        <p class="mc-eyebrow">Mint Condition</p>
+        <h1 class="mc-h1 mt-1.5">Operations sign-in</h1>
+        <p class="mc-meta mt-1.5">Staff accounts only. This isn't your marketplace login.</p>
       </div>
 
-      <form class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-4" @submit.prevent="submit">
-        <div>
-          <label for="staffId" class="block text-xs font-semibold mb-1.5">Staff ID</label>
+      <form class="mc-card mc-card-pad grid gap-4" @submit.prevent="submit">
+        <label class="mc-field" for="staffId">
+          <span>Staff ID</span>
           <input
             id="staffId"
             v-model="staffId"
@@ -26,47 +18,32 @@
             autocapitalize="characters"
             spellcheck="false"
             placeholder="A0001"
-            class="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm font-mono tracking-wide uppercase placeholder:normal-case placeholder:font-sans focus:outline-none focus:ring-2 focus:ring-ink/20 dark:focus:ring-white/20"
+            class="mc-input mc-mono uppercase placeholder:normal-case"
           />
-        </div>
+        </label>
 
-        <div>
-          <label for="password" class="block text-xs font-semibold mb-1.5">Password</label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            autocomplete="current-password"
-            class="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm focus:outline-none focus:ring-2 focus:ring-ink/20 dark:focus:ring-white/20"
-          />
-        </div>
+        <label class="mc-field" for="password">
+          <span>Password</span>
+          <input id="password" v-model="password" type="password" autocomplete="current-password" class="mc-input" />
+        </label>
 
-        <p
-          v-if="error"
-          role="alert"
-          class="text-label leading-relaxed text-red-600 dark:text-red-400"
-        >
-          {{ error }}
-        </p>
+        <p v-if="error" role="alert" class="mc-callout" data-tone="bad">{{ error }}</p>
 
-        <button
-          type="submit"
-          :disabled="busy || !staffId || !password"
-          class="w-full py-2.5 rounded-lg text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 disabled:opacity-50 transition-opacity"
-        >
+        <button type="submit" :disabled="busy || !staffId || !password" class="mc-btn mc-btn-primary w-full">
           {{ busy ? "Signing in…" : "Sign in" }}
         </button>
       </form>
 
-      <p class="mt-5 text-center text-micro leading-relaxed text-ink-soft dark:text-zinc-600">
-        Forgotten your password? An admin has to reset it — there's no email
-        recovery on staff accounts by design.
+      <p class="mt-5 text-center mc-small">
+        Forgotten your password? An admin has to reset it. Staff accounts have
+        no email recovery, by design.
       </p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import "~/assets/css/mint-condition.css";
 // No layout: the admin chrome assumes a signed-in staff member, and rendering
 // a nav full of links that all bounce back here is worse than a bare page.
 definePageMeta({ layout: false });
