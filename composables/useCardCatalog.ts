@@ -100,6 +100,8 @@ export interface CatalogPrice {
   // Range for buyer guidance — low/high in MYR.
   low: number;
   high: number;
+  // True when TCGPlayer had no price and this came from card_price_sources.
+  secondary?: boolean;
 }
 
 /**
@@ -505,6 +507,55 @@ export const useCardCatalog = () => {
       high: row.high == null ? null : convert(Number(row.high)),
       fetchedAt: row.fetched_at ?? null,
     };
+  };
+
+  /**
+   * Fill in the second-source price on cards TCGPlayer does not price, so a
+   * Dex tile shows the same number as the card's own page. Same rule as the
+   * page: TCGPlayer whenever it has a price, the second source only when it
+   * has none, never blended. One query for the whole batch; the highest
+   * market per card wins, as in getSecondaryPrice.
+   */
+  const withSecondaryPrices = async (cards: CatalogMatch[]): Promise<CatalogMatch[]> => {
+    const missing = cards.filter((c) => !c.price).map((c) => c.productId);
+    if (!supabase || missing.length === 0) return cards;
+    const best = new Map<number, any>();
+    const CHUNK = 200;
+    for (let i = 0; i < missing.length; i += CHUNK) {
+      const { data, error } = await supabase
+        .from("card_price_sources")
+        .select("product_id, source, currency, market, low, high")
+        .in("product_id", missing.slice(i, i + CHUNK))
+        .not("market", "is", null);
+      if (error) {
+        if (!/does not exist|schema cache/i.test(error.message)) {
+          console.error("[useCardCatalog] withSecondaryPrices:", error.message);
+        }
+        return cards;
+      }
+      for (const row of data ?? []) {
+        const prev = best.get(row.product_id);
+        if (!prev || Number(row.market) > Number(prev.market)) best.set(row.product_id, row);
+      }
+    }
+    if (best.size === 0) return cards;
+    await Promise.all([ensureRate(), ensureEurRate()]);
+    return cards.map((c) => {
+      const row = c.price ? null : best.get(c.productId);
+      if (!row) return c;
+      const convert = row.currency === "EUR" ? eurToMyr : toMyr;
+      const market = convert(Number(row.market));
+      return {
+        ...c,
+        price: {
+          market,
+          subtype: row.source,
+          low: row.low == null ? market : convert(Number(row.low)),
+          high: row.high == null ? market : convert(Number(row.high)),
+          secondary: true,
+        },
+      };
+    });
   };
 
   // Set and rarity lists come from our server, which calls Supabase with the
@@ -943,6 +994,7 @@ export const useCardCatalog = () => {
     getCardsByIds,
     getReleaseDates,
     getSecondaryPrice,
+    withSecondaryPrices,
     listSets,
     listRarities,
     matchRow,
