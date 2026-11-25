@@ -1,28 +1,31 @@
 <template>
-  <div class="max-w-5xl">
-    <h1 class="text-2xl font-bold text-ink dark:text-white">Content</h1>
-    <p class="mb-4 text-sm text-ink-muted dark:text-zinc-400">
-      The banners above the Marketplace and Auctions listings, and pages of your own.
-    </p>
+  <div class="mc-page">
+    <div class="mc-page-head !mb-4">
+      <div>
+        <p class="mc-eyebrow mb-1">Site</p>
+        <h1 class="mc-h1">Content</h1>
+        <p class="mc-meta mt-1">The banners above the Marketplace and Auctions listings, and pages of your own.</p>
+      </div>
+    </div>
     <McContentTabs />
 
-    <p v-if="loadError" class="mb-4 text-sm text-red-600 dark:text-red-400">{{ loadError }}</p>
+    <p v-if="loadError" class="mb-4 text-sm text-[var(--danger)]">{{ loadError }}</p>
     <div v-if="loading" class="flex justify-center py-16">
-      <div class="h-6 w-6 animate-spin rounded-full border-2 border-ink/10 border-t-pokemon-red" />
+      <div class="mc-spin" aria-label="Loading" />
     </div>
 
     <div v-else class="grid gap-4 lg:grid-cols-2">
       <section
         v-for="p in BANNER_PLACEMENTS"
         :key="p"
-        class="panel min-w-0 rounded-2xl border border-black/[0.06] bg-white p-5 dark:border-white/[0.08] dark:bg-white/[0.04]"
+        class="mc-card mc-card-pad min-w-0"
       >
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <h2 class="text-base font-semibold text-ink dark:text-white">
+            <h2 class="text-base font-semibold text-[var(--ink)]">
               {{ BANNER_PLACEMENT_LABELS[p] }} banners
             </h2>
-            <p class="text-xs text-ink-muted dark:text-zinc-400">
+            <p class="text-xs text-[var(--ink-2)]">
               {{ saved[p].visible ? `Showing on ${BANNER_PLACEMENT_LABELS[p]}` : "Hidden" }}
               · {{ countLabel(saved[p].slides.length) }}
               <span v-if="saved[p].updatedAt"> · saved {{ fmt(saved[p].updatedAt) }}</span>
@@ -38,13 +41,13 @@
 
         <!-- What people will see, at the width of the listing. -->
         <div class="mt-4">
-          <p class="mb-1.5 text-xs font-semibold text-ink-soft dark:text-zinc-500">
+          <p class="mb-1.5 text-xs font-semibold text-[var(--ink-3)]">
             Preview<span v-if="previewCount(p) > 1"> · loops every {{ BANNER_INTERVAL_MS / 1000 }} seconds</span>
           </p>
           <ListingBanner v-if="previewCount(p)" :banner="form[p]" class="!mb-0" />
           <div
             v-else
-            class="flex aspect-[3/1] items-center justify-center rounded-xl border border-dashed border-black/[0.12] text-xs text-ink-soft dark:border-white/[0.14] dark:text-zinc-500"
+            class="flex aspect-[3/1] items-center justify-center rounded-xl border border-dashed border-[var(--line)] text-xs text-[var(--ink-3)]"
           >
             No banners yet
           </div>
@@ -56,7 +59,7 @@
           <li
             v-for="(s, i) in form[p].slides"
             :key="s.id"
-            class="rounded-xl border border-black/[0.08] dark:border-white/[0.10]"
+            class="rounded-xl border border-[var(--line)]"
           >
             <div class="flex items-center gap-2 p-2">
               <button
@@ -65,19 +68,19 @@
                 :aria-expanded="open[p] === s.id"
                 @click="open[p] = open[p] === s.id ? '' : s.id"
               >
-                <span class="h-9 w-[54px] shrink-0 overflow-hidden rounded-md bg-black/[0.05] dark:bg-white/[0.08]">
+                <span class="h-9 w-[54px] shrink-0 overflow-hidden rounded-md bg-[var(--surface-2)]">
                   <img v-if="s.imageUrl" :src="cdnUrl(s.imageUrl, 160)" alt="" class="h-full w-full object-cover" />
                 </span>
                 <span class="min-w-0">
-                  <span class="block text-micro font-semibold text-ink-soft dark:text-zinc-500">Banner {{ i + 1 }}</span>
-                  <span class="block truncate text-sm font-semibold text-ink dark:text-white">
+                  <span class="block text-micro font-semibold text-[var(--ink-3)]">Banner {{ i + 1 }}</span>
+                  <span class="block truncate text-sm font-semibold text-[var(--ink)]">
                     {{ s.headline || (s.imageUrl ? "Image only" : "Empty") }}
                   </span>
                 </span>
               </button>
               <button
                 type="button"
-                class="inline-flex h-11 w-9 items-center justify-center text-ink-muted disabled:opacity-25 dark:text-zinc-400"
+                class="inline-flex h-11 w-9 items-center justify-center text-[var(--ink-2)] disabled:opacity-25"
                 :disabled="i === 0"
                 :aria-label="`Move banner ${i + 1} earlier`"
                 @click="move(p, i, -1)"
@@ -86,7 +89,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex h-11 w-9 items-center justify-center text-ink-muted disabled:opacity-25 dark:text-zinc-400"
+                class="inline-flex h-11 w-9 items-center justify-center text-[var(--ink-2)] disabled:opacity-25"
                 :disabled="i === form[p].slides.length - 1"
                 :aria-label="`Move banner ${i + 1} later`"
                 @click="move(p, i, 1)"
@@ -95,7 +98,7 @@
               </button>
               <button
                 type="button"
-                class="inline-flex h-11 w-9 items-center justify-center text-red-600 dark:text-red-400"
+                class="inline-flex h-11 w-9 items-center justify-center text-[var(--danger)]"
                 :aria-label="`Remove banner ${i + 1}`"
                 @click="remove(p, i)"
               >
@@ -103,7 +106,7 @@
               </button>
             </div>
 
-            <div v-if="open[p] === s.id" class="space-y-4 border-t border-black/[0.06] p-3 dark:border-white/[0.08]">
+            <div v-if="open[p] === s.id" class="space-y-4 border-t border-[var(--line)] p-3">
               <McImageField
                 v-model="s.imageUrl"
                 label="Image"
@@ -111,15 +114,15 @@
               />
               <div>
                 <div class="mb-1.5 flex items-baseline justify-between">
-                  <label class="text-xs font-semibold text-ink dark:text-white" :for="`${s.id}-headline`">Headline (optional)</label>
-                  <span class="text-micro tabular-nums text-ink-soft">{{ s.headline.length }}/{{ BANNER_HEADLINE_MAX }}</span>
+                  <label class="text-xs font-semibold text-[var(--ink)]" :for="`${s.id}-headline`">Headline (optional)</label>
+                  <span class="text-micro tabular-nums text-[var(--ink-3)]">{{ s.headline.length }}/{{ BANNER_HEADLINE_MAX }}</span>
                 </div>
                 <input :id="`${s.id}-headline`" v-model="s.headline" :maxlength="BANNER_HEADLINE_MAX" type="text" class="mc-inp" placeholder="Weekend auction drop" />
               </div>
               <div>
                 <div class="mb-1.5 flex items-baseline justify-between">
-                  <label class="text-xs font-semibold text-ink dark:text-white" :for="`${s.id}-subtext`">Subtext (optional)</label>
-                  <span class="text-micro tabular-nums text-ink-soft">{{ s.subtext.length }}/{{ BANNER_SUBTEXT_MAX }}</span>
+                  <label class="text-xs font-semibold text-[var(--ink)]" :for="`${s.id}-subtext`">Subtext (optional)</label>
+                  <span class="text-micro tabular-nums text-[var(--ink-3)]">{{ s.subtext.length }}/{{ BANNER_SUBTEXT_MAX }}</span>
                 </div>
                 <input :id="`${s.id}-subtext`" v-model="s.subtext" :maxlength="BANNER_SUBTEXT_MAX" type="text" class="mc-inp" placeholder="Graded slabs from RM 50" />
               </div>
@@ -136,22 +139,22 @@
         <button
           v-if="form[p].slides.length < BANNER_SLIDES_MAX"
           type="button"
-          class="mt-2 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-black/[0.15] text-sm font-semibold text-ink-muted transition-colors active:bg-black/[0.03] dark:border-white/[0.18] dark:text-zinc-300"
+          class="mt-2 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--line-strong)] text-sm font-semibold text-[var(--ink-2)] transition-colors active:bg-[var(--surface-2)]"
           @click="add(p)"
         >
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
           Add banner
         </button>
-        <p v-else class="mt-2 text-center text-xs text-ink-soft dark:text-zinc-500">
+        <p v-else class="mt-2 text-center text-xs text-[var(--ink-3)]">
           {{ BANNER_SLIDES_MAX }} banners is the most a page can rotate.
         </p>
 
-        <p v-if="errors[p]" class="mt-4 text-sm text-red-600 dark:text-red-400">{{ errors[p] }}</p>
+        <p v-if="errors[p]" class="mt-4 text-sm text-[var(--danger)]">{{ errors[p] }}</p>
 
         <div class="mt-5 flex items-center gap-3">
           <button
             type="button"
-            class="min-h-[44px] rounded-lg bg-ink px-5 text-sm font-semibold text-white transition-transform duration-150 active:scale-[0.97] disabled:opacity-40 dark:bg-white dark:text-ink"
+            class="mc-btn mc-btn-primary"
             :disabled="busy[p] || !dirty(p) || anyLinkInvalid(p)"
             @click="save(p)"
           >
@@ -160,13 +163,13 @@
           <button
             v-if="dirty(p)"
             type="button"
-            class="min-h-[44px] px-2 text-sm font-semibold text-ink-muted dark:text-zinc-400"
+            class="min-h-[44px] px-2 text-sm font-semibold text-[var(--ink-2)]"
             :disabled="busy[p]"
             @click="discard(p)"
           >
             Discard changes
           </button>
-          <span v-else-if="justSaved[p]" class="text-sm text-emerald-600 dark:text-emerald-400">Saved</span>
+          <span v-else-if="justSaved[p]" class="text-sm text-[var(--st-done)]">Saved</span>
         </div>
       </section>
     </div>

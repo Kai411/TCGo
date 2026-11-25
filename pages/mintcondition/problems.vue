@@ -1,86 +1,100 @@
 <template>
-  <div class="max-w-5xl">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <div class="mc-page">
+    <div class="mc-page-head">
       <div>
-        <h1 class="text-2xl font-bold text-ink dark:text-white">Order problems</h1>
-        <p class="text-sm text-ink-muted dark:text-zinc-400">
-          Problems buyers reported. Buyer and seller sort out open ones themselves; decide only the escalated ones.
-          A refund goes to the refund queue.
+        <p class="mc-eyebrow mb-1">Trust and safety</p>
+        <h1 class="mc-h1">Order problems</h1>
+        <p class="mc-meta mt-1">
+          <template v-if="!loading && problems.length">
+            {{ escalated.length }} waiting for a decision, {{ open.length }} being sorted out by buyer and seller.
+          </template>
+          <template v-else>Problems buyers reported on an order.</template>
         </p>
       </div>
-      <button
-        type="button"
-        @click="load"
-        :disabled="loading"
-        class="px-3 py-2 rounded-lg text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white disabled:opacity-50"
-      >
+      <button type="button" :disabled="loading" class="mc-btn" @click="load">
         {{ loading ? "Loading…" : "Refresh" }}
       </button>
     </div>
 
-    <p v-if="error" class="mb-4 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+    <p v-if="error" class="mc-callout mb-6" data-tone="bad" role="alert">{{ error }}</p>
 
-    <div v-if="!loading && !problems.length" class="py-16 text-center text-sm text-ink-muted dark:text-zinc-400">
-      No open problems.
+    <div v-if="loading && !problems.length" class="grid gap-3" aria-busy="true" aria-label="Loading">
+      <div class="mc-skel h-[160px]" />
+      <div class="mc-skel h-[120px]" />
     </div>
 
-    <div class="space-y-3">
-      <div
-        v-for="p in problems"
-        :key="p.orderId"
-        class="rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] p-4"
-      >
-        <div class="flex flex-wrap items-start justify-between gap-2">
+    <div v-else class="grid gap-8">
+      <section v-for="g in groups" :key="g.key" :aria-labelledby="`mc-${g.key}`">
+        <div class="mc-section-head">
           <div>
-            <NuxtLink :to="`/orders/${p.orderId}`" target="_blank" class="font-mono text-xs font-semibold text-pokemon-red hover:underline">
-              #{{ p.orderId.slice(0, 8).toUpperCase() }}
-            </NuxtLink>
-            <p class="text-sm font-semibold text-ink dark:text-white">{{ p.reason }}</p>
-            <p class="text-xs text-ink-muted dark:text-zinc-400">
-              {{ p.buyerName || "Buyer" }} → {{ p.sellerName || "Seller" }} · RM {{ Number(p.total).toFixed(2) }} ·
-              order {{ p.orderStatus }}<span v-if="p.trackingNumber"> · {{ p.trackingNumber }}</span>
-            </p>
+            <h2 :id="`mc-${g.key}`" class="mc-h2">
+              {{ g.title }}<span class="mc-tab-count">{{ g.items.length }}</span>
+            </h2>
+            <p class="mc-small mt-0.5">{{ g.hint }}</p>
           </div>
-          <span
-            class="px-2 py-0.5 rounded-full text-micro font-semibold"
-            :class="p.status === 'escalated' ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400' : 'bg-black/[0.05] dark:bg-white/[0.08] text-ink-muted dark:text-zinc-300'"
-          >
-            {{ p.status === "escalated" ? `Escalated by ${p.escalatedBy}` : "Open" }}
-          </span>
         </div>
 
-        <ul class="mt-3 space-y-1.5 text-sm">
-          <li v-for="(m, i) in p.messages" :key="i" class="text-ink dark:text-zinc-200">
-            <span class="font-semibold capitalize">{{ m.by === "tcgo" ? "TCGo" : m.by }}:</span>
-            {{ m.text }}
-            <span class="text-micro text-ink-soft dark:text-zinc-500">{{ fmt(m.at) }}</span>
+        <p v-if="!g.items.length" class="mc-card mc-empty">{{ g.empty }}</p>
+
+        <ul v-else class="mc-card mc-list">
+          <li v-for="p in g.items" :key="p.orderId" class="mc-item">
+            <div class="mc-item-head">
+              <div>
+                <p class="mc-list-title">{{ p.reason }}</p>
+                <p class="mc-small mt-0.5">
+                  <NuxtLink :to="`/orders/${p.orderId}`" target="_blank" class="mc-link mc-mono">
+                    #{{ p.orderId.slice(0, 8).toUpperCase() }}
+                  </NuxtLink>
+                  · {{ p.buyerName || "Buyer" }} bought from {{ p.sellerName || "Seller" }}
+                  · order {{ p.orderStatus }}
+                  <template v-if="p.trackingNumber"> · tracking <span class="mc-mono">{{ p.trackingNumber }}</span></template>
+                  · opened {{ fmt(p.openedAt) }}
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="mc-amount">RM {{ Number(p.total).toFixed(2) }}</p>
+                <p v-if="p.status === 'escalated'" class="mc-small">Escalated by {{ p.escalatedBy }}</p>
+              </div>
+            </div>
+
+            <ul v-if="p.messages.length" class="mc-thread">
+              <li v-for="(m, i) in p.messages" :key="i">
+                <span class="mc-thread-by">{{ who(m.by) }}</span>{{ m.text }}<span class="mc-thread-at">{{ fmt(m.at) }}</span>
+              </li>
+            </ul>
+
+            <div v-if="p.status === 'escalated'" class="mc-divider mt-4 pt-4 grid gap-3">
+              <label class="mc-field">
+                <span>Decision, shown to both sides</span>
+                <input
+                  v-model="notes[p.orderId]"
+                  class="mc-input"
+                  placeholder="For example: tracking shows delivered to the wrong address, so the buyer is refunded."
+                />
+              </label>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="mc-btn mc-btn-sm mc-btn-primary"
+                  :disabled="busy === p.orderId"
+                  @click="decide(p, 'refund')"
+                >
+                  Refund buyer
+                </button>
+                <button
+                  type="button"
+                  class="mc-btn mc-btn-sm"
+                  :disabled="busy === p.orderId"
+                  @click="decide(p, 'release')"
+                >
+                  Release to seller
+                </button>
+                <p class="mc-small self-center">A refund goes to the refund queue.</p>
+              </div>
+            </div>
           </li>
         </ul>
-
-        <div v-if="p.status === 'escalated'" class="mt-3 flex flex-wrap items-center gap-2">
-          <input
-            v-model="notes[p.orderId]"
-            placeholder="Decision, shown to both sides"
-            class="flex-1 min-w-[16rem] px-3 py-2 rounded-lg border border-black/[0.10] dark:border-white/[0.12] bg-transparent text-sm"
-          />
-          <button
-            type="button"
-            :disabled="busy === p.orderId"
-            @click="decide(p, 'refund')"
-            class="px-3 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white disabled:opacity-50"
-          >
-            Refund buyer
-          </button>
-          <button
-            type="button"
-            :disabled="busy === p.orderId"
-            @click="decide(p, 'release')"
-            class="px-3 py-2 rounded-lg text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white disabled:opacity-50"
-          >
-            Release to seller
-          </button>
-        </div>
-      </div>
+      </section>
     </div>
   </div>
 </template>
@@ -142,6 +156,26 @@ const decide = async (p: ProblemRow, decision: "refund" | "release") => {
     busy.value = null;
   }
 };
+
+const escalated = computed(() => problems.value.filter((p) => p.status === "escalated"));
+const open = computed(() => problems.value.filter((p) => p.status !== "escalated"));
+const groups = computed(() => [
+  {
+    key: "escalated",
+    title: "Needs your decision",
+    hint: "Buyer or seller asked TCGo to step in.",
+    empty: "Nothing is escalated.",
+    items: escalated.value,
+  },
+  {
+    key: "open",
+    title: "Being sorted out",
+    hint: "Buyer and seller are talking it through. No action unless one of them escalates.",
+    empty: "No open problems.",
+    items: open.value,
+  },
+]);
+const who = (by: string) => (by === "tcgo" ? "TCGo" : by.charAt(0).toUpperCase() + by.slice(1));
 
 const fmt = (ms?: number) =>
   ms ? new Date(ms).toLocaleString("en-MY", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "";

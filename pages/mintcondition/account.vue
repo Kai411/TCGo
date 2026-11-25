@@ -1,101 +1,81 @@
 <template>
-  <div class="max-w-md mx-auto">
-    <h1 class="text-2xl font-bold mb-1">Your account</h1>
-    <p class="text-label text-ink-muted dark:text-zinc-400 mb-6">
-      {{ me?.staffId }} · {{ me?.roleName }}
-    </p>
+  <div class="mc-page">
+    <div class="max-w-[440px]">
+      <div class="mc-page-head !mb-5">
+        <div>
+          <p class="mc-eyebrow mb-1">You</p>
+          <h1 class="mc-h1">Your account</h1>
+          <p class="mc-meta mt-1">
+            <span class="mc-mono">{{ me?.staffId }}</span> · {{ me?.roleName }}
+          </p>
+        </div>
+      </div>
 
-    <div
-      v-if="first"
-      class="mb-5 rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 text-label leading-relaxed text-amber-800 dark:text-amber-300"
-    >
-      Whoever created this account knows the password you just used. Set your
-      own before you do anything else.
-    </div>
+      <p v-if="first" class="mc-callout mb-5">
+        Whoever created this account knows the password you just used. Set your
+        own before you do anything else.
+      </p>
 
-    <form
-      class="panel surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-5 space-y-4"
-      @submit.prevent="submit"
-    >
-      <h2 class="text-sm font-bold">{{ first ? "Set your password" : "Change password" }}</h2>
+      <form class="mc-card mc-card-pad grid gap-4" @submit.prevent="submit">
+        <h2 class="mc-h2">{{ first ? "Set your password" : "Change password" }}</h2>
 
-      <div>
         <!-- On first run this is the password an admin handed over, not one
              the holder chose. Calling it "current" there invites people to
              type the password they *want* into it. -->
-        <label class="block text-xs font-semibold mb-1.5">
-          {{ first ? "Temporary password (the one you were given)" : "Current password" }}
+        <label class="mc-field">
+          <span>{{ first ? "Temporary password (the one you were given)" : "Current password" }}</span>
+          <input v-model="current" type="password" autocomplete="current-password" class="mc-input" />
         </label>
-        <input
-          v-model="current"
-          type="password"
-          autocomplete="current-password"
-          class="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm"
-        />
-      </div>
 
-      <div>
-        <label class="block text-xs font-semibold mb-1.5">New password</label>
-        <input
-          v-model="next"
-          type="password"
-          autocomplete="new-password"
-          class="w-full px-3 py-2.5 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm"
-        />
-        <p class="mt-1.5 text-micro text-ink-soft dark:text-zinc-500">
-          At least {{ MIN_PASSWORD_LENGTH }} characters. A few unrelated words
-          beats a short one with symbols in it.
-        </p>
-      </div>
+        <label class="mc-field">
+          <span>New password</span>
+          <input v-model="next" type="password" autocomplete="new-password" class="mc-input" />
+          <span class="mc-small">
+            At least {{ MIN_PASSWORD_LENGTH }} characters. A few unrelated words
+            beats a short one with symbols in it.
+          </span>
+        </label>
 
-      <div>
         <!-- A confirm field is what people expect the second box to be. Having
              a real one removes the ambiguity rather than explaining it away. -->
-        <label class="block text-xs font-semibold mb-1.5">Confirm new password</label>
-        <input
-          v-model="confirm"
-          type="password"
-          autocomplete="new-password"
-          class="w-full px-3 py-2.5 rounded-lg border text-sm bg-white dark:bg-white/[0.04]"
-          :class="
-            mismatch
-              ? 'border-red-300 dark:border-red-500/40'
-              : 'border-black/[0.08] dark:border-white/[0.10]'
-          "
-        />
-        <p v-if="mismatch" class="mt-1.5 text-micro text-red-600 dark:text-red-400">
-          These two don't match.
+        <label class="mc-field">
+          <span>Confirm new password</span>
+          <input
+            v-model="confirm"
+            type="password"
+            autocomplete="new-password"
+            class="mc-input"
+            :aria-invalid="mismatch"
+          />
+          <span v-if="mismatch" class="mc-small !text-[var(--danger)]">These two don't match.</span>
+        </label>
+
+        <p v-if="error" class="mc-callout" data-tone="bad" role="alert">{{ error }}</p>
+        <p v-if="done" class="mc-callout" data-tone="good">
+          Password changed. Any other browser you were signed in on has been signed out.
         </p>
-      </div>
 
-      <p v-if="error" class="text-label text-red-600 dark:text-red-400">{{ error }}</p>
-      <p v-if="done" class="text-label text-emerald-600 dark:text-emerald-400">
-        Password changed. Any other browser you were signed in on has been signed out.
-      </p>
-
-      <button
-        type="submit"
-        :disabled="busy || !current || !next || mismatch"
-        class="w-full py-2.5 rounded-lg text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink disabled:opacity-50"
-      >
-        {{ busy ? "Saving…" : "Change password" }}
-      </button>
-    </form>
-
-    <div class="mt-6">
-      <h2 class="text-sm font-bold mb-2">What you can do</h2>
-      <ul class="space-y-1.5">
-        <li
-          v-for="p in myPermissions"
-          :key="p.key"
-          class="text-label text-ink-muted dark:text-zinc-400 flex gap-2"
+        <button
+          type="submit"
+          :disabled="busy || !current || !next || mismatch"
+          class="mc-btn mc-btn-primary w-full"
         >
-          <span class="text-emerald-500 shrink-0">✓</span>{{ p.label }}
-        </li>
-      </ul>
-      <p v-if="!myPermissions.length" class="text-label text-ink-soft dark:text-zinc-500">
-        Your role currently carries no permissions. Ask an admin.
-      </p>
+          {{ busy ? "Saving…" : "Change password" }}
+        </button>
+      </form>
+
+      <section class="mt-8" aria-labelledby="mc-perms">
+        <h2 id="mc-perms" class="mc-h2 mb-3">What you can do</h2>
+        <p v-if="!myPermissions.length" class="mc-card mc-empty">
+          Your role currently carries no permissions. Ask an admin.
+        </p>
+        <ul v-else class="mc-card mc-list">
+          <li v-for="p in myPermissions" :key="p.key" class="mc-list-row !grid-cols-[auto_minmax(0,1fr)] !py-2.5">
+            <span class="mc-dot" data-tone="good" aria-hidden="true" />
+            <span class="text-[13.5px]">{{ p.label }}</span>
+          </li>
+        </ul>
+      </section>
     </div>
   </div>
 </template>

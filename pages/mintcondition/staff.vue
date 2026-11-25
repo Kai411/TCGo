@@ -1,337 +1,262 @@
 <template>
-  <div class="max-w-5xl mx-auto">
-    <div class="flex items-center justify-between gap-3 mb-6 flex-wrap">
+  <div class="mc-page">
+    <div class="mc-page-head">
       <div>
-        <h1 class="text-2xl font-bold">Staff &amp; roles</h1>
-        <p class="text-label text-ink-muted dark:text-zinc-400 mt-0.5">
-          Who can get in, and what each of them can do.
+        <p class="mc-eyebrow mb-1">Admin</p>
+        <h1 class="mc-h1">Staff and roles</h1>
+        <p class="mc-meta mt-1">
+          <template v-if="!loading && staff.length">
+            {{ activeCount }} active {{ activeCount === 1 ? "account" : "accounts" }} in {{ roles.length }} {{ roles.length === 1 ? "role" : "roles" }}.
+          </template>
+          <template v-else>Who can get in, and what each of them can do.</template>
         </p>
       </div>
-      <button
-        v-if="can('staff.manage')"
-        class="px-3.5 py-2 rounded-lg text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink"
-        @click="openCreate"
-      >
+      <button v-if="can('staff.manage') && tab === 'people'" class="mc-btn mc-btn-primary" @click="openCreate">
         Add staff
       </button>
-    </div>
-
-    <div class="flex gap-1 mb-5 border-b border-black/[0.06] dark:border-white/[0.08]">
-      <button
-        v-for="t in tabs"
-        :key="t.key"
-        class="px-3.5 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors"
-        :class="
-          tab === t.key
-            ? 'border-pokemon-red text-ink dark:text-white'
-            : 'border-transparent text-ink-soft dark:text-zinc-500 hover:text-ink dark:hover:text-zinc-300'
-        "
-        @click="tab = t.key"
-      >
-        {{ t.label }}
-      </button>
-    </div>
-
-    <p v-if="error" class="mb-4 text-label text-red-600 dark:text-red-400">{{ error }}</p>
-    <p v-if="loading" class="text-label text-ink-soft dark:text-zinc-500">Loading…</p>
-
-    <!-- ── People ──────────────────────────────────────────────── -->
-    <div v-else-if="tab === 'people'" class="space-y-3">
-      <div
-        v-for="s in staff"
-        :key="s.staffId"
-        class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] p-4"
-      >
-        <div class="flex items-start justify-between gap-3 flex-wrap">
-          <div class="min-w-0">
-            <p class="font-bold text-sm flex items-center gap-2 flex-wrap">
-              <span class="font-mono tracking-wide">{{ s.staffId }}</span>
-              <span class="text-ink-muted dark:text-zinc-400 font-semibold">{{ s.name }}</span>
-              <span
-                class="px-1.5 py-0.5 rounded-md text-micro font-semibold bg-black/[0.05] dark:bg-white/[0.08]"
-                >{{ s.roleName }}</span
-              >
-              <span
-                v-if="!s.active"
-                class="px-1.5 py-0.5 rounded-md text-micro font-semibold bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300"
-                >Deactivated</span
-              >
-              <span
-                v-else-if="s.lockedUntil && s.lockedUntil > now"
-                class="px-1.5 py-0.5 rounded-md text-micro font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
-                >Locked out</span
-              >
-              <span
-                v-if="s.mustChangePassword"
-                class="px-1.5 py-0.5 rounded-md text-micro font-semibold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
-                >Password not set by them</span
-              >
-            </p>
-            <p class="text-caption text-ink-soft dark:text-zinc-500 mt-1">
-              {{ s.email || "no email" }} ·
-              {{ s.lastLoginAt ? `last in ${fmt(s.lastLoginAt)}` : "never signed in" }}
-            </p>
-          </div>
-
-          <div v-if="can('staff.manage')" class="flex gap-1.5 shrink-0">
-            <button class="btn-ghost" @click="openEdit(s)">Edit</button>
-            <button
-              v-if="s.lockedUntil && s.lockedUntil > now"
-              class="btn-ghost"
-              :disabled="busy === s.staffId"
-              @click="unlock(s)"
-            >
-              Unlock
-            </button>
-            <button
-              class="btn-ghost"
-              :disabled="busy === s.staffId || s.staffId === me?.staffId"
-              @click="toggleActive(s)"
-            >
-              {{ s.active ? "Deactivate" : "Reactivate" }}
-            </button>
-          </div>
-        </div>
-
-        <p
-          v-if="s.deniedPermissions?.length || s.extraPermissions?.length"
-          class="mt-2.5 text-micro text-ink-soft dark:text-zinc-500"
-        >
-          <span v-if="s.extraPermissions?.length">
-            Extra: {{ s.extraPermissions.map(labelFor).join(", ") }}.
-          </span>
-          <span v-if="s.deniedPermissions?.length">
-            Denied: {{ s.deniedPermissions.map(labelFor).join(", ") }}.
-          </span>
-        </p>
-      </div>
-
-      <p v-if="!staff.length" class="text-label text-ink-soft dark:text-zinc-500">
-        No staff accounts yet. You're signed in through the marketplace admin
-        bridge — create the first account, then use that from now on.
-      </p>
-    </div>
-
-    <!-- ── Roles ───────────────────────────────────────────────── -->
-    <div v-else class="space-y-3">
-      <div
-        v-for="r in roles"
-        :key="r.id"
-        class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] p-4"
-      >
-        <div class="flex items-start justify-between gap-3 flex-wrap">
-          <div class="min-w-0">
-            <p class="font-bold text-sm flex items-center gap-2">
-              {{ r.name }}
-              <span
-                class="font-mono px-1.5 py-0.5 rounded-md text-2xs font-bold bg-black/[0.05] dark:bg-white/[0.08]"
-                >{{ r.prefix }}····</span
-              >
-              <span v-if="r.builtin" class="text-micro text-ink-soft dark:text-zinc-600">Built-in</span>
-            </p>
-            <p class="text-caption text-ink-muted dark:text-zinc-400 mt-1 max-w-lg leading-relaxed">
-              {{ r.description }}
-            </p>
-            <p class="text-micro text-ink-soft dark:text-zinc-500 mt-1.5">
-              {{ r.memberCount }} {{ r.memberCount === 1 ? "person" : "people" }} ·
-              {{ r.permissions.includes("*") ? "every permission" : `${r.permissions.length} permission(s)` }}
-            </p>
-          </div>
-          <button v-if="can('roles.manage')" class="btn-ghost shrink-0" @click="openRole(r)">
-            Permissions
-          </button>
-        </div>
-      </div>
-
-      <button
-        v-if="can('roles.manage')"
-        class="w-full py-2.5 rounded-xl border border-dashed border-black/[0.12] dark:border-white/[0.14] text-sm font-semibold text-ink-muted dark:text-zinc-400"
-        @click="openRole(null)"
-      >
+      <button v-else-if="can('roles.manage') && tab === 'roles'" class="mc-btn mc-btn-primary" @click="openRole(null)">
         New role
       </button>
     </div>
 
-    <!-- ── Staff dialog ────────────────────────────────────────── -->
-    <div
-      v-if="dialog"
-      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40"
-      @click.self="dialog = null"
-    >
-      <div
-        class="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-canvas dark:bg-canvas-inverse p-5"
+    <div class="mc-tabs mb-5" role="tablist" aria-label="Staff">
+      <button
+        v-for="t in tabs"
+        :key="t.key"
+        type="button"
+        role="tab"
+        :aria-selected="tab === t.key"
+        @click="tab = t.key"
       >
-        <h2 class="text-lg font-bold mb-4">
-          {{ dialog.mode === "create" ? "Add staff" : `Edit ${dialog.staffId}` }}
-        </h2>
+        {{ t.label }}<span class="mc-tab-count">{{ t.key === "people" ? staff.length : roles.length }}</span>
+      </button>
+    </div>
 
-        <div class="space-y-3.5">
-          <div>
-            <label class="block text-xs font-semibold mb-1.5">Name</label>
-            <input v-model="form.name" type="text" class="inp" />
+    <p v-if="error" class="mc-callout mb-4" data-tone="bad" role="alert">{{ error }}</p>
+
+    <div v-if="loading" class="grid gap-2" aria-busy="true" aria-label="Loading">
+      <div class="mc-skel h-[72px]" />
+      <div class="mc-skel h-[72px]" />
+    </div>
+
+    <!-- ── People ──────────────────────────────────────────────── -->
+    <template v-else-if="tab === 'people'">
+      <p v-if="!staff.length" class="mc-card mc-empty">
+        No staff accounts yet. You're signed in through the marketplace admin
+        bridge. Create the first account, then use that from now on.
+      </p>
+      <ul v-else class="mc-card mc-list">
+        <li v-for="s in sortedStaff" :key="s.staffId" class="mc-item" :class="!s.active ? 'opacity-60' : ''">
+          <div class="mc-item-head">
+            <div>
+              <p class="mc-list-title flex items-center gap-2 flex-wrap">
+                <span>{{ s.name }}</span>
+                <span class="mc-mono mc-ink-3 font-normal">{{ s.staffId }}</span>
+              </p>
+              <p class="mc-small mt-0.5">
+                {{ s.roleName }} · {{ s.email || "no email" }} ·
+                {{ s.lastLoginAt ? `last in ${fmt(s.lastLoginAt)}` : "never signed in" }}
+              </p>
+              <p v-if="s.extraPermissions?.length || s.deniedPermissions?.length" class="mc-small mt-1">
+                <span v-if="s.extraPermissions?.length">Extra: {{ s.extraPermissions.map(labelFor).join(", ") }}. </span>
+                <span v-if="s.deniedPermissions?.length">Denied: {{ s.deniedPermissions.map(labelFor).join(", ") }}.</span>
+              </p>
+              <div v-if="flags(s).length" class="flex gap-1.5 flex-wrap mt-2">
+                <span v-for="f in flags(s)" :key="f.text" class="mc-tag">
+                  <span class="mc-dot" :data-tone="f.tone" aria-hidden="true" />{{ f.text }}
+                </span>
+              </div>
+            </div>
+
+            <div v-if="can('staff.manage')" class="flex gap-2 shrink-0">
+              <button
+                v-if="s.lockedUntil && s.lockedUntil > now"
+                class="mc-btn mc-btn-sm"
+                :disabled="busy === s.staffId"
+                @click="unlock(s)"
+              >
+                Unlock
+              </button>
+              <button class="mc-btn mc-btn-sm" @click="openEdit(s)">Edit</button>
+              <button
+                class="mc-btn mc-btn-sm mc-btn-ghost"
+                :class="s.active ? 'mc-btn-danger' : ''"
+                :disabled="busy === s.staffId || s.staffId === me?.staffId"
+                @click="toggleActive(s)"
+              >
+                {{ s.active ? "Deactivate" : "Reactivate" }}
+              </button>
+            </div>
           </div>
+        </li>
+      </ul>
+    </template>
+
+    <!-- ── Roles ───────────────────────────────────────────────── -->
+    <ul v-else class="mc-card mc-list">
+      <li v-for="r in roles" :key="r.id" class="mc-item">
+        <div class="mc-item-head">
           <div>
-            <label class="block text-xs font-semibold mb-1.5">Email (optional)</label>
-            <input v-model="form.email" type="email" class="inp" />
+            <p class="mc-list-title flex items-center gap-2 flex-wrap">
+              {{ r.name }}
+              <span class="mc-mono mc-ink-3 font-normal">{{ r.prefix }}····</span>
+              <span v-if="r.builtin" class="mc-tag">Built-in</span>
+            </p>
+            <p class="mc-meta mt-1 max-w-[34rem]">{{ r.description }}</p>
+            <p class="mc-small mt-1">
+              {{ r.memberCount }} {{ r.memberCount === 1 ? "person" : "people" }} ·
+              {{ r.permissions.includes("*") ? "every permission" : `${r.permissions.length} ${r.permissions.length === 1 ? "permission" : "permissions"}` }}
+            </p>
           </div>
-          <div>
-            <label class="block text-xs font-semibold mb-1.5">Role</label>
-            <select v-model="form.roleId" class="inp">
+          <button v-if="can('roles.manage')" class="mc-btn mc-btn-sm shrink-0" @click="openRole(r)">
+            Permissions
+          </button>
+        </div>
+      </li>
+    </ul>
+
+    <!-- ── Staff dialog ────────────────────────────────────────── -->
+    <div v-if="dialog" class="mc-overlay" @click.self="dialog = null">
+      <div class="mc-modal" role="dialog" aria-modal="true" aria-labelledby="mc-staff-title">
+        <div class="mc-modal-head flex items-center justify-between gap-3">
+          <h2 id="mc-staff-title" class="mc-h2">
+            {{ dialog.mode === "create" ? "Add staff" : `Edit ${dialog.staffId}` }}
+          </h2>
+          <button class="mc-btn mc-btn-ghost mc-btn-icon" aria-label="Close" @click="dialog = null">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <div class="mc-modal-body grid gap-4">
+          <label class="mc-field">
+            <span>Name</span>
+            <input v-model="form.name" type="text" class="mc-input" />
+          </label>
+          <label class="mc-field">
+            <span>Email (optional)</span>
+            <input v-model="form.email" type="email" class="mc-input" />
+          </label>
+          <label class="mc-field">
+            <span>Role</span>
+            <select v-model="form.roleId" class="mc-input">
               <option v-for="r in roles" :key="r.id" :value="r.id">
-                {{ r.name }} — IDs start {{ r.prefix }}
+                {{ r.name }}: IDs start {{ r.prefix }}
               </option>
             </select>
-            <p
-              v-if="dialog.mode === 'create'"
-              class="mt-1.5 text-micro text-ink-soft dark:text-zinc-500"
-            >
+            <span v-if="dialog.mode === 'create'" class="mc-small">
               The ID is issued automatically from the role's prefix.
-            </p>
-          </div>
-          <div>
-            <label class="block text-xs font-semibold mb-1.5">
-              {{ dialog.mode === "create" ? "Password" : "Reset password (leave blank to keep)" }}
-            </label>
-            <input v-model="form.password" type="text" autocomplete="off" class="inp font-mono" />
-            <p class="mt-1.5 text-micro text-ink-soft dark:text-zinc-500">
+            </span>
+          </label>
+          <label class="mc-field">
+            <span>{{ dialog.mode === "create" ? "Password" : "Reset password (leave blank to keep)" }}</span>
+            <input v-model="form.password" type="text" autocomplete="off" class="mc-input mc-mono" />
+            <span class="mc-small">
               At least {{ MIN_PASSWORD_LENGTH }} characters. They'll be asked to
-              change it — you know this one.
-            </p>
-          </div>
+              change it, because you know this one.
+            </span>
+          </label>
 
-          <details v-if="dialog.mode === 'edit'" class="pt-1">
-            <summary class="text-xs font-semibold cursor-pointer text-ink-muted dark:text-zinc-400">
-              Per-person exceptions
-            </summary>
-            <p class="mt-2 text-micro leading-relaxed text-ink-soft dark:text-zinc-500">
-              Use sparingly — a role everyone understands beats a dozen
+          <details v-if="dialog.mode === 'edit'">
+            <summary class="mc-label cursor-pointer">Per-person exceptions</summary>
+            <p class="mt-2 mc-small">
+              Use sparingly: a role everyone understands beats a dozen
               one-off exceptions. A denial wins over the role, including an
               admin's blanket access.
             </p>
-            <div class="mt-3 space-y-2">
-              <div v-for="p in catalogue" :key="p.key" class="flex items-start gap-2 text-caption">
+            <div class="mt-3 grid gap-2">
+              <div v-for="p in catalogue" :key="p.key" class="flex items-start gap-3 text-[13px]">
                 <span class="flex-1 min-w-0">
                   {{ p.label }}
-                  <span class="text-ink-soft dark:text-zinc-600">{{ p.group }}</span>
+                  <span class="mc-ink-3">{{ p.group }}</span>
                 </span>
-                <label class="flex items-center gap-1 shrink-0">
-                  <input type="checkbox" :value="p.key" v-model="form.extraPermissions" />
-                  <span class="text-emerald-600 dark:text-emerald-400">grant</span>
+                <label class="flex items-center gap-1.5 shrink-0 mc-meta">
+                  <input type="checkbox" :value="p.key" v-model="form.extraPermissions" /> grant
                 </label>
-                <label class="flex items-center gap-1 shrink-0">
-                  <input type="checkbox" :value="p.key" v-model="form.deniedPermissions" />
-                  <span class="text-red-600 dark:text-red-400">deny</span>
+                <label class="flex items-center gap-1.5 shrink-0 mc-meta">
+                  <input type="checkbox" :value="p.key" v-model="form.deniedPermissions" /> deny
                 </label>
               </div>
             </div>
           </details>
 
-          <p v-if="dialogError" class="text-label text-red-600 dark:text-red-400">
-            {{ dialogError }}
+          <p v-if="dialogError" class="mc-callout" data-tone="bad" role="alert">{{ dialogError }}</p>
+          <p v-if="createdId" class="mc-callout" data-tone="good">
+            Created <strong class="mc-mono">{{ createdId }}</strong>. Give them
+            that ID and the password. The password isn't recoverable from here.
           </p>
-          <p v-if="createdId" class="text-label text-emerald-600 dark:text-emerald-400">
-            Created <strong class="font-mono">{{ createdId }}</strong>. Give them
-            that ID and the password — the password isn't recoverable from here.
-          </p>
+        </div>
 
-          <div class="flex gap-2 pt-1">
-            <button class="btn-ghost flex-1" @click="dialog = null">Close</button>
-            <button
-              class="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink disabled:opacity-50"
-              :disabled="saving"
-              @click="save"
-            >
-              {{ saving ? "Saving…" : "Save" }}
-            </button>
-          </div>
+        <div class="mc-modal-foot">
+          <button class="mc-btn mc-btn-ghost" @click="dialog = null">Close</button>
+          <button class="mc-btn mc-btn-primary" :disabled="saving" @click="save">
+            {{ saving ? "Saving…" : "Save" }}
+          </button>
         </div>
       </div>
     </div>
 
     <!-- ── Role dialog ─────────────────────────────────────────── -->
-    <div
-      v-if="roleDialog"
-      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/40"
-      @click.self="roleDialog = null"
-    >
-      <div
-        class="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-canvas dark:bg-canvas-inverse p-5"
-      >
-        <h2 class="text-lg font-bold mb-4">
-          {{ roleForm.existing ? `${roleForm.name} permissions` : "New role" }}
-        </h2>
+    <div v-if="roleDialog" class="mc-overlay" @click.self="roleDialog = false">
+      <div class="mc-modal" role="dialog" aria-modal="true" aria-labelledby="mc-role-title">
+        <div class="mc-modal-head flex items-center justify-between gap-3">
+          <h2 id="mc-role-title" class="mc-h2">
+            {{ roleForm.existing ? `${roleForm.name} permissions` : "New role" }}
+          </h2>
+          <button class="mc-btn mc-btn-ghost mc-btn-icon" aria-label="Close" @click="roleDialog = false">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
 
-        <div class="space-y-3.5">
-          <div v-if="!roleForm.existing" class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-semibold mb-1.5">Name</label>
-              <input v-model="roleForm.name" type="text" class="inp" placeholder="Warehouse" />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold mb-1.5">ID prefix</label>
-              <input
-                v-model="roleForm.prefix"
-                type="text"
-                maxlength="3"
-                class="inp font-mono uppercase"
-                placeholder="WH"
-              />
-            </div>
+        <div class="mc-modal-body grid gap-4">
+          <div v-if="!roleForm.existing" class="grid grid-cols-[minmax(0,1fr)_6rem] gap-3">
+            <label class="mc-field">
+              <span>Name</span>
+              <input v-model="roleForm.name" type="text" class="mc-input" placeholder="Warehouse" />
+            </label>
+            <label class="mc-field">
+              <span>ID prefix</span>
+              <input v-model="roleForm.prefix" type="text" maxlength="3" class="mc-input mc-mono uppercase" placeholder="WH" />
+            </label>
           </div>
-          <div v-if="!roleForm.existing">
-            <label class="block text-xs font-semibold mb-1.5">Description</label>
-            <input v-model="roleForm.description" type="text" class="inp" />
-          </div>
+          <label v-if="!roleForm.existing" class="mc-field">
+            <span>Description</span>
+            <input v-model="roleForm.description" type="text" class="mc-input" />
+          </label>
 
-          <p
-            v-if="roleForm.wildcard"
-            class="rounded-lg bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-caption leading-relaxed text-amber-800 dark:text-amber-300"
-          >
+          <p v-if="roleForm.wildcard" class="mc-callout">
             This role holds every permission, including ones added in future
             releases. Unticking anything below converts it to a fixed list.
           </p>
 
-          <div v-for="(perms, group) in grouped" :key="group">
-            <p class="text-xs font-semibold text-ink-soft dark:text-zinc-500 mb-1.5">
-              {{ group }}
-            </p>
-            <label
-              v-for="p in perms"
-              :key="p.key"
-              class="flex items-start gap-2.5 py-1.5 cursor-pointer"
-            >
+          <fieldset v-for="(perms, group) in grouped" :key="group" class="grid gap-1">
+            <legend class="mc-eyebrow mb-1">{{ group }}</legend>
+            <label v-for="p in perms" :key="p.key" class="flex items-start gap-2.5 py-1.5 cursor-pointer">
               <input
                 type="checkbox"
-                class="mt-0.5"
+                class="mt-0.5 shrink-0"
                 :checked="rolePermChecked(p.key)"
                 @change="toggleRolePerm(p.key, ($event.target as HTMLInputElement).checked)"
               />
               <span class="min-w-0">
-                <span class="text-label font-semibold">
+                <span class="text-[13.5px] font-[550]">
                   {{ p.label }}
-                  <span v-if="p.dangerous" class="ml-1 text-micro font-semibold text-red-600 dark:text-red-400">sensitive</span>
+                  <span v-if="p.dangerous" class="mc-tag ml-1 !h-5">
+                    <span class="mc-dot" data-tone="bad" aria-hidden="true" />sensitive
+                  </span>
                 </span>
-                <span class="block text-micro leading-relaxed text-ink-soft dark:text-zinc-500">
-                  {{ p.description }}
-                </span>
+                <span class="block mc-small">{{ p.description }}</span>
               </span>
             </label>
-          </div>
+          </fieldset>
 
-          <p v-if="dialogError" class="text-label text-red-600 dark:text-red-400">
-            {{ dialogError }}
-          </p>
+          <p v-if="dialogError" class="mc-callout" data-tone="bad" role="alert">{{ dialogError }}</p>
+        </div>
 
-          <div class="flex gap-2 pt-1">
-            <button class="btn-ghost flex-1" @click="roleDialog = null">Close</button>
-            <button
-              class="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink disabled:opacity-50"
-              :disabled="saving"
-              @click="saveRole"
-            >
-              {{ saving ? "Saving…" : "Save" }}
-            </button>
-          </div>
+        <div class="mc-modal-foot">
+          <button class="mc-btn mc-btn-ghost" @click="roleDialog = false">Close</button>
+          <button class="mc-btn mc-btn-primary" :disabled="saving" @click="saveRole">
+            {{ saving ? "Saving…" : "Save" }}
+          </button>
         </div>
       </div>
     </div>
@@ -367,6 +292,21 @@ const loading = ref(true);
 const error = ref("");
 const busy = ref("");
 const now = Date.now();
+
+const activeCount = computed(() => staff.value.filter((s) => s.active).length);
+
+// Accounts that need someone first (locked out, password not theirs yet),
+// deactivated ones last.
+const flags = (s: any) => {
+  const out: { text: string; tone?: "bad" | "warn" | "info" }[] = [];
+  if (!s.active) out.push({ text: "Deactivated" });
+  else if (s.lockedUntil && s.lockedUntil > now) out.push({ text: "Locked out", tone: "bad" });
+  if (s.mustChangePassword && s.active) out.push({ text: "Still on the password you gave them", tone: "warn" });
+  return out;
+};
+const rank = (s: any) =>
+  !s.active ? 3 : s.lockedUntil && s.lockedUntil > now ? 0 : s.mustChangePassword ? 1 : 2;
+const sortedStaff = computed(() => [...staff.value].sort((a, b) => rank(a) - rank(b)));
 
 const labelFor = (key: string) =>
   PERMISSIONS.find((p) => p.key === key)?.label ?? key;
@@ -568,12 +508,3 @@ const saveRole = async () => {
   }
 };
 </script>
-
-<style scoped>
-.inp {
-  @apply w-full px-3 py-2.5 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm;
-}
-.btn-ghost {
-  @apply px-3 py-2 rounded-lg text-sm font-semibold border border-black/[0.08] dark:border-white/[0.10] text-ink-muted dark:text-zinc-300 disabled:opacity-40;
-}
-</style>

@@ -1,125 +1,111 @@
 <template>
-  <div class="max-w-5xl mx-auto">
-    <div v-if="!isAdmin" class="text-center py-12">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg">
-        Your role doesn't include access to payouts.
-      </p>
-      <p class="text-label text-ink-soft dark:text-zinc-500 mt-1.5">
-        Ask an admin to grant it if you need it.
-      </p>
+  <div class="mc-page">
+    <div v-if="!isAdmin" class="mc-card mc-card-pad">
+      <p class="mc-h2">Your role doesn't include access to payouts.</p>
+      <p class="mc-small mt-1">Ask an admin to grant it if you need it.</p>
     </div>
 
     <template v-else>
-      <AutoPayoutPanel class="mb-6" />
-
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-ink dark:text-white">Payouts</h1>
-        <button
-          @click="load"
-          :disabled="loading"
-          class="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 disabled:opacity-50"
-        >
-          Reload
+      <div class="mc-page-head">
+        <div>
+          <p class="mc-eyebrow mb-1">Money</p>
+          <h1 class="mc-h1">Payouts</h1>
+          <p class="mc-meta mt-1">
+            <template v-if="!loading && countFor('queued')">
+              <span class="mc-num">RM {{ fmt(totals.queued || 0) }}</span> waiting in
+              {{ countFor("queued") }} {{ countFor("queued") === 1 ? "batch" : "batches" }}.
+            </template>
+            <template v-else>Money owed to sellers, and the transfers that pay it.</template>
+          </p>
+        </div>
+        <button :disabled="loading" class="mc-btn" @click="load">
+          {{ loading ? "Loading…" : "Refresh" }}
         </button>
       </div>
 
-      <div v-if="error" class="mb-4 rounded-lg bg-red-500/10 text-red-600 dark:text-red-400 px-4 py-3 text-sm">
-        {{ error }}
+      <p v-if="error" class="mc-callout mb-6" data-tone="bad" role="alert">{{ error }}</p>
+
+      <div class="mc-tabs mb-4" role="tablist" aria-label="Payout status">
+        <button
+          v-for="s in STATUSES"
+          :key="s"
+          type="button"
+          role="tab"
+          :aria-selected="tab === s"
+          @click="tab = s"
+        >
+          {{ TAB_LABEL[s] }}<span class="mc-tab-count">{{ countFor(s) }}</span>
+        </button>
       </div>
 
-      <div v-if="loading" class="flex justify-center py-12">
-        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-pokemon-red"/>
+      <div v-if="loading" class="grid gap-3" aria-busy="true" aria-label="Loading">
+        <div class="mc-skel h-[112px]" />
+        <div class="mc-skel h-[112px]" />
       </div>
 
       <template v-else>
-        <!-- Totals -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <div v-for="s in STATUSES" :key="s" class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] p-4">
-            <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">{{ PAYOUT_STATUS_LABEL[s] }}</p>
-            <p class="text-xl font-extrabold text-ink dark:text-white tabular-nums mt-1">RM {{ fmt(totals[s] || 0) }}</p>
-          </div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="flex gap-1 mb-4 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-1 w-fit">
-          <button
-            v-for="s in STATUSES"
-            :key="s"
-            @click="tab = s"
-            class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-            :class="tab === s ? 'bg-white dark:bg-white/[0.10] text-gray-900 dark:text-zinc-100 shadow-sm' : 'text-gray-500 dark:text-zinc-400'"
-          >
-            {{ PAYOUT_STATUS_LABEL[s] }}
-            <span class="ml-1 text-xs opacity-60">{{ countFor(s) }}</span>
-          </button>
-        </div>
-
-        <p v-if="!visible.length" class="text-sm text-gray-500 dark:text-zinc-400 py-10 text-center">
-          Nothing here.
+        <p class="mc-small mb-3">
+          {{ TAB_HINT[tab] }}
+          <template v-if="visible.length">
+            Total <span class="mc-num">RM {{ fmt(totals[tab] || 0) }}</span>.
+          </template>
         </p>
 
-        <div v-else class="space-y-3">
-          <div
-            v-for="p in visible"
-            :key="p.id"
-            class="surface rounded-xl border border-black/[0.06] dark:border-white/[0.08] p-4"
-          >
-            <div class="flex items-start justify-between gap-4 flex-wrap">
-              <div class="min-w-0">
-                <p class="font-bold text-ink dark:text-white">{{ p.sellerName }}</p>
-                <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                  {{ p.recipient.name }} · {{ p.recipient.bankName }} · {{ p.recipient.bankAccountNumber }}
-                </p>
-                <p class="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">
-                  {{ p.orderIds.length }} order{{ p.orderIds.length === 1 ? "" : "s" }} · requested {{ fmtDate(p.requestedAt) }}
-                </p>
-                <p v-if="!p.autoPayoutSupported" class="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                  Automated transfer unavailable for this bank — transfer manually, then record the reference.
-                </p>
-                <p v-if="p.status === 'queued' && p.identityHold" class="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                  Held: the account name doesn't match the seller's verified ID. Check it below before sending.
-                </p>
-                <p v-if="p.failureReason && !(p.status === 'queued' && p.identityHold)" class="text-xs text-red-600 dark:text-red-400 mt-1">
-                  {{ p.failureReason }}
-                </p>
-                <p v-if="p.manualReference" class="text-xs text-gray-500 dark:text-zinc-400 mt-1">
-                  Manual reference: {{ p.manualReference }}
-                </p>
-                <p v-if="p.billplzStatus" class="text-xs text-gray-400 dark:text-zinc-500 mt-1">
-                  Billplz: {{ p.billplzStatus }}<template v-if="p.billplzInstructionId"> · {{ p.billplzInstructionId }}</template>
-                </p>
-              </div>
+        <p v-if="!visible.length" class="mc-card mc-empty">{{ EMPTY[tab] }}</p>
 
-              <div class="text-right shrink-0">
-                <p class="text-xl font-extrabold text-ink dark:text-white tabular-nums">RM {{ fmt(p.amount) }}</p>
-                <div class="flex gap-2 mt-2 justify-end flex-wrap">
-                  <button
-                    v-if="p.status === 'queued' && p.autoPayoutSupported && !p.identityHold"
-                    @click="execute(p)"
-                    :disabled="busy === p.id"
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-pokemon-red text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {{ busy === p.id ? "Sending…" : "Send via Billplz" }}
-                  </button>
-                  <button
-                    v-if="p.status === 'processing'"
-                    @click="refresh(p)"
-                    :disabled="busy === p.id"
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-ink text-white hover:bg-ink-subtle dark:bg-white dark:text-ink dark:hover:bg-zinc-200 disabled:opacity-50"
-                  >
-                    {{ busy === p.id ? "Checking…" : "Check status" }}
-                  </button>
-                  <button
-                    v-if="p.status !== 'paid'"
-                    @click="markManual(p)"
-                    :disabled="busy === p.id"
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 disabled:opacity-50"
-                  >
-                    Record manual transfer
-                  </button>
-                </div>
+        <ul v-else class="mc-card mc-list">
+          <li v-for="p in visible" :key="p.id" class="mc-item">
+            <div class="mc-item-head">
+              <div>
+                <p class="mc-list-title">{{ p.sellerName }}</p>
+                <p class="mc-meta mt-0.5">
+                  {{ p.recipient.name }} · {{ p.recipient.bankName }} ·
+                  <span class="mc-num">{{ p.recipient.bankAccountNumber }}</span>
+                </p>
+                <p class="mc-small mt-0.5">
+                  {{ p.orderIds.length }} {{ p.orderIds.length === 1 ? "order" : "orders" }} ·
+                  requested {{ fmtDate(p.requestedAt) }}
+                  <template v-if="p.billplzStatus">
+                    · Billplz {{ p.billplzStatus }}<template v-if="p.billplzInstructionId"> <span class="mc-mono">{{ p.billplzInstructionId }}</span></template>
+                  </template>
+                  <template v-if="p.manualReference"> · bank ref <span class="mc-mono">{{ p.manualReference }}</span></template>
+                </p>
               </div>
+              <p class="mc-amount">RM {{ fmt(p.amount) }}</p>
             </div>
+
+            <p v-if="p.status === 'queued' && p.identityHold" class="mc-callout mt-3">
+              Held: the account name doesn't match the seller's verified ID. Check it below before sending.
+            </p>
+            <p v-else-if="p.failureReason" class="mc-callout mt-3" data-tone="bad">
+              {{ p.failureReason }}
+            </p>
+            <p v-if="!p.autoPayoutSupported && p.status !== 'paid'" class="mc-callout mt-3" data-tone="info">
+              This bank can't take an automated transfer. Send it by hand, then record the bank reference.
+            </p>
+
+            <div v-if="p.status !== 'paid'" class="mc-item-actions">
+              <button
+                v-if="p.status === 'queued' && p.autoPayoutSupported && !p.identityHold"
+                class="mc-btn mc-btn-sm mc-btn-primary"
+                :disabled="busy === p.id"
+                @click="execute(p)"
+              >
+                {{ busy === p.id ? "Sending…" : "Send via Billplz" }}
+              </button>
+              <button
+                v-if="p.status === 'processing'"
+                class="mc-btn mc-btn-sm"
+                :disabled="busy === p.id"
+                @click="refresh(p)"
+              >
+                {{ busy === p.id ? "Checking…" : "Check status" }}
+              </button>
+              <button class="mc-btn mc-btn-sm" :disabled="busy === p.id" @click="markManual(p)">
+                Record manual transfer
+              </button>
+            </div>
+
             <AdminIdentityPanel
               v-if="p.status === 'queued' && p.identityHold"
               :uid="p.sellerUid"
@@ -127,9 +113,15 @@
               start-open
               @approved="load"
             />
-          </div>
-        </div>
+          </li>
+        </ul>
       </template>
+
+      <!-- Settings come after the work: the queue is what people open this page for. -->
+      <section class="mt-10" aria-labelledby="mc-auto">
+        <h2 id="mc-auto" class="mc-h2 mb-3">Automatic payouts</h2>
+        <AutoPayoutPanel @ran="load" />
+      </section>
     </template>
   </div>
 </template>
@@ -144,9 +136,27 @@ import {
   type PayoutBatchStatus,
 } from "~/shared/payout-ledger";
 
-useHead({ title: "Admin · Payouts | TCGo" });
-
 const STATUSES: PayoutBatchStatus[] = ["queued", "processing", "paid", "failed"];
+
+// Staff-side wording: what each tab asks of the person reading it.
+const TAB_LABEL: Record<PayoutBatchStatus, string> = {
+  queued: "To send",
+  processing: "Sending",
+  paid: "Paid",
+  failed: "Failed",
+};
+const TAB_HINT: Record<PayoutBatchStatus, string> = {
+  queued: "Requested by sellers and not sent yet. Held and manual ones are listed first.",
+  processing: "Sent to Billplz and waiting for the bank to confirm.",
+  paid: "Confirmed by the bank or recorded by hand.",
+  failed: "The bank rejected these. Fix the cause, then record a manual transfer.",
+};
+const EMPTY: Record<PayoutBatchStatus, string> = {
+  queued: "Nothing to send.",
+  processing: "No transfers in flight.",
+  paid: "No payouts paid yet.",
+  failed: "No failed payouts.",
+};
 
 const { me, can } = useStaffAuth();
 const isAdmin = computed(() => can("payouts.view"));
@@ -184,7 +194,17 @@ const load = async () => {
 // permanently loading for exactly the people it's built for.
 watch(() => me.value?.permissions, load, { immediate: true });
 
-const visible = computed(() => payouts.value.filter((p) => p.status === tab.value));
+// Items that need a person (identity hold, manual bank) go first, then oldest.
+const needsHand = (p: PayoutBatch) => (p.identityHold || !p.autoPayoutSupported ? 0 : 1);
+const visible = computed(() =>
+  payouts.value
+    .filter((p) => p.status === tab.value)
+    .sort((a, b) =>
+      tab.value === "queued"
+        ? needsHand(a) - needsHand(b) || a.requestedAt - b.requestedAt
+        : 0,
+    ),
+);
 const countFor = (s: PayoutBatchStatus) => payouts.value.filter((p) => p.status === s).length;
 
 const fmt = (n: number) =>
