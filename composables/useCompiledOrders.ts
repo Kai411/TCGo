@@ -4,10 +4,8 @@ import {
   where,
   onSnapshot,
   doc,
-  setDoc,
   updateDoc,
   getDoc,
-  getDocs,
   writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
@@ -285,148 +283,22 @@ export const useCompiledOrders = () => {
     );
   };
 
-  // Create one CompiledOrder per seller — or, if the buyer already has an
-  // open (pending) order with that seller, append new items into it instead
-  // of creating a duplicate. This is the "compile across sessions" behaviour
-  // so a buyer can keep adding cards from the same seller until they're ready
-  // to pay for the lot in one go. Buyer name is captured from the auth profile
-  // so the seller can recognise them.
+  // Create one CompiledOrder per seller, or add to the buyer's unpaid order
+  // with that seller ("compile across sessions"). The server does it
+  // (/api/orders/place): it prices every card from its listing and quotes
+  // postage to the buyer's saved address itself, so nothing the browser says
+  // about money reaches the order. Only the card ids are sent.
   const createCompiledOrders = async (
-    items: CompiledOrderInputItem[],
-    region: "WM" | "EM",
-    buyerDisplayName: string,
-    // Live courier quote per seller, from /api/shipping/quote. When present it
-    // replaces the per-listing shipping figures entirely — written to both the
-    // WM and EM fields so the region recompute in create-bill is a no-op and
-    // the buyer is charged exactly what the cart showed.
-    quotedShippingBySeller: Record<string, QuotedShipping> = {},
+    items: Pick<CompiledOrderInputItem, "cardId">[],
   ): Promise<CompiledOrder[]> => {
-    if (!user.value || !firestore) throw new Error("Not authenticated");
+    if (!user.value) throw new Error("Not authenticated");
     if (!items.length) return [];
-
-    const groups = groupItemsBySeller(items);
-    const results: CompiledOrder[] = [];
-
-    for (const sellerUid of Object.keys(groups)) {
-      const group = groups[sellerUid];
-      const newItems: CompiledOrderItem[] = group.map((g) => ({
-        cardId: g.cardId,
-        cardName: g.cardName,
-        cardSet: g.cardSet,
-        condition: g.condition,
-        imageUrl: g.imageUrl,
-        price: g.price,
-        shippingWM: g.shippingWM,
-        shippingEM: g.shippingEM,
-      }));
-
-      // Look for an open (pending) order between this buyer and seller.
-      // Query by buyerUid only (single-field, no composite index needed) and
-      // filter the rest client-side.
-      const existingQ = query(
-        collection(firestore, "compiledOrders"),
-        where("buyerUid", "==", user.value.uid),
-      );
-      const existingSnap = await getDocs(existingQ);
-      const openOrder = existingSnap.docs
-        .map((d) => ({ ...d.data(), id: d.id }) as CompiledOrder)
-        .find((o) => o.sellerUid === sellerUid && o.status === "pending");
-
-      if (openOrder) {
-        // Merge: dedupe by cardId so adding the same card twice is a no-op.
-        const existingCardIds = new Set(openOrder.items.map((i) => i.cardId));
-        const toAdd = newItems.filter((i) => !existingCardIds.has(i.cardId));
-        if (toAdd.length === 0) {
-          results.push(openOrder);
-          continue;
-        }
-        const mergedItems = [...openOrder.items, ...toAdd];
-        const subtotal = mergedItems.reduce((s, i) => s + i.price, 0);
-        const quoted = quotedShippingBySeller[sellerUid];
-        const shippingWM =
-          quoted?.shipping ??
-          mergedItems.reduce((m, i) => Math.max(m, i.shippingWM ?? 0), 0);
-        const shippingEM =
-          quoted?.shipping ??
-          mergedItems.reduce((m, i) => Math.max(m, i.shippingEM ?? 0), 0);
-        // Preserve the region the original order was placed under. It's
-        // recomputed from the delivery address at payment time anyway.
-        const shipping = openOrder.region === "WM" ? shippingWM : shippingEM;
-        const patch = {
-          items: mergedItems,
-          subtotal,
-          shippingWM,
-          shippingEM,
-          shipping,
-          total: subtotal + shipping,
-          // Adding items changes the parcel, so a previously frozen quote no
-          // longer describes it — re-flag unless this merge carried a fresh one.
-          shippingQuoted: quoted != null,
-          ...(quoted
-            ? {
-                shippingCourier: quoted.courier,
-                shippingServiceId: quoted.serviceId,
-                shippingServiceCode: quoted.serviceCode,
-                shippingQuotedRate: quoted.quotedRate,
-              }
-            : {}),
-          // Carried here as well as on the create path below. Adding to an
-          // unpaid order re-quotes it, and if that quote is a join fee the
-          // link has to travel with it — otherwise this order pays RM 1.25
-          // and still gets a label of its own.
-          ...(quoted?.joinsOrderId !== undefined
-            ? { joinsOrderId: quoted.joinsOrderId ?? null }
-            : {}),
-        };
-        await updateDoc(doc(firestore, "compiledOrders", openOrder.id), patch);
-        results.push({ ...openOrder, ...patch });
-        continue;
-      }
-
-      // No open order — create a new one.
-      const ref = doc(collection(firestore, "compiledOrders"));
-      const subtotal = newItems.reduce((s, i) => s + i.price, 0);
-      const quoted = quotedShippingBySeller[sellerUid];
-      const shippingWM =
-        quoted?.shipping ?? newItems.reduce((m, i) => Math.max(m, i.shippingWM ?? 0), 0);
-      const shippingEM =
-        quoted?.shipping ?? newItems.reduce((m, i) => Math.max(m, i.shippingEM ?? 0), 0);
-      const shipping = region === "WM" ? shippingWM : shippingEM;
-      const order: CompiledOrder = {
-        id: ref.id,
-        buyerUid: user.value.uid,
-        buyerName: buyerDisplayName || user.value.displayName || "Buyer",
-        buyerEmail: user.value.email || "",
-        sellerUid,
-        sellerName: group[0].sellerName,
-        items: newItems,
-        subtotal,
-        shippingWM,
-        shippingEM,
-        region,
-        shipping,
-        total: subtotal + shipping,
-        shippingQuoted: quoted != null,
-        ...(quoted
-          ? {
-              shippingCourier: quoted.courier,
-              shippingServiceId: quoted.serviceId,
-              shippingServiceCode: quoted.serviceCode,
-              shippingQuotedRate: quoted.quotedRate,
-            }
-          : {}),
-        // Recorded so the payment webhook knows to fold this into the parcel
-        // the buyer already paid postage on. Without it the zero shipping on
-        // this order would just be a discount nobody accounted for.
-        ...(quoted?.joinsOrderId ? { joinsOrderId: quoted.joinsOrderId } : {}),
-        status: "pending",
-        paymentMethod: "billplz",
-        createdAt: Date.now(),
-      };
-      await setDoc(ref, order);
-      results.push(order);
-    }
-    return results;
+    const { authedFetch } = useAuthedFetch();
+    const res = await authedFetch<{ orders: CompiledOrder[] }>("/api/orders/place", {
+      method: "POST",
+      body: { cardIds: items.map((i) => i.cardId) },
+    });
+    return res.orders ?? [];
   };
 
   // NOTE: there is deliberately no markConfirmed here any more. Sellers used
@@ -502,19 +374,6 @@ export const useCompiledOrders = () => {
     await batch.commit();
   };
 
-  const updateRegion = async (orderId: string, region: "WM" | "EM") => {
-    if (!firestore) return;
-    const snap = await getDoc(doc(firestore, "compiledOrders", orderId));
-    if (!snap.exists()) return;
-    const order = snap.data() as CompiledOrder;
-    const shipping = region === "WM" ? order.shippingWM : order.shippingEM;
-    await updateDoc(doc(firestore, "compiledOrders", orderId), {
-      region,
-      shipping,
-      total: order.subtotal + shipping,
-    });
-  };
-
   const getCompiledOrder = async (
     orderId: string,
   ): Promise<CompiledOrder | null> => {
@@ -551,7 +410,6 @@ export const useCompiledOrders = () => {
     markShipped,
     markDelivered,
     cancelOrder,
-    updateRegion,
     getCompiledOrder,
     mergeOrders,
   };

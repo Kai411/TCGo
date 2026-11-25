@@ -329,62 +329,83 @@ service cloud.firestore {
 
     // ── compiledOrders ───────────────────────────────────────────────
     //
-    // Buyers create orders from the cart; both parties read their own. Money
-    // fields (status, paidAt, payout*, shipment*, billplz*) are written only
-    // by server routes through the Admin SDK, so the narrow client updates
-    // allowed here can't settle an order or move a payout along.
+    // Orders are written by server routes through the Admin SDK: placed by
+    // /api/orders/place, priced by /api/orders/price and create-bill, settled
+    // by the Billplz callback. Both parties read their own. A browser can't
+    // create an order or touch its money (ledger stage 2): before, a buyer
+    // could set subtotal/total/shipping on their own pending order and be
+    // billed RM 0.01. The narrow client updates left are the address, cancel,
+    // ship and confirm receipt.
     match /compiledOrders/{orderId} {
       // Won at auction — see the update rule below.
       function isAuctionOrder() {
         return resource.data.get('auctionId', null) != null;
       }
 
+      function changed() {
+        return request.resource.data.diff(resource.data).affectedKeys();
+      }
+
       allow read: if isAdmin()
         || isOwner(resource.data.buyerUid)
         || isOwner(resource.data.sellerUid);
 
-      allow create: if isOwner(request.resource.data.buyerUid)
-        && request.resource.data.status == 'pending';
+      allow create: if isAdmin();
 
-      // Buyer may edit an unpaid order (add items, set the address) or cancel
-      // it. Separately the buyer confirms receipt on a shipped order — that
-      // one matters: it's what starts the payout hold clock, so it has to stay
-      // the buyer's to give and cannot be the seller declaring their own
-      // parcel delivered. Everything involving money settles server-side.
-      //
-      // An auction win is a commitment, not a cart: neither party may cancel
-      // it from the client. The only ways out are the payment window lapsing
-      // (server-side, /api/auctions/settle) or an admin. The buyer also can't
-      // strip auctionId off the order to slip past this.
-      // Money and Buyer Protection fields are written by the server only.
-      // Without this, the status branches below let a seller rewrite their
-      // own sellerPayout, or close a problem the buyer reported.
+      // Money, pricing and Buyer Protection fields are written by the server
+      // only. Without this, the seller's status branches below would let a
+      // seller rewrite their own sellerPayout or the order's total, or close
+      // a problem the buyer reported.
       function touchesServerOrderFields() {
-        return request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        return changed().hasAny([
           'sellerPayout', 'platformFee', 'platformFeeRate', 'sstAmount',
           'payoutStatus', 'payoutBatchId', 'payoutPaidAt', 'paidAt',
           'refundStatus', 'refundAmount', 'refundFee', 'problem',
-          'buyerUid', 'sellerUid'
+          'buyerUid', 'sellerUid',
+          'items', 'subtotal', 'shipping', 'shippingWM', 'shippingEM', 'total', 'region',
+          'shippingQuoted', 'shippingQuotedFor', 'shippingCourier', 'shippingQuotedRate',
+          'shippingServiceId', 'shippingServiceCode', 'shippingWeightKg',
+          'joinsOrderId', 'joinedOrderIds', 'pricedBy', 'paymentMethod',
+          'billplzBillId', 'billplzAmountSen', 'billplzPaidAt',
+          'auctionId', 'paymentDueAt'
         ].toSet());
       }
 
-      allow update: if isAdmin()
-        || (!touchesServerOrderFields() && (
-        (isOwner(resource.data.buyerUid)
-            && resource.data.status == 'pending'
-            && request.resource.data.get('auctionId', null) == resource.data.get('auctionId', null)
-            && !(isAuctionOrder() && request.resource.data.status == 'cancelled'))
-        || (isOwner(resource.data.buyerUid)
-            && resource.data.status == 'shipped'
-            && request.resource.data.status == 'delivered')
-        // The seller ships, or cancels an order nobody has paid for yet. A
-        // seller may not mark their own parcel delivered (that starts the
-        // payout clock) or cancel a paid order (that skips the refund).
-        || (isOwner(resource.data.sellerUid)
-            && (request.resource.data.status == 'shipped'
-                || (request.resource.data.status == 'cancelled'
-                    && resource.data.status in ['pending', 'confirmed']))
-            && !(isAuctionOrder() && request.resource.data.status == 'cancelled'))));
+      // The buyer, on an unpaid order: set the delivery address (the server
+      // prices from it), or cancel. Separately the buyer confirms receipt on
+      // a shipped order; that one matters, it starts the payout hold clock,
+      // so it has to stay the buyer's to give and cannot be the seller
+      // declaring their own parcel delivered.
+      //
+      // An auction win is a commitment, not a cart: neither party may cancel
+      // it from the client. The only ways out are the payment window lapsing
+      // (server-side, /api/auctions/settle) or an admin.
+      function buyerUpdate() {
+        return isOwner(resource.data.buyerUid) && (
+          (resource.data.status == 'pending'
+            && changed().hasOnly(['deliveryAddress']))
+          || (resource.data.status == 'pending'
+            && !isAuctionOrder()
+            && request.resource.data.status == 'cancelled'
+            && changed().hasOnly(['status', 'cancelledAt', 'cancelReason']))
+          || (resource.data.status == 'shipped'
+            && request.resource.data.status == 'delivered'
+            && changed().hasOnly(['status', 'deliveredAt'])));
+      }
+
+      // The seller ships, or cancels an order nobody has paid for yet. A
+      // seller may not mark their own parcel delivered (that starts the
+      // payout clock) or cancel a paid order (that skips the refund).
+      function sellerUpdate() {
+        return isOwner(resource.data.sellerUid)
+          && !touchesServerOrderFields()
+          && (request.resource.data.status == 'shipped'
+              || (request.resource.data.status == 'cancelled'
+                  && resource.data.status in ['pending', 'confirmed']))
+          && !(isAuctionOrder() && request.resource.data.status == 'cancelled');
+      }
+
+      allow update: if isAdmin() || buyerUpdate() || sellerUpdate();
 
       allow delete: if isAdmin();
     }

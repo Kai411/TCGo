@@ -1,5 +1,9 @@
-// Create a Billplz bill for a pending compiled order. The amount is computed
-// server-side from the order document — the client only supplies the id.
+// Create a Billplz bill for a pending compiled order. The client only supplies
+// the id: the amount is worked out on the server from the listings and a
+// server shipping quote (server/utils/order-pricing.ts), and the cards are
+// held in the ledger for this order before the bill exists (ledger stage 2,
+// server/ledger/checkout.ts), so two buyers can't both be sent to pay for one
+// card.
 //
 // Flow: buyer taps "Pay online (FPX)" → this creates the bill, links it to
 // the order, and returns the hosted payment URL. The webhook flips the order
@@ -18,6 +22,7 @@ import { isAvailable, unavailableReason } from "~/shared/card-availability";
 import { isHiddenByStaff, isSellingSuspended } from "~/shared/moderation";
 import { priceOrderForPayment } from "~/server/utils/order-pricing";
 import { noteError } from "~/server/utils/oplog";
+import { attachBillToHold, holdForPayment, HoldError, releaseHoldFor } from "~/server/utils/ledger";
 
 // An order is payable while the seller hasn't shipped it. `pending` and
 // `confirmed` both mean "money not collected yet" — the seller confirming a
@@ -124,6 +129,40 @@ export default defineEventHandler(async (event) => {
   const { total } = await priceOrderForPayment(db, orderRef, order);
   const amount = Math.round(total * 100); // MYR sen
 
+  // Hold the cards for this order. Null when the ledger isn't configured.
+  let hold: Awaited<ReturnType<typeof holdForPayment>> = null;
+  try {
+    hold = await holdForPayment(orderId, order);
+  } catch (e) {
+    if (e instanceof HoldError) {
+      throw createError({
+        statusCode: 409,
+        message:
+          e.code === "listing_unavailable"
+            ? e.listings.length > 1
+              ? "Someone else is paying for a card in this order right now. Try again in a few minutes."
+              : "Someone else is paying for this card right now. Try again in a few minutes."
+            : "This order has already been paid.",
+        data: { unavailable: e.listings },
+      });
+    }
+    throw e;
+  }
+  // Holds that lapsed and were taken over: their buyers mustn't be able to pay.
+  for (const billId of hold?.displacedBillIds ?? []) {
+    await billplzDeleteBill(billId).catch((e: any) =>
+      noteError({
+        area: "payment",
+        severity: "warning",
+        code: "ledger.displaced_bill_not_deleted",
+        message: `Couldn't delete bill ${billId} after its hold lapsed and order ${orderId} took the card.`,
+        orderId,
+        context: { billId, error: String(e?.message ?? e).slice(0, 200) },
+        hint: "If that bill gets paid, the ledger logs a double sell and one buyer needs a refund.",
+      }),
+    );
+  }
+
   // A re-created bill supersedes the previous one. Void the old bill so a
   // stale payment tab can't collect an out-of-date amount for this order —
   // Billplz refuses to delete a paid bill, and anything else that slips
@@ -153,6 +192,7 @@ export default defineEventHandler(async (event) => {
     body: form.toString(),
   });
   if (!res.ok) {
+    if (hold) await releaseHoldFor(hold);
     const text = await res.text();
     console.error("[billplz] bill creation failed:", res.status, text);
     noteError({
@@ -168,6 +208,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 502, message: "Payment provider error" });
   }
   const bill = (await res.json()) as { id: string; url: string };
+  if (hold) await attachBillToHold(hold, bill.id, amount);
 
   await orderRef.update({
     billplzBillId: bill.id,

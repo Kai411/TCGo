@@ -202,9 +202,7 @@
 
 <script setup lang="ts">
 import type { CartItem } from "~/composables/useCart";
-import type { QuotedShipping } from "~/composables/useCompiledOrders";
 import { stateName } from "~/shared/my-states";
-import { regionForState } from "~/shared/shipping";
 
 useHead({ title: "Checkout | TCGo Marketplace" });
 
@@ -409,47 +407,9 @@ const handlePlaceOrders = async () => {
   if (!user.value || !items.value.length || !canCheckout.value) return;
   placing.value = true;
   try {
-    // Freeze the quotes the buyer was just shown onto the orders — the price
-    // *and* which courier it was for, so booking uses the service they paid
-    // for rather than re-quoting later and possibly picking a different one.
-    const quotedShipping: Record<string, QuotedShipping> = {};
-    for (const g of groupedBySeller.value) {
-      const q = quotes.value[g.sellerUid];
-      if (q) {
-        quotedShipping[g.sellerUid] = {
-          shipping: q.shipping,
-          courier: q.courier,
-          serviceId: q.serviceId,
-          serviceCode: q.serviceCode,
-          quotedRate: q.quotedRate,
-          // THE reason this order was charged RM 1.25 instead of postage.
-          // It was held in `quotes` to render "Ships with your existing
-          // order" and then dropped here, so the order document never
-          // carried it, the payment webhook had nothing to join, and a full
-          // label was bought for a parcel the buyer had already paid to
-          // combine. Every joined order cost roughly RM 4.76 of postage.
-          joinsOrderId: q.joinsOrderId ?? null,
-        };
-      }
-    }
-
-    const created = await createCompiledOrders(
-      items.value.map((it) => ({
-        cardId: it.id,
-        cardName: it.cardName,
-        cardSet: it.cardSet,
-        condition: it.condition,
-        imageUrl: it.imageUrl,
-        price: it.price,
-        shippingWM: it.shippingWM ?? 0,
-        shippingEM: it.shippingEM ?? 0,
-        sellerUid: it.sellerUid,
-        sellerName: it.seller,
-      })),
-      regionForState(profile.value?.deliveryState),
-      profile.value?.customName || profile.value?.displayName || user.value.displayName || "Buyer",
-      quotedShipping,
-    );
+    // The server re-reads every listing and quotes postage again itself, so
+    // only the card ids go up. The quotes above are for showing the price.
+    const created = await createCompiledOrders(items.value.map((it) => ({ cardId: it.id })));
 
     // Remove only the checked-out items from the cart; a Buy Now leaves it alone.
     completeCheckout();
@@ -462,7 +422,7 @@ const handlePlaceOrders = async () => {
       router.push(`/activity?tab=purchases&placed=${created.length}`);
     }
   } catch (e: any) {
-    alert(e?.message || "Could not place orders. Please try again.");
+    alert(e?.data?.message || e?.message || "Could not place orders. Please try again.");
   } finally {
     placing.value = false;
   }
