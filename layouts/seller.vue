@@ -357,6 +357,27 @@ watch(
 </script>
 
 <style>
+/* Kai 11-25: the calm defaults felt boxy, so the seller area keeps the
+   app's softer corners (cards ~ rounded-2xl, controls ~ rounded-xl). */
+.mc.sl-shell,
+.mc.sl-sheet-root {
+  --radius-s: 10px;
+  --radius: 16px;
+  --radius-l: 20px;
+}
+.sl-shell .mc-card.mc-cells {
+  /* A selected cell's tint follows the card's rounder corners. */
+  overflow: hidden;
+}
+.sl-shell .mc-thumb {
+  border-radius: 6px;
+}
+.sl-shell .mc-seg {
+  border-radius: 12px;
+}
+.sl-shell .mc-seg > button {
+  border-radius: 9px;
+}
 .sl-shell {
   min-height: 100vh;
   min-height: 100dvh;

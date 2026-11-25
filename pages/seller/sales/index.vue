@@ -62,6 +62,16 @@
           />
         </div>
 
+        <!-- Trend for the chosen period: days for the short ones, months for
+             all time. Today is the period's own bar, so it is the red one. -->
+        <section v-if="chart.points.length" class="mc-card mc-card-pad mt-3">
+          <div class="flex items-baseline justify-between gap-3 mb-4">
+            <h2 class="mc-h3">{{ chart.title }}</h2>
+            <span class="mc-small">Paid sales, both channels</span>
+          </div>
+          <SalesBarChart :points="chart.points" :hot="chart.hot" :label-every="chart.labelEvery" />
+        </section>
+
         <div
           v-if="data.byMethod.length || data.topCards.length > 1"
           class="grid grid-cols-1 lg:grid-cols-2 gap-3 mc-section"
@@ -169,7 +179,7 @@
 
 <script setup lang="ts">
 import { METHOD_LABELS, STATUS_LABELS } from "~/shared/sales-summary";
-import type { SalesTotals } from "~/shared/sales-summary";
+import type { SalesPoint, SalesTotals } from "~/shared/sales-summary";
 
 definePageMeta({ layout: "seller" });
 useHead({ title: "Counter sales | TCGo" });
@@ -228,6 +238,47 @@ const periodCards = computed(() =>
 const selected = computed<SalesTotals>(
   () => data.value?.periods[period.value] ?? ({} as SalesTotals),
 );
+
+// Chart for the chosen period. Older API responses have no series; the
+// section then simply doesn't render.
+const chart = computed(() => {
+  const daily: SalesPoint[] = data.value?.daily ?? [];
+  const monthly: SalesPoint[] = data.value?.monthly ?? [];
+  const day = (p: SalesPoint, fmt: Intl.DateTimeFormatOptions) => ({
+    value: p.total,
+    count: p.count,
+    label: new Date(p.start).toLocaleDateString("en-MY", { weekday: "short", day: "numeric", month: "short" }),
+    short: new Date(p.start).toLocaleDateString("en-MY", fmt),
+  });
+  if (period.value === "allTime") {
+    return {
+      title: "Last 12 months",
+      points: monthly.map((p) => ({
+        value: p.total,
+        count: p.count,
+        label: new Date(p.start).toLocaleDateString("en-MY", { month: "long", year: "numeric" }),
+        short: new Date(p.start).toLocaleDateString("en-MY", { month: "short" }),
+      })),
+      hot: null,
+      labelEvery: 2,
+    };
+  }
+  if (period.value === "last30") {
+    return {
+      title: "Last 30 days",
+      points: daily.map((p) => day(p, { day: "numeric" })),
+      hot: null,
+      labelEvery: 5,
+    };
+  }
+  const week = daily.slice(-7);
+  return {
+    title: "Last 7 days",
+    points: week.map((p) => day(p, { weekday: "short" })),
+    hot: period.value === "today" ? week.length - 1 : null,
+    labelEvery: 1,
+  };
+});
 
 const myr = (n: number) =>
   `RM ${(n ?? 0).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

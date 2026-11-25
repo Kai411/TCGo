@@ -59,19 +59,35 @@
           <span class="font-semibold text-[var(--ink-2)]">{{ emptyLabel }}.</span>
           {{ emptyCaption }}
         </div>
-        <!-- grid-cols-1 (minmax(0, 1fr)) rather than an implicit column:
-             an implicit column grows to the longest single-line item or
-             set name, pushing the card past the screen edge. -->
-        <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-3 items-start">
-          <div v-for="order in visible" :key="order.id" class="min-w-0">
-            <!-- Waybill hint: "label bought, go hand it over" versus "still
-                 needs a label", inside the same To-ship queue. -->
-            <span v-if="tab === 'toship'" class="mc-tag gap-1.5 mb-2">
-              <span class="mc-dot" :data-tone="hasWaybill(order) ? 'good' : 'warn'" aria-hidden="true" />
-              {{ hasWaybill(order) ? "Waybill ready" : "No waybill yet" }}
+        <!-- One row per order, all the same height: first card's photo,
+             what's in it, who it's for, then total and stage. The full
+             breakdown lives on the order page the row opens. -->
+        <div v-else class="mc-card overflow-hidden">
+          <NuxtLink
+            v-for="order in visible"
+            :key="order.id"
+            :to="`/orders/${order.id}`"
+            class="mc-row"
+            :class="{ 'is-done': order.status === 'cancelled' }"
+          >
+            <span class="so-thumb">
+              <span class="mc-thumb so-img"><CardImage :src="order.items[0]?.imageUrl" alt="" :width="60" /></span>
+              <span v-if="order.items.length > 1" class="so-count mc-num">×{{ order.items.length }}</span>
             </span>
-            <CompiledOrderCard :order="order" role="seller" />
-          </div>
+            <div class="min-w-0">
+              <p class="mc-row-title">{{ orderTitle(order) }}</p>
+              <p class="mc-meta truncate">
+                {{ metaLine(order) }}
+              </p>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="mc-num text-[14px] font-semibold">RM {{ order.total.toFixed(2) }}</p>
+              <p class="mc-small flex items-center justify-end gap-1.5 mt-0.5 whitespace-nowrap">
+                <span class="mc-dot so-dot" :data-tone="rowTone(order)" aria-hidden="true" />
+                {{ rowLabel(order) }}
+              </p>
+            </div>
+          </NuxtLink>
         </div>
       </template>
     </template>
@@ -80,6 +96,8 @@
 
 <script setup lang="ts">
 import { ORDER_QUEUE_LABELS, hasWaybill, type OrderQueue } from "~/composables/useSellerOrders";
+import type { CompiledOrder } from "~/composables/useCompiledOrders";
+import { deliveryStage, deliveryStageLabel, type DeliveryStage } from "~/shared/delivery-stage";
 
 definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Orders | TCGo" });
@@ -139,6 +157,36 @@ const EMPTY_CAPTIONS: Partial<Record<OrderQueue, string>> = {
 };
 const emptyCaption = computed(() => EMPTY_CAPTIONS[tab.value]);
 
+const orderTitle = (o: CompiledOrder) => {
+  const first = o.items[0]?.cardName ?? "Order";
+  return o.items.length > 1 ? `${first} + ${o.items.length - 1} more` : first;
+};
+const metaLine = (o: CompiledOrder) =>
+  [o.buyerName || "Buyer", o.region, when(o.paidAt ?? o.createdAt), o.trackingNumber]
+    .filter(Boolean)
+    .join(" · ");
+const when = (ms?: number) =>
+  ms ? new Date(ms).toLocaleDateString("en-MY", { day: "numeric", month: "short" }) : "";
+
+// Status as a dot plus words. In To ship the one question is whether the
+// label has been bought, so say that instead of the stage.
+const STAGE_TONE: Partial<Record<DeliveryStage, string>> = {
+  awaiting_payment: "warn",
+  ready: "info",
+  collected: "info",
+  in_transit: "info",
+  delivered: "good",
+  cancelled: "bad",
+};
+const rowLabel = (o: CompiledOrder) =>
+  tab.value === "toship"
+    ? hasWaybill(o) ? "Waybill ready" : "No waybill yet"
+    : deliveryStageLabel(o);
+const rowTone = (o: CompiledOrder) =>
+  tab.value === "toship"
+    ? hasWaybill(o) ? "good" : "warn"
+    : STAGE_TONE[deliveryStage(o)];
+
 onMounted(() => {
   if (user.value) {
     listenSellerCompiledOrders();
@@ -165,3 +213,36 @@ watch(
 );
 </script>
 
+
+<style>
+.so-thumb {
+  position: relative;
+  display: inline-flex;
+}
+.so-count {
+  position: absolute;
+  right: -6px;
+  bottom: -4px;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.so-img {
+  display: block;
+  overflow: hidden;
+}
+.so-img .text-2xs {
+  display: none;
+}
+.so-dot {
+  width: 6px;
+  height: 6px;
+}
+</style>
