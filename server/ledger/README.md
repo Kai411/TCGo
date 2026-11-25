@@ -15,6 +15,22 @@ logs `ledger.shadow_failed`.
 - A second paid bill on one order is booked as a refund owed; a card sold to two orders is logged as
   `ledger.double_sell_detected`.
 
+**Stage 2: server-priced checkout, cards held before payment.**
+
+- Orders are placed by `/api/orders/place` (the browser sends card ids only) and priced on the server
+  (`server/utils/order-pricing.ts`): card prices from the listings, a winning bid from the auction, postage
+  from a server quote to the order's delivery address. `firestore.rules` no longer let a browser create an
+  order or write its money fields, so the RM 0.01 total is gone.
+- `create-bill` then calls `holdOrder` (`checkout.ts`): one batch writes the order as `awaiting_payment` and
+  claims every card in `listing_locks` as `held` for 30 minutes, asserting each claim. A card another live
+  order holds, or one already sold, aborts the batch and no bill is made (409). A lapsed hold can be taken
+  by the next buyer; its open bill is voided and deleted at Billplz.
+- The bill is recorded as a `created` payment. The Billplz callback (`shadow.ts`) turns the order `paid`
+  and the holds `sold`, at the fees Firestore settled with.
+- With the ledger configured, a ledger outage stops checkout (503, `ledger.hold_failed`) rather than
+  making a bill without a hold. Unconfigured, holds are skipped and checkout works as before.
+- Holds are not released when an unpaid order is cancelled in the browser; they lapse after 30 minutes.
+
 ## Setup
 
 1. Turso: create a database (closest location to Netlify's functions, which run in US East / Ohio by
