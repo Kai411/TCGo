@@ -1,102 +1,71 @@
 <template>
-  <div class="max-w-2xl mx-auto">
-    <SubpageHeader title="Payout" back="/seller/payouts" back-label="payouts">
-      <NuxtLink
-        to="/seller/payouts"
-        class="inline-flex items-center gap-1 text-sm text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors mb-4"
-      >
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-        All payouts
-      </NuxtLink>
-    </SubpageHeader>
+  <div class="sl-page sl-page--narrow">
+    <SellerPageHead title="Payout" back="/seller/payouts" back-label="All payouts" />
 
-    <div v-if="loading" class="flex justify-center py-16">
-      <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red" />
+    <div v-if="loading" class="mc-skel h-[200px]" aria-busy="true" aria-label="Loading payout" />
+
+    <div v-else-if="!payout" class="mc-card mc-empty">
+      <span class="font-semibold text-[var(--ink-2)]">Payout not found.</span>
+      It may belong to another account.
     </div>
 
-    <EmptyState v-else-if="!payout" headline="Payout not found" caption="It may belong to another account." />
-
     <template v-else>
-      <!-- Headline -->
-      <section class="panel surface rounded-2xl p-5 sm:p-6 mb-4">
-        <div class="flex items-start justify-between gap-3">
+      <section class="mc-card">
+        <div class="mc-card-pad">
+          <p class="mc-label flex items-center gap-2">
+            <span class="mc-dot" :data-tone="toneFor(payout.status)" aria-hidden="true" />
+            {{ LABEL[payout.status] }}
+          </p>
+          <p class="mc-hero-value mc-num mt-1">RM {{ fmt(payout.amount) }}</p>
+          <p v-if="nextStep" class="mc-small mt-1.5">{{ nextStep }}</p>
+          <p v-if="payout.status === 'queued' && payout.identityHold" class="mc-callout mt-3">
+            The account name doesn't match the name on your verified ID, so our
+            team checks the account before sending. Nothing is needed from you
+            unless we get in touch.
+          </p>
+          <p v-if="payout.status === 'failed' && payout.failureReason" class="mc-callout mt-3" data-tone="bad">
+            {{ payout.failureReason }}. The money was released back and can be requested again.
+          </p>
+        </div>
+        <div class="mc-divider mc-cells" style="--cols: 2">
           <div>
-            <p class="eyebrow">Payout</p>
-            <p class="mt-2 text-3xl font-bold text-ink dark:text-white tabular-price leading-none tracking-tightest">
-              RM {{ fmt(payout.amount) }}
+            <p class="mc-label">To</p>
+            <p class="mt-1 font-semibold">
+              {{ payout.recipient?.bankName }}
+              <span class="mc-num font-normal text-[var(--ink-2)]">{{ payout.recipient?.bankAccountNumber }}</span>
             </p>
           </div>
-          <span class="chip shrink-0" :class="chipFor(payout.status)">{{ LABEL[payout.status] }}</span>
+          <div>
+            <p class="mc-label">Orders</p>
+            <p class="mt-1 font-semibold mc-num">{{ payout.orderIds?.length ?? 0 }}</p>
+          </div>
         </div>
-
-        <p v-if="nextStep" class="mt-3 text-xs text-ink-muted dark:text-zinc-400">{{ nextStep }}</p>
-        <p
-          v-if="payout.status === 'queued' && payout.identityHold"
-          class="mt-3 text-xs rounded-lg bg-amber-50 text-amber-800 dark:bg-amber-400/10 dark:text-amber-300 px-3 py-2"
-        >
-          The account name doesn't match the name on your verified ID, so our team checks the account before sending. Nothing is needed from you unless we get in touch.
-        </p>
-        <p
-          v-if="payout.status === 'failed' && payout.failureReason"
-          class="mt-3 text-xs rounded-lg bg-pokemon-red/[0.08] text-pokemon-red px-3 py-2"
-        >
-          {{ payout.failureReason }} — the funds were released back and can be requested again.
-        </p>
-
-        <dl class="mt-5 pt-4 border-t border-black/[0.06] dark:border-white/[0.08] grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <dt class="text-micro text-ink-muted dark:text-zinc-400">To</dt>
-            <dd class="mt-0.5 font-semibold text-ink dark:text-white">
-              {{ payout.recipient?.bankName }}
-              <span class="tabular-price font-normal text-ink-muted dark:text-zinc-400">{{ payout.recipient?.bankAccountNumber }}</span>
-            </dd>
-          </div>
-          <div>
-            <dt class="text-micro text-ink-muted dark:text-zinc-400">Orders</dt>
-            <dd class="mt-0.5 font-semibold text-ink dark:text-white tabular-price">{{ payout.orderIds?.length ?? 0 }}</dd>
-          </div>
-        </dl>
       </section>
 
-      <!-- Status history -->
-      <section class="panel surface rounded-2xl p-5 sm:p-6 mb-4">
-        <p class="eyebrow mb-4">Status history</p>
-        <ol class="relative">
-          <li
-            v-for="(e, i) in history"
-            :key="e.key"
-            class="relative flex gap-3 pb-5 last:pb-0"
-          >
-            <!-- Connector, drawn between dots rather than through the last one -->
-            <span
-              v-if="i < history.length - 1"
-              class="absolute left-[5px] top-4 bottom-0 w-px bg-black/[0.10] dark:bg-white/[0.12]"
-              aria-hidden="true"
-            />
-            <span class="relative mt-1 shrink-0 w-[11px] h-[11px] rounded-full ring-4 ring-canvas-raised dark:ring-night-raised" :class="dotFor(e.key)" />
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-ink dark:text-white">{{ e.label }}</p>
-              <p v-if="e.detail" class="text-micro text-ink-muted dark:text-zinc-400 mt-0.5">{{ e.detail }}</p>
-              <p class="text-micro text-ink-soft dark:text-zinc-500 mt-0.5 tabular-price">{{ stamp(e.at) }}</p>
-            </div>
-          </li>
-        </ol>
-
-        <p v-if="payout.status === 'processing'" class="mt-1 text-micro text-ink-soft dark:text-zinc-500">
-          Waiting on the bank. This page checks for an update each time you open it.
-        </p>
+      <section class="mc-section">
+        <h2 class="mc-h2 mb-2.5">Status history</h2>
+        <div class="mc-card mc-card-pad">
+          <ol>
+            <li v-for="(e, i) in history" :key="e.key" class="relative flex gap-3 pb-5 last:pb-0">
+              <span v-if="i < history.length - 1" class="pd-line" aria-hidden="true" />
+              <span class="mc-dot relative mt-1.5" :data-tone="historyTone(e.key)" aria-hidden="true" />
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold">{{ e.label }}</p>
+                <p v-if="e.detail" class="mc-meta mt-0.5">{{ e.detail }}</p>
+                <p class="mc-small mc-num mt-0.5">{{ stamp(e.at) }}</p>
+              </div>
+            </li>
+          </ol>
+          <p v-if="payout.status === 'processing'" class="mc-small mt-3">
+            Waiting on the bank. This page checks for an update each time you open it.
+          </p>
+        </div>
       </section>
 
-      <!-- Orders covered -->
-      <section v-if="payout.orderIds?.length" class="panel surface rounded-2xl p-5 sm:p-6">
-        <p class="eyebrow mb-3">Orders in this payout</p>
+      <section v-if="payout.orderIds?.length" class="mc-section">
+        <h2 class="mc-h2 mb-2.5">Orders in this payout</h2>
         <div class="flex flex-wrap gap-2">
-          <NuxtLink
-            v-for="id in payout.orderIds"
-            :key="id"
-            :to="`/orders/${id}`"
-            class="chip hover:bg-ink/[0.08] dark:hover:bg-white/[0.10] transition-colors"
-          >
+          <NuxtLink v-for="id in payout.orderIds" :key="id" :to="`/orders/${id}`" class="mc-tag pd-order">
             #{{ id.slice(0, 8) }}
           </NuxtLink>
         </div>
@@ -149,14 +118,29 @@ const stamp = (t: number) =>
     day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
 
-const dotFor = (k: string) =>
-  ({ requested: "bg-amber-400", executed: "bg-blue-500", paid: "bg-emerald-500", failed: "bg-pokemon-red" })[k] ??
-  "bg-ink-soft";
-const chipFor = (s: PayoutBatch["status"]) =>
-  ({
-    queued: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
-    processing: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
-    paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
-    failed: "bg-pokemon-red/10 text-pokemon-red",
-  })[s];
+const historyTone = (k: string) =>
+  ({ requested: "warn", executed: "info", paid: "good", failed: "bad" })[k];
+const toneFor = (s: PayoutBatch["status"]) =>
+  ({ queued: "warn", processing: "info", paid: "good", failed: "bad" })[s];
 </script>
+
+<style>
+.pd-line {
+  position: absolute;
+  left: 3.5px;
+  top: 18px;
+  bottom: 0;
+  width: 1px;
+  background: var(--line-strong);
+}
+.pd-order {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  transition: background-color 120ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pd-order:hover {
+    background: var(--surface-3);
+  }
+}
+</style>

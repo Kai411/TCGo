@@ -1,235 +1,177 @@
 <template>
-  <div class="max-w-4xl mx-auto">
-    <div v-if="!user" class="text-center py-16">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg">Sign in to see your sales.</p>
-    </div>
+  <div class="sl-page">
+    <SellerGate v-if="!user" message="Sign in to see your sales." />
 
     <template v-else>
-      <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
-        <div>
-          <h1 class="text-2xl font-bold text-ink dark:text-white">Sales</h1>
-          <p class="text-sm text-gray-500 dark:text-zinc-400 mt-1">
-            Money you've concluded, at the counter and online. Shipping and
-            tracking live in <NuxtLink to="/seller/orders" class="text-pokemon-red font-semibold hover:underline">Orders</NuxtLink>.
-          </p>
-        </div>
-        <NuxtLink
-          to="/seller/pos"
-          class="px-3.5 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors"
-        >
-          Open POS
-        </NuxtLink>
+      <SellerPageHead title="Sales">
+        <template #description>
+          Money you've taken, at the counter and online. Shipping and tracking
+          live in <NuxtLink to="/seller/orders" class="underline underline-offset-2">Orders</NuxtLink>.
+        </template>
+        <NuxtLink to="/seller/pos" class="mc-btn mc-btn-primary">Open POS</NuxtLink>
+      </SellerPageHead>
+
+      <div v-if="loading" class="flex flex-col gap-4" aria-busy="true" aria-label="Loading sales">
+        <div class="mc-skel h-[96px]" />
+        <div class="mc-skel h-[220px]" />
       </div>
 
-      <div v-if="loading" class="flex justify-center py-16">
-        <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red" />
-      </div>
+      <p v-else-if="error" class="mc-callout" data-tone="bad">{{ error }}</p>
 
-      <p v-else-if="error" class="text-sm text-red-600 dark:text-red-400 py-3">{{ error }}</p>
-
-      <div v-else-if="!data?.periods.allTime.saleCount" class="surface rounded-2xl py-16 text-center">
-        <p class="text-lg font-semibold text-ink dark:text-white">No sales yet</p>
-        <p class="mt-1 text-sm text-gray-500 dark:text-zinc-400">
+      <div v-else-if="!data?.periods.allTime.saleCount" class="mc-card mc-empty flex items-center justify-between gap-3">
+        <span>
+          <span class="font-semibold text-[var(--ink-2)]">No sales yet.</span>
           Counter sales and completed marketplace orders both show here, with
           what each card actually went for.
-        </p>
-        <NuxtLink
-          to="/seller/pos"
-          class="inline-block mt-5 px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white"
-        >
-          Open POS
-        </NuxtLink>
+        </span>
       </div>
 
       <template v-else>
-        <!-- Takings over time -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <!-- Period picker: each cell is a filter for everything below it. -->
+        <div class="mc-card mc-cells" style="--cols: 4" role="group" aria-label="Period">
           <button
             v-for="p in periodCards"
             :key="p.key"
             type="button"
-            class="surface rounded-2xl p-4 text-left transition-shadow hover:shadow-card-hover"
-            :class="period === p.key ? 'ring-2 ring-pokemon-red' : ''"
+            class="mc-cell-btn"
+            :aria-pressed="period === p.key"
             @click="period = p.key"
           >
-            <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400">{{ p.label }}</p>
-            <p class="mt-1.5 text-xl font-bold text-ink dark:text-white tabular-price">
-              {{ myr(p.totals.total) }}
-            </p>
-            <p class="mt-0.5 text-micro text-ink-soft dark:text-zinc-500">
+            <span class="mc-label block">{{ p.label }}</span>
+            <span class="mc-stat-value mc-num mt-1 block">{{ myr(p.totals.total) }}</span>
+            <span class="mc-small mt-1 block">
               {{ p.totals.saleCount }} {{ p.totals.saleCount === 1 ? "sale" : "sales" }} ·
               {{ p.totals.itemCount }} {{ p.totals.itemCount === 1 ? "card" : "cards" }}
-            </p>
+            </span>
           </button>
         </div>
 
-        <!-- Breakdown for the selected window -->
-        <div class="grid sm:grid-cols-3 gap-3 mb-6">
-          <div class="surface rounded-2xl p-4">
-            <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400">Average sale</p>
-            <p class="mt-1.5 text-xl font-bold text-ink dark:text-white tabular-price">
-              {{ myr(selected.averageSale) }}
-            </p>
-          </div>
-          <div class="surface rounded-2xl p-4">
-            <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400">
-              Discount given
-            </p>
-            <p
-              class="mt-1.5 text-xl font-bold tabular-price"
-              :class="selected.discountTotal > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-ink dark:text-white'"
-            >
-              {{ myr(selected.discountTotal) }}
-            </p>
-            <p class="mt-0.5 text-micro text-ink-soft dark:text-zinc-500">
-              <!-- The gap between the printed label and what was taken. Worth
-                   its own figure: it's the easiest margin to give away and the
-                   hardest to notice going. -->
-              {{ selected.discountedLines }} of {{ selected.itemCount }} cards below label
-            </p>
-          </div>
-          <div class="surface rounded-2xl p-4">
-            <p class="text-xs font-semibold text-ink-muted dark:text-zinc-400">Asked vs taken</p>
-            <p class="mt-1.5 text-xl font-bold text-ink dark:text-white tabular-price">
-              {{ myr(selected.subtotal) }}
-            </p>
-            <p class="mt-0.5 text-micro text-ink-soft dark:text-zinc-500">
-              took {{ myr(selected.total) }}
-            </p>
-          </div>
+        <!-- Detail for the chosen period. -->
+        <div class="mc-card mc-cells mt-3" data-cols="3">
+          <AdminStat label="Average sale" :value="myr(selected.averageSale)" />
+          <AdminStat
+            label="Label price total"
+            :value="myr(selected.subtotal)"
+            :hint="`sold for ${myr(selected.total)}`"
+          />
+          <AdminStat
+            label="Discount given"
+            :value="myr(selected.discountTotal)"
+            :tone="selected.discountTotal > 0 ? 'warn' : undefined"
+            :hint="`${selected.discountedLines} of ${selected.itemCount} cards below label`"
+          />
         </div>
 
-        <!-- How people paid -->
-        <div v-if="data.byMethod.length" class="panel surface rounded-2xl p-4 mb-6">
-          <p class="eyebrow mb-3">How they paid</p>
-          <div class="space-y-2">
-            <div
-              v-for="m in data.byMethod"
-              :key="m.method"
-              class="flex items-center gap-3"
-            >
-              <span class="text-label font-semibold text-ink dark:text-zinc-200 w-28 shrink-0">
-                {{ m.label }}
-              </span>
-              <div class="flex-1 h-2 rounded-full bg-black/[0.06] dark:bg-white/[0.08] overflow-hidden">
-                <div class="h-full rounded-full bg-pokemon-red" :style="{ width: methodPct(m.total) }" />
-              </div>
-              <span class="text-label tabular-price text-ink dark:text-zinc-200 w-24 text-right shrink-0">
-                {{ myr(m.total) }}
-              </span>
-              <span class="text-micro text-ink-soft dark:text-zinc-500 w-8 text-right shrink-0">
-                {{ m.count }}
-              </span>
-            </div>
+        <!-- Trend for the chosen period: days for the short ones, months for
+             all time. Today is the period's own bar, so it is the red one. -->
+        <section v-if="chart.points.length" class="mc-card mc-card-pad mt-3">
+          <div class="flex items-baseline justify-between gap-3 mb-4">
+            <h2 class="mc-h3">{{ chart.title }}</h2>
+            <span class="mc-small">Paid sales, both channels</span>
           </div>
-        </div>
+          <SalesBarChart :points="chart.points" :hot="chart.hot" :label-every="chart.labelEvery" />
+        </section>
 
-        <!-- Best sellers -->
-        <div v-if="data.topCards.length > 1" class="panel surface rounded-2xl p-4 mb-6">
-          <p class="eyebrow mb-3">Moves fastest</p>
-          <div class="space-y-2">
-            <div v-for="c in data.topCards" :key="c.cardName" class="flex items-center gap-3">
-              <img
-                v-if="c.image"
-                :src="c.image"
-                alt=""
-                class="w-8 h-11 object-cover rounded shrink-0 bg-black/[0.04]"
-              />
-              <span class="flex-1 min-w-0 text-label font-semibold text-ink dark:text-zinc-200 truncate">
-                {{ c.cardName }}
-              </span>
-              <span class="text-micro text-ink-soft dark:text-zinc-500 shrink-0">×{{ c.count }}</span>
-              <span class="text-label tabular-price text-ink dark:text-zinc-200 w-24 text-right shrink-0">
-                {{ myr(c.total) }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Receipts -->
-        <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
-          <p class="eyebrow">Sales</p>
-          <div class="flex items-center gap-2">
-            <select v-model="channel" class="sel">
-              <option value="all">Both channels</option>
-              <option value="in_person">In person</option>
-              <option value="online">Online</option>
-            </select>
-            <select v-model="status" class="sel" @change="load()">
-            <option value="all">All</option>
-            <option value="paid">Paid</option>
-            <option value="awaiting_payment">Awaiting payment</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="failed">Failed</option>
-            </select>
-          </div>
-        </div>
-
-        <p v-if="!visibleSales.length" class="text-sm text-ink-soft dark:text-zinc-500 py-3">
-          Nothing matches that filter.
-        </p>
-
-        <div v-else class="surface rounded-2xl divide-y divide-black/[0.06] dark:divide-white/[0.08] overflow-hidden">
-          <NuxtLink
-            v-for="s in visibleSales"
-            :key="s.id"
-            :to="s.channel === 'online' && s.orderId ? `/orders/${s.orderId}` : `/seller/sales/${s.id}`"
-            class="flex items-center gap-3 p-3.5 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors"
-          >
-            <div class="flex -space-x-3 shrink-0">
-              <img
-                v-for="(l, i) in s.lines.slice(0, 3)"
-                :key="i"
-                :src="l.image || FALLBACK"
-                alt=""
-                class="w-9 h-12 object-cover rounded border-2 border-white dark:border-zinc-900 bg-black/[0.04]"
-              />
-            </div>
-
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-ink dark:text-white truncate">
-                {{ saleTitle(s) }}
-              </p>
-              <p class="text-caption text-gray-500 dark:text-zinc-400">
-                <span
-                  class="inline-block px-1.5 py-0.5 rounded-md text-micro font-semibold mr-1"
-                  :class="s.channel === 'online'
-                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300'
-                    : 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'"
-                >{{ s.channel === "online" ? "Online" : "In person" }}</span>
-                {{ s.lines.length }} {{ s.lines.length === 1 ? "card" : "cards" }} ·
-                {{ METHOD_LABELS[s.method] ?? s.method }} ·
-                {{ when(s.paidAt ?? s.createdAt) }}
-              </p>
-              <p
-                v-if="s.discountTotal > 0"
-                class="text-micro text-amber-600 dark:text-amber-400"
-              >
-                {{ myr(s.discountTotal) }} off label
-              </p>
-            </div>
-
-            <div class="text-right shrink-0">
-              <p class="text-sm font-bold text-ink dark:text-white tabular-price">
-                {{ myr(s.total) }}
-              </p>
-              <span
-                v-if="s.status !== 'paid'"
-                class="inline-block mt-0.5 px-1.5 py-0.5 rounded-md text-micro font-semibold"
-                :class="statusClass(s.status)"
-              >
-                {{ STATUS_LABELS[s.status] ?? s.status }}
-              </span>
-            </div>
-          </NuxtLink>
-        </div>
-
-        <p
-          v-if="data.truncated"
-          class="mt-3 text-micro text-ink-soft dark:text-zinc-500 text-center"
+        <div
+          v-if="data.byMethod.length || data.topCards.length > 1"
+          class="grid grid-cols-1 lg:grid-cols-2 gap-3 mc-section"
         >
-          Showing your most recent sales. Older ones aren't listed here yet.
-        </p>
+          <section v-if="data.byMethod.length" class="mc-card mc-card-pad">
+            <h2 class="mc-h3 mb-3">How they paid</h2>
+            <div class="flex flex-col gap-2.5">
+              <div
+                v-for="m in data.byMethod"
+                :key="m.method"
+                class="grid grid-cols-[6.5rem_minmax(0,1fr)_auto] items-center gap-3"
+              >
+                <span class="mc-label truncate">{{ m.label }}</span>
+                <div class="mc-meter">
+                  <span class="ss-bar" :style="{ width: methodPct(m.total) }" />
+                </div>
+                <span class="mc-num text-[13px] text-right">
+                  {{ myr(m.total) }}
+                  <span class="mc-small">· {{ m.count }}</span>
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <section v-if="data.topCards.length > 1" class="mc-card">
+            <h2 class="mc-h3 mc-card-pad !pb-2">Sells fastest</h2>
+            <div v-for="c in data.topCards" :key="c.cardName" class="mc-row !py-2">
+              <img v-if="c.image" :src="c.image" alt="" class="mc-thumb" />
+              <span v-else class="mc-thumb" aria-hidden="true" />
+              <span class="mc-row-title !text-[13.5px]">{{ c.cardName }}</span>
+              <span class="mc-num text-[13px]">
+                <span class="mc-small">×{{ c.count }}</span> {{ myr(c.total) }}
+              </span>
+            </div>
+          </section>
+        </div>
+
+        <section class="mc-section">
+          <div class="mc-section-head">
+            <h2 class="mc-h2">All sales</h2>
+            <div class="flex items-center gap-2">
+              <select v-model="channel" class="mc-select" aria-label="Channel">
+                <option value="all">Both channels</option>
+                <option value="in_person">In person</option>
+                <option value="online">Online</option>
+              </select>
+              <!-- Status is filtered server-side (refetch); channel is local. -->
+              <select v-model="status" class="mc-select" aria-label="Status" @change="load()">
+                <option value="all">Any status</option>
+                <option value="paid">Paid</option>
+                <option value="awaiting_payment">Awaiting payment</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="failed">Failed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mc-card overflow-hidden">
+            <p v-if="!visibleSales.length" class="mc-empty">Nothing matches that filter.</p>
+            <NuxtLink
+              v-for="s in visibleSales"
+              v-else
+              :key="s.id"
+              :to="s.channel === 'online' && s.orderId ? `/orders/${s.orderId}` : `/seller/sales/${s.id}`"
+              class="mc-row"
+            >
+              <div class="flex -space-x-3 shrink-0">
+                <img
+                  v-for="(l, i) in s.lines.slice(0, 3)"
+                  :key="i"
+                  :src="l.image || FALLBACK"
+                  alt=""
+                  class="mc-thumb ss-stack"
+                />
+              </div>
+              <div class="min-w-0">
+                <p class="mc-row-title">{{ saleTitle(s) }}</p>
+                <p class="mc-meta truncate">
+                  {{ s.channel === "online" ? "Online" : "In person" }} ·
+                  {{ s.lines.length }} {{ s.lines.length === 1 ? "card" : "cards" }} ·
+                  {{ METHOD_LABELS[s.method] ?? s.method }} ·
+                  {{ when(s.paidAt ?? s.createdAt) }}
+                </p>
+              </div>
+              <div class="text-right shrink-0">
+                <p class="mc-num text-[14px] font-semibold">{{ myr(s.total) }}</p>
+                <p v-if="s.status !== 'paid'" class="mc-small flex items-center justify-end gap-1.5 mt-0.5">
+                  <span class="mc-dot ss-dot" :data-tone="statusTone(s.status)" aria-hidden="true" />
+                  {{ STATUS_LABELS[s.status] ?? s.status }}
+                </p>
+                <p v-if="s.discountTotal > 0" class="mc-small mc-num mt-0.5">
+                  {{ myr(s.discountTotal) }} off label
+                </p>
+              </div>
+            </NuxtLink>
+          </div>
+          <p v-if="data.truncated" class="mc-small mt-3 text-center">
+            Showing your most recent sales. Older ones aren't listed here yet.
+          </p>
+        </section>
       </template>
     </template>
   </div>
@@ -237,7 +179,7 @@
 
 <script setup lang="ts">
 import { METHOD_LABELS, STATUS_LABELS } from "~/shared/sales-summary";
-import type { SalesTotals } from "~/shared/sales-summary";
+import type { SalesPoint, SalesTotals } from "~/shared/sales-summary";
 
 definePageMeta({ layout: "seller" });
 useHead({ title: "Counter sales | TCGo" });
@@ -297,6 +239,47 @@ const selected = computed<SalesTotals>(
   () => data.value?.periods[period.value] ?? ({} as SalesTotals),
 );
 
+// Chart for the chosen period. Older API responses have no series; the
+// section then simply doesn't render.
+const chart = computed(() => {
+  const daily: SalesPoint[] = data.value?.daily ?? [];
+  const monthly: SalesPoint[] = data.value?.monthly ?? [];
+  const day = (p: SalesPoint, fmt: Intl.DateTimeFormatOptions) => ({
+    value: p.total,
+    count: p.count,
+    label: new Date(p.start).toLocaleDateString("en-MY", { weekday: "short", day: "numeric", month: "short" }),
+    short: new Date(p.start).toLocaleDateString("en-MY", fmt),
+  });
+  if (period.value === "allTime") {
+    return {
+      title: "Last 12 months",
+      points: monthly.map((p) => ({
+        value: p.total,
+        count: p.count,
+        label: new Date(p.start).toLocaleDateString("en-MY", { month: "long", year: "numeric" }),
+        short: new Date(p.start).toLocaleDateString("en-MY", { month: "short" }),
+      })),
+      hot: null,
+      labelEvery: 2,
+    };
+  }
+  if (period.value === "last30") {
+    return {
+      title: "Last 30 days",
+      points: daily.map((p) => day(p, { day: "numeric" })),
+      hot: null,
+      labelEvery: 5,
+    };
+  }
+  const week = daily.slice(-7);
+  return {
+    title: "Last 7 days",
+    points: week.map((p) => day(p, { weekday: "short" })),
+    hot: period.value === "today" ? week.length - 1 : null,
+    labelEvery: 1,
+  };
+});
+
 const myr = (n: number) =>
   `RM ${(n ?? 0).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -324,16 +307,20 @@ const when = (ms: number) => {
     : `${d.toLocaleDateString("en-MY", { day: "numeric", month: "short" })}, ${time}`;
 };
 
-const statusClass = (s: string) =>
-  s === "awaiting_payment"
-    ? "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
-    : s === "failed"
-      ? "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300"
-      : "bg-gray-100 text-gray-600 dark:bg-white/[0.06] dark:text-zinc-300";
+const statusTone = (s: string) =>
+  s === "awaiting_payment" ? "warn" : s === "failed" ? "bad" : undefined;
 </script>
 
-<style scoped>
-.sel {
-  @apply px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-label;
+<style>
+.ss-bar {
+  background: var(--ink-2) !important;
+}
+.ss-stack {
+  outline: 2px solid var(--surface);
+}
+.ss-dot {
+  width: 6px;
+  height: 6px;
+  box-shadow: none;
 }
 </style>

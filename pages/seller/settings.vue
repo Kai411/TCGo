@@ -1,239 +1,192 @@
 <template>
-  <div class="max-w-3xl mx-auto">
-    <div v-if="!user" class="text-center py-16">
-      <p class="text-ink-muted dark:text-zinc-400 text-lg mb-4">
-        Sign in to manage your seller settings.
-      </p>
-      <button
-        @click="goToLogin"
-        class="bg-ink text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
-      >
-        Sign in
-      </button>
-    </div>
+  <div class="sl-page sl-page--narrow">
+    <SellerGate v-if="!user" message="Sign in to manage your seller settings." />
 
     <template v-else>
-      <div class="mb-5">
-        <h1 class="text-2xl font-bold text-ink dark:text-white">Seller settings</h1>
-        <p class="mt-1 text-sm text-ink-muted dark:text-zinc-400">
-          Your seller details, and how your shop ships and gets paid. Your buyer profile lives under
-          <NuxtLink :to="`/profile/${user.uid}`" class="font-semibold text-pokemon-red hover:underline">
-            your profile
-          </NuxtLink>.
-        </p>
-      </div>
+      <SellerPageHead title="Settings">
+        <template #description>
+          Your seller details, and how your shop ships and gets paid. Your buyer
+          profile lives under
+          <NuxtLink :to="`/profile/${user.uid}`" class="underline underline-offset-2">your profile</NuxtLink>.
+        </template>
+      </SellerPageHead>
 
-      <div class="panel surface rounded-2xl p-5 sm:p-6 space-y-7">
-        <!-- Setup status: the same steps the seller area is gated on -->
-        <div class="flex items-center justify-between gap-3">
-          <div>
-            <p class="text-sm font-semibold text-ink dark:text-zinc-100">Selling</p>
-            <p class="text-xs text-ink-muted dark:text-zinc-400 mt-0.5">
-              {{ sellerReady ? "Your shop is set up." : `Still to do: ${missing.join(", ")}.` }}
+      <!-- Status first: is the shop ready, and is the seller verified. -->
+      <section>
+        <h2 class="mc-h2 mb-2.5">Shop status</h2>
+        <div class="mc-card">
+          <div class="st-row">
+            <div class="min-w-0">
+              <p class="st-title flex items-center gap-2">
+                <span class="mc-dot" :data-tone="sellerReady ? 'good' : 'warn'" aria-hidden="true" />
+                {{ sellerReady ? "Ready to sell" : "Setup not finished" }}
+              </p>
+              <p class="mc-meta mt-0.5">
+                {{ sellerReady ? "Your shop is set up." : `Still to do: ${missing.join(", ")}.` }}
+              </p>
+            </div>
+            <NuxtLink v-if="!sellerReady" to="/seller/onboarding" class="mc-btn mc-btn-sm mc-btn-primary">
+              Finish setup
+            </NuxtLink>
+          </div>
+          <div class="st-row">
+            <div class="min-w-0 w-full">
+              <p class="st-title">Identity</p>
+              <p v-if="identityVerified" class="mc-meta mt-0.5">
+                Verified with your MyKad<span v-if="profile?.kycVerifiedName"> as {{ profile.kycVerifiedName }}</span>.
+              </p>
+              <KycVerifyCard v-else class="mt-2" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mc-section">
+        <h2 class="mc-h2 mb-2.5">Shop details</h2>
+        <div class="mc-card">
+          <div id="seller-type" class="st-row st-row--block">
+            <div class="st-row-head">
+              <div class="min-w-0">
+                <p class="st-title">Who buyers see</p>
+                <p class="mc-meta mt-0.5">Shown as the seller on your listings and auctions.</p>
+              </div>
+              <button v-if="editing !== 'seller'" type="button" class="mc-btn mc-btn-sm" @click="editing = 'seller'">
+                {{ disclosure ? "Edit" : "Add" }}
+              </button>
+            </div>
+            <SellerDisclosureForm
+              v-if="editing === 'seller'"
+              class="mt-4"
+              submit-label="Save"
+              cancellable
+              :current="disclosure"
+              @saved="(d) => { disclosure = d; editing = null; }"
+              @cancel="editing = null"
+            />
+            <div v-else-if="disclosure" class="st-value">
+              <p>{{ disclosure.name }}</p>
+              <p class="mc-meta mc-num">
+                {{ disclosure.type === "business" ? `Registered business · SSM ${disclosure.ssmNumber}` : "Individual seller" }}
+              </p>
+            </div>
+          </div>
+
+          <div id="pickup" class="st-row st-row--block">
+            <div class="st-row-head">
+              <div class="min-w-0">
+                <p class="st-title">Contact and pickup</p>
+                <p class="mc-meta mt-0.5">Where couriers collect your parcels. Also used to quote shipping.</p>
+              </div>
+              <button v-if="editing !== 'contact'" type="button" class="mc-btn mc-btn-sm" @click="editing = 'contact'">
+                {{ pickupLine ? "Edit" : "Add" }}
+              </button>
+            </div>
+            <SellerContactForm
+              v-if="editing === 'contact'"
+              class="mt-4"
+              submit-label="Save"
+              cancellable
+              @saved="editing = null"
+              @cancel="editing = null"
+            />
+            <div v-else-if="pickupLine" class="st-value">
+              <p>{{ pickupLine }}</p>
+              <p v-if="contactNumber" class="mc-meta mc-num">{{ contactNumber }}</p>
+            </div>
+            <p v-if="editing !== 'contact' && contactGaps.length" class="mc-callout mt-3">
+              Add your {{ joinWords(contactGaps) }} to finish setup.
             </p>
           </div>
-          <NuxtLink
-            v-if="!sellerReady"
-            to="/seller/onboarding"
-            class="chip shrink-0 bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
-          >
-            Finish setup
-          </NuxtLink>
-          <span
-            v-else
-            class="chip shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
-          >
-            Ready to sell
-          </span>
-        </div>
 
-        <!-- Identity -->
-        <div class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08]">
-          <p class="text-sm font-semibold text-ink dark:text-zinc-100 mb-1">Identity</p>
-          <p v-if="identityVerified" class="text-sm text-ink-muted dark:text-zinc-400">
-            Verified with your MyKad<span v-if="profile?.kycVerifiedName"> as {{ profile.kycVerifiedName }}</span>.
-          </p>
-          <KycVerifyCard v-else class="mt-2" />
-        </div>
-
-        <!-- Individual or business: what buyers see as the seller -->
-        <div id="seller-type" class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08]">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-ink dark:text-zinc-100 mb-1">Who buyers see</p>
-              <p class="text-sm text-ink-muted dark:text-zinc-400">
-                Shown as the seller on your listings and auctions.
-              </p>
+          <div id="bank" class="st-row st-row--block">
+            <div class="st-row-head">
+              <div class="min-w-0">
+                <p class="st-title">Bank account</p>
+                <p class="mc-meta mt-0.5">Where your online sales are paid out.</p>
+              </div>
+              <button v-if="editing !== 'bank'" type="button" class="mc-btn mc-btn-sm" @click="editing = 'bank'">
+                {{ bankLine ? "Edit" : "Add" }}
+              </button>
             </div>
-            <button
-              v-if="editing !== 'seller'"
-              class="shrink-0 text-sm font-semibold text-pokemon-red hover:underline"
-              @click="editing = 'seller'"
-            >
-              {{ disclosure ? "Edit" : "Add" }}
-            </button>
+            <SellerBankForm
+              v-if="editing === 'bank'"
+              class="mt-4"
+              submit-label="Save"
+              cancellable
+              @saved="editing = null"
+              @cancel="editing = null"
+            />
+            <p v-else-if="bankLine" class="st-value mc-num">{{ bankLine }}</p>
           </div>
-          <SellerDisclosureForm
-            v-if="editing === 'seller'"
-            class="mt-4"
-            submit-label="Save"
-            cancellable
-            :current="disclosure"
-            @saved="(d) => { disclosure = d; editing = null; }"
-            @cancel="editing = null"
-          />
-          <div v-else-if="disclosure" class="mt-2 text-sm text-ink-subtle dark:text-zinc-200">
-            <p>{{ disclosure.name }}</p>
-            <p class="text-ink-muted dark:text-zinc-400 tabular-nums">
-              {{ disclosure.type === "business" ? `Registered business · SSM ${disclosure.ssmNumber}` : "Individual seller" }}
+
+          <!-- The shop's own QR for counter (POS) payments -->
+          <SellerPaymentQr id="payment-qr" class="st-row st-row--block scroll-mt-24" />
+        </div>
+      </section>
+
+      <section class="mc-section">
+        <h2 class="mc-h2 mb-2.5">Shipping</h2>
+        <div class="mc-card">
+          <div class="st-row st-row--block">
+            <p class="st-title">Parcel handover</p>
+            <p class="mc-meta mt-0.5 mb-3">
+              The cheapest couriers are drop-off only. Pick collection and we'll
+              quote buyers the cheaper pickup services instead.
+            </p>
+            <div class="mc-seg" role="group" aria-label="Parcel handover">
+              <button
+                v-for="opt in HANDOVER_OPTIONS"
+                :key="opt.value"
+                type="button"
+                :aria-pressed="handover === opt.value"
+                :disabled="savingHandover"
+                @click="setHandover(opt.value)"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
+
+          <div class="st-row st-row--block">
+            <p class="st-title">Preferred couriers</p>
+            <p class="mc-meta mt-0.5 mb-3">
+              We use the cheapest of these that serves the buyer's address. If
+              none do, we fall back to the cheapest available rather than block
+              the sale. Pick none to always take the cheapest.
+            </p>
+            <p v-if="couriersLoading" class="mc-small">Loading couriers…</p>
+            <p v-else-if="courierNotice" class="mc-callout">{{ courierNotice }}</p>
+            <div v-else class="flex flex-wrap gap-2">
+              <button
+                v-for="c in availableCouriers"
+                :key="c"
+                type="button"
+                class="mc-tag st-chip"
+                :aria-pressed="preferredCouriers.includes(c)"
+                :disabled="savingCouriers"
+                @click="toggleCourier(c)"
+              >
+                <svg v-if="preferredCouriers.includes(c)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
+                {{ c }}
+              </button>
+            </div>
+            <p v-if="!couriersLoading && !courierNotice && !preferredCouriers.length" class="mc-small mt-2">
+              None selected, so we always use the cheapest available.
             </p>
           </div>
         </div>
+      </section>
 
-        <!-- Contact and pickup -->
-        <div id="pickup" class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08]">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-ink dark:text-zinc-100 mb-1">Contact and pickup</p>
-              <p class="text-sm text-ink-muted dark:text-zinc-400">
-                Where couriers collect your parcels. Also used to quote shipping.
-              </p>
-            </div>
-            <button
-              v-if="editing !== 'contact'"
-              class="shrink-0 text-sm font-semibold text-pokemon-red hover:underline"
-              @click="editing = 'contact'"
-            >
-              {{ pickupLine ? "Edit" : "Add" }}
-            </button>
-          </div>
-          <SellerContactForm
-            v-if="editing === 'contact'"
-            class="mt-4"
-            submit-label="Save"
-            cancellable
-            @saved="editing = null"
-            @cancel="editing = null"
-          />
-          <div v-else-if="pickupLine" class="mt-2 text-sm text-ink-subtle dark:text-zinc-200">
-            <p>{{ pickupLine }}</p>
-            <p v-if="contactNumber" class="text-ink-muted dark:text-zinc-400 tabular-nums">{{ contactNumber }}</p>
-          </div>
-          <p
-            v-if="editing !== 'contact' && contactGaps.length"
-            class="mt-2 text-sm text-amber-700 dark:text-amber-300"
-          >
-            Add your {{ joinWords(contactGaps) }} to finish setup.
-          </p>
+      <section class="mc-section">
+        <h2 class="mc-h2 mb-2.5 flex items-center gap-2">
+          Staff
+          <span class="mc-tag">Coming soon</span>
+        </h2>
+        <div class="mc-card mc-empty flex items-center justify-between gap-3">
+          <span>Invite staff to help manage listings, orders and shipments for you.</span>
+          <button type="button" class="mc-btn mc-btn-sm" disabled>Invite staff</button>
         </div>
-
-        <!-- Bank account -->
-        <div id="bank" class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08]">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-ink dark:text-zinc-100 mb-1">Bank account</p>
-              <p class="text-sm text-ink-muted dark:text-zinc-400">
-                Where your sales are paid out.
-              </p>
-            </div>
-            <button
-              v-if="editing !== 'bank'"
-              class="shrink-0 text-sm font-semibold text-pokemon-red hover:underline"
-              @click="editing = 'bank'"
-            >
-              {{ bankLine ? "Edit" : "Add" }}
-            </button>
-          </div>
-          <SellerBankForm
-            v-if="editing === 'bank'"
-            class="mt-4"
-            submit-label="Save"
-            cancellable
-            @saved="editing = null"
-            @cancel="editing = null"
-          />
-          <p v-else-if="bankLine" class="mt-2 text-sm text-ink-subtle dark:text-zinc-200 tabular-nums">{{ bankLine }}</p>
-        </div>
-
-        <!-- The shop's own QR for counter (POS) payments -->
-        <SellerPaymentQr id="payment-qr" class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08] scroll-mt-24" />
-
-        <!-- Handover preference -->
-        <div class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08]">
-          <p class="text-sm font-semibold text-ink dark:text-zinc-100 mb-1">Parcel handover</p>
-          <p class="text-sm text-ink-muted dark:text-zinc-400 mb-2">
-            The cheapest couriers are drop-off only. Pick collection and we'll
-            quote buyers the cheaper pickup services instead.
-          </p>
-          <div class="flex gap-2">
-            <button
-              v-for="opt in HANDOVER_OPTIONS"
-              :key="opt.value"
-              @click="setHandover(opt.value)"
-              :disabled="savingHandover"
-              class="px-4 py-2 rounded-lg text-sm font-semibold border transition-colors disabled:opacity-50"
-              :class="handover === opt.value
-                ? 'border-pokemon-red bg-pokemon-red/[0.06] text-pokemon-red'
-                : 'border-gray-300 dark:border-white/[0.10] text-ink-subtle dark:text-zinc-200'"
-            >
-              {{ opt.label }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Preferred couriers -->
-        <div class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08]">
-          <p class="text-sm font-semibold text-ink dark:text-zinc-100 mb-1">Preferred couriers</p>
-          <p class="text-sm text-ink-muted dark:text-zinc-400 mb-2">
-            We'll use the cheapest of these when one serves the buyer's address.
-            Coverage varies by destination, so if none reach a buyer we fall back
-            to the cheapest available rather than blocking the sale. Pick none to
-            always take the cheapest.
-          </p>
-
-          <p v-if="couriersLoading" class="text-sm text-ink-soft dark:text-zinc-500">Loading couriers…</p>
-          <p v-else-if="courierNotice" class="text-sm text-amber-600 dark:text-amber-400">
-            {{ courierNotice }}
-          </p>
-          <div v-else class="flex flex-wrap gap-2">
-            <button
-              v-for="c in availableCouriers"
-              :key="c"
-              @click="toggleCourier(c)"
-              :disabled="savingCouriers"
-              class="px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors disabled:opacity-50"
-              :class="preferredCouriers.includes(c)
-                ? 'border-pokemon-red bg-pokemon-red/[0.08] text-pokemon-red'
-                : 'border-gray-300 dark:border-white/[0.10] text-ink-subtle dark:text-zinc-200 hover:border-gray-400'"
-            >
-              {{ c }}
-            </button>
-          </div>
-          <p
-            v-if="!couriersLoading && !courierNotice && !preferredCouriers.length"
-            class="text-micro text-ink-soft dark:text-zinc-500 mt-2"
-          >
-            None selected — always using the cheapest available.
-          </p>
-        </div>
-
-        <!-- Staff — placeholder -->
-        <div class="pt-6 border-t border-black/[0.06] dark:border-white/[0.08] opacity-60">
-          <div class="flex items-center gap-2 mb-1">
-            <p class="text-sm font-semibold text-ink dark:text-zinc-100">Manage staff</p>
-            <span class="chip">Coming soon</span>
-          </div>
-          <p class="text-sm text-ink-muted dark:text-zinc-400">
-            Invite staff to help manage listings, orders and shipments on your behalf.
-          </p>
-          <button
-            disabled
-            class="mt-2 px-4 py-2 rounded-lg text-sm font-semibold border border-gray-300 dark:border-white/[0.10] text-ink-soft dark:text-zinc-400 cursor-not-allowed"
-          >
-            Invite staff
-          </button>
-        </div>
-      </div>
+      </section>
     </template>
   </div>
 </template>
@@ -249,7 +202,6 @@ definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Settings | TCGo" });
 
 const {user} = useAuth();
-const { goToLogin } = useSignInGate();
 const { profile, updateProfile } = useMyProfile();
 const { sellerReady, missing } = useSellerKyc();
 const route = useRoute();
@@ -387,3 +339,57 @@ const pickupLine = computed(() => {
     .join(", ");
 });
 </script>
+
+<style>
+.st-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.st-row + .st-row {
+  border-top: 1px solid var(--line);
+}
+.st-row--block {
+  display: block;
+}
+.st-row-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.st-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.st-value {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+  font-size: 13.5px;
+}
+.st-chip {
+  height: 28px;
+  padding: 0 11px;
+  gap: 5px;
+  font-weight: 550;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    transform 140ms var(--ease-out);
+}
+.st-chip:active {
+  transform: scale(0.94);
+}
+.st-chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--ink);
+}
+.st-chip:disabled {
+  opacity: 0.5;
+}
+</style>

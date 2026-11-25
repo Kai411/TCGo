@@ -1,95 +1,72 @@
 <template>
-  <div class="max-w-4xl mx-auto">
-    <div v-if="!user" class="text-center py-16">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to manage your auctions.</p>
-      <button @click="goToLogin" class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors">
-        Sign in
-      </button>
-    </div>
+  <div class="sl-page">
+    <SellerGate v-if="!user" message="Sign in to manage your auctions." />
 
     <template v-else>
-      <div class="flex items-center justify-between gap-3 mb-5">
-        <h1 class="text-2xl font-bold text-ink dark:text-white">Auctions</h1>
-        <NuxtLink
-          to="/seller/auctions/new"
-          class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors"
-        >
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      <SellerPageHead
+        title="Auctions"
+        description="Cards going to the highest bidder. Ended auctions with a winner turn into an order."
+      >
+        <NuxtLink to="/seller/auctions/new" class="mc-btn mc-btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
           Start an auction
         </NuxtLink>
-      </div>
+      </SellerPageHead>
 
-      <TabStrip v-model="tab" :tabs="tabs" />
+      <McTabs v-model="tab" :tabs="tabs" class="mb-4" />
 
-      <div v-if="loading" class="flex justify-center py-16">
-        <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red"/>
-      </div>
+      <div v-if="loading" class="mc-skel h-[200px]" aria-busy="true" aria-label="Loading auctions" />
 
-      <template v-else>
-        <!-- Active -->
-        <div v-if="tab === 'active'" class="mt-5">
-          <p v-if="!activeAuctions.length" class="text-sm text-gray-400 dark:text-zinc-500 py-3">
-            No active auctions.
-            <NuxtLink to="/seller/auctions/new" class="text-pokemon-red hover:underline ml-1">Create one →</NuxtLink>
-          </p>
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 lg:gap-3 items-start">
-            <ActivityRow
-              v-for="auction in activeAuctions"
-              :key="auction.id"
-              :image="auction.imageUrls?.[0] || auction.imageUrl"
-              :title="auction.cardName"
-              :subtitle="auction.cardSet || auction.title"
-              :to="`/auctions/${auction.id}`"
-            >
-              <template #meta>
-                <span class="text-pokemon-red font-semibold">RM {{ auction.currentPrice.toFixed(2) }}</span>
-                <span class="text-gray-400 dark:text-zinc-500 ml-2">{{ auction.bidCount ?? 0 }} bid{{ (auction.bidCount ?? 0) === 1 ? "" : "s" }}</span>
-                <span class="text-gray-500 dark:text-zinc-400 ml-2">{{ formatTimeLeft(auction.endsAt) }}</span>
-              </template>
-            </ActivityRow>
+      <div v-else class="mc-card overflow-hidden">
+        <template v-if="tab === 'active'">
+          <div v-if="!activeAuctions.length" class="mc-empty flex items-center justify-between gap-3">
+            <span>No live auctions.</span>
+            <NuxtLink to="/seller/auctions/new" class="mc-btn mc-btn-sm">Start one</NuxtLink>
           </div>
-        </div>
+          <NuxtLink v-for="auction in activeAuctions" v-else :key="auction.id" :to="`/auctions/${auction.id}`" class="mc-row">
+            <img :src="auction.imageUrls?.[0] || auction.imageUrl" alt="" class="mc-thumb" loading="lazy" />
+            <div class="min-w-0">
+              <p class="mc-row-title">{{ auction.cardName }}</p>
+              <p class="mc-meta truncate">
+                {{ auction.bidCount ?? 0 }} bid{{ (auction.bidCount ?? 0) === 1 ? "" : "s" }}
+                · {{ formatTimeLeft(auction.endsAt) }}
+                <template v-if="auction.cardSet || auction.title"> · {{ auction.cardSet || auction.title }}</template>
+              </p>
+            </div>
+            <span class="text-right">
+              <span class="mc-num font-semibold block">RM {{ auction.currentPrice.toFixed(2) }}</span>
+              <span class="mc-small">current bid</span>
+            </span>
+          </NuxtLink>
+        </template>
 
-        <!-- Ended -->
-        <div v-if="tab === 'ended'" class="mt-5">
-          <p v-if="!endedAuctions.length" class="text-sm text-gray-400 dark:text-zinc-500 py-3">
-            No ended auctions yet.
-          </p>
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 lg:gap-3 items-start">
-            <ActivityRow
-              v-for="auction in endedAuctions"
-              :key="auction.id"
-              :image="auction.imageUrls?.[0] || auction.imageUrl"
-              :title="auction.cardName"
-              :subtitle="auction.cardSet || auction.title"
-              :to="`/auctions/${auction.id}`"
-              :dim="!getWinner(auction)"
-            >
-              <template #meta>
-                <span class="text-pokemon-red font-semibold">RM {{ auction.currentPrice.toFixed(2) }}</span>
-                <span v-if="getWinner(auction)" class="text-green-600 ml-2 truncate">Won by {{ getWinner(auction)?.bidder }}</span>
-                <span v-else class="text-gray-400 dark:text-zinc-500 ml-2">No bids</span>
-              </template>
-              <template #actions>
-                <NuxtLink
-                  v-if="auction.orderId"
-                  :to="`/orders/${auction.orderId}`"
-                  class="text-xs bg-gray-900 dark:bg-white/[0.10] hover:bg-gray-700 text-white inline-flex items-center min-h-[36px] px-3 lg:min-h-0 lg:py-1.5 rounded-lg font-medium"
-                  @click.stop
-                >
-                  {{ auction.status === "sold" ? "View order" : "Awaiting payment" }}
-                </NuxtLink>
-                <span
-                  v-else-if="getWinner(auction)"
-                  class="text-xs text-gray-500 dark:text-zinc-400 px-1"
-                >
-                  Finalising…
-                </span>
-              </template>
-            </ActivityRow>
+        <template v-if="tab === 'ended'">
+          <p v-if="!endedAuctions.length" class="mc-empty">No ended auctions yet.</p>
+          <div
+            v-for="auction in endedAuctions"
+            v-else
+            :key="auction.id"
+            class="mc-row mc-row--split"
+            :class="{ 'is-done': !getWinner(auction) }"
+          >
+            <NuxtLink :to="`/auctions/${auction.id}`" class="mc-row-link">
+              <img :src="auction.imageUrls?.[0] || auction.imageUrl" alt="" class="mc-thumb" loading="lazy" />
+              <div class="min-w-0">
+                <p class="mc-row-title">{{ auction.cardName }}</p>
+                <p class="mc-meta truncate">
+                  <span class="mc-num font-semibold text-[var(--ink)]">RM {{ auction.currentPrice.toFixed(2) }}</span>
+                  · <template v-if="getWinner(auction)">won by {{ getWinner(auction)?.bidder }}</template>
+                  <template v-else>no bids</template>
+                </p>
+              </div>
+            </NuxtLink>
+            <NuxtLink v-if="auction.orderId" :to="`/orders/${auction.orderId}`" class="mc-btn mc-btn-sm">
+              {{ auction.status === "sold" ? "View order" : "Awaiting payment" }}
+            </NuxtLink>
+            <span v-else-if="getWinner(auction)" class="mc-small">Finalising…</span>
           </div>
-        </div>
-      </template>
+        </template>
+      </div>
     </template>
   </div>
 </template>
@@ -107,7 +84,6 @@ definePageMeta({ layout: "seller" });
 useHead({ title: "Seller · Auctions | TCGo" });
 
 const {user} = useAuth();
-const { goToLogin } = useSignInGate();
 const { auctions, loading } = useAuctions();
 
 const tab = ref<"active" | "ended">("active");

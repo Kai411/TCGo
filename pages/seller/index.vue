@@ -1,20 +1,16 @@
 <template>
-  <div class="max-w-5xl mx-auto">
-    <div v-if="!user" class="text-center py-16">
-      <p class="text-ink-muted dark:text-zinc-400 text-lg mb-4">
-        Sign in to manage your inventory.
-      </p>
-      <button
-        @click="goToLogin"
-        class="bg-ink text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
-      >
-        Sign in
-      </button>
-    </div>
+  <!-- Calm UI page (tokens from the seller layout's `.mc` shell). -->
+  <div class="sl-page">
+    <SellerGate v-if="!user" message="Sign in to manage your inventory." />
 
     <template v-else>
-      <div v-if="loadingSeller" class="flex justify-center py-16">
-        <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red" />
+      <SellerPageHead title="Dashboard">
+        <NuxtLink to="/seller/pos" class="mc-btn mc-btn-primary">Open POS</NuxtLink>
+      </SellerPageHead>
+
+      <div v-if="loadingSeller" class="flex flex-col gap-6" aria-busy="true" aria-label="Loading dashboard">
+        <div class="mc-skel h-[108px]" />
+        <div class="mc-skel h-[260px]" />
       </div>
 
       <!-- The dashboard is now purely an overview. Drilling into a number
@@ -43,7 +39,6 @@ useHead({ title: "Seller dashboard | TCGo" });
 
 const router = useRouter();
 const {user} = useAuth();
-const { goToLogin } = useSignInGate();
 const { sellerCompiledOrders, loadingSeller, listenSellerCompiledOrders } =
   useCompiledOrders();
 const { items: inventoryItems, listenMyInventory } = useInventory();
@@ -84,3 +79,4 @@ watch(user, (u) => {
   if (u) start();
 });
 </script>
+

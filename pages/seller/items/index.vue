@@ -1,62 +1,46 @@
 <template>
-  <div class="max-w-4xl mx-auto">
-    <div v-if="!user" class="text-center py-16">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">Sign in to manage your inventory.</p>
-      <button @click="goToLogin" class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors">
-        Sign in
-      </button>
-    </div>
+  <div class="sl-page">
+    <SellerGate v-if="!user" message="Sign in to manage your inventory." />
 
     <template v-else>
-      <!-- Header + summary -->
-      <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
-        <div>
-          <h1 class="text-2xl font-bold text-ink dark:text-white">Inventory</h1>
-          <p class="text-sm text-gray-500 dark:text-zinc-400 mt-1">
-            <span class="font-semibold text-ink dark:text-white tabular-nums">{{ totalUnits }}</span> units ·
-            <span class="font-semibold text-ink dark:text-white tabular-nums">{{ count }}</span> entries ·
-            est. value <span class="font-semibold text-pokemon-red tabular-nums">RM {{ formatMyr(totalValue) }}</span>
-          </p>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <button
-            v-if="count > 0"
-            @click="printAll"
-            title="Print QR labels for the current view"
-            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-          >
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-            Labels
-          </button>
-          <NuxtLink
-            to="/seller/import"
-            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-          >
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Bulk add
-          </NuxtLink>
-          <button
-            @click="addOpen = !addOpen"
-            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors"
-          >
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-            Add inventory
-          </button>
-        </div>
+      <!-- Header + summary. The three numbers that describe the shelf sit
+           in their own card rather than inside a sentence. -->
+      <SellerPageHead
+        title="Inventory"
+        description="Every card you hold, listed or not. Edit prices and costs right in the table."
+      >
+        <button
+          v-if="count > 0"
+          type="button"
+          class="mc-btn"
+          title="Print QR labels for the current view"
+          @click="printAll"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Labels
+        </button>
+        <NuxtLink to="/seller/import" class="mc-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Bulk add
+        </NuxtLink>
+        <button type="button" class="mc-btn mc-btn-primary" @click="addOpen = !addOpen">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Add inventory
+        </button>
+      </SellerPageHead>
+
+      <div v-if="count > 0 && !addOpen" class="mc-card mc-cells mc-cells--keep mb-5" style="--cols: 3">
+        <AdminStat label="Units" :value="String(totalUnits)" />
+        <AdminStat label="Entries" :value="String(count)" />
+        <AdminStat label="Est. value" :value="`RM ${formatMyr(totalValue)}`" hint="at list prices" />
       </div>
 
       <!-- Add to inventory. Uses the same AddMethodPicker as Listings and
            Auctions so the choice looks and reads identically everywhere. -->
-      <div v-if="addOpen" class="panel surface rounded-2xl p-4 sm:p-5 mb-6">
+      <div v-if="addOpen" class="mc-card mc-card-pad mb-6">
         <div class="flex items-center justify-between gap-3 mb-4">
-          <p class="text-sm font-bold text-ink dark:text-white">Add to inventory</p>
-          <button
-            type="button"
-            @click="closeAdd"
-            class="text-xs font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white"
-          >
-            Close
-          </button>
+          <h2 class="mc-h2">Add to inventory</h2>
+          <button type="button" class="mc-btn mc-btn-ghost mc-btn-sm" @click="closeAdd">Close</button>
         </div>
 
         <AddMethodPicker
@@ -78,7 +62,7 @@
             type="button"
             @click="scannerOpen = true"
             :disabled="!isPremium && scanRemaining === 0"
-            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="mc-btn mc-btn-primary disabled:cursor-not-allowed"
           >
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
@@ -86,7 +70,7 @@
             </svg>
             Open scanner
           </button>
-          <p v-if="scanAdded > 0" class="mt-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+          <p v-if="scanAdded > 0" class="mc-small mt-3 font-semibold text-[var(--ink-2)]">
             Added {{ scanAdded }} scanned {{ scanAdded === 1 ? "card" : "cards" }} to inventory.
           </p>
         </div>
@@ -97,15 +81,15 @@
              itself is indistinguishable from one that failed. -->
         <div
           v-if="sessionAdds.length"
-          class="mb-4 rounded-xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 px-3.5 py-3"
+          class="mc-callout mb-4" data-tone="good"
         >
           <div class="flex items-center justify-between gap-3 mb-1.5">
-            <p class="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+            <p class="text-[12.5px] font-semibold">
               Added {{ sessionAdds.length }} {{ sessionAdds.length === 1 ? "card" : "cards" }}
             </p>
             <button
               type="button"
-              class="text-micro font-semibold text-emerald-700 dark:text-emerald-400 hover:underline"
+              class="mc-btn mc-btn-ghost mc-btn-sm"
               @click="undoLastAdd"
               :disabled="undoBusy"
             >
@@ -116,7 +100,7 @@
             <li
               v-for="a in sessionAdds.slice(0, 4)"
               :key="a.id"
-              class="text-caption text-emerald-900/80 dark:text-emerald-200/80 flex justify-between gap-3"
+              class="mc-meta flex justify-between gap-3"
             >
               <span class="truncate">{{ a.label }}</span>
               <span v-if="a.qty > 1" class="shrink-0 tabular-nums">×{{ a.qty }}</span>
@@ -124,7 +108,7 @@
           </ul>
           <p
             v-if="sessionAdds.length > 4"
-            class="text-micro text-emerald-700/70 dark:text-emerald-400/70 mt-1"
+            class="mc-small mt-1"
           >
             and {{ sessionAdds.length - 4 }} more
           </p>
@@ -202,7 +186,7 @@
             </div>
           </div>
 
-          <div v-if="manualError" class="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm">
+          <div v-if="manualError" class="mc-callout" data-tone="bad">
             {{ manualError }}
           </div>
 
@@ -210,7 +194,7 @@
             <button
               type="submit"
               :disabled="manualBusy || !cardForm.cardName.trim()"
-              class="flex-1 bg-pokemon-red text-white py-3 rounded-lg font-bold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="mc-btn mc-btn-primary flex-1 disabled:cursor-not-allowed"
             >
               <!-- The form already clears and stays open, so this IS the
                    add-another loop. Saying so is the only thing that was
@@ -220,7 +204,7 @@
             <button
               v-if="sessionAdds.length"
               type="button"
-              class="px-5 py-3 rounded-lg font-bold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 hover:bg-black/[0.03] dark:hover:bg-white/[0.06] transition-colors"
+              class="mc-btn"
               @click="finishAdding"
             >
               Done
@@ -242,98 +226,84 @@
            panel carries the confirmation the table would otherwise provide. -->
       <div
         v-if="addOpen && count > 0"
-        class="surface rounded-2xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
+        class="mc-card px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
       >
-        <p class="text-label text-gray-500 dark:text-zinc-400">
+        <p class="mc-meta">
           Your {{ count }} {{ count === 1 ? "item is" : "items are" }} hidden while you're adding.
         </p>
-        <button
-          class="text-xs font-semibold text-pokemon-red hover:underline"
-          @click="finishAdding"
-        >
-          Show inventory
-        </button>
+        <button type="button" class="mc-btn mc-btn-sm" @click="finishAdding">Show inventory</button>
       </div>
 
-      <div v-else-if="loading" class="flex justify-center py-16">
-        <div class="animate-spin rounded-full h-6 w-6 border-2 border-ink/10 border-t-pokemon-red"/>
-      </div>
+      <div v-else-if="loading" class="mc-skel h-[240px]" aria-busy="true" aria-label="Loading inventory" />
 
-      <div v-else-if="count === 0" class="surface rounded-2xl py-16 text-center">
-        <p class="text-lg font-semibold text-ink dark:text-white">No inventory yet</p>
-        <p class="mt-1 text-sm text-gray-500 dark:text-zinc-400">
-          Bulk add from a file or pasted rows, or add cards to start tracking your stock.
-        </p>
-        <div class="mt-5 flex items-center justify-center gap-2">
-          <NuxtLink to="/seller/import" class="px-4 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors">Bulk add</NuxtLink>
-          <button @click="addOpen = true" class="px-4 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200">Add inventory</button>
-        </div>
+      <div v-else-if="count === 0" class="mc-card mc-empty flex items-center justify-between gap-3 flex-wrap">
+        <span>
+          <span class="font-semibold text-[var(--ink-2)]">No inventory yet.</span>
+          Bulk add from a file or pasted rows, or add cards one at a time.
+        </span>
+        <NuxtLink to="/seller/import" class="mc-btn mc-btn-sm">Bulk add</NuxtLink>
       </div>
 
       <template v-else>
         <!-- Status filter + count + select all -->
-        <div id="inventory-list" class="flex items-center justify-between gap-3 mb-3 flex-wrap scroll-mt-4">
-          <div class="flex items-center gap-2 flex-wrap">
-            <TabStrip v-model="statusFilter" :tabs="filterTabs" />
-            <button
-              v-if="missingCostCount > 0"
-              type="button"
-              @click="missingCostOnly = !missingCostOnly"
-              :title="missingCostOnly ? 'Show every item' : 'Show only items without a cost price'"
-              class="text-xs font-semibold px-2.5 py-1 rounded-full border transition-colors tabular-nums"
-              :class="missingCostOnly
-                ? 'border-amber-400 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300'
-                : 'border-gray-200 dark:border-white/[0.10] text-gray-600 dark:text-zinc-300 hover:bg-black/[0.03] dark:hover:bg-white/[0.06]'"
-            >
-              {{ missingCostCount }} without cost
-            </button>
-          </div>
-          <div class="flex items-center gap-3">
-            <button
-              @click="toggleSelectAllFiltered"
-              class="text-xs font-semibold text-pokemon-red hover:underline"
-            >
-              {{ allFilteredSelected ? "Clear selection" : `Select all ${filteredItems.length}` }}
-            </button>
-            <p class="text-xs text-gray-400 dark:text-zinc-500">
-              {{ filteredItems.length }} {{ filteredItems.length === 1 ? "item" : "items" }}
-            </p>
+        <div id="inventory-list" class="scroll-mt-4 mb-3">
+          <McTabs v-model="statusFilter" :tabs="filterTabs" />
+          <div class="flex items-center justify-between gap-2 mt-3 flex-wrap">
+            <div class="flex items-center gap-2">
+              <button
+                v-if="missingCostCount > 0"
+                type="button"
+                class="mc-tag inv-filter mc-num"
+                :aria-pressed="missingCostOnly"
+                :title="missingCostOnly ? 'Show every item' : 'Show only items without a cost price'"
+                @click="missingCostOnly = !missingCostOnly"
+              >
+                <span class="mc-dot" data-tone="warn" aria-hidden="true" />
+                {{ missingCostCount }} without a cost price
+              </button>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="mc-small mc-num">
+                {{ filteredItems.length }} {{ filteredItems.length === 1 ? "item" : "items" }}
+              </span>
+              <button type="button" class="mc-btn mc-btn-ghost mc-btn-sm" @click="toggleSelectAllFiltered">
+                {{ allFilteredSelected ? "Clear selection" : `Select all` }}
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- Bulk action bar -->
-        <div
-          v-if="selected.size"
-          class="flex items-center justify-between gap-2 mb-3 px-3 py-2 rounded-xl border border-pokemon-red/30 bg-pokemon-red/[0.06] flex-wrap"
-        >
+        <div v-if="selected.size" class="mc-card inv-bulk mb-3">
           <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold text-ink dark:text-white">{{ selected.size }} selected</span>
+            <span class="font-semibold mc-num">{{ selected.size }} selected</span>
             <button
               v-if="selected.size < filteredItems.length"
+              type="button"
+              class="mc-btn mc-btn-ghost mc-btn-sm"
               @click="selectAllFiltered"
-              class="text-xs font-semibold text-pokemon-red hover:underline"
             >
               Select all {{ filteredItems.length }}
             </button>
           </div>
-          <div class="flex items-center gap-1.5">
-            <button @click="printSelected" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200">Labels</button>
-            <button @click="bulkList" :disabled="bulkBusy" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-50">List</button>
-            <button @click="bulkMarkSold" :disabled="bulkBusy" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-white/[0.10] text-gray-700 dark:text-zinc-200 disabled:opacity-50">Mark sold</button>
-            <button @click="bulkRemove" :disabled="bulkBusy" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-white/[0.10] text-red-600 disabled:opacity-50">Remove</button>
-            <button @click="clearSelection" class="px-2 py-1.5 rounded-lg text-xs text-gray-500 dark:text-zinc-400 hover:text-ink dark:hover:text-white">Clear</button>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button type="button" class="mc-btn mc-btn-sm mc-btn-primary" :disabled="bulkBusy" @click="bulkList">List</button>
+            <button type="button" class="mc-btn mc-btn-sm" @click="printSelected">Labels</button>
+            <button type="button" class="mc-btn mc-btn-sm" :disabled="bulkBusy" @click="bulkMarkSold">Mark sold</button>
+            <button type="button" class="mc-btn mc-btn-sm mc-btn-danger" :disabled="bulkBusy" @click="bulkRemove">Remove</button>
+            <button type="button" class="mc-btn mc-btn-sm mc-btn-ghost" @click="clearSelection">Clear</button>
           </div>
         </div>
 
         <!-- Phone: one compact row per item — photo, name and condition,
              then Edit and a ⋯ menu. Tapping the photo or name views it;
              price, quantity and photo are changed in the edit drawer. -->
-        <ul class="sm:hidden surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+        <ul class="sm:hidden mc-card inv-list">
           <li
             v-for="item in pagedItems"
             :key="item.id"
             class="flex items-center gap-2 pr-1 py-2"
-            :class="isSelected(item.id) ? 'bg-pokemon-red/[0.03]' : ''"
+            :class="{ 'is-selected': isSelected(item.id) }"
           >
             <label class="shrink-0 flex items-center justify-center w-10 h-11 cursor-pointer">
               <input type="checkbox" :checked="isSelected(item.id)" @change="toggleSelect(item.id)" class="rounded" :aria-label="`Select ${item.cardName}`" />
@@ -354,21 +324,21 @@
               <span class="text-xs text-gray-500 dark:text-zinc-400 truncate">{{ item.condition || "No condition" }}</span>
               <span class="mt-0.5 flex items-center gap-1.5 text-micro text-gray-400 dark:text-zinc-500 tabular-nums">
                 RM {{ formatMyr(item.listPrice || 0) }}<template v-if="item.quantity > 1"> × {{ item.quantity }}</template>
-                <span class="font-semibold px-1.5 rounded-full whitespace-nowrap" :class="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
+                <span class="inline-flex items-center gap-1 whitespace-nowrap"><span class="mc-dot inv-dot" :data-tone="statusTone(item.status)" aria-hidden="true" />{{ statusLabel(item.status) }}</span>
               </span>
             </button>
-            <button type="button" @click="openEditDialog(item)" aria-label="Edit listing" class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full text-gray-500 dark:text-zinc-400 active:bg-black/[0.05] dark:active:bg-white/[0.08]">
+            <button type="button" @click="openEditDialog(item)" aria-label="Edit listing" class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full inv-touch">
               <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
             </button>
-            <button type="button" @click="menuItem = item" aria-label="More actions" class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full text-gray-500 dark:text-zinc-400 active:bg-black/[0.05] dark:active:bg-white/[0.08]">
+            <button type="button" @click="menuItem = item" aria-label="More actions" class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full inv-touch">
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
             </button>
           </li>
         </ul>
 
-        <div class="hidden sm:block surface rounded-2xl border border-black/[0.06] dark:border-white/[0.08]">
-          <table class="w-full text-sm table-fixed">
-            <thead class="text-xs text-gray-400 dark:text-zinc-500 border-b border-black/[0.06] dark:border-white/[0.08]">
+        <div class="hidden sm:block mc-card overflow-hidden">
+          <table class="w-full table-fixed inv-table">
+            <thead>
               <tr>
                 <th class="px-3 py-2 w-9">
                   <input type="checkbox" :checked="allPageSelected" @change="toggleSelectAllPage" class="rounded align-middle" aria-label="Select all on page" />
@@ -385,8 +355,8 @@
             <!-- Every cell is align-middle so checkbox, thumbnail, inputs, status
                  pill and action icons share one centre line regardless of how
                  many lines the card name wraps to. -->
-            <tbody class="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
-              <tr v-for="item in pagedItems" :key="item.id" :class="isSelected(item.id) ? 'bg-pokemon-red/[0.03]' : ''">
+            <tbody>
+              <tr v-for="item in pagedItems" :key="item.id" :class="{ 'is-selected': isSelected(item.id) }">
                 <!-- Select -->
                 <td class="px-3 py-2.5 align-middle">
                   <input type="checkbox" :checked="isSelected(item.id)" @change="toggleSelect(item.id)" class="rounded align-middle" :aria-label="`Select ${item.cardName}`" />
@@ -425,7 +395,7 @@
                     :disabled="item.status === 'listed'"
                     :title="item.status === 'listed' ? 'Unlist to change condition' : undefined"
                     @change="updateItem(item.id, { condition: ($event.target as HTMLSelectElement).value })"
-                    class="mt-1 max-w-full text-micro px-1.5 py-0.5 rounded border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                    class="inv-cell inv-cell-sm mt-1 max-w-full disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option value="">Condition…</option>
                     <option v-for="c in conditionOptions(item.condition)" :key="c" :value="c">{{ c }}</option>
@@ -437,7 +407,7 @@
                     type="number" min="0" step="0.01"
                     :value="item.listPrice"
                     @change="updateItem(item.id, { listPrice: Number(($event.target as HTMLInputElement).value) })"
-                    class="w-full text-sm text-right px-1.5 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums"
+                    class="inv-cell w-full text-right mc-num"
                   />
                 </td>
                 <!-- Qty -->
@@ -448,7 +418,7 @@
                     :disabled="item.status === 'listed'"
                     :title="item.status === 'listed' ? 'Unlist to change quantity' : undefined"
                     @change="updateItem(item.id, { quantity: Math.max(1, Number(($event.target as HTMLInputElement).value)) })"
-                    class="w-full text-sm text-right px-1.5 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums disabled:opacity-60 disabled:cursor-not-allowed"
+                    class="inv-cell w-full text-right mc-num disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </td>
                 <!-- Cost, or profit once sold. Private either way: this column
@@ -459,7 +429,7 @@
                   <template v-if="item.status === 'sold' && rowProfit(item) !== null">
                     <p
                       class="text-sm font-semibold tabular-nums"
-                      :class="(rowProfit(item) ?? 0) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
+                      
                       :title="item.costNote || 'Profit: sold price less TCGo fee and cost'"
                     >
                       {{ signedMyr(rowProfit(item) ?? 0) }}
@@ -475,38 +445,39 @@
                     placeholder="—"
                     :title="item.costNote || 'Cost price per card (private)'"
                     @change="updateItem(item.id, { costPrice: costFromInput(($event.target as HTMLInputElement).value) })"
-                    class="w-full text-sm text-right px-1.5 py-1 rounded-md border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-ink dark:text-white tabular-nums placeholder:text-gray-300 dark:placeholder:text-zinc-600"
+                    class="inv-cell w-full text-right mc-num"
                   />
                 </td>
                 <!-- Status -->
                 <td class="px-2 py-2.5 align-middle hidden sm:table-cell">
-                  <span class="text-2xs font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="statusClass(item.status)">
+                  <span class="mc-meta inline-flex items-center gap-1.5 whitespace-nowrap">
+                    <span class="mc-dot inv-dot" :data-tone="statusTone(item.status)" aria-hidden="true" />
                     {{ statusLabel(item.status) }}
                   </span>
                 </td>
                 <!-- Actions (icon buttons) -->
                 <td class="px-2 py-2.5 align-middle">
                   <div class="flex items-center justify-end gap-0.5">
-                    <button @click="openEditDialog(item)" title="Edit details" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 dark:text-zinc-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:text-ink dark:hover:text-white transition-colors">
+                    <button @click="openEditDialog(item)" title="Edit details" class="mc-btn mc-btn-ghost mc-btn-sm inv-icon">
                       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                     </button>
                     <template v-if="item.status === 'in_stock'">
-                      <button @click="openListDialog(item)" title="List for sale" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-pokemon-red hover:bg-pokemon-red/10 transition-colors">
+                      <button @click="openListDialog(item)" title="List for sale" class="mc-btn mc-btn-ghost mc-btn-sm inv-icon !text-[var(--ink)]">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59A2 2 0 0 0 3.83 11l9.58 9.59a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.83z"/><circle cx="7" cy="7" r="1.4" fill="currentColor" stroke="none"/></svg>
                       </button>
-                      <button @click="handleMarkSold(item.id)" title="Mark sold" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 dark:text-zinc-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:text-ink dark:hover:text-white transition-colors">
+                      <button @click="handleMarkSold(item.id)" title="Mark sold" class="mc-btn mc-btn-ghost mc-btn-sm inv-icon">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       </button>
                     </template>
                     <template v-else-if="item.status === 'listed'">
-                      <NuxtLink v-if="item.listingId" :to="`/cards/${item.listingId}`" title="View listing" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 dark:text-zinc-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:text-ink dark:hover:text-white transition-colors">
+                      <NuxtLink v-if="item.listingId" :to="`/cards/${item.listingId}`" title="View listing" class="mc-btn mc-btn-ghost mc-btn-sm inv-icon">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
                       </NuxtLink>
-                      <button @click="handleUnlist(item.id)" title="Unlist (back to stock)" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 transition-colors">
+                      <button @click="handleUnlist(item.id)" title="Unlist (back to stock)" class="mc-btn mc-btn-ghost mc-btn-sm inv-icon">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>
                       </button>
                     </template>
-                    <button @click="handleRemove(item.id)" title="Remove from inventory" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors">
+                    <button @click="handleRemove(item.id)" title="Remove from inventory" class="mc-btn mc-btn-ghost mc-btn-sm inv-icon mc-btn-danger">
                       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                   </div>
@@ -518,18 +489,18 @@
 
         <!-- Pagination -->
         <div v-if="totalPages > 1" class="flex items-center justify-between mt-3">
-          <p class="text-xs text-gray-400 dark:text-zinc-500 tabular-nums">{{ rangeStart }}–{{ rangeEnd }} of {{ filteredItems.length }}</p>
+          <p class="mc-small mc-num">{{ rangeStart }}–{{ rangeEnd }} of {{ filteredItems.length }}</p>
           <div class="flex items-center gap-1">
             <button
               @click="page = Math.max(0, page - 1)"
               :disabled="page === 0"
-              class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200 disabled:opacity-40"
+              class="mc-btn mc-btn-sm"
             >Prev</button>
             <span class="text-xs px-2 tabular-nums text-gray-500 dark:text-zinc-400">{{ page + 1 }} / {{ totalPages }}</span>
             <button
               @click="page = Math.min(totalPages - 1, page + 1)"
               :disabled="page >= totalPages - 1"
-              class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200 disabled:opacity-40"
+              class="mc-btn mc-btn-sm"
             >Next</button>
           </div>
         </div>
@@ -543,18 +514,18 @@
     <Transition name="sheet">
       <div
         v-if="menuItem"
-        class="sm:hidden fixed inset-0 z-50 flex items-end bg-black/40"
+        class="sm:hidden fixed inset-0 z-50 flex items-end inv-scrim"
         @click.self="menuItem = null"
       >
-        <div class="sheet-panel surface w-full rounded-t-3xl border-t border-black/[0.06] dark:border-white/[0.08] px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div class="sheet-panel inv-sheet w-full px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div class="mx-auto mb-1 h-1 w-9 rounded-full bg-gray-300 dark:bg-white/20" aria-hidden="true" />
           <p class="px-3 py-2 text-xs text-gray-500 dark:text-zinc-400 truncate">{{ menuItem.cardName }}</p>
           <template v-if="menuItem.status === 'in_stock'">
-            <button type="button" class="menu-row text-pokemon-red" @click="menuAction(openListDialog)">List for sale</button>
+            <button type="button" class="menu-row font-semibold" @click="menuAction(openListDialog)">List for sale</button>
             <button type="button" class="menu-row" @click="menuAction((i) => handleMarkSold(i.id))">Mark sold</button>
           </template>
           <button v-else-if="menuItem.status === 'listed'" type="button" class="menu-row" @click="menuAction((i) => handleUnlist(i.id))">Unlist (back to stock)</button>
-          <button type="button" class="menu-row text-red-600 dark:text-red-400" @click="menuAction((i) => handleRemove(i.id))">Remove from inventory</button>
+          <button type="button" class="menu-row inv-danger" @click="menuAction((i) => handleRemove(i.id))">Remove from inventory</button>
           <button type="button" class="menu-row justify-center mt-1 font-semibold" @click="menuItem = null">Cancel</button>
         </div>
       </div>
@@ -563,20 +534,20 @@
     <!-- List-for-sale dialog -->
     <div
       v-if="listing"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 inv-scrim"
       @click.self="listing = null"
     >
-      <div class="surface rounded-2xl w-full max-w-sm p-5 border border-black/[0.06] dark:border-white/[0.08]">
-        <h3 class="text-base font-bold text-ink dark:text-white mb-1">List for sale</h3>
-        <p class="text-xs text-gray-500 dark:text-zinc-400 mb-4 truncate">{{ listing.cardName }}</p>
+      <div class="inv-modal w-full max-w-sm p-5">
+        <h3 class="mc-h2 mb-1">List for sale</h3>
+        <p class="mc-meta mb-4 truncate">{{ listing.cardName }}</p>
         <div class="space-y-3">
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Price (RM)</label>
-            <input v-model.number="listForm.price" type="number" min="0.01" step="0.01" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white"/>
+            <label class="edit-label">Price (RM)</label>
+            <input v-model.number="listForm.price" type="number" min="0.01" step="0.01" class="edit-input mc-num"/>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1">Condition</label>
-            <select v-model="listForm.condition" class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white">
+            <label class="edit-label">Condition</label>
+            <select v-model="listForm.condition" class="edit-input mc-select">
               <option value="">Condition…</option>
               <option v-for="c in CONDITIONS" :key="c" :value="c">{{ c }}</option>
             </select>
@@ -584,7 +555,7 @@
         </div>
         <p
           v-if="listPhotoRule.required && !listPhotoOk"
-          class="mt-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 px-3 py-2.5 text-micro leading-relaxed text-amber-800 dark:text-amber-300"
+          class="mc-callout mt-3"
         >
           {{ listPhotoRule.reason }}
           <button
@@ -595,7 +566,7 @@
             Add a photo now
           </button>
         </p>
-        <p v-else class="text-micro text-gray-400 dark:text-zinc-500 mt-3">
+        <p v-else class="mc-small mt-3">
           <template v-if="!listingLive?.photos?.length">
             Lists with the catalogue image — fine at this price and condition,
             but your own photo always sells better.
@@ -603,11 +574,11 @@
           Shipping is quoted live from your pickup address at checkout — you don't set a price here.
         </p>
         <div class="flex gap-2 mt-4">
-          <button @click="listing = null" class="flex-1 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200">Cancel</button>
+          <button @click="listing = null" class="mc-btn mc-btn-ghost flex-1">Cancel</button>
           <button
             @click="confirmList"
             :disabled="listingBusy || !listForm.price || (listPhotoRule.required && !listPhotoOk)"
-            class="flex-1 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            class="mc-btn mc-btn-primary flex-1"
           >
             <span v-if="listingBusy" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
             List it
@@ -621,17 +592,17 @@
     <Transition name="sheet">
     <div
       v-if="editing"
-      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 inv-scrim"
       @click.self="editing = null"
     >
-      <div class="sheet-panel surface w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-5 border-t sm:border border-black/[0.06] dark:border-white/[0.08] max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto overscroll-contain">
+      <div class="sheet-panel inv-modal inv-modal--sheet w-full sm:max-w-md p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-5 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto overscroll-contain">
         <div class="sm:hidden mx-auto -mt-2 mb-3 h-1 w-9 rounded-full bg-gray-300 dark:bg-white/20" aria-hidden="true" />
-        <h3 class="text-base font-bold text-ink dark:text-white mb-1">Edit item</h3>
-        <p v-if="editLocked" class="text-xs text-amber-600 dark:text-amber-400 mb-4">
+        <h3 class="mc-h2 mb-1">Edit item</h3>
+        <p v-if="editLocked" class="mc-callout mb-4">
           This item is live on the marketplace — only the price can be changed.
           Unlist it first to edit the card details.
         </p>
-        <p v-else class="text-xs text-gray-500 dark:text-zinc-400 mb-4">Update the card details in your inventory.</p>
+        <p v-else class="mc-small mb-4">Update the card details in your inventory.</p>
         <!-- Phone only: the row has no photo button, so it lives here. -->
         <div class="sm:hidden flex items-center gap-3 mb-4">
           <div class="relative w-14 h-[4.75rem] shrink-0 rounded-md overflow-hidden bg-gray-100 dark:bg-white/[0.04] border border-black/[0.04] dark:border-white/[0.06]">
@@ -644,7 +615,7 @@
             type="button"
             @click="openPhotoPicker(editing)"
             :disabled="uploadingPhotoId === editing.id"
-            class="min-h-11 px-4 rounded-full text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-ink dark:text-white active:scale-[0.97] transition-transform duration-150 disabled:opacity-50"
+            class="mc-btn"
           >
             {{ editingLive?.photos?.length ? "Change photo" : "Add a photo" }}
           </button>
@@ -708,11 +679,11 @@
           </div>
         </div>
         <div class="flex gap-2 mt-5">
-          <button @click="editing = null" class="flex-1 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.08] text-gray-700 dark:text-zinc-200">Cancel</button>
+          <button @click="editing = null" class="mc-btn mc-btn-ghost flex-1">Cancel</button>
           <button
             @click="confirmEdit"
             :disabled="editBusy || !editForm.cardName"
-            class="flex-1 py-2 rounded-lg text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+            class="mc-btn mc-btn-primary flex-1"
           >
             <span v-if="editBusy" class="animate-spin rounded-full h-4 w-4 border-b-2 border-current"/>
             Save
@@ -726,24 +697,141 @@
 
 <style scoped>
 .edit-label {
-  @apply block text-xs font-medium text-gray-500 dark:text-zinc-400 mb-1;
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--ink-2);
 }
 .edit-input {
-  @apply w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-sm text-ink dark:text-white;
+  width: 100%;
+  min-height: var(--control-h);
+  padding: 6px 10px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line-strong);
+  background-color: var(--surface);
+  color: var(--ink);
+  font-size: 13.5px;
+}
+.edit-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus);
 }
 .menu-row {
-  @apply flex w-full items-center min-h-12 px-3 rounded-xl text-body-ui text-left text-ink dark:text-white active:bg-black/[0.05] dark:active:bg-white/[0.08];
+  display: flex;
+  width: 100%;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  font-size: 15px;
+  text-align: left;
+  color: var(--ink);
+}
+.menu-row:active {
+  background: var(--surface-2);
+}
+.inv-icon {
+  width: 30px;
+  padding: 0;
+}
+.inv-touch {
+  color: var(--ink-2);
+}
+.inv-touch:active {
+  background: var(--surface-2);
+}
+.inv-danger {
+  color: var(--danger);
+}
+.inv-filter[aria-pressed="true"] {
+  background: var(--surface);
+  border-color: var(--ink-3);
+  color: var(--ink);
+}
+.inv-bulk {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px 8px 14px;
+  background: var(--surface-2);
+}
+.inv-list > li + li {
+  border-top: 1px solid var(--line);
+}
+.is-selected {
+  background: var(--accent-soft);
+}
+.inv-table {
+  font-size: 13.5px;
+}
+.inv-table thead {
+  font-size: 12px;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--line);
+}
+.inv-table tbody tr + tr {
+  border-top: 1px solid var(--line);
+}
+.inv-cell {
+  padding: 4px 6px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+}
+.inv-cell::placeholder {
+  color: var(--ink-3);
+}
+.inv-cell:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus);
+}
+.inv-cell-sm {
+  padding: 1px 4px;
+  font-size: 11.5px;
+}
+.inv-dot {
+  width: 6px;
+  height: 6px;
+  box-shadow: none;
+}
+.inv-scrim {
+  background: var(--scrim);
+}
+.inv-sheet {
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  border-radius: var(--radius-l) var(--radius-l) 0 0;
+  box-shadow: var(--shadow-3);
+}
+.inv-modal {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-3);
+}
+@media (max-width: 639.98px) {
+  .inv-modal--sheet {
+    border-radius: var(--radius-l) var(--radius-l) 0 0;
+    border-width: 1px 0 0;
+  }
 }
 /* Phone sheets slide up from the bottom; from sm up the edit dialog keeps
    its plain fade-free appearance. */
 @media (max-width: 639.98px) {
   .sheet-enter-active,
   .sheet-leave-active {
-    transition: background-color 240ms cubic-bezier(0.32, 0.72, 0, 1);
+    transition: background-color 240ms var(--ease-drawer);
   }
   .sheet-enter-active .sheet-panel,
   .sheet-leave-active .sheet-panel {
-    transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+    transition: transform 240ms var(--ease-drawer);
   }
   .sheet-enter-from,
   .sheet-leave-to {
@@ -1010,12 +1098,8 @@ const bulkList = async () => {
 
 const statusLabel = (s: string) =>
   s === "in_stock" ? "In stock" : s === "listed" ? "Listed" : "Sold";
-const statusClass = (s: string) =>
-  s === "listed"
-    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
-    : s === "sold"
-      ? "bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-zinc-400"
-      : "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300";
+const statusTone = (s: string) =>
+  s === "listed" ? "good" : s === "sold" ? undefined : "info";
 
 // ── Inline photo upload ───────────────────────────────────────────────
 const photoInput = ref<HTMLInputElement | null>(null);
