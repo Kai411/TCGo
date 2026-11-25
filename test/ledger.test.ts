@@ -14,6 +14,7 @@ import { createClient } from "@libsql/client";
 
 import { fromLibsql, type D1Like, type D1StatementLike } from "~/server/ledger/db";
 import { recordBillplzPayment, summary, LedgerInputError } from "~/server/ledger/shadow";
+import { holdOrder, attachBill, releaseHold, HoldError, HOLD_MS } from "~/server/ledger/checkout";
 
 const MIGRATION = readFileSync(new URL("../server/ledger/migrations/0001_init.sql", import.meta.url), "utf8");
 const NOW = 1_763_700_000_000;
@@ -151,6 +152,101 @@ for (const [engine, open] of Object.entries(engines)) {
         /ledger_unbalanced/,
       );
       assert.equal(await count("SELECT COUNT(*) AS n FROM ledger_transactions WHERE id = 't'"), 0);
+    });
+
+    // ── Stage 2: holds at checkout ──────────────────────────────────
+    const holdInput = (firestoreId: string, listingId = "card-1", buyerUid = "buyer-1") => {
+      const o = order(firestoreId, listingId, buyerUid);
+      return {
+        firestoreId, source: o.source, buyerUid, sellerUid: o.sellerUid, items: o.items,
+        subtotalSen: o.subtotalSen, shippingSen: o.shippingSen, totalSen: o.totalSen, deliveryAddress: o.deliveryAddress,
+      };
+    };
+    const lockOf = (listingId: string) =>
+      db.prepare("SELECT order_id, state, held_until FROM listing_locks WHERE listing_id = ?").bind(listingId).first<any>();
+
+    it("holds the cards for one order and refuses a second buyer", async () => {
+      const h = await holdOrder(db, holdInput("ord-1"), NOW);
+      const o = await db.prepare("SELECT status, total_sen FROM orders WHERE id = ?").bind(h.orderId).first<any>();
+      assert.deepEqual({ status: o.status, total: Number(o.total_sen) }, { status: "awaiting_payment", total: 5800 });
+      assert.equal((await lockOf("card-1")).state, "held");
+      await assert.rejects(holdOrder(db, holdInput("ord-2", "card-1", "buyer-2"), NOW + 1000), (e: any) => {
+        assert.ok(e instanceof HoldError);
+        assert.equal(e.code, "listing_unavailable");
+        assert.deepEqual(e.listings, ["card-1"]);
+        return true;
+      });
+      assert.equal(await count("SELECT COUNT(*) AS n FROM orders WHERE legacy_firestore_id = 'ord-2'"), 0);
+    });
+
+    it("lets the same order hold again and voids its earlier bill", async () => {
+      const h = await holdOrder(db, holdInput("ord-1"), NOW);
+      await attachBill(db, { orderId: h.orderId, billId: "bill-1", amountSen: 5800 }, NOW);
+      const again = await holdOrder(db, holdInput("ord-1"), NOW + 1000);
+      assert.equal(again.orderId, h.orderId);
+      await attachBill(db, { orderId: h.orderId, billId: "bill-2", amountSen: 5800 }, NOW + 1000);
+      const statuses = (await db.prepare("SELECT provider_bill_id AS b, status FROM payments ORDER BY created_at").all<any>()).results;
+      assert.deepEqual(statuses.map((r) => [r.b, r.status]), [["bill-1", "voided"], ["bill-2", "created"]]);
+      assert.equal(await count("SELECT COUNT(*) AS n FROM order_items"), 1);
+    });
+
+    it("hands a lapsed hold to the next buyer and returns the old bill to delete", async () => {
+      const h = await holdOrder(db, holdInput("ord-1"), NOW);
+      await attachBill(db, { orderId: h.orderId, billId: "bill-1", amountSen: 5800 }, NOW);
+      const later = NOW + HOLD_MS + 1;
+      const h2 = await holdOrder(db, holdInput("ord-2", "card-1", "buyer-2"), later);
+      assert.deepEqual(h2.displacedBillIds, ["bill-1"]);
+      assert.equal((await lockOf("card-1")).order_id, h2.orderId);
+      const p = await db.prepare("SELECT status FROM payments WHERE provider_bill_id = 'bill-1'").first<any>();
+      assert.equal(p.status, "voided");
+    });
+
+    it("refuses a card already sold, and frees cards when asked", async () => {
+      await pay("bill-1");
+      await assert.rejects(holdOrder(db, holdInput("ord-2", "card-1", "buyer-2"), NOW + HOLD_MS * 10), HoldError);
+      const h = await holdOrder(db, holdInput("ord-3", "card-3"), NOW);
+      await releaseHold(db, h.orderId);
+      assert.equal(await lockOf("card-3"), null);
+    });
+
+    it("refuses input whose items don't add up to the subtotal", async () => {
+      await assert.rejects(holdOrder(db, { ...holdInput("ord-1"), subtotalSen: 1 }, NOW), /subtotalSen must equal/);
+    });
+
+    it("settles a held order through the Billplz callback", async () => {
+      const h = await holdOrder(db, holdInput("ord-1"), NOW);
+      await attachBill(db, { orderId: h.orderId, billId: "bill-1", amountSen: 5800 }, NOW);
+      const r = await pay("bill-1");
+      assert.equal(r.outcome, "recorded");
+      assert.equal(r.orderId, h.orderId);
+      assert.deepEqual(r.conflicts, []);
+      const o = await db.prepare("SELECT status, seller_net_sen FROM orders WHERE id = ?").bind(h.orderId).first<any>();
+      assert.deepEqual({ status: o.status, net: Number(o.seller_net_sen) }, { status: "paid", net: 4900 });
+      assert.equal((await lockOf("card-1")).state, "sold");
+      const p = await db.prepare("SELECT status, paid_at FROM payments WHERE provider_bill_id = 'bill-1'").first<any>();
+      assert.equal(p.status, "paid");
+      assert.equal(await count("SELECT COUNT(*) AS n FROM payments"), 1);
+      assert.equal((await pay("bill-1")).outcome, "already_recorded");
+      assert.deepEqual(await balances(), {
+        "asset:billplz_receivable": 5800,
+        "liability:buyer_protection_held": -5800,
+      });
+    });
+
+    it("still books a paid bill the hold never heard of", async () => {
+      await holdOrder(db, holdInput("ord-1"), NOW);
+      const r = await pay("bill-1");
+      assert.equal(r.outcome, "recorded");
+      assert.equal((await lockOf("card-1")).state, "sold");
+    });
+
+    it("flags a lapsed hold that was taken over and then paid anyway", async () => {
+      const h = await holdOrder(db, holdInput("ord-1"), NOW);
+      await attachBill(db, { orderId: h.orderId, billId: "bill-1", amountSen: 5800 }, NOW);
+      await holdOrder(db, holdInput("ord-2", "card-1", "buyer-2"), NOW + HOLD_MS + 1);
+      const r = await pay("bill-1");
+      assert.equal(r.outcome, "recorded");
+      assert.equal(r.conflicts.length, 1);
     });
 
     it("keeps the ledger append-only and order amounts frozen", async () => {

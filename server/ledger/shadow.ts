@@ -104,14 +104,24 @@ export const shadowPayment = async (
     .bind(dedupeKey)
     .first<{ outcome: string | null }>();
   const existingPayment = await db
-    .prepare("SELECT id FROM payments WHERE provider_bill_id = ?")
+    .prepare("SELECT id, order_id, status FROM payments WHERE provider_bill_id = ?")
     .bind(input.billId)
-    .first<{ id: string }>();
+    .first<{ id: string; order_id: string; status: string }>();
   const existingOrder = await db
-    .prepare("SELECT id FROM orders WHERE legacy_firestore_id = ?")
+    .prepare("SELECT id, status FROM orders WHERE legacy_firestore_id = ?")
     .bind(o.firestoreId)
-    .first<{ id: string }>();
-  if (seen || existingPayment) {
+    .first<{ id: string; status: string }>();
+  // Stage 2 (checkout.ts) writes the order and its bill as 'created' before
+  // the buyer pays, so a bill already on file is settled here, not skipped.
+  // A 'voided' one is a bill that should have been deleted and got paid
+  // anyway: it is booked too, which is how the double payment surfaces.
+  const heldPayment =
+    existingPayment &&
+    (existingPayment.status === "created" || existingPayment.status === "voided") &&
+    existingPayment.order_id === existingOrder?.id
+      ? existingPayment
+      : null;
+  if (seen || (existingPayment && !heldPayment)) {
     return { outcome: "already_recorded", orderId: existingOrder?.id ?? "", conflicts: [] };
   }
 
@@ -139,7 +149,7 @@ export const shadowPayment = async (
   const joinFee = gap > 0 ? gap : 0;
   const discount = gap < 0 ? -gap : 0;
 
-  const paymentId = newId();
+  const paymentId = heldPayment?.id ?? newId();
   const txnId = newId();
   const s: D1StatementLike[] = [];
 
@@ -151,6 +161,38 @@ export const shadowPayment = async (
       )
       .bind(input.billId, dedupeKey, JSON.stringify(input.callback), now),
   );
+
+  const lockSold = (listingId: string) =>
+    // Claim the card, or turn this order's own hold into a sale. A card
+    // another order holds or bought stays theirs: that is a recorded
+    // conflict, not an error, because Firestore has already settled.
+    db
+      .prepare(
+        `INSERT INTO listing_locks (listing_id, order_id, pos_sale_id, state, held_until, updated_at)
+         VALUES (?, ?, NULL, 'sold', NULL, ?)
+         ON CONFLICT (listing_id) DO UPDATE SET state = 'sold', held_until = NULL, updated_at = excluded.updated_at
+         WHERE listing_locks.order_id = excluded.order_id`,
+      )
+      .bind(listingId, orderId, now);
+
+  if (existingOrder?.status === "awaiting_payment") {
+    // Held at checkout. Amounts are still open in this state, so they are
+    // set to what Firestore charged, in the same statement that marks it paid.
+    s.push(
+      db
+        .prepare(
+          `UPDATE orders SET status = 'paid', paid_at = ?, subtotal_sen = ?, shipping_sen = ?, join_fee_sen = ?,
+             discount_sen = ?, fee_rate_bp = ?, platform_fee_sen = ?, sst_sen = ?, seller_net_sen = ?,
+             delivery_address = ?, hold_expires_at = NULL, updated_at = ?
+           WHERE id = ?`,
+        )
+        .bind(
+          now, o.subtotalSen, o.shippingSen, joinFee, discount, o.feeRateBp, o.platformFeeSen, o.sstSen,
+          o.sellerNetSen, JSON.stringify(o.deliveryAddress ?? {}), now, orderId,
+        ),
+    );
+    for (const item of o.items) s.push(lockSold(item.listingId));
+  }
 
   if (!existingOrder) {
     s.push(
@@ -175,26 +217,21 @@ export const shadowPayment = async (
           )
           .bind(newId(), orderId, item.listingId, String(item.cardName || "Card").slice(0, 200), item.unitPriceSen),
       );
-      // Claim the card unless another order already has it (that's a
-      // recorded conflict, not an error, in the shadow stage).
-      s.push(
-        db
-          .prepare(
-            `INSERT INTO listing_locks (listing_id, order_id, state, held_until, updated_at)
-             VALUES (?, ?, 'sold', NULL, ?) ON CONFLICT (listing_id) DO NOTHING`,
-          )
-          .bind(item.listingId, orderId, now),
-      );
+      s.push(lockSold(item.listingId));
     }
   }
 
   s.push(
-    db
-      .prepare(
-        `INSERT INTO payments (id, order_id, provider, provider_bill_id, amount_sen, status, idempotency_key, created_at, paid_at)
-         VALUES (?, ?, 'billplz', ?, ?, ?, ?, ?, ?)`,
-      )
-      .bind(paymentId, orderId, input.billId, input.paidSen, duplicate ? "duplicate" : "paid", `bill:${input.billId}`, now, now),
+    heldPayment
+      ? db
+          .prepare(`UPDATE payments SET status = ?, amount_sen = ?, paid_at = ? WHERE id = ?`)
+          .bind(duplicate ? "duplicate" : "paid", input.paidSen, now, paymentId)
+      : db
+          .prepare(
+            `INSERT INTO payments (id, order_id, provider, provider_bill_id, amount_sen, status, idempotency_key, created_at, paid_at)
+             VALUES (?, ?, 'billplz', ?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(paymentId, orderId, input.billId, input.paidSen, duplicate ? "duplicate" : "paid", `bill:${input.billId}`, now, now),
   );
 
   s.push(

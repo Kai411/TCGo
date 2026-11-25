@@ -1,7 +1,7 @@
 # TCGo project notes
 
 Key decisions and conventions for anyone joining the project. Read this before your first PR.
-Last updated 2026-11-12. If something here disagrees with the code, the code wins; please fix this file in the same PR.
+Last updated 2026-11-25. If something here disagrees with the code, the code wins; please fix this file in the same PR.
 
 ## What TCGo is
 
@@ -15,7 +15,7 @@ A Pokémon TCG marketplace for Malaysia: fixed-price listings (Shop), auctions, 
 | Main backend | Firebase Auth and Firestore |
 | Card prices | Supabase (`cards_catalog`, `card_prices`) |
 | Marketplace payments | Billplz (FPX) |
-| Order and payout ledger | Turso Free (libSQL), `server/ledger`. Stage 1 only shadows Billplz payments beside Firestore; see `server/ledger/README.md` |
+| Order and payout ledger | Turso Free (libSQL), `server/ledger`. Stage 1 shadows Billplz payments beside Firestore; stage 2 prices every order on the server and holds its cards in Turso before the Billplz bill. See `server/ledger/README.md` |
 | Pro membership | Stripe (subscriptions only, not marketplace payments) |
 | Email | Mailtrap (sign-up codes, admin test email). Password reset uses Firebase's own reset link |
 | Seller ID check | Didit |
@@ -43,6 +43,7 @@ Server environment variables come from `runtimeConfig` in `nuxt.config.ts` (came
 - `firestore.rules`, `firestore.indexes.json` and `database.rules.json` in the repo are the source of truth. `.github/workflows/firebase-rules.yml` compiles them on every PR that touches them (plus a diff of live Firestore rules against the PR) and deploys them from `staging`: on every push once the repo variable `FIREBASE_AUTO_DEPLOY` is `true`, or on demand with Run workflow. Until then kai pastes them into the Firebase console by hand. It needs the `FIREBASE_DEPLOY_KEY` secret (service-account JSON).
 - A deploy or a paste **replaces everything**, so the file must always be the full file from latest staging, never a fragment. The workflow only adds indexes; one removed from the file stays in Firebase until deleted there. If you add an index, list its exact collection and fields in the PR.
 - A feature that needs new rules will not work in production until the deploy (or paste) happens. Say so in the PR.
+- Browsers can't create `compiledOrders` or write their money fields (items, subtotal, shipping*, total, billplz*, payout*). Orders are placed by `/api/orders/place` and priced by the server; a buyer may only set the delivery address, cancel an unpaid order or confirm receipt.
 - `database.rules.json` is the Realtime Database rules (live auction prices and bids); by hand it is pasted under Realtime Database > Rules. Browsers can only read summaries, the bid list and their own bid index; nothing is browser-writable.
 
 ## Business and legal decisions
