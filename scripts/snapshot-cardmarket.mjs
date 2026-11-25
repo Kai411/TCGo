@@ -65,7 +65,7 @@ async function api(path, attempt = 1) {
   try {
     // The upstream can hang rather than fail; a stuck request must not stall
     // the whole run.
-    const res = await fetch(`${API}${path}`, { headers, signal: AbortSignal.timeout(60_000) });
+    const res = await fetch(`${API}${path}`, { headers, signal: AbortSignal.timeout(30_000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -168,15 +168,43 @@ const main = async () => {
   console.log(`Fetching ${wanted.length} set(s) from the second source.\n`);
 
   const rows = [];
-  let seen = 0, ambiguous = 0, unmatched = 0, failedSets = 0;
+  let seen = 0, ambiguous = 0, unmatched = 0, failedSets = 0, written = 0, skippedSets = 0;
 
-  for (const set of wanted) {
+  // Rows are written set by set on --yes, so a run cut short by the job's
+  // time limit keeps everything it already fetched. The first scheduled run
+  // (2026-11-20) was cancelled at 30 minutes having written nothing.
+  const writeRows = async (batch) => {
+    for (let i = 0; i < batch.length; i += 500) {
+      const { error } = await supabase
+        .from("card_price_sources")
+        .upsert(batch.slice(i, i + 500), { onConflict: "product_id,source" });
+      if (error) {
+        // The table is created by supabase/schema.sql, which is run by hand.
+        if (/does not exist|schema cache/i.test(error.message)) {
+          console.error("\ncard_price_sources is missing — run supabase/schema.sql first.");
+          process.exit(1);
+        }
+        throw new Error(error.message);
+      }
+    }
+    written += batch.length;
+  };
+
+  // Stop starting new sets after this long, so the job ends on its own with
+  // a summary instead of being killed by the workflow's timeout-minutes.
+  const startedAt = Date.now();
+  const BUDGET_MS = Number(env.CARDMARKET_BUDGET_MINUTES ?? 50) * 60_000;
+
+  const processSet = async (set) => {
     // Pages of 250: a set bigger than that (with its secret rares) would
     // otherwise silently lose its last cards, which are the scarce ones.
+    // `select` trims each card to the three fields used here; the full card
+    // objects (attacks, images, TCGPlayer block) are most of the payload and
+    // most of the time.
     let cards = [];
     try {
       for (let page = 1; ; page += 1) {
-        const res = await api(`/cards?q=${encodeURIComponent(`set.id:${set.id}`)}&pageSize=250&page=${page}`);
+        const res = await api(`/cards?q=${encodeURIComponent(`set.id:${set.id}`)}&select=name,number,cardmarket&pageSize=250&page=${page}`);
         const batch = res.data ?? [];
         cards.push(...batch);
         if (batch.length < 250 || cards.length >= (res.totalCount ?? 0)) break;
@@ -184,9 +212,9 @@ const main = async () => {
     } catch (err) {
       failedSets += 1;
       console.log(`  ${set.id.padEnd(10)} FAILED: ${err.message}`);
-      continue;
+      return;
     }
-    let matched = 0;
+    const setRows = [];
     for (const card of cards) {
       const price = card.cardmarket?.prices;
       const market = price?.trendPrice ?? price?.averageSellPrice ?? null;
@@ -208,9 +236,11 @@ const main = async () => {
         if (sized.length) candidates = sized;
       }
       if (candidates.length > 1) { ambiguous += 1; continue; }
+      // One upsert can't touch the same row twice, so two upstream cards
+      // landing on one of ours would fail the whole set's write. Skip it.
+      if (setRows.some((r) => r.product_id === candidates[0].product_id)) { ambiguous += 1; continue; }
 
-      matched += 1;
-      rows.push({
+      setRows.push({
         product_id: candidates[0].product_id,
         source: SOURCE,
         currency: CURRENCY,
@@ -221,20 +251,35 @@ const main = async () => {
         fetched_at: new Date().toISOString(),
       });
     }
-    console.log(`  ${set.id.padEnd(10)} ${String(cards.length).padStart(4)} cards, ${String(matched).padStart(4)} matched  ${set.name}`);
+    rows.push(...setRows);
+    if (confirmed && setRows.length) await writeRows(setRows);
+    console.log(`  ${set.id.padEnd(10)} ${String(cards.length).padStart(4)} cards, ${String(setRows.length).padStart(4)} matched  ${set.name}`);
     // On a dry run, show what a set that matched nothing looks like upstream
     // and which of our groups hold the same card, so an alias can be added.
-    if (!confirmed && !matched && cards.length) {
+    if (!confirmed && !setRows.length && cards.length) {
       for (const card of cards.slice(0, 2)) {
         const same = (index.get(`${norm(card.name)}::${numKey(card.number)}`) ?? [])
           .map((c) => `${c.group_name} #${c.number}`).slice(0, 3);
         console.log(`             e.g. ${card.name} #${card.number} -> ours: ${same.join("; ") || "none with this name+number"}`);
       }
     }
-  }
+  };
+
+  // A few sets in flight at once: each request mostly waits on the upstream,
+  // which can take tens of seconds to answer, so one at a time spent the
+  // whole half hour waiting. pace() still spaces the requests themselves.
+  const CONCURRENCY = 4;
+  const queue = [...wanted];
+  await Promise.all(Array.from({ length: CONCURRENCY }, async () => {
+    while (queue.length) {
+      if (Date.now() - startedAt > BUDGET_MS) { skippedSets = queue.length; queue.length = 0; break; }
+      await processSet(queue.shift());
+    }
+  }));
 
   console.log(`\n${rows.length} priced match(es). ${ambiguous} ambiguous, ${unmatched} not in our catalogue, ${seen} priced upstream.`);
   if (failedSets) console.log(`${failedSets} of ${wanted.length} set(s) failed to fetch.`);
+  if (skippedSets) console.log(`${skippedSets} set(s) not reached within the time budget; they keep their previous prices.`);
   // Writing nothing is a failure, not a quiet success: an empty table is
   // exactly what this script exists to prevent, so make the run go red.
   if (!rows.length) { console.error("Nothing to write."); process.exit(1); }
@@ -248,21 +293,7 @@ const main = async () => {
     console.log("\nDry run. Re-run with --yes to write.");
     return;
   }
-
-  for (let i = 0; i < rows.length; i += 500) {
-    const { error } = await supabase
-      .from("card_price_sources")
-      .upsert(rows.slice(i, i + 500), { onConflict: "product_id,source" });
-    if (error) {
-      // The table is created by supabase/schema.sql, which is run by hand.
-      if (/does not exist|schema cache/i.test(error.message)) {
-        console.error("\ncard_price_sources is missing — run supabase/schema.sql first.");
-        process.exit(1);
-      }
-      throw new Error(error.message);
-    }
-  }
-  console.log(`Wrote ${rows.length} row(s).`);
+  console.log(`Wrote ${written} row(s).`);
 };
 
 main().catch((err) => { console.error("\nFatal:", err.message); process.exit(1); });

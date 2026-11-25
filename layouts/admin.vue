@@ -1,130 +1,106 @@
 <template>
-  <div
-    class="min-h-screen bg-canvas dark:bg-canvas-inverse text-ink dark:text-zinc-100 transition-colors"
-  >
-    <!-- Top bar -->
-    <header class="sticky top-0 z-40 glass select-none">
-      <div class="px-4 h-14 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2 min-w-0">
-          <NuxtLink
-            to="/"
-            class="inline-flex items-center gap-1 text-sm text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white transition-colors shrink-0"
-          >
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-            <span class="hidden sm:inline">Marketplace</span>
-          </NuxtLink>
-          <span class="text-ink-soft dark:text-zinc-600">/</span>
-          <span class="font-bold text-ink dark:text-white truncate">Operations</span>
-          <span
-            class="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md text-micro font-semibold bg-pokemon-red/10 text-pokemon-red"
-            >Admin</span
-          >
-        </div>
+  <div class="mc mc-shell">
+    <!-- Sidebar: sticky on desktop, a drawer under 900px -->
+    <aside
+      id="mc-nav"
+      class="mc-side"
+      :class="{ 'is-open': drawerOpen }"
+      :aria-hidden="isNarrow && !drawerOpen ? 'true' : undefined"
+      :inert="isNarrow && !drawerOpen ? true : undefined"
+    >
+      <div class="mc-brand">
+        <NuxtLink to="/mintcondition" class="mc-brand-name">Mint Condition</NuxtLink>
+        <span class="mc-small">TCGo operations</span>
+      </div>
 
-        <div v-if="me?.signedIn" class="flex items-center gap-2 shrink-0">
+      <nav class="mc-nav" aria-label="Mint Condition">
+        <template v-for="group in navGroups" :key="group.label">
+          <p class="mc-eyebrow mc-nav-group">{{ group.label }}</p>
           <NuxtLink
-            to="/mintcondition/account"
-            class="hidden sm:flex flex-col items-end leading-tight group"
+            v-for="item in group.items"
+            :key="item.to"
+            :to="item.to"
+            class="mc-nav-link"
+            :aria-current="isActive(item) ? 'page' : undefined"
           >
-            <span class="text-micro font-mono font-bold group-hover:underline">{{ me.staffId }}</span>
-            <span class="text-2xs text-ink-soft dark:text-zinc-500">{{ me.roleName }}</span>
+            <component :is="item.icon" class="mc-nav-icon" />
+            <span class="truncate">{{ item.label }}</span>
           </NuxtLink>
-          <button
-            class="px-2.5 py-1.5 rounded-lg text-micro font-semibold border border-black/[0.08] dark:border-white/[0.10] text-ink-muted dark:text-zinc-300"
-            @click="logout"
+        </template>
+
+        <template v-if="soonItems.length">
+          <p class="mc-eyebrow mc-nav-group">Coming soon</p>
+          <div
+            v-for="item in soonItems"
+            :key="item.label"
+            class="mc-nav-link is-soon"
+            aria-disabled="true"
           >
-            Sign out
-          </button>
+            <component :is="item.icon" class="mc-nav-icon" />
+            <span class="truncate">{{ item.label }}</span>
+          </div>
+        </template>
+      </nav>
+
+      <div class="mc-side-foot">
+        <NuxtLink v-if="me?.signedIn" to="/mintcondition/account" class="mc-me">
+          <span class="mc-avatar" aria-hidden="true">{{ initials }}</span>
+          <span class="min-w-0">
+            <span class="mc-me-name">{{ me.name || me.staffId }}</span>
+            <span class="mc-small block truncate">{{ me.staffId }} · {{ me.roleName }}</span>
+          </span>
+        </NuxtLink>
+        <div class="mc-side-actions">
+          <NuxtLink to="/" class="mc-btn mc-btn-ghost mc-btn-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+            Marketplace
+          </NuxtLink>
+          <button v-if="me?.signedIn" class="mc-btn mc-btn-sm" @click="logout">Sign out</button>
         </div>
       </div>
+    </aside>
+
+    <Transition name="mc-scrim">
+      <div v-if="drawerOpen" class="mc-scrim" aria-hidden="true" @click="drawerOpen = false" />
+    </Transition>
+
+    <div class="mc-body">
+      <!-- Top bar, narrow screens only -->
+      <header class="mc-topbar">
+        <button
+          class="mc-btn mc-btn-ghost mc-btn-icon"
+          aria-controls="mc-nav"
+          :aria-expanded="drawerOpen"
+          aria-label="Open menu"
+          @click="drawerOpen = true"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <span class="mc-topbar-title truncate">{{ currentLabel }}</span>
+        <span class="mc-small shrink-0">Mint Condition</span>
+      </header>
 
       <!-- The bridge is meant to be temporary; saying so is the only thing
            that stops it quietly becoming permanent. -->
-      <p
-        v-if="me?.legacy"
-        class="px-4 pb-2 text-micro leading-relaxed text-amber-700 dark:text-amber-400"
-      >
-        Signed in through the marketplace admin bridge, not a staff account.
-        Create one on
-        <NuxtLink to="/mintcondition/staff" class="underline font-semibold">Staff</NuxtLink>
-        and use that instead.
-      </p>
-    </header>
+      <div v-if="me?.legacy" class="mc-page !pb-0">
+        <p class="mc-callout">
+          Signed in through the marketplace admin bridge, not a staff account.
+          Create one on
+          <NuxtLink to="/mintcondition/staff" class="underline font-semibold">Staff</NuxtLink>
+          and use that instead.
+        </p>
+      </div>
 
-    <div class="lg:flex">
-      <!-- Sidebar (desktop) -->
-      <aside
-        class="hidden lg:block w-56 shrink-0 border-r border-black/[0.06] dark:border-white/[0.08] min-h-[calc(100vh-3.5rem)] sticky top-14 self-start"
-      >
-        <nav class="p-3 space-y-0.5">
-          <NuxtLink
-            v-for="item in navItems"
-            :key="item.to"
-            :to="item.to"
-            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
-            :class="
-              isActive(item)
-                ? 'bg-ink text-white dark:bg-white dark:text-ink'
-                : 'text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
-            "
-          >
-            <component :is="item.icon" class="w-4 h-4 shrink-0" />
-            {{ item.label }}
-          </NuxtLink>
-
-          <div
-            v-if="soonItems.length"
-            class="pt-3 mt-2 border-t border-black/[0.06] dark:border-white/[0.08]"
-          >
-            <p
-              class="px-3 pb-1 text-micro font-semibold text-ink-soft dark:text-zinc-600"
-            >
-              Coming soon
-            </p>
-            <div
-              v-for="item in soonItems"
-              :key="item.label"
-              class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-ink-soft dark:text-zinc-600 cursor-not-allowed"
-            >
-              <component :is="item.icon" class="w-4 h-4 shrink-0 opacity-60" />
-              {{ item.label }}
-              <span
-                class="ml-auto text-2xs font-semibold px-1.5 py-0.5 rounded-full bg-black/[0.05] dark:bg-white/[0.06]"
-                >Soon</span
-              >
-            </div>
-          </div>
-        </nav>
-      </aside>
-
-      <!-- Main -->
-      <main class="flex-1 min-w-0 px-4 py-6 pb-28 lg:pb-10">
+      <main class="mc-main">
         <slot />
       </main>
     </div>
-
-    <!-- Mobile bottom nav -->
-    <nav
-      class="lg:hidden fixed bottom-0 inset-x-0 z-40 glass border-t border-black/[0.06] dark:border-white/[0.08] pb-[16px]"
-    >
-      <div class="flex h-16 px-1 overflow-x-auto no-scrollbar">
-        <NuxtLink
-          v-for="item in navItems"
-          :key="item.to"
-          :to="item.to"
-          class="relative flex flex-col items-center justify-center gap-0.5 shrink-0 min-w-[68px] flex-1 text-2xs font-semibold text-ink-soft dark:text-zinc-500 transition-colors"
-          :class="isActive(item) ? '!text-pokemon-red' : ''"
-        >
-          <component :is="item.icon" class="w-5 h-5" />
-          <span>{{ item.label }}</span>
-        </NuxtLink>
-      </div>
-    </nav>
   </div>
 </template>
 
 <script setup lang="ts">
 import { h } from "vue";
+import "~/assets/css/mint-condition.css";
 
 const route = useRoute();
 
@@ -211,6 +187,64 @@ const allNav = [
 
 const navItems = computed(() => allNav.filter((i) => can(i.perm)));
 
+// Grouped by the kind of work, so nine links read as four short lists.
+const groupOf: Record<string, string> = {
+  "/mintcondition": "Money",
+  "/mintcondition/payouts": "Money",
+  "/mintcondition/refunds": "Money",
+  "/mintcondition/problems": "Trust and safety",
+  "/mintcondition/reports": "Trust and safety",
+  "/mintcondition/enquiries": "Trust and safety",
+  "/mintcondition/content": "Site",
+  "/mintcondition/logs": "Admin",
+  "/mintcondition/staff": "Admin",
+};
+const navGroups = computed(() => {
+  const groups: { label: string; items: typeof allNav }[] = [];
+  for (const item of navItems.value) {
+    const label = groupOf[item.to] ?? "More";
+    let g = groups.find((x) => x.label === label);
+    if (!g) groups.push((g = { label, items: [] }));
+    g.items.push(item);
+  }
+  return groups;
+});
+
+const currentLabel = computed(
+  () =>
+    allNav.find((i) => isActive(i))?.label ??
+    (route.path.startsWith("/mintcondition/account") ? "Account" : "Mint Condition"),
+);
+
+const initials = computed(() => {
+  const n = (me.value?.name || me.value?.staffId || "").trim();
+  const parts = n.split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "MC";
+});
+
+// Drawer for narrow screens. Closes on navigation and on Escape.
+const drawerOpen = ref(false);
+const isNarrow = ref(false);
+let mq: MediaQueryList | null = null;
+const syncNarrow = () => {
+  isNarrow.value = !!mq?.matches;
+  if (!isNarrow.value) drawerOpen.value = false;
+};
+const onKey = (e: KeyboardEvent) => {
+  if (e.key === "Escape") drawerOpen.value = false;
+};
+onMounted(() => {
+  mq = window.matchMedia("(max-width: 899.98px)");
+  syncNarrow();
+  mq.addEventListener("change", syncNarrow);
+  window.addEventListener("keydown", onKey);
+});
+onBeforeUnmount(() => {
+  mq?.removeEventListener("change", syncNarrow);
+  window.removeEventListener("keydown", onKey);
+});
+watch(() => route.fullPath, () => (drawerOpen.value = false));
+
 // Signposts for what this dashboard is meant to grow into, so the nav doesn't
 // silently imply these already exist somewhere else.
 const soonItems: { label: string; icon: any }[] = [
@@ -222,3 +256,220 @@ const isActive = (item: { to: string; exact?: boolean }) => {
   return route.path === item.to || route.path.startsWith(item.to + "/");
 };
 </script>
+
+<style>
+.mc-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+}
+.mc-side {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-right: 1px solid var(--line);
+  user-select: none;
+}
+.mc-brand {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 20px 12px;
+}
+.mc-brand-name {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.mc-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 12px 12px;
+}
+.mc-nav-group {
+  padding: 16px 10px 6px;
+}
+.mc-nav-group:first-child {
+  padding-top: 8px;
+}
+.mc-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-2);
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+.mc-nav-link[aria-current="page"] {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+.mc-nav-link.is-soon {
+  color: var(--ink-3);
+  cursor: default;
+}
+.mc-nav-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .mc-nav-link:not(.is-soon):not([aria-current="page"]):hover {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+}
+.mc-side-foot {
+  border-top: 1px solid var(--line);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.mc-me {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  margin: -6px;
+  border-radius: 8px;
+  min-width: 0;
+}
+@media (hover: hover) and (pointer: fine) {
+  .mc-me:hover {
+    background: var(--surface-2);
+  }
+}
+.mc-me-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mc-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 650;
+  background: oklch(90% 0.045 33);
+  color: oklch(38% 0.08 33);
+}
+.dark .mc-avatar {
+  background: oklch(36% 0.06 33);
+  color: oklch(90% 0.05 33);
+}
+.mc-side-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.mc-side-actions .mc-btn-ghost {
+  padding-left: 6px;
+}
+.mc-body {
+  min-width: 0;
+}
+.mc-topbar {
+  display: none;
+}
+
+@media (max-width: 899.98px) {
+  .mc-shell {
+    display: block;
+  }
+  .mc-side {
+    position: fixed;
+    z-index: 60;
+    inset: 0 auto 0 0;
+    width: 272px;
+    max-width: 85vw;
+    background: var(--surface);
+    box-shadow: var(--shadow-3);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform 320ms var(--ease-drawer),
+      visibility 0s linear 320ms;
+  }
+  .mc-side.is-open {
+    transform: none;
+    visibility: visible;
+    transition:
+      transform 320ms var(--ease-drawer),
+      visibility 0s;
+  }
+  .mc-side-foot {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+  .mc-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: var(--scrim);
+  }
+  .mc-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 52px;
+    padding: 0 12px 0 6px;
+    padding-top: env(safe-area-inset-top);
+    box-sizing: content-box;
+    background: color-mix(in oklch, var(--bg) 88%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .mc-topbar-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 600;
+  }
+}
+.mc-scrim-enter-active {
+  transition: opacity 240ms ease;
+}
+.mc-scrim-leave-active {
+  transition: opacity 180ms ease;
+}
+.mc-scrim-enter-from,
+.mc-scrim-leave-to {
+  opacity: 0;
+}
+
+/* Pages that predate the system bring their own width and padding; give them
+   the standard page gutter. The Overview uses .mc-page itself. */
+.mc-main {
+  padding: 28px 32px 64px;
+}
+.mc-main:has(> .mc-page) {
+  padding: 0;
+}
+@media (max-width: 720px) {
+  .mc-main {
+    padding: 20px 16px 48px;
+  }
+}
+</style>

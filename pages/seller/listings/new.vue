@@ -1,19 +1,14 @@
 <template>
-  <div class="max-w-5xl mx-auto">
-    <div v-if="!user" class="text-center py-12">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg mb-4">
-        You need to sign in to list a card.
-      </p>
-      <button
-        @click="goToLogin"
-        class="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors"
-      >
-        Sign in
-      </button>
-    </div>
+  <div class="sl-page">
+    <SellerGate v-if="!user" message="Sign in to list a card." />
 
     <template v-else>
-      <h1 class="text-2xl font-bold mb-4">List Card for Sale</h1>
+      <SellerPageHead
+        title="List a card"
+        back="/seller/listings"
+        back-label="Listings"
+        description="Scan cards or fill in the details by hand. Buyers see the price, condition and your photos."
+      />
 
       <!-- One shared method picker across Listings, Auctions and Inventory.
            Each page used to roll its own toggle with its own labels. -->
@@ -27,7 +22,7 @@
       />
 
       <!-- Scan: open the camera -->
-      <div v-if="mode === 'scan'" class="panel surface rounded-2xl p-5 mb-6">
+      <div v-if="mode === 'scan'" class="panel mc-card mc-card-pad mb-6">
         <div class="flex items-center justify-between gap-4 flex-wrap">
           <div class="min-w-0">
             <p class="text-sm font-semibold text-ink dark:text-zinc-100">Scan cards</p>
@@ -40,7 +35,7 @@
             type="button"
             @click="scannerOpen = true"
             :disabled="!isPremium && scanRemaining === 0"
-            class="shrink-0 inline-flex items-center gap-1.5 bg-pokemon-red text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="mc-btn mc-btn-primary shrink-0 disabled:cursor-not-allowed"
           >
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" />
@@ -54,7 +49,7 @@
       <!-- Scanned drafts queue -->
       <div
         v-if="mode === 'scan' && queue.length > 0"
-        class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 mb-6"
+        class="panel mc-card mc-card-pad mb-6"
       >
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-base font-semibold text-gray-900 dark:text-zinc-100">
@@ -385,7 +380,7 @@
                         <button
                           type="button"
                           @click="removeDraftFile(item.id, i)"
-                          class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-pokemon-red text-white text-2xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full sl-remove-dot text-2xs flex items-center justify-center"
                         >
                           ✕
                         </button>
@@ -409,7 +404,7 @@
           type="button"
           @click="publishDrafts"
           :disabled="publishing || !canPublishDrafts"
-          class="mt-4 w-full bg-pokemon-red text-white py-3 rounded-xl font-semibold hover:bg-pokemon-red-dark transition-colors disabled:opacity-50"
+          class="mc-btn mc-btn-primary mt-4 w-full"
         >
           {{ publishButtonLabel }}
         </button>
@@ -429,7 +424,7 @@
 
           <!-- Card: Photos (full width) -->
           <div
-            class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3 lg:col-span-2"
+            class="panel mc-card mc-card-pad space-y-3 lg:col-span-2"
           >
             <div class="flex items-center justify-between">
               <h3 class="text-sm font-semibold text-gray-900 dark:text-zinc-100">
@@ -481,7 +476,7 @@
 
           <!-- Card: Price -->
           <div
-            class="panel bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5"
+            class="panel mc-card mc-card-pad"
           >
             <label
               class="block text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-2"
@@ -560,7 +555,7 @@
         <NuxtLink
           v-if="needsPickupAddress"
           to="/seller/settings#pickup"
-          class="block w-full text-center bg-pokemon-red text-white py-3 rounded-xl font-semibold hover:bg-pokemon-red-dark transition-colors"
+          class="mc-btn mc-btn-primary w-full"
         >
           Set up pickup address
         </NuxtLink>
@@ -568,7 +563,7 @@
           v-else
           type="submit"
           :disabled="submitting"
-          class="w-full bg-pokemon-red text-white py-3 rounded-xl font-semibold hover:bg-pokemon-red-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="mc-btn mc-btn-primary w-full disabled:cursor-not-allowed"
         >
           {{ submitting ? "Listing..." : "List for Sale" }}
         </button>
@@ -607,7 +602,6 @@ const { createListedFromCard } = useInventory();
 const { uploadAuctionImages } = useStorage();
 
 const {user} = useAuth();
-const { goToLogin } = useSignInGate();
 const { profile } = useMyProfile();
 const { setup: sellerSetup } = useSellerKyc();
 // Same "contact and pickup address" step the seller setup uses; waits for the

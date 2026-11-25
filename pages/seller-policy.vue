@@ -112,10 +112,10 @@ useHead({ title: "Seller Policy · TCGo" });
           <td>{{ N.withdrawalFee }} per payout to your bank (this is what Billplz charges us)</td>
         </tr>
         <tr>
-          <td>POS counter QR sales</td>
+          <td>POS counter sales</td>
           <td>
-            {{ N.posFee }} TCGo fee, plus HitPay's own processing fee. Cash
-            sales recorded at the counter are free
+            Free. Customers pay you directly, by cash or by your own shop
+            QR, and TCGo takes no fee
           </td>
         </tr>
         <tr>

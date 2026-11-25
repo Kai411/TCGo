@@ -266,6 +266,11 @@ export default defineNuxtConfig({
     billplzCollectionId: "",
     billplzXSignatureKey: "",
     billplzSandbox: "",
+    // Ledger database on Turso (server/ledger). Both unset = the ledger shadow
+    // is off and nothing else changes. NUXT_LEDGER_DATABASE_URL (libsql://...)
+    // and NUXT_LEDGER_DATABASE_TOKEN (a database token from Turso).
+    ledgerDatabaseUrl: "",
+    ledgerDatabaseToken: "",
     // Mailtrap. mailtrapInboxId set = sandbox (captured, not delivered);
     // clear it once a sending domain is verified to deliver for real.
     mailtrapApiToken: "",
@@ -290,15 +295,6 @@ export default defineNuxtConfig({
     // back to the service account, which is always present — see
     // server/utils/auth-codes.ts. Set it to rotate codes independently.
     authCodeSecret: "",
-    // HitPay (DuitNow QR at the counter). Separate from Billplz on purpose:
-    // Billplz cannot return an embeddable QR payload, only a hosted page.
-    // hitpayApiKey is the platform account; each seller's own sub-merchant key
-    // lives on their user doc so counter takings settle to their bank, not
-    // ours. Unset = the POS offers cash only.
-    hitpayApiKey: "",
-    hitpayPlatformKey: "",
-    hitpayWebhookSalt: "",
-    hitpaySandbox: "",
     // Delyva (courier aggregator) — live shipping quotes at checkout.
     // delyvaApiBase empty = production; set it to the sandbox base URL
     // (with matching sandbox credentials) to test without real money.
@@ -322,10 +318,6 @@ export default defineNuxtConfig({
     ebayCertId: "",
     public: {
       vapidPublicKey: "",
-      // Lets the POS show the QR option only when the platform can actually
-      // create one. Not a secret — it's a feature flag, and the seller finds
-      // out either way the moment they tap Pay.
-      posQrEnabled: "",
       // Mirrors the server-side billplzSandbox flag. Public because the seller
       // KYC form needs to know whether to offer Billplz's sandbox test bank —
       // it's an environment marker, not a secret.

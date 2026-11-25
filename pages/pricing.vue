@@ -94,11 +94,9 @@
             Money taken at your counter
           </h3>
           <p class="mt-1.5 text-label leading-relaxed text-ink-muted">
-            No subscription and nothing to install — sell nothing over the
-            counter and you pay nothing. Takings settle straight into your own
-            bank account; we never hold them. On a QR sale the rate below is
-            all-in: HitPay's share for moving the money, plus ours for the
-            till.
+            No subscription and no fee. Customers pay you directly, by cash
+            or by scanning your shop's own QR, so the money goes straight to
+            your bank or e-wallet and we never hold it.
           </p>
           <div class="mt-5 grid gap-3 sm:grid-cols-3">
             <div
@@ -547,9 +545,6 @@ import {
   MARKETPLACE_MONTHLY,
   STANDARD_RATE,
   FREE_SCANS_MONTHLY,
-  POS_ALL_IN_RATE,
-  POS_PLATFORM_RATE,
-  POS_PROVIDER_RATE,
   WITHDRAWAL_FEE,
   BETA_PRICING,
   BETA_RATE,
@@ -592,10 +587,8 @@ const feeLines = feeComponentRates().map((c) => ({
 // into it become listings, and listings are where the 4% is earned — so
 // charging for it would throttle the only line that makes money.
 //
-// Counter takings never touch our payment rail: DuitNow QR settles straight to
-// the shop's own bank at 0% for micro and small merchants (BNM waiver), and
-// tap-to-pay settles direct too, at the acquirer's card rate. Neither is
-// marked up here — see the payment note under the plans.
+// Counter takings never touch our payment rail: the customer pays the shop's
+// own static QR or hands over cash, so there is nothing for us to charge.
 // Rates and prices come from shared/pricing so the public page and the admin
 // revenue forecast can never quote different numbers.
 const plans = [
@@ -638,15 +631,13 @@ const plans = [
   },
 ];
 
-// In-store payment rates. These are the acquirer's, not ours — we add no
-// margin, because the money never passes through us. DuitNow QR's 0% is BNM's
-// MDR waiver for micro and small merchants, extended into 2026; card rates are
-// the published in-person rate from a platform acquirer.
+// In-store payment. TCGo takes nothing at the counter: the money never passes
+// through us. Any rate on the shop's own QR is between the shop and its bank.
 const counterMethods = [
   {
-    rate: `${(POS_ALL_IN_RATE * 100).toFixed(1)}%`,
-    name: "DuitNow QR",
-    note: `${(POS_PROVIDER_RATE * 100).toFixed(1)}% to move the money, ${(POS_PLATFORM_RATE * 100).toFixed(1)}% for the till. Settles to your own bank.`,
+    rate: "0%",
+    name: "Your shop's QR",
+    note: "Upload your own DuitNow, TNG or bank QR. Customers scan it and you mark the sale paid.",
   },
   {
     rate: "Soon",
@@ -763,7 +754,7 @@ const faqs = [
   },
   {
     q: "What does the in-store till cost?",
-    a: "There's no subscription — sell nothing over the counter and you pay nothing. On a DuitNow QR sale you pay 2.0% all in: 1.2% to move the money and 0.8% for the till. Cash costs nothing at all, because it never passes through us. Takings settle straight into your own bank either way; we never hold them.",
+    a: "Nothing. There's no subscription and no fee per sale. Customers pay you directly, by cash or by scanning your shop's own QR, so the money goes straight to you and we never hold it. Any fee your bank or e-wallet charges on your QR is between you and them.",
   },
   {
     q: "Do I need a subscription to sell online?",

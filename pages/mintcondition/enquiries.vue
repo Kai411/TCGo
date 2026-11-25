@@ -1,106 +1,117 @@
 <template>
-  <div class="max-w-5xl">
-    <div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <div class="mc-page">
+    <div class="mc-page-head">
       <div>
-        <h1 class="text-2xl font-bold text-ink dark:text-white">Enquiries</h1>
-        <p class="text-sm text-ink-muted dark:text-zinc-400">
-          Questions members sent from the Help Center. Your reply shows in their enquiry history and rings their bell.
-          Close one when it's done.
+        <p class="mc-eyebrow mb-1">Trust and safety</p>
+        <h1 class="mc-h1">Enquiries</h1>
+        <p class="mc-meta mt-1">
+          <template v-if="view === 'active' && !loading && enquiries.length">
+            {{ needsReply.length }} {{ needsReply.length === 1 ? "needs" : "need" }} a reply,
+            {{ replied.length }} waiting on the member.
+          </template>
+          <template v-else>Questions members sent from the Help Center.</template>
         </p>
       </div>
-      <div class="flex items-center gap-2">
-        <div class="inline-flex rounded-lg border border-black/[0.10] dark:border-white/[0.12] p-0.5 text-sm font-semibold">
-          <button
-            v-for="v in VIEWS"
-            :key="v.id"
-            type="button"
-            @click="setView(v.id)"
-            class="px-3 py-1.5 rounded-md"
-            :class="view === v.id ? 'bg-ink text-white dark:bg-white dark:text-ink' : 'text-ink-muted dark:text-zinc-400'"
-          >
-            {{ v.label }}
-          </button>
-        </div>
-        <button
-          type="button"
-          @click="load"
-          :disabled="loading"
-          class="px-3 py-2 rounded-lg text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white disabled:opacity-50"
-        >
-          {{ loading ? "Loading…" : "Refresh" }}
-        </button>
-      </div>
+      <button type="button" :disabled="loading" class="mc-btn" @click="load">
+        {{ loading ? "Loading…" : "Refresh" }}
+      </button>
     </div>
 
-    <p v-if="error" class="mb-4 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+    <p v-if="error" class="mc-callout mb-6" data-tone="bad" role="alert">{{ error }}</p>
 
-    <div v-if="!loading && !enquiries.length" class="py-16 text-center text-sm text-ink-muted dark:text-zinc-400">
-      {{ view === "closed" ? "No closed enquiries." : "No open enquiries." }}
-    </div>
-
-    <div class="space-y-3">
-      <div
-        v-for="e in enquiries"
-        :key="e.id"
-        class="rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] p-4"
+    <div class="mc-tabs mb-5" role="tablist" aria-label="Enquiry status">
+      <button
+        v-for="v in VIEWS"
+        :key="v.id"
+        type="button"
+        role="tab"
+        :aria-selected="view === v.id"
+        @click="setView(v.id)"
       >
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <p class="text-sm font-semibold text-ink dark:text-white">
-              {{ e.topic }}<span v-if="e.orderRef" class="font-mono text-xs text-ink-muted dark:text-zinc-400"> · #{{ e.orderRef }}</span>
-            </p>
-            <p class="text-xs text-ink-muted dark:text-zinc-400">
-              <NuxtLink :to="`/profile/${e.userUid}`" target="_blank" class="hover:underline">{{ e.userName || "Member" }}</NuxtLink>
-              <span v-if="e.userEmail"> · {{ e.userEmail }}</span> · sent {{ fmt(e.createdAt) }}
-            </p>
-          </div>
-          <span class="px-2 py-0.5 rounded-full text-micro font-semibold" :class="PILL[e.status]">
-            {{ STAFF_LABEL[e.status] }}
-          </span>
-        </div>
+        {{ v.label }}
+      </button>
+    </div>
 
-        <ul class="mt-3 space-y-1.5 text-sm">
-          <li v-for="(m, i) in e.messages" :key="i" class="text-ink dark:text-zinc-200 whitespace-pre-line">
-            <span class="font-semibold">{{ m.by === "tcgo" ? `TCGo${m.staffName ? ` (${m.staffName})` : ""}` : "Member" }}:</span>
-            {{ m.text }}
-            <span class="text-micro text-ink-soft dark:text-zinc-500">{{ fmt(m.at) }}</span>
+    <div v-if="loading && !enquiries.length" class="grid gap-3" aria-busy="true" aria-label="Loading">
+      <div class="mc-skel h-[160px]" />
+      <div class="mc-skel h-[120px]" />
+    </div>
+
+    <p v-else-if="!enquiries.length" class="mc-card mc-empty">
+      {{ view === "closed" ? "No closed enquiries." : "No open enquiries." }}
+    </p>
+
+    <div v-else class="grid gap-8">
+      <section v-for="g in groups" v-show="g.items.length" :key="g.key" :aria-label="g.title">
+        <h2 v-if="view === 'active'" class="mc-h2 mb-3">
+          {{ g.title }}<span class="mc-tab-count">{{ g.items.length }}</span>
+        </h2>
+        <ul class="mc-card mc-list">
+          <li v-for="e in g.items" :key="e.id" class="mc-item">
+            <div class="mc-item-head">
+              <div>
+                <p class="mc-list-title">
+                  {{ e.topic }}
+                  <span v-if="e.orderRef" class="mc-mono mc-ink-3 font-normal"> · #{{ e.orderRef }}</span>
+                </p>
+                <p class="mc-small mt-0.5">
+                  <NuxtLink :to="`/profile/${e.userUid}`" target="_blank" class="mc-link">{{ e.userName || "Member" }}</NuxtLink>
+                  <span v-if="e.userEmail"> · {{ e.userEmail }}</span> · sent {{ fmt(e.createdAt) }}
+                </p>
+              </div>
+              <span class="mc-tag">
+                <span class="mc-dot" :data-tone="TONE[e.status]" aria-hidden="true" />
+                {{ STAFF_LABEL[e.status] }}
+              </span>
+            </div>
+
+            <ul class="mc-thread">
+              <li v-for="(m, i) in e.messages" :key="i">
+                <span class="mc-thread-by">{{ m.by === "tcgo" ? `TCGo${m.staffName ? ` (${m.staffName})` : ""}` : "Member" }}</span>{{ m.text }}<span class="mc-thread-at">{{ fmt(m.at) }}</span>
+              </li>
+            </ul>
+
+            <div v-if="e.status !== 'closed'" class="mc-divider mt-4 pt-4 grid gap-3">
+              <label class="mc-field">
+                <span>Reply</span>
+                <textarea
+                  v-model="drafts[e.id]"
+                  rows="3"
+                  :maxlength="ENQUIRY_MESSAGE_MAX"
+                  class="mc-input"
+                  placeholder="Shows in their enquiry history and rings their bell."
+                />
+              </label>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="mc-btn mc-btn-sm mc-btn-primary"
+                  :disabled="busy === e.id || !(drafts[e.id] || '').trim()"
+                  @click="act(e, { reply: true })"
+                >
+                  Send reply
+                </button>
+                <button
+                  type="button"
+                  class="mc-btn mc-btn-sm"
+                  :disabled="busy === e.id || !(drafts[e.id] || '').trim()"
+                  @click="act(e, { reply: true, close: true })"
+                >
+                  Reply and close
+                </button>
+                <button
+                  type="button"
+                  class="mc-btn mc-btn-sm mc-btn-ghost"
+                  :disabled="busy === e.id"
+                  @click="act(e, { close: true })"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </li>
         </ul>
-
-        <div v-if="e.status !== 'closed'" class="mt-3 flex flex-wrap items-end gap-2">
-          <textarea
-            v-model="drafts[e.id]"
-            rows="2"
-            :maxlength="ENQUIRY_MESSAGE_MAX"
-            placeholder="Reply to the member"
-            class="flex-1 min-w-[16rem] px-3 py-2 rounded-lg border border-black/[0.10] dark:border-white/[0.12] bg-transparent text-sm"
-          />
-          <button
-            type="button"
-            :disabled="busy === e.id || !(drafts[e.id] || '').trim()"
-            @click="act(e, { reply: true })"
-            class="px-3 py-2 rounded-lg text-sm font-semibold bg-pokemon-red text-white disabled:opacity-50"
-          >
-            Send reply
-          </button>
-          <button
-            type="button"
-            :disabled="busy === e.id || !(drafts[e.id] || '').trim()"
-            @click="act(e, { reply: true, close: true })"
-            class="px-3 py-2 rounded-lg text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white disabled:opacity-50"
-          >
-            Reply and close
-          </button>
-          <button
-            type="button"
-            :disabled="busy === e.id"
-            @click="act(e, { close: true })"
-            class="px-3 py-2 rounded-lg text-sm font-semibold text-ink-muted dark:text-zinc-400 disabled:opacity-50"
-          >
-            Close
-          </button>
-        </div>
-      </div>
+      </section>
     </div>
   </div>
 </template>
@@ -135,10 +146,10 @@ const STAFF_LABEL: Record<EnquiryStatus, string> = {
   answered: "Replied",
   closed: "Closed",
 };
-const PILL: Record<EnquiryStatus, string> = {
-  open: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  answered: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  closed: "bg-black/[0.05] dark:bg-white/[0.08] text-ink-muted dark:text-zinc-300",
+const TONE: Record<EnquiryStatus, "warn" | "good" | undefined> = {
+  open: "warn",
+  answered: "good",
+  closed: undefined,
 };
 
 const { mcFetch } = useMcFetch();
@@ -163,6 +174,20 @@ const load = async () => {
     loading.value = false;
   }
 };
+
+// Waiting on us first, oldest first, so the longest wait is at the top.
+const needsReply = computed(() =>
+  enquiries.value.filter((e) => e.status === "open").sort((a, b) => a.updatedAt - b.updatedAt),
+);
+const replied = computed(() => enquiries.value.filter((e) => e.status === "answered"));
+const groups = computed(() =>
+  view.value === "closed"
+    ? [{ key: "closed", title: "Closed", items: enquiries.value }]
+    : [
+        { key: "open", title: "Needs reply", items: needsReply.value },
+        { key: "answered", title: "Replied, waiting on the member", items: replied.value },
+      ],
+);
 
 const setView = (v: "active" | "closed") => {
   if (view.value === v) return;

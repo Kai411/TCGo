@@ -1,52 +1,23 @@
 <template>
-  <div class="max-w-5xl mx-auto">
-    <div class="flex items-center justify-between gap-3 mb-5 flex-wrap">
+  <div class="mc-page">
+    <div class="mc-page-head">
       <div>
-        <h1 class="text-2xl font-bold">Logs</h1>
-        <p class="text-label text-ink-muted dark:text-zinc-400 mt-0.5">
-          What broke, and who did what.
-        </p>
+        <p class="mc-eyebrow mb-1">Admin</p>
+        <h1 class="mc-h1">Logs</h1>
+        <p class="mc-meta mt-1">What broke, and who did what.</p>
       </div>
-      <button class="btn-ghost" :disabled="loading" @click="load()">Reload</button>
+      <button class="mc-btn" :disabled="loading" @click="load()">
+        {{ loading ? "Loading…" : "Refresh" }}
+      </button>
     </div>
 
-    <!-- Sign-up codes never say whether mail really went out (that would
-         reveal who has an account), so this is where staff find out. -->
-    <div class="rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-4 mb-5">
-      <p class="text-sm font-semibold">Test email</p>
-      <p class="text-caption text-ink-muted dark:text-zinc-400 mt-0.5">
-        Sends one email and shows what Mailtrap answered.
-      </p>
-      <form class="mt-3 flex gap-2 flex-wrap" @submit.prevent="sendTest">
-        <input
-          v-model="testTo"
-          type="email"
-          placeholder="you@example.com"
-          autocapitalize="none"
-          class="sel flex-1 min-w-[200px]"
-        />
-        <button class="btn-ghost" :disabled="testBusy || !testTo.trim()">
-          {{ testBusy ? "Sending…" : "Send test" }}
-        </button>
-      </form>
-      <div v-if="testResult" class="mt-3 text-label space-y-1">
-        <p :class="testResult.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
-          {{ testResult.headline }}
-        </p>
-        <p v-if="testResult.detail" class="text-ink-muted dark:text-zinc-400">{{ testResult.detail }}</p>
-      </div>
-    </div>
-
-    <div class="flex gap-1 mb-4 border-b border-black/[0.06] dark:border-white/[0.08]">
+    <div class="mc-tabs mb-4" role="tablist" aria-label="Log type">
       <button
         v-for="t in tabs"
         :key="t.key"
-        class="px-3.5 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors"
-        :class="
-          kind === t.key
-            ? 'border-pokemon-red text-ink dark:text-white'
-            : 'border-transparent text-ink-soft dark:text-zinc-500 hover:text-ink dark:hover:text-zinc-300'
-        "
+        type="button"
+        role="tab"
+        :aria-selected="kind === t.key"
         @click="switchTab(t.key)"
       >
         {{ t.label }}
@@ -54,32 +25,31 @@
     </div>
 
     <div class="flex gap-2 mb-4 flex-wrap items-center">
-      <select v-model="area" class="sel" @change="load()">
+      <select v-model="area" class="mc-input !w-auto" aria-label="Area" @change="load()">
         <option value="all">All areas</option>
         <option v-for="a in LOG_AREAS" :key="a.key" :value="a.key">{{ a.label }}</option>
       </select>
-      <select v-if="kind === 'error'" v-model="severity" class="sel" @change="load()">
+      <select v-if="kind === 'error'" v-model="severity" class="mc-input !w-auto" aria-label="Severity" @change="load()">
         <option value="all">Any severity</option>
         <option value="critical">Critical</option>
         <option value="error">Error</option>
         <option value="warning">Warning</option>
       </select>
-      <label
-        v-if="kind === 'error'"
-        class="flex items-center gap-1.5 text-label text-ink-muted dark:text-zinc-400"
-      >
+      <label v-if="kind === 'error'" class="flex items-center gap-2 mc-meta ml-1">
         <input v-model="unresolved" type="checkbox" @change="load()" />
         Unresolved only
       </label>
     </div>
 
-    <p v-if="error" class="text-label text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
-    <p v-if="loading" class="text-label text-ink-soft dark:text-zinc-500">Loading…</p>
+    <p v-if="error" class="mc-callout mb-4" data-tone="bad" role="alert">{{ error }}</p>
 
-    <p
-      v-else-if="!rows.length"
-      class="text-label text-ink-soft dark:text-zinc-500 py-8 text-center"
-    >
+    <div v-if="loading && !rows.length" class="grid gap-2" aria-busy="true" aria-label="Loading">
+      <div class="mc-skel h-[84px]" />
+      <div class="mc-skel h-[84px]" />
+      <div class="mc-skel h-[84px]" />
+    </div>
+
+    <p v-else-if="!rows.length" class="mc-card mc-empty">
       {{
         kind === "error"
           ? "Nothing has failed in this window. That's the good outcome."
@@ -88,87 +58,82 @@
     </p>
 
     <!-- ── Errors ──────────────────────────────────────────────── -->
-    <div v-else-if="kind === 'error'" class="space-y-2.5">
-      <div
-        v-for="r in rows"
-        :key="r.id"
-        class="surface rounded-xl border p-3.5"
-        :class="r.resolvedAt ? 'border-black/[0.06] dark:border-white/[0.08] opacity-60' : severityBorder(r.severity)"
-      >
-        <div class="flex items-start justify-between gap-3 flex-wrap">
-          <div class="min-w-0 flex-1">
-            <p class="flex items-center gap-2 flex-wrap">
-              <span
-                class="px-1.5 py-0.5 rounded-md text-micro font-semibold"
-                :class="severityBadge(r.severity)"
-                >{{ r.severity }}</span
-              >
-              <span class="text-micro font-semibold text-ink-soft dark:text-zinc-500">
-                {{ areaLabel(r.area) }}
+    <ul v-else-if="kind === 'error'" class="mc-card mc-list">
+      <li v-for="r in rows" :key="r.id" class="mc-item" :class="r.resolvedAt ? 'opacity-60' : ''">
+        <div class="mc-item-head">
+          <div>
+            <p class="flex items-center gap-2 flex-wrap mc-small">
+              <span class="mc-tag">
+                <span class="mc-dot" :data-tone="severityTone(r.severity)" aria-hidden="true" />{{ r.severity }}
               </span>
-              <code class="text-micro text-ink-soft dark:text-zinc-600">{{ r.code }}</code>
-              <span class="text-micro text-ink-soft dark:text-zinc-600">{{ fmt(r.at) }}</span>
+              <span>{{ areaLabel(r.area) }}</span>
+              <code class="mc-mono">{{ r.code }}</code>
+              <span>{{ fmt(r.at) }}</span>
             </p>
-            <p class="text-label font-semibold mt-1.5 break-words">{{ r.message }}</p>
-            <p
-              v-if="r.hint"
-              class="text-caption leading-relaxed text-ink-muted dark:text-zinc-400 mt-1"
-            >
-              {{ r.hint }}
-            </p>
-            <p v-if="r.context" class="mt-1.5 text-micro font-mono text-ink-soft dark:text-zinc-600 break-all">
-              {{ compact(r.context) }}
-            </p>
-            <p v-if="r.orderId || r.payoutId" class="mt-1.5 text-micro">
-              <NuxtLink
-                v-if="r.orderId"
-                :to="`/orders/${r.orderId}`"
-                class="text-pokemon-red font-semibold"
-                >Order {{ r.orderId.slice(0, 8) }}</NuxtLink
-              >
-              <span v-if="r.payoutId" class="text-ink-soft dark:text-zinc-600"
-                >Payout {{ r.payoutId.slice(0, 8) }}</span
-              >
+            <p class="mc-list-title mt-2">{{ r.message }}</p>
+            <p v-if="r.hint" class="mc-meta mt-1">{{ r.hint }}</p>
+            <p v-if="r.context" class="mt-1.5 mc-mono mc-ink-3 break-all">{{ compact(r.context) }}</p>
+            <p v-if="r.orderId || r.payoutId" class="mt-1.5 mc-small">
+              <NuxtLink v-if="r.orderId" :to="`/orders/${r.orderId}`" class="mc-link">Order {{ r.orderId.slice(0, 8) }}</NuxtLink>
+              <span v-if="r.payoutId" class="mc-mono"> Payout {{ r.payoutId.slice(0, 8) }}</span>
             </p>
           </div>
-          <button class="btn-ghost shrink-0" :disabled="busy === r.id" @click="toggleResolved(r)">
+          <button class="mc-btn mc-btn-sm shrink-0" :disabled="busy === r.id" @click="toggleResolved(r)">
             {{ r.resolvedAt ? "Reopen" : "Resolve" }}
           </button>
         </div>
-      </div>
-    </div>
+      </li>
+    </ul>
 
     <!-- ── Actions ─────────────────────────────────────────────── -->
-    <div v-else class="space-y-1.5">
-      <div
-        v-for="r in rows"
-        :key="r.id"
-        class="surface rounded-lg border border-black/[0.06] dark:border-white/[0.08] px-3.5 py-2.5 flex items-start gap-3"
-      >
-        <span class="text-micro font-mono text-ink-soft dark:text-zinc-600 shrink-0 w-28 tabular-nums">
-          {{ fmt(r.at) }}
-        </span>
-        <!-- Fixed width with truncate, not just fixed width: a staff ID is
-             five characters but the legacy marketplace-admin bridge logs a
-             28-character Firebase uid, which overflowed the column and printed
-             straight through the summary next to it. -->
+    <ul v-else class="mc-card mc-list">
+      <li v-for="r in rows" :key="r.id" class="mc-log-row">
+        <span class="mc-mono mc-ink-3 mc-num">{{ fmt(r.at) }}</span>
+        <!-- Truncated: the legacy marketplace-admin bridge logs a
+             28-character Firebase uid where a staff ID is five. -->
         <span
-          class="font-mono text-micro font-bold shrink-0 w-16 truncate"
+          class="mc-mono font-semibold truncate"
           :title="r.actorName ? `${r.actor} — ${r.actorName}` : r.actor"
         >{{ actorLabel(r.actor) }}</span>
-        <span class="text-label flex-1 min-w-0 break-words">{{ r.summary }}</span>
-        <code class="hidden sm:block text-2xs text-ink-soft dark:text-zinc-600 shrink-0 max-w-[10rem] truncate">{{ r.action }}</code>
-      </div>
-    </div>
+        <span class="text-[13.5px] min-w-0 break-words">{{ r.summary }}</span>
+        <code class="mc-log-action mc-mono mc-ink-3 truncate">{{ r.action }}</code>
+      </li>
+    </ul>
 
     <button
       v-if="nextBefore"
-      class="mt-4 w-full py-2.5 rounded-xl border border-black/[0.08] dark:border-white/[0.10] text-sm font-semibold"
+      class="mc-btn w-full mt-3"
       :disabled="loading"
       @click="load(nextBefore)"
     >
       Load older
     </button>
+
+    <!-- Sign-up codes never say whether mail really went out (that would
+         reveal who has an account), so this is where staff find out. -->
+    <section class="mt-10" aria-labelledby="mc-mail">
+      <h2 id="mc-mail" class="mc-h2">Test email</h2>
+      <p class="mc-small mt-0.5 mb-3">Sends one email and shows what Mailtrap answered.</p>
+      <form class="mc-card mc-card-pad" @submit.prevent="sendTest">
+        <div class="flex gap-2 flex-wrap">
+          <input
+            v-model="testTo"
+            type="email"
+            aria-label="Send to"
+            placeholder="you@example.com"
+            autocapitalize="none"
+            class="mc-input flex-1 min-w-[200px]"
+          />
+          <button class="mc-btn" :disabled="testBusy || !testTo.trim()">
+            {{ testBusy ? "Sending…" : "Send test" }}
+          </button>
+        </div>
+        <div v-if="testResult" class="mc-callout mt-3" :data-tone="testResult.ok ? 'good' : 'bad'">
+          <p class="font-semibold">{{ testResult.headline }}</p>
+          <p v-if="testResult.detail" class="mc-meta mt-0.5">{{ testResult.detail }}</p>
+        </div>
+      </form>
+    </section>
   </div>
 </template>
 
@@ -244,17 +209,8 @@ const compact = (c: Record<string, unknown>) =>
     .map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : v}`)
     .join("  ");
 
-const severityBadge = (s: string) =>
-  s === "critical"
-    ? "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300"
-    : s === "warning"
-      ? "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
-      : "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300";
-
-const severityBorder = (s: string) =>
-  s === "critical"
-    ? "border-red-200 dark:border-red-500/25"
-    : "border-black/[0.06] dark:border-white/[0.08]";
+const severityTone = (s: string) =>
+  s === "critical" || s === "error" ? "bad" : s === "warning" ? "warn" : undefined;
 
 const load = async (before?: number) => {
   loading.value = true;
@@ -304,11 +260,24 @@ const toggleResolved = async (r: any) => {
 onMounted(() => load());
 </script>
 
-<style scoped>
-.sel {
-  @apply px-2.5 py-1.5 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-white dark:bg-white/[0.04] text-label;
+<style>
+.mc-log-row {
+  display: grid;
+  grid-template-columns: 7rem 4.5rem minmax(0, 1fr) minmax(0, 10rem);
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 14px;
 }
-.btn-ghost {
-  @apply px-3 py-2 rounded-lg text-sm font-semibold border border-black/[0.08] dark:border-white/[0.10] text-ink-muted dark:text-zinc-300 disabled:opacity-40;
+@media (max-width: 640px) {
+  .mc-log-row {
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    gap: 2px 10px;
+  }
+  .mc-log-row > :first-child {
+    grid-column: 1 / -1;
+  }
+  .mc-log-action {
+    display: none;
+  }
 }
 </style>

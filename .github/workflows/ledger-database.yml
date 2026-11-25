@@ -1,0 +1,68 @@
+name: Ledger database
+
+# Applies server/ledger/migrations to the ledger database on Turso. Pushes to
+# staging or main apply new migrations; a pull request only connects and
+# lists what is applied and pending (no change), so the PR shows whether setup
+# is finished before it is merged.
+#
+# Needs the GitHub environment ledger-production with secrets
+# TURSO_DATABASE_URL (libsql://<db>-<org>.turso.io) and TURSO_AUTH_TOKEN (a
+# database token with full access). Netlify uses the same two values as
+# NUXT_LEDGER_DATABASE_URL and NUXT_LEDGER_DATABASE_TOKEN.
+
+on:
+  push:
+    branches: [staging, main]
+    paths:
+      - "server/ledger/migrations/**"
+      - "scripts/ledger-migrate.mjs"
+      - ".github/workflows/ledger-database.yml"
+  pull_request:
+    branches: [staging, main]
+    paths:
+      - "server/ledger/migrations/**"
+      - "scripts/ledger-migrate.mjs"
+      - ".github/workflows/ledger-database.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ledger-db-${{ github.event_name == 'pull_request' && github.ref_name || 'apply' }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: ledger-production
+    env:
+      TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+      TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+    steps:
+      - name: Check secrets are set
+        run: |
+          missing=""
+          case "$TURSO_DATABASE_URL" in
+            libsql://*|https://*) ;;
+            "") missing="$missing TURSO_DATABASE_URL" ;;
+            *) missing="$missing TURSO_DATABASE_URL(should start with libsql://)" ;;
+          esac
+          [ -n "$TURSO_AUTH_TOKEN" ] || missing="$missing TURSO_AUTH_TOKEN"
+          if [ -n "$missing" ]; then echo "::error::Missing in environment ledger-production:$missing"; exit 1; fi
+          echo "OK      TURSO_DATABASE_URL and TURSO_AUTH_TOKEN are set"
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install --no-audit --no-fund
+
+      - name: Check the connection (no changes)
+        if: github.event_name == 'pull_request'
+        run: node scripts/ledger-migrate.mjs --check
+
+      - name: Apply migrations
+        if: github.event_name != 'pull_request'
+        run: |
+          node scripts/ledger-migrate.mjs
+          echo "### Ledger database migrated" >> "$GITHUB_STEP_SUMMARY"

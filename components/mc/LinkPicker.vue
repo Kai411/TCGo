@@ -3,7 +3,7 @@
        from a list, a listing/auction/profile from its ID or a pasted link, a
        microsite, or a typed path. -->
   <div class="space-y-2">
-    <label class="block text-xs font-semibold text-ink dark:text-white" :for="selectId">Link</label>
+    <label class="block text-xs font-semibold text-[var(--ink)]" :for="selectId">Link</label>
     <select :id="selectId" v-model="mode" class="mc-inp" @change="onMode">
       <option value="none">No link</option>
       <optgroup label="Pages">
@@ -35,7 +35,7 @@
           {{ m.title }}{{ m.published ? "" : " (draft)" }}
         </option>
       </select>
-      <p v-if="pickedDraft" class="text-micro text-amber-700 dark:text-amber-400">
+      <p v-if="pickedDraft" class="text-micro text-[var(--ink-2)]">
         This microsite is a draft, so the banner leads to "page not found" until it's published.
       </p>
     </template>
@@ -52,10 +52,10 @@
       @input="emitCustom"
     />
 
-    <p v-if="invalid" class="text-xs text-red-600 dark:text-red-400">
+    <p v-if="invalid" class="text-xs text-[var(--danger)]">
       Links can only go to pages inside TCGo.
     </p>
-    <p v-else-if="modelValue" class="truncate font-mono text-micro text-ink-soft dark:text-zinc-500">
+    <p v-else-if="modelValue" class="truncate font-mono text-micro text-[var(--ink-3)]">
       Opens {{ modelValue }}
     </p>
   </div>

@@ -12,6 +12,8 @@ import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
 import { loadSellerSales } from "~/server/utils/seller-sales";
 import {
+  dailySeries,
+  monthlySeries,
   summariseByMethod,
   summariseByPeriod,
   summariseSales,
@@ -40,8 +42,8 @@ export default defineEventHandler(async (event) => {
 
   return {
     sales: page.map((s) => ({
-      // chargeId and qrPayload are provider plumbing — the browser has no use
-      // for either, and a live QR payload is a thing worth not shipping round.
+      // Only the fields the sales pages show. Older rows can carry provider
+      // fields from the retired gateway; those never go to the browser.
       id: s.id,
       lines: s.lines,
       subtotal: s.subtotal,
@@ -63,6 +65,9 @@ export default defineEventHandler(async (event) => {
     periods: summariseByPeriod(all),
     window: summariseSales(all),
     byMethod: summariseByMethod(all),
+    // The page's chart: 30 days for the short periods, 12 months for all time.
+    daily: dailySeries(all, 30),
+    monthly: monthlySeries(all, 12),
     topCards: topCards(all),
     nextBefore:
       page.length === PAGE

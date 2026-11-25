@@ -21,8 +21,8 @@
 // looking at the same sale see the same deduction, and nobody has to be told
 // why their neighbour pays less.
 //
-// The till has no subscription. It charges per counter sale instead — see
-// POS_PLATFORM_RATE below.
+// The till is free: no subscription and no fee per counter sale. See "The
+// counter" below.
 //
 // Structurally plain (no Vue imports) so Nitro can use it too.
 
@@ -43,32 +43,11 @@ export const MARKETPLACE_MONTHLY = 5.99;
 
 // ── The counter ───────────────────────────────────────────────────────
 //
-// No subscription. The till is free to install and free to keep; TCGo takes
-// a percentage of what goes through it instead, so a shop that sells nothing
-// over the counter pays nothing.
-//
-// The shop sees one all-in number: 2.0%. That is HitPay's 1.2% for moving the
-// money plus TCGo's 0.8% for the till, and it is deliberately a round figure
-// because a shopkeeper reconciling a day's takings should not need a
-// calculator to check it.
-//
-// CASH IS NOT CHARGED, and cannot be. Cash never touches a rail we can bill
-// against — see server/api/pos/cash-sale.post.ts. That also means the fee is
-// avoidable by a shop willing to take payment on its own DuitNow standee and
-// press "Cash", which is why 0.8% is set low enough that the dodge isn't
-// worth the bother. If counter volume ever starts drifting into the cash
-// column, that is the number to look at first.
-export const POS_PLATFORM_RATE = 0.008;
-
-/** HitPay's own DuitNow QR rate. Not ours — shown so the 2.0% adds up. */
-export const POS_PROVIDER_RATE = 0.012;
-
-/** What the shop pays all-in on a counter QR sale, as a fraction. */
-export const POS_ALL_IN_RATE = POS_PLATFORM_RATE + POS_PROVIDER_RATE;
-
-/** TCGo's cut of one counter sale. Rounded to the sen HitPay will deduct. */
-export const posPlatformFee = (total: number): number =>
-  Math.round(Math.max(0, total) * POS_PLATFORM_RATE * 100) / 100;
+// Free. The customer pays the shop directly, by cash or by scanning the
+// shop's own static QR (DuitNow, TNG, a bank's), so counter money never
+// touches a rail TCGo can bill against, and nothing is charged. Every counter
+// sale records platformFee 0. The till earns its keep as an inventory funnel:
+// cards scanned into it become listings, and listings carry the 4%.
 
 // ── Getting paid out ──────────────────────────────────────────────────
 //

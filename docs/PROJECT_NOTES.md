@@ -15,10 +15,11 @@ A Pokémon TCG marketplace for Malaysia: fixed-price listings (Shop), auctions, 
 | Main backend | Firebase Auth and Firestore |
 | Card prices | Supabase (`cards_catalog`, `card_prices`) |
 | Marketplace payments | Billplz (FPX) |
+| Order and payout ledger | Turso Free (libSQL), `server/ledger`. Stage 1 only shadows Billplz payments beside Firestore; see `server/ledger/README.md` |
 | Pro membership | Stripe (subscriptions only, not marketplace payments) |
 | Email | Mailtrap (sign-up codes, admin test email). Password reset uses Firebase's own reset link |
 | Seller ID check | Didit |
-| Hosting | Netlify and Vercel. Both build PR previews |
+| Hosting | Netlify (builds PR previews) |
 | Node | 22 (`.nvmrc`) |
 
 Server environment variables come from `runtimeConfig` in `nuxt.config.ts` (camelCase key becomes `NUXT_` + SNAKE_CASE). Ask kai for values; never commit them or paste them in issues, PRs or chat. `NUXT_PUBLIC_SITE_URL` must be set on any new host because Billplz callbacks and Stripe return URLs are built from it.
@@ -34,15 +35,15 @@ Server environment variables come from `runtimeConfig` in `nuxt.config.ts` (came
   ```
   and say in the PR that they passed.
 - kai merges. When several PRs are ready they are merged into staging together with merge commits, then tested and built once.
-- Share PR preview links (Netlify deploy preview or the Vercel URL in the PR checks) with screenshots, not staging links. Server features only work on a preview whose site has the server variables set.
+- Share PR preview links (Netlify deploy preview) with screenshots, not staging links. Server features only work on a preview whose site has the server variables set.
 - Keep PRs to one task. Mention unrelated bugs you find instead of fixing them in the same PR.
 
 ## Firestore rules and indexes
 
-- `firestore.rules` and `firestore.indexes.json` in the repo are the source of truth, but they are **not deployed automatically**. kai pastes them into the Firebase console by hand.
-- A paste **replaces everything**, so a rules change must always be the full file from latest staging, never a fragment. If you add an index, list its exact collection and fields in the PR.
-- A feature that needs new rules will not work in production until the paste happens. Say so in the PR.
-- `database.rules.json` is the Realtime Database rules (live auction prices and bids), pasted the same way under Realtime Database > Rules. Browsers can only read summaries, the bid list and their own bid index; nothing is browser-writable.
+- `firestore.rules`, `firestore.indexes.json` and `database.rules.json` in the repo are the source of truth. `.github/workflows/firebase-rules.yml` compiles them on every PR that touches them (plus a diff of live Firestore rules against the PR) and deploys them from `staging`: on every push once the repo variable `FIREBASE_AUTO_DEPLOY` is `true`, or on demand with Run workflow. Until then kai pastes them into the Firebase console by hand. It needs the `FIREBASE_DEPLOY_KEY` secret (service-account JSON).
+- A deploy or a paste **replaces everything**, so the file must always be the full file from latest staging, never a fragment. The workflow only adds indexes; one removed from the file stays in Firebase until deleted there. If you add an index, list its exact collection and fields in the PR.
+- A feature that needs new rules will not work in production until the deploy (or paste) happens. Say so in the PR.
+- `database.rules.json` is the Realtime Database rules (live auction prices and bids); by hand it is pasted under Realtime Database > Rules. Browsers can only read summaries, the bid list and their own bid index; nothing is browser-writable.
 
 ## Business and legal decisions
 
@@ -55,6 +56,7 @@ Server environment variables come from `runtimeConfig` in `nuxt.config.ts` (came
 - Every staff look-up of a member's identity record (`/api/admin/identity`) is written to the action log (Mint Condition > Logs, area Identity, `identity.viewed`). Any new staff route that shows identity, IC or bank details must log the same way with `noteAction`.
 - Data breaches and privacy requests follow `docs/privacy-runbook.md` (72-hour Commissioner notice, member notice, deletion by email request since there is no close-account feature). Its legal deadlines are marked for lawyer review.
 - Gateways compared: Billplz is the choice. HitPay is out for the marketplace (no Malaysian payout API). Curlec Route is the fallback if Billplz ever changes its mind.
+- **POS counter payments use each seller's own static QR** (DuitNow, TNG or a bank's), uploaded in Seller settings and stored privately (`posPaymentQr` on the private profile). The customer pays the shop directly and the seller taps "Mark as paid"; there is no gateway and no TCGo fee at the counter (`platformFee` 0). HitPay was removed on 2026-11-18.
 - **Pro membership costs RM5.99 a month.** It is one shared constant (`MARKETPLACE_MONTHLY` in `shared/pricing.ts`); the Stripe price must match it. Pro is hidden for now: `PREMIUM_ENABLED = false` in `composables/useFeatureFlags.ts`.
 - Launch promo: two months of Pro free for new users (never paid Pro) with code `TCGO2026`, until 31 Dec 2026. The coupon lives in Stripe.
 

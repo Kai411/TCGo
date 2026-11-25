@@ -6,7 +6,7 @@
     :aria-label="label"
     :disabled="disabled"
     class="relative inline-flex h-7 w-[46px] shrink-0 items-center rounded-full transition-colors duration-200 ease-out disabled:opacity-50"
-    :class="modelValue ? 'bg-emerald-500' : 'bg-black/[0.12] dark:bg-white/[0.16]'"
+    :class="modelValue ? 'bg-[var(--st-done)]' : 'bg-[var(--line-strong)]'"
     @click="emit('update:modelValue', !modelValue)"
   >
     <span

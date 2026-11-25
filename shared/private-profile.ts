@@ -43,9 +43,12 @@ export const OWNER_PRIVATE_FIELDS = [
   "pickupPostcode",
   "pickupCity",
   "pickupState",
+  // The shop's own payment QR (DuitNow, TNG, bank), shown on the POS. It can
+  // carry the account name and number, so it stays off the public document.
+  "posPaymentQr",
 ] as const;
 
-/** Fields only the server writes (identity results, merchant credentials). */
+/** Fields only the server writes (identity results). */
 export const SERVER_PRIVATE_FIELDS = [
   "kycVerifiedName",
   "kycDocumentType",
@@ -56,8 +59,6 @@ export const SERVER_PRIVATE_FIELDS = [
   "kycIdentityNumber",
   // Staff approval of a payout account in a name other than the verified one.
   "payoutNameApproval",
-  "hitpayAccessToken",
-  "hitpayMerchantKey",
 ] as const;
 
 export const PRIVATE_FIELDS: readonly string[] = [

@@ -8,7 +8,7 @@ Owner: kai (until a Data Protection Officer is appointed). DPO contact for notic
 
 ## Part A: data breach
 
-A breach is any loss of, or access to, personal data by someone who shouldn't have it: a leaked key, a wrong Firestore rule, a staff account used by someone else, a laptop with an export on it, a provider (Firebase, Didit, Billplz, Mailtrap, Supabase, Cloudinary, Netlify, Vercel) telling us they were breached.
+A breach is any loss of, or access to, personal data by someone who shouldn't have it: a leaked key, a wrong Firestore rule, a staff account used by someone else, a laptop with an export on it, a provider (Firebase, Didit, Billplz, Mailtrap, Supabase, Cloudinary, Netlify) telling us they were breached.
 
 ### 1. First hour: contain
 
@@ -16,7 +16,7 @@ Start a written timeline now (time, what you saw, what you did). Everything belo
 
 1. **Note the clock.** Write down the time you first became aware. The 72-hour window below counts from here **[LAWYER]**.
 2. **Stop the leak.** Whichever applies:
-   - A leaked server key: rotate it at the provider, then update the variable on every site (Netlify old and new, Vercel) and redeploy. Server keys are listed under `runtimeConfig` in `nuxt.config.ts` (Firebase service account, Billplz, Didit, Mailtrap, Stripe, Supabase service key, HitPay, VAPID).
+   - A leaked server key: rotate it at the provider, then update the variable on every site (Netlify old and new) and redeploy. Server keys are listed under `runtimeConfig` in `nuxt.config.ts` (Firebase service account, Billplz, Didit, Mailtrap, Stripe, Supabase service key, VAPID).
    - A staff account: Mint Condition > Staff, deactivate it and revoke its sessions. If a role was misused, edit the role (saving revokes every holder's sessions).
    - A member account taken over: disable the user in Firebase console > Authentication until it's sorted out.
    - A Firestore rules hole: paste a fixed full `firestore.rules` from latest staging (a paste replaces everything).

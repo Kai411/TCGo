@@ -1,297 +1,200 @@
 <template>
-  <div class="max-w-4xl mx-auto">
-    <div v-if="!isAdmin" class="text-center py-12">
-      <p class="text-gray-500 dark:text-zinc-400 text-lg">
-        Your role doesn't include access to reports.
-      </p>
-      <p class="text-label text-ink-soft dark:text-zinc-500 mt-1.5">
-        Ask an admin to grant it if you need it.
-      </p>
+  <div class="mc-page">
+    <div v-if="!isAdmin" class="mc-card mc-card-pad">
+      <p class="mc-h2">Your role doesn't include access to reports.</p>
+      <p class="mc-small mt-1">Ask an admin to grant it if you need it.</p>
     </div>
 
     <template v-else>
-      <h1 class="text-2xl font-bold mb-6">Reports</h1>
+      <div class="mc-page-head">
+        <div>
+          <p class="mc-eyebrow mb-1">Trust and safety</p>
+          <h1 class="mc-h1">Reports</h1>
+          <p class="mc-meta mt-1">
+            <template v-if="!loading && pendingReports.length">
+              {{ pendingReports.length }} waiting for review.
+            </template>
+            <template v-else>Members reporting other members and listings.</template>
+          </p>
+        </div>
+        <button type="button" :disabled="loading" class="mc-btn" @click="reloadAll">
+          {{ loading ? "Loading…" : "Refresh" }}
+        </button>
+      </div>
 
-      <div v-if="loading" class="flex justify-center py-12">
-        <div
-          class="animate-spin rounded-full h-6 w-6 border-b-2 border-pokemon-red"
-        ></div>
+      <p v-if="loadError" class="mc-callout mb-6" data-tone="bad" role="alert">{{ loadError }}</p>
+
+      <div class="mc-tabs mb-5" role="tablist" aria-label="Reports">
+        <button type="button" role="tab" :aria-selected="tab === 'pending'" @click="tab = 'pending'">
+          To review<span class="mc-tab-count">{{ pendingReports.length }}</span>
+        </button>
+        <button type="button" role="tab" :aria-selected="tab === 'reviewed'" @click="tab = 'reviewed'">
+          Reviewed<span class="mc-tab-count">{{ reviewedReports.length }}</span>
+        </button>
+        <button
+          v-if="canModerate"
+          type="button"
+          role="tab"
+          :aria-selected="tab === 'takedowns'"
+          @click="tab = 'takedowns'"
+        >
+          Taken down<span class="mc-tab-count">{{ takedowns.sellers.length + takedowns.listings.length }}</span>
+        </button>
+      </div>
+
+      <div v-if="loading" class="grid gap-3" aria-busy="true" aria-label="Loading">
+        <div class="mc-skel h-[200px]" />
+        <div class="mc-skel h-[200px]" />
       </div>
 
       <template v-else>
-        <!-- Tabs -->
-        <div class="flex gap-1 mb-6 bg-gray-100 dark:bg-white/[0.04] rounded-lg p-1 w-fit">
-          <button
-            @click="tab = 'pending'"
-            class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-            :class="
-              tab === 'pending'
-                ? 'bg-white dark:bg-white/[0.10] text-gray-900 dark:text-zinc-100 shadow-sm'
-                : 'text-gray-500 dark:text-zinc-400'
-            "
-          >
-            Pending ({{ pendingReports.length }})
-          </button>
-          <button
-            @click="tab = 'reviewed'"
-            class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-            :class="
-              tab === 'reviewed'
-                ? 'bg-white dark:bg-white/[0.10] text-gray-900 dark:text-zinc-100 shadow-sm'
-                : 'text-gray-500 dark:text-zinc-400'
-            "
-          >
-            Reviewed ({{ reviewedReports.length }})
-          </button>
-          <button
-            v-if="canModerate"
-            @click="tab = 'takedowns'"
-            class="px-4 py-2 rounded-md text-sm font-medium transition-colors"
-            :class="
-              tab === 'takedowns'
-                ? 'bg-white dark:bg-white/[0.10] text-gray-900 dark:text-zinc-100 shadow-sm'
-                : 'text-gray-500 dark:text-zinc-400'
-            "
-          >
-            Taken down
-          </button>
-        </div>
+        <!-- To review: oldest first, so nothing waits forever. -->
+        <template v-if="tab === 'pending'">
+          <p v-if="!pendingReports.length" class="mc-card mc-empty">No reports waiting.</p>
+          <ul v-else class="mc-card mc-list">
+            <li v-for="report in pendingReports" :key="report.id" class="mc-item">
+              <div class="mc-item-head">
+                <div>
+                  <p class="mc-list-title">{{ getTypeLabel(report.type) }}</p>
+                  <p class="mc-meta mt-0.5">
+                    {{ report.reporterName }} reported
+                    <template v-if="listingOf(report)">
+                      a {{ report.relatedItemType === "auction" ? "auction" : "listing" }} by
+                    </template>
+                    <span class="font-semibold text-[var(--ink)]">{{ report.reportedName }}</span>
+                  </p>
+                  <NuxtLink
+                    v-if="listingOf(report)"
+                    :to="listingHref(listingOf(report)!.kind, listingOf(report)!.id)"
+                    target="_blank"
+                    class="mc-link text-[13px] mt-1 inline-block"
+                  >
+                    {{ report.relatedItemName || "Open the listing" }} ↗
+                  </NuxtLink>
+                </div>
+                <span class="mc-small">{{ formatDate(report.createdAt) }}</span>
+              </div>
 
-        <p v-if="loadError" class="text-sm text-red-600 dark:text-red-400 mb-4" role="alert">{{ loadError }}</p>
+              <p class="mc-quote">{{ report.description }}</p>
 
-        <!-- Pending Reports -->
-        <div v-if="tab === 'pending'" class="space-y-4">
-          <div
-            v-if="pendingReports.length === 0"
-            class="text-gray-400 dark:text-zinc-500 text-sm py-8 text-center"
-          >
-            No pending reports.
-          </div>
-          <div
-            v-for="report in pendingReports"
-            :key="report.id"
-            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3"
-          >
-            <div class="flex items-start justify-between">
-              <div>
-                <span
-                  class="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700"
-                >
-                  {{ getTypeLabel(report.type) }}
-                </span>
-                <p class="text-sm mt-2">
-                  <strong>{{ report.reporterName }}</strong> reported
-                  <template v-if="listingOf(report)">
-                    a {{ report.relatedItemType === "auction" ? "auction" : "listing" }} by
-                  </template>
-                  <strong>{{ report.reportedName }}</strong>
-                </p>
-                <NuxtLink
-                  v-if="listingOf(report)"
-                  :to="listingHref(listingOf(report)!.kind, listingOf(report)!.id)"
+              <div v-if="report.evidenceUrls.length > 0" class="mt-3 grid grid-cols-4 sm:grid-cols-6 gap-2">
+                <a
+                  v-for="(url, i) in report.evidenceUrls"
+                  :key="i"
+                  :href="url"
                   target="_blank"
-                  class="mt-1 inline-flex items-center gap-1 text-sm font-medium text-ink dark:text-white underline underline-offset-2"
+                  class="block"
+                  :aria-label="`Evidence ${i + 1}`"
                 >
-                  {{ report.relatedItemName || "Open the listing" }}
-                  <span aria-hidden="true">↗</span>
-                </NuxtLink>
-                <AdminIdentityPanel
-                  :uid="report.reportedUid"
-                  :name="report.reportedName"
-                />
+                  <img
+                    :src="url"
+                    alt=""
+                    class="w-full aspect-square object-cover rounded-[var(--radius-s)] border border-[var(--line)]"
+                  />
+                </a>
               </div>
-              <span class="text-xs text-gray-400 dark:text-zinc-500">{{
-                formatDate(report.createdAt)
-              }}</span>
-            </div>
 
-            <p class="text-sm text-gray-700 dark:text-zinc-200 bg-gray-50 dark:bg-white/[0.02] rounded-lg p-3">
-              {{ report.description }}
-            </p>
+              <AdminIdentityPanel :uid="report.reportedUid" :name="report.reportedName" />
 
-            <!-- Evidence -->
-            <div
-              v-if="report.evidenceUrls.length > 0"
-              class="grid grid-cols-4 gap-2"
-            >
-              <a
-                v-for="(url, i) in report.evidenceUrls"
-                :key="i"
-                :href="url"
-                target="_blank"
-                class="block"
-              >
-                <img
-                  :src="url"
-                  class="w-full aspect-square object-cover rounded-lg border hover:opacity-80 transition-opacity"
+              <!-- Decide -->
+              <div class="mc-divider mt-4 pt-4 grid gap-3">
+                <McModerationActions
+                  v-if="canModerate && report.reportedUid"
+                  :report-id="report.id"
+                  :report-type="report.type"
+                  :seller-uid="report.reportedUid"
+                  :seller-name="report.reportedName"
+                  :listing="listingOf(report)"
+                  :actions-taken="report.actionsTaken"
+                  @done="loadTakedowns"
                 />
-              </a>
-            </div>
+                <div class="grid gap-3 sm:grid-cols-[8rem_minmax(0,1fr)]">
+                  <label class="mc-field">
+                    <span>Penalty points</span>
+                    <input
+                      v-model.number="penaltyInputs[report.id]"
+                      type="number"
+                      min="0"
+                      max="50"
+                      :placeholder="getSuggestedPenalty(report.type).toString()"
+                      class="mc-input mc-num"
+                    />
+                  </label>
+                  <label class="mc-field">
+                    <span>Internal note (optional)</span>
+                    <input
+                      v-model="noteInputs[report.id]"
+                      type="text"
+                      placeholder="Only staff see this"
+                      class="mc-input"
+                    />
+                  </label>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    class="mc-btn mc-btn-sm mc-btn-primary"
+                    :disabled="processing === report.id"
+                    @click="handleApprove(report.id)"
+                  >
+                    Uphold and add {{ penaltyFor(report) }} {{ penaltyFor(report) === 1 ? "point" : "points" }}
+                  </button>
+                  <button
+                    class="mc-btn mc-btn-sm"
+                    :disabled="processing === report.id"
+                    @click="handleDismiss(report.id)"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </template>
 
-            <!-- Admin Actions -->
-            <div class="border-t border-gray-200 dark:border-white/[0.08] pt-3 space-y-3">
-              <McModerationActions
-                v-if="canModerate && report.reportedUid"
-                :report-id="report.id"
-                :report-type="report.type"
-                :seller-uid="report.reportedUid"
-                :seller-name="report.reportedName"
-                :listing="listingOf(report)"
-                :actions-taken="report.actionsTaken"
-                @done="loadTakedowns"
+        <!-- Reviewed -->
+        <template v-if="tab === 'reviewed'">
+          <p v-if="!reviewedReports.length" class="mc-card mc-empty">No reviewed reports yet.</p>
+          <ul v-else class="mc-card mc-list">
+            <li v-for="report in reviewedReports" :key="report.id" class="mc-list-row">
+              <span
+                class="mc-dot"
+                :data-tone="report.status === 'approved' ? 'bad' : undefined"
+                aria-hidden="true"
               />
-              <div>
-                <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1"
-                  >Penalty points</label
-                >
-                <input
-                  v-model.number="penaltyInputs[report.id]"
-                  type="number"
-                  min="0"
-                  max="50"
-                  :placeholder="getSuggestedPenalty(report.type).toString()"
-                  class="w-32 border border-gray-300 dark:border-white/[0.10] rounded-lg px-3 py-1.5 text-sm"
-                />
-                <span class="text-xs text-gray-400 dark:text-zinc-500 ml-2">
-                  Suggested: {{ getSuggestedPenalty(report.type) }}
-                </span>
-              </div>
-              <div>
-                <label class="block text-xs text-gray-500 dark:text-zinc-400 mb-1"
-                  >Admin note (optional)</label
-                >
-                <input
-                  v-model="noteInputs[report.id]"
-                  type="text"
-                  placeholder="Internal note..."
-                  class="w-full border border-gray-300 dark:border-white/[0.10] rounded-lg px-3 py-1.5 text-sm"
-                />
-              </div>
-              <div class="flex gap-2">
-                <button
-                  @click="handleApprove(report.id)"
-                  :disabled="processing === report.id"
-                  class="bg-red-600 text-white text-sm px-4 py-1.5 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-                >
-                  Approve & Penalize
-                </button>
-                <button
-                  @click="handleDismiss(report.id)"
-                  :disabled="processing === report.id"
-                  class="bg-gray-200 dark:bg-white/[0.08] text-gray-700 dark:text-zinc-200 text-sm px-4 py-1.5 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50"
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Reviewed Reports -->
-        <div v-if="tab === 'reviewed'" class="space-y-4">
-          <div
-            v-if="reviewedReports.length === 0"
-            class="text-gray-400 dark:text-zinc-500 text-sm py-8 text-center"
-          >
-            No reviewed reports yet.
-          </div>
-          <div
-            v-for="report in reviewedReports"
-            :key="report.id"
-            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-2"
-          >
-            <div class="flex items-start justify-between">
-              <div>
-                <span
-                  class="text-xs font-medium px-2 py-0.5 rounded-full"
-                  :class="
-                    report.status === 'approved'
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-gray-100 dark:bg-white/[0.04] text-gray-600 dark:text-zinc-300'
-                  "
-                >
-                  {{
-                    report.status === "approved"
-                      ? `Approved (-${report.penalty})`
-                      : "Dismissed"
-                  }}
-                </span>
-                <p class="text-sm mt-2">
-                  <strong>{{ report.reporterName }}</strong> →
-                  <strong>{{ report.reportedName }}</strong> ·
-                  {{ getTypeLabel(report.type) }}
+              <div class="min-w-0">
+                <p class="mc-list-title">
+                  {{ report.reporterName }} reported {{ report.reportedName }}
+                </p>
+                <p class="mc-small mt-0.5">
+                  {{ getTypeLabel(report.type) }} ·
+                  {{ report.status === "approved" ? `Upheld, ${report.penalty} points` : "Dismissed" }}
+                  <template v-if="report.actionsTaken?.length"> · {{ report.actionsTaken.map(actionLabel).join(", ") }}</template>
+                  <template v-if="report.adminNote"> · Note: {{ report.adminNote }}</template>
                 </p>
               </div>
-              <span class="text-xs text-gray-400 dark:text-zinc-500">{{
-                formatDate(report.createdAt)
-              }}</span>
-            </div>
-            <p v-if="report.adminNote" class="text-xs text-gray-500 dark:text-zinc-400 italic">
-              Note: {{ report.adminNote }}
-            </p>
-            <p v-if="report.actionsTaken?.length" class="text-xs text-red-600 dark:text-red-400">
-              {{ report.actionsTaken.map(actionLabel).join(" · ") }}
-            </p>
-          </div>
-        </div>
+              <span class="mc-small whitespace-nowrap">{{ formatDate(report.createdAt) }}</span>
+            </li>
+          </ul>
+        </template>
 
         <!-- Taken down: hidden listings and suspended sellers, to undo -->
-        <div v-if="tab === 'takedowns' && canModerate" class="space-y-6">
-          <form
-            class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-5 space-y-3"
-            @submit.prevent="findListing"
-          >
-            <p class="text-sm font-semibold">Hide a listing without a report</p>
-            <div class="flex flex-col sm:flex-row gap-2">
-              <input
-                v-model="listingLink"
-                type="text"
-                inputmode="url"
-                placeholder="Paste the listing link, e.g. tcgo.shop/cards/…"
-                class="flex-1 border border-gray-300 dark:border-white/[0.10] bg-transparent rounded-lg px-3 py-1.5 text-sm"
-              />
-              <button
-                type="submit"
-                class="text-sm px-4 py-1.5 rounded-lg font-medium bg-gray-200 dark:bg-white/[0.08] text-gray-700 dark:text-zinc-200 hover:bg-gray-300 dark:hover:bg-white/[0.12]"
-              >
-                Find
-              </button>
-            </div>
-            <p v-if="listingLinkError" class="text-xs text-red-600 dark:text-red-400">{{ listingLinkError }}</p>
-            <div v-if="foundListing" class="space-y-2">
-              <p class="text-sm">
-                <NuxtLink :to="listingHref(foundListing.kind, foundListing.id)" target="_blank" class="font-medium underline underline-offset-2">
-                  {{ foundListing.title }}</NuxtLink>
-                by <strong>{{ foundListing.seller }}</strong>
-              </p>
-              <McModerationActions
-                :key="foundListing.id"
-                :seller-uid="foundListing.sellerUid"
-                :seller-name="foundListing.seller"
-                :listing="{ kind: foundListing.kind, id: foundListing.id }"
-                @done="onFoundDone"
-              />
-            </div>
-          </form>
-
-          <section>
-            <h2 class="text-sm font-semibold mb-2">Suspended sellers ({{ takedowns.sellers.length }})</h2>
-            <p v-if="!takedowns.sellers.length" class="text-sm text-gray-400 dark:text-zinc-500">Nobody is suspended.</p>
-            <ul class="space-y-2">
-              <li
-                v-for="s in takedowns.sellers"
-                :key="s.uid"
-                class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-4 flex flex-wrap items-center justify-between gap-3"
-              >
+        <div v-if="tab === 'takedowns' && canModerate" class="grid gap-8">
+          <section aria-labelledby="mc-susp">
+            <h2 id="mc-susp" class="mc-h2 mb-3">
+              Suspended sellers<span class="mc-tab-count">{{ takedowns.sellers.length }}</span>
+            </h2>
+            <p v-if="!takedowns.sellers.length" class="mc-card mc-empty">Nobody is suspended.</p>
+            <ul v-else class="mc-card mc-list">
+              <li v-for="s in takedowns.sellers" :key="s.uid" class="mc-list-row !grid-cols-[minmax(0,1fr)_auto]">
                 <div class="min-w-0">
-                  <NuxtLink :to="`/profile/${s.uid}`" target="_blank" class="text-sm font-semibold underline underline-offset-2">{{ s.name }}</NuxtLink>
-                  <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{{ s.reason }}</p>
-                  <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">{{ formatDate(s.at) }} · {{ s.by }}</p>
+                  <NuxtLink :to="`/profile/${s.uid}`" target="_blank" class="mc-link">{{ s.name }}</NuxtLink>
+                  <p class="mc-meta mt-0.5">{{ s.reason }}</p>
+                  <p class="mc-small mt-0.5">{{ formatDate(s.at) }} · {{ s.by }}</p>
                 </div>
                 <button
                   type="button"
+                  class="mc-btn mc-btn-sm"
                   :disabled="undoing === s.uid"
-                  class="text-sm px-3 py-1.5 rounded-lg font-medium border border-gray-300 dark:border-white/[0.12] hover:bg-gray-50 dark:hover:bg-white/[0.04] disabled:opacity-50"
                   @click="liftSuspension(s.uid)"
                 >
                   {{ undoing === s.uid ? "Lifting…" : "Lift suspension" }}
@@ -300,36 +203,69 @@
             </ul>
           </section>
 
-          <section>
-            <h2 class="text-sm font-semibold mb-2">Hidden listings ({{ takedowns.listings.length }})</h2>
-            <p v-if="!takedowns.listings.length" class="text-sm text-gray-400 dark:text-zinc-500">No listings are hidden.</p>
-            <ul class="space-y-2">
-              <li
-                v-for="l in takedowns.listings"
-                :key="`${l.kind}:${l.id}`"
-                class="bg-white dark:bg-white/[0.04] rounded-xl border border-gray-200 dark:border-white/[0.08] p-4 flex flex-wrap items-center gap-3"
-              >
-                <img v-if="l.imageUrl" :src="l.imageUrl" alt="" class="w-10 h-14 rounded object-cover shrink-0" />
-                <div class="min-w-0 flex-1">
-                  <p class="text-sm font-semibold truncate">
-                    {{ l.title }}
-                    <span class="text-xs font-normal text-gray-500 dark:text-zinc-400">· {{ l.kind === "auction" ? "Auction" : "Shop" }} · {{ l.seller }}</span>
+          <section aria-labelledby="mc-hidden">
+            <h2 id="mc-hidden" class="mc-h2 mb-3">
+              Hidden listings<span class="mc-tab-count">{{ takedowns.listings.length }}</span>
+            </h2>
+            <p v-if="!takedowns.listings.length" class="mc-card mc-empty">No listings are hidden.</p>
+            <ul v-else class="mc-card mc-list">
+              <li v-for="l in takedowns.listings" :key="`${l.kind}:${l.id}`" class="mc-list-row">
+                <img v-if="l.imageUrl" :src="l.imageUrl" alt="" class="w-9 h-[50px] rounded object-cover" />
+                <span v-else class="w-9 h-[50px] rounded bg-[var(--surface-2)]" />
+                <div class="min-w-0">
+                  <p class="mc-list-title truncate">{{ l.title }}</p>
+                  <p class="mc-meta mt-0.5">
+                    {{ l.kind === "auction" ? "Auction" : "Shop" }} · {{ l.seller }} ·
+                    {{ listingReasonLabel(l.hiddenReason) }}<template v-if="l.hiddenMessage"> · {{ l.hiddenMessage }}</template>
                   </p>
-                  <p class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{{ listingReasonLabel(l.hiddenReason) }}<template v-if="l.hiddenMessage"> · {{ l.hiddenMessage }}</template></p>
-                  <p class="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">{{ formatDate(l.hiddenAt) }} · {{ l.hiddenBy }}</p>
+                  <p class="mc-small mt-0.5">{{ formatDate(l.hiddenAt) }} · {{ l.hiddenBy }}</p>
                 </div>
                 <button
                   v-if="l.hiddenVia !== 'suspension'"
                   type="button"
+                  class="mc-btn mc-btn-sm"
                   :disabled="undoing === l.id"
-                  class="text-sm px-3 py-1.5 rounded-lg font-medium border border-gray-300 dark:border-white/[0.12] hover:bg-gray-50 dark:hover:bg-white/[0.04] disabled:opacity-50"
                   @click="restoreListing(l)"
                 >
                   {{ undoing === l.id ? "Restoring…" : "Restore" }}
                 </button>
-                <span v-else class="text-xs text-gray-500 dark:text-zinc-400">Comes back when the suspension is lifted</span>
+                <span v-else class="mc-small max-w-[9rem] text-right">Back when the suspension is lifted</span>
               </li>
             </ul>
+          </section>
+
+          <section aria-labelledby="mc-hide">
+            <h2 id="mc-hide" class="mc-h2">Hide a listing without a report</h2>
+            <p class="mc-small mt-0.5 mb-3">Paste its link, check it's the right one, then hide it.</p>
+            <form class="mc-card mc-card-pad grid gap-3" @submit.prevent="findListing">
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input
+                  v-model="listingLink"
+                  type="text"
+                  inputmode="url"
+                  aria-label="Listing link"
+                  placeholder="tcgo.shop/cards/…"
+                  class="mc-input flex-1"
+                  :aria-invalid="!!listingLinkError"
+                />
+                <button type="submit" class="mc-btn">Find</button>
+              </div>
+              <p v-if="listingLinkError" class="mc-small !text-[var(--danger)]">{{ listingLinkError }}</p>
+              <div v-if="foundListing" class="grid gap-2">
+                <p class="mc-meta">
+                  <NuxtLink :to="listingHref(foundListing.kind, foundListing.id)" target="_blank" class="mc-link">
+                    {{ foundListing.title }}</NuxtLink>
+                  by <span class="font-semibold text-[var(--ink)]">{{ foundListing.seller }}</span>
+                </p>
+                <McModerationActions
+                  :key="foundListing.id"
+                  :seller-uid="foundListing.sellerUid"
+                  :seller-name="foundListing.seller"
+                  :listing="{ kind: foundListing.kind, id: foundListing.id }"
+                  @done="onFoundDone"
+                />
+              </div>
+            </form>
           </section>
         </div>
       </template>
@@ -382,7 +318,11 @@ const load = async () => {
 };
 watch(() => me.value?.permissions, load, { immediate: true });
 
-const pendingReports = computed(() => reports.value.filter((r) => r.status === "pending"));
+const pendingReports = computed(() =>
+  reports.value
+    .filter((r) => r.status === "pending")
+    .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0)),
+);
 const reviewedReports = computed(() => reports.value.filter((r) => r.status !== "pending"));
 
 const review = async (
@@ -507,28 +447,39 @@ const getSuggestedPenalty = (type: string) => {
   return ALL_TYPES.find((t) => t.value === type)?.penalty || 5;
 };
 
-const handleApprove = async (reportId: string) => {
+// 0 is a real choice (uphold without points), so only an empty box falls
+// back to the suggestion. `||` used to turn a typed 0 into the suggestion.
+const penaltyFor = (report: any): number => {
+  const typed = penaltyInputs.value[report.id];
+  return typeof typed === "number" && Number.isFinite(typed)
+    ? Math.max(0, Math.min(50, Math.round(typed)))
+    : getSuggestedPenalty(report.type);
+};
+
+const runReview = async (reportId: string, fn: () => Promise<void>) => {
   processing.value = reportId;
-  const report = pendingReports.value.find((r: any) => r.id === reportId);
-  const penalty =
-    penaltyInputs.value[reportId] || getSuggestedPenalty(report?.type || "");
-  const note = noteInputs.value[reportId] || "";
+  loadError.value = "";
   try {
-    await approveReport(reportId, penalty, note);
+    await fn();
+  } catch (e: any) {
+    loadError.value = e?.data?.message || e?.message || "Couldn't save the review.";
   } finally {
     processing.value = null;
   }
 };
 
-const handleDismiss = async (reportId: string) => {
-  processing.value = reportId;
-  const note = noteInputs.value[reportId] || "";
-  try {
-    await dismissReport(reportId, note);
-  } finally {
-    processing.value = null;
-  }
+const handleApprove = (reportId: string) => {
+  const report = pendingReports.value.find((r: any) => r.id === reportId);
+  if (!report) return;
+  return runReview(reportId, () =>
+    approveReport(reportId, penaltyFor(report), noteInputs.value[reportId] || ""),
+  );
 };
+
+const handleDismiss = (reportId: string) =>
+  runReview(reportId, () => dismissReport(reportId, noteInputs.value[reportId] || ""));
+
+const reloadAll = () => Promise.all([load(), loadTakedowns()]);
 
 const formatDate = (ts: number) =>
   new Date(ts).toLocaleDateString("en-MY", {

@@ -102,6 +102,7 @@ export const summariseByPeriod = (
 
 export const METHOD_LABELS: Record<string, string> = {
   cash: "Cash",
+  shop_qr: "QR",
   duitnow_qr: "DuitNow QR",
   tap_to_pay: "Tap to Pay",
   // Marketplace checkout. Not a POS method, but it shares the takings split
@@ -159,4 +160,46 @@ export const topCards = (
     .map(([cardName, v]) => ({ cardName, ...v, total: round2(v.total) }))
     .sort((a, b) => b.total - a.total)
     .slice(0, limit);
+};
+
+/** One bar of the Sales chart: paid takings from `start` until the next bar. */
+export interface SalesPoint {
+  start: number;
+  total: number;
+  count: number;
+}
+
+// Same day boundary and paid-only rule as summariseByPeriod, so a bar and the
+// period figure above it never disagree.
+const bucketise = (sales: PosSale[], starts: number[]): SalesPoint[] => {
+  const points = starts.map((start) => ({ start, total: 0, count: 0 }));
+  for (const s of sales) {
+    if (s.status !== "paid") continue;
+    const ts = s.paidAt ?? s.createdAt;
+    if (ts < starts[0]!) continue;
+    let i = starts.length - 1;
+    while (i > 0 && ts < starts[i]!) i--;
+    points[i]!.total += s.total || 0;
+    points[i]!.count++;
+  }
+  for (const p of points) p.total = round2(p.total);
+  return points;
+};
+
+/** Paid takings per day, oldest first, ending today. */
+export const dailySeries = (sales: PosSale[], days = 30, now = Date.now()): SalesPoint[] =>
+  bucketise(
+    sales,
+    Array.from({ length: days }, (_, i) => startOfDayMs(days - 1 - i, now)),
+  );
+
+/** Paid takings per calendar month, oldest first, ending this month. */
+export const monthlySeries = (sales: PosSale[], months = 12, now = Date.now()): SalesPoint[] => {
+  const d = new Date(now);
+  return bucketise(
+    sales,
+    Array.from({ length: months }, (_, i) =>
+      new Date(d.getFullYear(), d.getMonth() - (months - 1 - i), 1).getTime(),
+    ),
+  );
 };

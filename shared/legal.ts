@@ -24,7 +24,6 @@ import { PAYOUT_HOLD_DAYS } from "~/shared/payouts";
 import { AUCTION_PAYMENT_WINDOW_HOURS } from "~/shared/auctions";
 import {
   MARKETPLACE_MONTHLY,
-  POS_PLATFORM_RATE,
   STANDARD_RATE,
   WITHDRAWAL_FEE,
 } from "~/shared/pricing";
@@ -57,7 +56,6 @@ const rm = (n: number) => `RM ${n.toFixed(2)}`;
 
 export const POLICY_NUMBERS = {
   commission: pct(STANDARD_RATE),
-  posFee: pct(POS_PLATFORM_RATE),
   withdrawalFee: rm(WITHDRAWAL_FEE),
   premiumMonthly: rm(MARKETPLACE_MONTHLY),
   cancelMinutes: CANCEL_GRACE_MINUTES,

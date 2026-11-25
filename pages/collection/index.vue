@@ -36,7 +36,16 @@
 
         <!-- Search input — Enter dispatches the search -->
         <div class="relative flex-1 min-w-0">
+          <!-- The magnifier turns into a spinner while the database answers,
+               so a slow search doesn't read as a frozen page. -->
+          <span
+            v-if="searchLoading"
+            class="absolute left-3 top-1/2 -mt-2 w-4 h-4 animate-spin rounded-full border-2 border-ink/15 border-t-pokemon-red dark:border-white/20 dark:border-t-pokemon-red pointer-events-none"
+            role="status"
+            aria-label="Searching"
+          />
           <svg
+            v-else
             class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-soft dark:text-zinc-500 pointer-events-none"
             viewBox="0 0 24 24"
             fill="none"
@@ -53,7 +62,7 @@
             placeholder="Search cards"
             aria-label='Search cards to add, e.g. "pikachu 151"'
             class="w-full h-10 pl-9 pr-3 rounded-full border-0 bg-black/[0.05] dark:bg-white/[0.08] text-sm text-ink dark:text-white collection-search placeholder:text-ink-soft dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-ink/10 dark:focus:ring-white/15 [&::-webkit-search-cancel-button]:appearance-none"
-            @keydown.enter.prevent="runSearch"
+            @keydown.enter.prevent="runSearch()"
           />
         </div>
 
@@ -335,7 +344,7 @@
              cell draws its own right and bottom line; overflow-hidden clips
              the ones on the outer right edge. -->
         <div
-          class="-mx-4 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 overflow-hidden border-t border-black/[0.06] dark:border-white/[0.08] lg:border-x lg:rounded-xl"
+          class="-mx-4 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 overflow-hidden border-y border-black/[0.06] dark:border-white/[0.08] lg:border-x lg:rounded-xl"
         >
           <CollectionOwnedTile
             v-for="card in visibleCollectionCards"
@@ -416,7 +425,7 @@
             <span
               class="text-xs text-ink-soft dark:text-zinc-500 tabular-price"
             >
-              {{ searchResults.length }} of {{ searchTotal }}
+              {{ refreshing ? "Searching…" : `${searchResults.length} of ${searchTotal}` }}
             </span>
             <button
               type="button"
@@ -430,7 +439,9 @@
         <!-- Same flat hairline grid as Your collection: owned results get
              the ⋮ manage sheet, the rest an add button. -->
         <div
-          class="-mx-4 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 overflow-hidden border-t border-black/[0.06] dark:border-white/[0.08] lg:border-x lg:rounded-xl"
+          class="-mx-4 lg:mx-0 grid grid-cols-3 lg:grid-cols-5 overflow-hidden border-y border-black/[0.06] dark:border-white/[0.08] lg:border-x lg:rounded-xl transition-opacity duration-150"
+          :class="refreshing ? 'opacity-50' : ''"
+          :aria-busy="refreshing"
         >
           <CollectionOwnedTile
             v-for="card in searchResults"
@@ -651,6 +662,7 @@ const { requireSignIn } = useSignInGate();
 const {
   searchCatalog,
   getCardsByIds,
+  withSecondaryPrices,
   getReleaseDates,
   listSets,
   listRarities,
@@ -889,13 +901,29 @@ const searchPage = useState("collection:page", () => 0);
 const savedScroll = useState("collection:scroll", () => 0);
 const resumeOnReturn = useState("collection:resume", () => false);
 const searchLoading = ref(false);
+// A new search (not the next page) is on its way: the results on screen are
+// for the old query.
+const refreshing = ref(false);
 const hasRunSearch = useState("collection:has-run", () => false);
 
 // Search replaces the collection view rather than stacking below it — the
 // page is either "what I own" or "what I might add", never both at once.
 const showingSearch = computed(() => hasRunSearch.value);
 
+// Every search takes a number; a reply that comes back after a newer search
+// started is dropped, so a slow "pika" can't overwrite "pikachu".
+let searchRequest = 0;
+let typingTimer: ReturnType<typeof setTimeout> | null = null;
+const cancelTyping = () => {
+  if (typingTimer) clearTimeout(typingTimer);
+  typingTimer = null;
+};
+
 const clearSearch = () => {
+  searchRequest++;
+  cancelTyping();
+  searchLoading.value = false;
+  refreshing.value = false;
   savedScroll.value = 0;
   resumeOnReturn.value = false;
   searchInput.value = "";
@@ -913,12 +941,16 @@ const hasMoreResults = computed(
 const route = useRoute();
 const { dismissKeyboard } = useDismissKeyboard();
 
-const runSearch = async () => {
+const runSearch = async (opts: { typing?: boolean } = {}) => {
+  cancelTyping();
+  const request = ++searchRequest;
   // Results are about to replace the screen; the keyboard would cover them.
-  dismissKeyboard();
+  // Not while they are still typing, though.
+  if (!opts.typing) dismissKeyboard();
   appliedQuery.value = searchInput.value;
   // The set list is what turns "ssp" into Surging Sparks.
   await loadDropdowns();
+  if (request !== searchRequest) return;
   const trimmed = parsed.value.name.trim();
   // Need a name (≥2) OR a filter to search.
   if (
@@ -935,6 +967,7 @@ const runSearch = async () => {
   searchPage.value = 0;
   hasRunSearch.value = true;
   searchLoading.value = true;
+  refreshing.value = true;
   const { results, total } = await searchCatalog(trimmed, {
     limit: SEARCH_PAGE_SIZE,
     page: 0,
@@ -946,9 +979,12 @@ const runSearch = async () => {
     rarityMatch: effectiveRarityMatch.value,
     sort: sortBy.value,
   });
-  searchResults.value = results;
+  const priced = await withSecondaryPrices(results);
+  if (request !== searchRequest) return;
+  searchResults.value = priced;
   searchTotal.value = total;
   searchLoading.value = false;
+  refreshing.value = false;
 };
 
 // Emptying the box is the way back too. A search with no matches has no
@@ -963,12 +999,21 @@ watch(searchInput, (value) => {
     !rarityFilter.value
   ) {
     clearSearch();
+    return;
   }
+  // Search as they type, once they pause. 300ms is long enough not to fire on
+  // every key of a word typed at speed, short enough to feel immediate. Enter
+  // still searches at once (runSearch cancels this timer).
+  cancelTyping();
+  if (value.trim().length < 2 || value === appliedQuery.value) return;
+  typingTimer = setTimeout(() => runSearch({ typing: true }), 300);
 });
+onBeforeUnmount(cancelTyping);
 
 const loadMore = async () => {
   if (searchLoading.value || !hasMoreResults.value) return;
   searchLoading.value = true;
+  const request = searchRequest;
   const nextPage = searchPage.value + 1;
   const { results } = await searchCatalog(parsed.value.name.trim(), {
     limit: SEARCH_PAGE_SIZE,
@@ -983,7 +1028,10 @@ const loadMore = async () => {
     rarityMatch: effectiveRarityMatch.value,
     sort: sortBy.value,
   });
-  searchResults.value = [...searchResults.value, ...results];
+  const priced = await withSecondaryPrices(results);
+  // A new search started while this page loaded; it owns the list now.
+  if (request !== searchRequest) return;
+  searchResults.value = [...searchResults.value, ...priced];
   searchPage.value = nextPage;
   searchLoading.value = false;
 };
@@ -1109,7 +1157,7 @@ watch(
       // getCardsByIds does not guarantee input order, so re-sort into the
       // newest-first order the ids were built in.
       const [cards, dates] = await Promise.all([
-        getCardsByIds(ids),
+        getCardsByIds(ids).then(withSecondaryPrices),
         getReleaseDates(ids),
       ]);
       releaseDates.value = dates;
