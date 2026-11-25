@@ -1,0 +1,93 @@
+name: Clear Firebase test data
+
+# Deletes test and transactional data (listings, orders, chats, auctions,
+# notifications and so on) from Firestore, and the Realtime Database auction
+# nodes when `auctions` is picked. Accounts and user data are never touched:
+# users (with private details, addresses, bank details, consents),
+# accountSecurity, userCollection, favourites, staff, staffRoles,
+# staffCounters, settings, banners, microsites and Firebase Auth accounts are
+# refused in code. The Turso order ledger is not touched either.
+# The full lists are in scripts/lib/clear-firebase.mjs.
+#
+# Run it from the Actions tab only. It never runs on push or on a schedule.
+#   1. Run with mode "dry-run" (the default): prints how many documents each
+#      picked collection holds. Changes nothing. Works on any branch.
+#   2. Run again with mode "delete", typing DELETE TEST DATA and the project
+#      id the dry run printed. Deletes only from staging. A JSON backup is
+#      uploaded as a run artifact (kept 7 days) before anything goes.
+#
+# Uses the FIREBASE_DEPLOY_KEY secret (see firebase-rules.yml). To read and
+# delete documents the service account also needs Cloud Datastore User
+# (roles/datastore.user); Firebase Realtime Database Admin covers the auction
+# nodes. Picking `auctions` needs repository variable FIREBASE_DATABASE_URL
+# (same value as NUXT_PUBLIC_FIREBASE_DATABASE_URL).
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run only counts; delete removes (staging only)"
+        type: choice
+        options: [dry-run, delete]
+        default: dry-run
+      collections:
+        description: "Collections to clear, comma separated (user data is refused)"
+        type: string
+        default: "cards,inventory,auctions,auctionOutbid,compiledOrders,orders,payouts,refunds,orderProblems,autoPayoutRuns,posSales,conversations,userStats,notifications,reports,enquiries,webhookEvents,stripeEvents,authCodes"
+      confirm:
+        description: "For delete: type DELETE TEST DATA"
+        type: string
+        default: ""
+      project:
+        description: "For delete: type the Firebase project id"
+        type: string
+        default: ""
+
+# Never two at once.
+concurrency:
+  group: clear-firebase-test-data
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  clear:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # firebase-admin only. --ignore-scripts skips nuxt prepare.
+      # package-lock.json is gitignored; see snapshot-pokemon-prices.yml.
+      - run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Clear
+        env:
+          FIREBASE_DEPLOY_KEY: ${{ secrets.FIREBASE_DEPLOY_KEY }}
+          FIREBASE_DATABASE_URL: ${{ vars.FIREBASE_DATABASE_URL }}
+          CLEAR_MODE: ${{ inputs.mode }}
+          CLEAR_COLLECTIONS: ${{ inputs.collections }}
+          CLEAR_CONFIRM: ${{ inputs.confirm }}
+          CLEAR_PROJECT: ${{ inputs.project }}
+          CLEAR_BACKUP_DIR: ${{ runner.temp }}/backup
+        run: |
+          if [ -z "$FIREBASE_DEPLOY_KEY" ]; then
+            echo "::error::Repository secret FIREBASE_DEPLOY_KEY is not set. Nothing was read or deleted."
+            exit 1
+          fi
+          node scripts/clear-firebase-test-data.mjs
+
+      # The backup holds orders and payouts, so it is kept only a week.
+      - name: Upload backup
+        if: inputs.mode == 'delete' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebase-clear-backup
+          path: ${{ runner.temp }}/backup/
+          retention-days: 7
+          if-no-files-found: ignore
