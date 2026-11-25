@@ -418,8 +418,10 @@ const desktopLinks = computed(() => {
     { to: "/auctions", label: "Auctions" },
   ];
   if (premiumEnabled) links.push({ to: "/membership", label: "Pricing" });
+  // The Dex is a public card and price lookup, as on the phone tab bar; only
+  // saving cards to it asks for an account.
+  links.push({ to: "/collection", label: "Dex" });
   if (user.value) {
-    links.push({ to: "/collection", label: "Dex" });
     links.push({ to: "/activity", label: "Orders" });
     links.push({ to: "/seller", label: "Seller dashboard" });
   }

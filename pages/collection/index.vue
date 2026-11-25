@@ -314,6 +314,27 @@
         />
       </div>
 
+      <!-- Signed out: there is no "your Dex" yet, so say what the page is
+           for. Search and card prices work without an account. -->
+      <div v-else-if="!user" class="text-center py-16 px-6">
+        <p class="text-ink dark:text-white font-semibold">
+          Look up any Pokémon card
+        </p>
+        <p
+          class="text-sm text-ink-muted dark:text-zinc-400 mt-1 max-w-sm mx-auto"
+        >
+          Search above for prices and price history. Sign in to keep track of
+          the cards you own.
+        </p>
+        <button
+          type="button"
+          @click="goToLogin"
+          class="mt-3 text-sm font-semibold text-pokemon-red hover:underline"
+        >
+          Sign in
+        </button>
+      </div>
+
       <div v-else-if="!collectionCards.length" class="text-center py-16">
         <p class="text-ink dark:text-white font-semibold">
           Your Dex is empty
@@ -658,7 +679,7 @@ useHead({ title: "TCGo Dex | TCGo Marketplace" });
 const SEARCH_PAGE_SIZE = 30;
 
 const { user } = useAuth();
-const { requireSignIn } = useSignInGate();
+const { requireSignIn, goToLogin } = useSignInGate();
 const {
   searchCatalog,
   getCardsByIds,
