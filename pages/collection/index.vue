@@ -470,6 +470,14 @@
             </button>
           </div>
         </div>
+        <!-- A typo search: say these are guesses, so a near miss is not read
+             as the catalogue having the card under that spelling. -->
+        <p
+          v-if="searchFuzzy && !refreshing"
+          class="-mt-2 mb-3 text-xs text-ink-soft dark:text-zinc-400"
+        >
+          Nothing matched “{{ parsed.name }}” exactly. Showing the closest names.
+        </p>
         <!-- Same flat hairline grid as Your collection: owned results get
              the ⋮ manage sheet, the rest an add button. -->
         <div
@@ -925,7 +933,12 @@ const parsed = computed(() =>
 // to every language on its own whenever a query named something with no
 // English printing — a patch applied three times for three symptoms of the
 // English-only default that is now gone.
-const effectiveLanguage = computed(() => languageFilter.value);
+//
+// The one exception is a language typed into the query — "charizard jp" —
+// which is the reader asking, just in words rather than with the toggle.
+const effectiveLanguage = computed(
+  () => parsed.value.language ?? languageFilter.value,
+);
 
 // What the query said, else what the dropdown says. Typing beats the dropdown
 // so a smart query is not silently narrowed by a filter left over from an
@@ -939,6 +952,8 @@ const effectiveRarityMatch = computed(
 
 const searchResults = useState<CatalogMatch[]>("collection:results", () => []);
 const searchTotal = useState("collection:total", () => 0);
+// The results are closest spellings, not word-for-word matches.
+const searchFuzzy = useState("collection:fuzzy", () => false);
 const searchPage = useState("collection:page", () => 0);
 // Where they were, and whether returning here should put them back there.
 // Only a trip into a card counts — arriving from the nav bar is a fresh visit
@@ -975,6 +990,7 @@ const clearSearch = () => {
   appliedQuery.value = "";
   searchResults.value = [];
   searchTotal.value = 0;
+  searchFuzzy.value = false;
   searchPage.value = 0;
   hasRunSearch.value = false;
 };
@@ -1013,7 +1029,7 @@ const runSearch = async (opts: { typing?: boolean } = {}) => {
   hasRunSearch.value = true;
   searchLoading.value = true;
   refreshing.value = true;
-  const { results, total } = await searchCatalog(trimmed, {
+  const { results, total, fuzzy } = await searchCatalog(trimmed, {
     limit: SEARCH_PAGE_SIZE,
     page: 0,
     language: effectiveLanguage.value,
@@ -1028,6 +1044,7 @@ const runSearch = async (opts: { typing?: boolean } = {}) => {
   if (request !== searchRequest) return;
   searchResults.value = priced;
   searchTotal.value = total;
+  searchFuzzy.value = !!fuzzy;
   searchLoading.value = false;
   refreshing.value = false;
 };

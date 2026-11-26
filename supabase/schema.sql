@@ -253,6 +253,32 @@ END;
 $$ LANGUAGE plpgsql;
 
 ------------------------------------------------------------------
+-- search_norm : the form a name is compared in.
+--
+-- Lower case, accents off, apostrophes and full stops dropped, hyphens read
+-- as spaces. So "flabebe" finds Flabébé, "rockets mewtwo" finds Team
+-- Rocket's Mewtwo ex, "mr mime" finds Mr. Mime and "porygon z" finds
+-- Porygon-Z. Applied to both sides, and IMMUTABLE so it can be indexed.
+------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION search_norm(t TEXT)
+RETURNS TEXT AS $$
+  SELECT trim(regexp_replace(
+    regexp_replace(
+      lower(translate(
+        coalesce(t, ''),
+        'áàâäãåéèêëíìîïóòôöõúùûüñçÁÀÂÄÃÅÉÈÊËÍÌÎÏÓÒÔÖÕÚÙÛÜÑÇ',
+        'aaaaaaeeeeiiiiooooouuuuncAAAAAAEEEEIIIIOOOOOUUUUNC'
+      )),
+      '[''’`.]', '', 'g'),
+    '[\s\-_:/]+', ' ', 'g'));
+$$ LANGUAGE SQL IMMUTABLE PARALLEL SAFE;
+
+-- What the name match reads. Without it every search would normalise all
+-- 63k names on the fly.
+CREATE INDEX IF NOT EXISTS cards_catalog_name_norm_trgm
+  ON cards_catalog USING gin (search_norm(name) gin_trgm_ops);
+
+------------------------------------------------------------------
 -- search_catalog : trigram-ranked, paginated fuzzy search with
 -- optional set / rarity filters and configurable sort.
 --
@@ -267,7 +293,19 @@ $$ LANGUAGE plpgsql;
 --   set_match     : optional substring to match against group_name
 --   rarity_match  : optional substring to match against rarity
 --   sort_by       : 'best' (default ranking), 'name', 'price_asc',
---                   'price_desc'
+--                   'price_desc', 'newest'
+--
+-- How the name matches:
+--   Every WORD of q must appear in the name, in any order, compared through
+--   search_norm. "ex charizard", "umbreon alt art" and "flabebe" all match
+--   now; the old single '%q%' needed the words in the printed order and the
+--   accents typed.
+--
+--   When that finds nothing at all, the search falls back to trigram word
+--   similarity, which is what catches a typo: "charzard", "pikchu",
+--   "gengr". Only as a fallback — mixed in every time it would pad a good
+--   search with near-misses. Rows found this way come back with fuzzy = true
+--   so the page can say "showing close matches".
 --
 -- Ranking when sort_by = 'best':
 --   1. Prefer prefix matches ("Charizard%" beats "Stage 1 Charizard")
@@ -277,6 +315,8 @@ $$ LANGUAGE plpgsql;
 --      VMAX, vintage chase). Cards with no price float to the bottom.
 --   4. Tiebreak alphabetically
 ------------------------------------------------------------------
+-- The return type gained `fuzzy`, which CREATE OR REPLACE cannot change.
+DROP FUNCTION IF EXISTS search_catalog(TEXT, INT, INT, TEXT, TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION search_catalog(
   q             TEXT,
   page          INT  DEFAULT 0,
@@ -295,12 +335,21 @@ RETURNS TABLE (
   image_url   TEXT,
   language    TEXT,
   prices      JSONB,
-  total_count BIGINT
+  total_count BIGINT,
+  fuzzy       BOOLEAN
 ) AS $$
 DECLARE
-  q_trimmed   TEXT := trim(q);
-  has_query   BOOLEAN := char_length(q_trimmed) >= 2;
+  q_trimmed   TEXT := trim(coalesce(q, ''));
+  q_norm      TEXT := search_norm(q);
+  has_query   BOOLEAN := char_length(search_norm(q)) >= 2;
   has_filter  BOOLEAN := set_match IS NOT NULL OR rarity_match IS NOT NULL;
+  -- Each word as its own '%word%' pattern, all of which must match.
+  q_words     TEXT[];
+  -- The longest word, matched on its own as well: that single pattern is
+  -- what the trigram index can answer, and it narrows the rows the ALL()
+  -- check then has to read.
+  q_anchor    TEXT;
+  use_fuzzy   BOOLEAN := false;
 BEGIN
   -- Require either a usable name query or at least one filter.
   IF NOT has_query AND NOT has_filter THEN
@@ -309,6 +358,23 @@ BEGIN
   -- Reject a 1-character name query (too noisy) unless filters narrow it.
   IF char_length(q_trimmed) BETWEEN 1 AND 1 AND NOT has_filter THEN
     RETURN;
+  END IF;
+
+  IF has_query THEN
+    SELECT array_agg('%' || w || '%'), (array_agg(w ORDER BY char_length(w) DESC))[1]
+      INTO q_words, q_anchor
+      FROM unnest(string_to_array(q_norm, ' ')) AS w
+      WHERE w <> '';
+
+    -- Nothing matches word for word: read it as a typo instead.
+    use_fuzzy := NOT EXISTS (
+      SELECT 1 FROM cards_catalog c
+      WHERE search_norm(c.name) LIKE '%' || q_anchor || '%'
+        AND search_norm(c.name) LIKE ALL (q_words)
+        AND (lang = 'ALL' OR c.language = lang)
+        AND (set_match    IS NULL OR c.group_name ILIKE '%' || set_match    || '%')
+        AND (rarity_match IS NULL OR c.rarity     ILIKE '%' || rarity_match || '%')
+    );
   END IF;
 
   RETURN QUERY
@@ -324,10 +390,14 @@ BEGIN
       p.prices,
       CASE
         WHEN NOT has_query THEN 0
-        WHEN c.name ILIKE q_trimmed || '%' THEN 0
+        WHEN search_norm(c.name) LIKE q_norm || '%' THEN 0
         ELSE 1
       END AS prefix_rank,
-      CASE WHEN has_query THEN similarity(c.name, q_trimmed) ELSE 0::real END AS sim,
+      CASE
+        WHEN NOT has_query THEN 0::real
+        WHEN use_fuzzy THEN word_similarity(q_norm, search_norm(c.name))
+        ELSE similarity(search_norm(c.name), q_norm)
+      END AS sim,
       -- Best market price (Holofoil → Normal → Reverse Holofoil) — used
       -- when the caller wants price-based sorting.
       COALESCE(
@@ -338,7 +408,16 @@ BEGIN
       c.released_on
     FROM cards_catalog c
     LEFT JOIN card_prices p ON p.product_id = c.product_id
-    WHERE (NOT has_query OR c.name ILIKE '%' || q_trimmed || '%')
+    WHERE (
+        NOT has_query
+        OR (NOT use_fuzzy
+            AND search_norm(c.name) LIKE '%' || q_anchor || '%'
+            AND search_norm(c.name) LIKE ALL (q_words))
+        -- <% is word similarity over pg_trgm.word_similarity_threshold,
+        -- set to 0.4 on this function below, and the trigram index answers
+        -- it.
+        OR (use_fuzzy AND q_norm <% search_norm(c.name))
+      )
       AND (lang = 'ALL' OR c.language = lang)
       AND (set_match    IS NULL OR c.group_name ILIKE '%' || set_match    || '%')
       AND (rarity_match IS NULL OR c.rarity     ILIKE '%' || rarity_match || '%')
@@ -355,7 +434,8 @@ BEGIN
     wc.image_url,
     wc.language,
     wc.prices,
-    wc.total_count
+    wc.total_count,
+    use_fuzzy AS fuzzy
   FROM with_count wc
   ORDER BY
     -- Each ORDER BY arm only takes effect when sort_by matches; the
@@ -364,6 +444,9 @@ BEGIN
     -- "Best": prefix → similarity → popularity (price desc) → name.
     -- Popularity proxy means a search for "pikachu" surfaces high-value
     -- chase prints (VMAX, SIR, Illustrator promo) before cheap commons.
+    -- A typo search ranks on closeness first: the nearest spelling is the
+    -- likeliest meaning.
+    CASE WHEN sort_by = 'best' AND use_fuzzy THEN wc.sim END DESC NULLS LAST,
     CASE WHEN sort_by = 'best'       THEN wc.prefix_rank   END ASC NULLS LAST,
     CASE WHEN sort_by = 'best'       THEN wc.sim           END DESC NULLS LAST,
     CASE WHEN sort_by = 'best'       THEN wc.market_price  END DESC NULLS LAST,
@@ -376,7 +459,14 @@ BEGIN
     wc.name ASC
   LIMIT page_size OFFSET page * page_size;
 END;
-$$ LANGUAGE plpgsql STABLE;
+$$ LANGUAGE plpgsql STABLE
+-- The default 0.6 misses ordinary typos: "charzard" scores 0.58 against
+-- Charizard and "pikchu" 0.5 against Pikachu. 0.4 catches both; it only
+-- ever applies when the word-for-word match found nothing.
+SET pg_trgm.word_similarity_threshold = 0.4;
+
+GRANT EXECUTE ON FUNCTION search_catalog(TEXT, INT, INT, TEXT, TEXT, TEXT, TEXT)
+  TO anon, authenticated;
 
 ------------------------------------------------------------------
 -- list_sets / list_rarities : populate dropdowns in the search UI.
