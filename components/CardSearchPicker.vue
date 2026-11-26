@@ -193,6 +193,8 @@ const lastQuery = ref("");
 const lastSetHint = ref<string | null>(null);
 const lastRarityHint = ref<string | null>(null);
 const lastNumber = ref<string | null>(null);
+// "charizard jp" in the box beats the form's language.
+const lastLanguage = ref<"EN" | "JP" | null>(null);
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)));
 
@@ -203,7 +205,7 @@ const fetchPage = async (n: number) => {
     const { results: r, total: t } = await searchCatalog(lastQuery.value, {
       limit: PAGE_SIZE,
       page: n,
-      language: lang.value,
+      language: lastLanguage.value ?? lang.value,
       setMatch: lastSetHint.value,
       rarityMatch: lastRarityHint.value,
       numberMatch: lastNumber.value,
@@ -241,6 +243,7 @@ const runSearch = async () => {
   lastSetHint.value = setHint;
   lastNumber.value = parsed.numberMatch;
   lastRarityHint.value = parsed.rarityHint;
+  lastLanguage.value = parsed.language;
   total.value = 0;
   await fetchPage(0);
 };
@@ -295,7 +298,7 @@ watch(
       const parsed = parseSearchQuery(query, setNames.value);
       const { results: r } = await searchCatalog(parsed.name.trim(), {
         limit: 4,
-        language: lang.value,
+        language: parsed.language ?? lang.value,
         setMatch: parsed.setHint,
         numberMatch: parsed.numberMatch,
         rarityMatch: parsed.rarityHint,

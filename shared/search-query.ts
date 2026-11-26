@@ -238,6 +238,227 @@ export const parseSmartQuery = (input: string): ParsedQuery => {
  * that can be derived honestly. A curated code map could be layered on later
  * without changing anything here.
  */
+// ── Qualifiers: language, grading, finish ─────────────────────────────
+//
+// Words that describe the copy someone wants rather than the card. None of
+// them is part of a card's name, so left in they made the name match fail:
+// "charizard jp" looked for a card called that, and "charizard psa 10" was
+// worse — the 10 was read as a card number. Lifting them out first lets the
+// rest of the parser see only the card.
+
+/** Words that pick a catalogue language. */
+const LANGUAGE_WORDS: Record<string, "EN" | "JP"> = {
+  jp: "JP",
+  jpn: "JP",
+  jap: "JP",
+  japanese: "JP",
+  en: "EN",
+  eng: "EN",
+  english: "EN",
+};
+
+/**
+ * Grading companies.
+ *
+ * "tag" and "ace" are graders too, but also words in card names ("Tag Team")
+ * and a rarity ("ace" is ACE SPEC). Those two only count with a grade after
+ * them — "tag 10" — never on their own.
+ */
+const GRADERS = ["psa", "bgs", "cgc", "sgc", "beckett", "tag", "ace"];
+const GRADER_NEEDS_NUMBER = new Set(["tag", "ace"]);
+const GRADE_NUMBER = /^(10|[1-9])(\.5)?$/;
+const GRADER_GLUED = new RegExp(`^(${GRADERS.join("|")})(10|[1-9])(\\.5)?$`, "i");
+
+export interface GradeHint {
+  /** Upper-cased company, "PSA" / "BGS" / ... */
+  company: string;
+  /** "10", "9.5", or null when only the company was typed. */
+  grade: string | null;
+}
+
+/**
+ * Finish phrases, as TCGPlayer names the price sub-type they correspond to.
+ *
+ * The catalogue has one row per card, not per finish — the finish lives in
+ * the price, not the name — so these are not filters. They are lifted out so
+ * the name still matches, and handed back so the page can show the right
+ * price. Longest first, so "reverse holo" is taken before "holo" could be.
+ */
+const VARIANT_PHRASES: Array<[string[], string]> = [
+  [["1st", "edition", "holo"], "1st Edition Holofoil"],
+  [["first", "edition", "holo"], "1st Edition Holofoil"],
+  [["reverse", "holo"], "Reverse Holofoil"],
+  [["rev", "holo"], "Reverse Holofoil"],
+  [["1st", "edition"], "1st Edition"],
+  [["first", "edition"], "1st Edition"],
+  [["1st", "ed"], "1st Edition"],
+  [["non", "holo"], "Normal"],
+  [["reverse"], "Reverse Holofoil"],
+  [["rh"], "Reverse Holofoil"],
+  [["nonholo"], "Normal"],
+  [["unlimited"], "Unlimited"],
+];
+
+export interface Qualifiers {
+  /** The query with every qualifier removed. */
+  rest: string;
+  language: "EN" | "JP" | null;
+  grade: GradeHint | null;
+  /** A TCGPlayer price sub-type: "Reverse Holofoil", "1st Edition", ... */
+  variant: string | null;
+}
+
+/**
+ * Lift language, grading and finish words out of a query.
+ *
+ * None of them may take the whole query: something has to be left to search
+ * for, so "english" alone stays a name search.
+ */
+export const extractQualifiers = (input: string): Qualifiers => {
+  let tokens = input.trim().split(/\s+/).filter(Boolean);
+  let language: Qualifiers["language"] = null;
+  let grade: GradeHint | null = null;
+  let variant: string | null = null;
+
+  // Grading: "psa 10", "bgs 9.5", "psa10", "cgc". Taken before anything reads
+  // a bare number as a card number.
+  for (let i = 0; i < tokens.length && !grade; i++) {
+    const t = tokens[i]!.toLowerCase();
+    const glued = GRADER_GLUED.exec(t);
+    if (glued) {
+      grade = { company: glued[1]!.toUpperCase(), grade: glued[2]! + (glued[3] ?? "") };
+      tokens.splice(i, 1);
+      break;
+    }
+    if (!GRADERS.includes(t)) continue;
+    const next = tokens[i + 1];
+    if (next && GRADE_NUMBER.test(next)) {
+      grade = { company: t.toUpperCase(), grade: next };
+      tokens.splice(i, 2);
+    } else if (!GRADER_NEEDS_NUMBER.has(t) && tokens.length > 1) {
+      grade = { company: t.toUpperCase(), grade: null };
+      tokens.splice(i, 1);
+    }
+  }
+
+  // Finish: the longest phrase found anywhere after the first word.
+  outer: for (const [phrase, subtype] of VARIANT_PHRASES) {
+    for (let i = 1; i + phrase.length <= tokens.length; i++) {
+      const hit = phrase.every((w, j) => tokens[i + j]!.toLowerCase() === w);
+      if (!hit) continue;
+      variant = subtype;
+      tokens.splice(i, phrase.length);
+      break outer;
+    }
+  }
+
+  // Language: anywhere, as long as something is left.
+  if (tokens.length > 1) {
+    const i = tokens.findIndex((t) => LANGUAGE_WORDS[t.toLowerCase()]);
+    if (i !== -1) {
+      language = LANGUAGE_WORDS[tokens[i]!.toLowerCase()]!;
+      tokens = tokens.filter((_, j) => j !== i);
+    }
+  }
+
+  return { rest: tokens.join(" "), language, grade, variant };
+};
+
+/**
+ * Rarity names as the catalogue files them, for when the caller has not
+ * loaded the real list. Only used to recognise a rarity typed out in full;
+ * the abbreviation logic keeps its own rules.
+ */
+export const KNOWN_RARITIES = [
+  "Common", "Uncommon", "Rare", "Holo Rare", "Double Rare", "Ultra Rare",
+  "Hyper Rare", "Secret Rare", "Illustration Rare", "Special Illustration Rare",
+  "Amazing Rare", "Radiant Rare", "Rainbow Rare", "Shiny Rare",
+  "Shiny Ultra Rare", "Mega Ultra Rare", "Mega Hyper Rare", "Mega Attack Rare",
+  "ACE SPEC Rare", "Promo", "Art Rare", "Special Art Rare", "Super Rare",
+  "Character Rare", "Character Super Rare", "ACE Rare", "Gold Star", "Prism Rare",
+  "Black White Rare",
+];
+
+/**
+ * How collectors say a rarity in more than one word, when that is not the
+ * rarity's own name.
+ */
+const RARITY_PHRASES: Record<string, string> = {
+  "ace spec": "ACE SPEC Rare",
+  "special art": "Special Art Rare",
+  "special illustration": "Special Illustration Rare",
+  "secret": "Secret Rare",
+};
+
+/**
+ * Take a rarity typed out in words — "hyper rare", "special illustration
+ * rare", "ace spec" — off the query.
+ *
+ * The token reader below sees one word at a time, so "charizard hyper rare"
+ * used to keep "charizard hyper" as the name and read "rare" as the rarity
+ * Rare: no card matched both. This runs first and takes the longest phrase.
+ *
+ * When the phrase is the whole query it is a browse — "hyper rare" means
+ * every Hyper Rare — so the name comes back empty.
+ */
+export const stripRarityPhrase = (
+  input: string,
+  rarityNames: string[] = [],
+): { rest: string; rarityMatches: string[] } => {
+  const tokens = input.trim().split(/\s+/).filter(Boolean);
+  const lower = tokens.map((t) => t.toLowerCase());
+  const names = rarityNames.length ? rarityNames : KNOWN_RARITIES;
+  const known = (r: string) =>
+    names.some((n) => n.trim().toLowerCase() === r.toLowerCase());
+
+  const candidates: Array<[string[], string]> = [
+    ...names
+      .map((n) => n.trim())
+      .filter((n) => n.split(/\s+/).length > 1)
+      .map((n): [string[], string] => [n.toLowerCase().split(/\s+/), n]),
+    ...Object.entries(RARITY_PHRASES)
+      .filter(([, r]) => known(r))
+      .map(([p, r]): [string[], string] => [p.split(" "), r]),
+  ].sort((a, b) => b[0].length - a[0].length);
+
+  for (const [words, rarity] of candidates) {
+    // A one-word phrase ("secret") never takes the first word: that is a
+    // name, as in stripRarity.
+    const from = words.length > 1 ? 0 : 1;
+    for (let i = from; i + words.length <= lower.length; i++) {
+      if (!words.every((w, j) => lower[i + j] === w)) continue;
+      const rest = [...tokens.slice(0, i), ...tokens.slice(i + words.length)].join(" ");
+      return { rest, rarityMatches: [rarity] };
+    }
+  }
+  return { rest: tokens.join(" "), rarityMatches: [] };
+};
+
+/**
+ * A set code typed before the card, as it reads on a binder page or a
+ * price list: "ssp 238", "sv08 pikachu", "pfl mega charizard x ex".
+ *
+ * Trailing sets are handled by splitKnownSet. Leading ones are taken only
+ * when they are unmistakably codes — a printed code from SET_CODES, or a
+ * code with digits in it like "sv08" or "sm11b" — because a leading WORD is
+ * almost always the card's name: "Arceus", "Jungle" and "Charizard" are all
+ * set names too.
+ */
+export const splitLeadingSetCode = (
+  input: string,
+  setNames: string[],
+): { name: string; setHint: string | null } => {
+  const tokens = input.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length < 2 || !setNames.length) return { name: input.trim(), setHint: null };
+  const first = tokens[0]!.toLowerCase();
+  const printed = Object.values(SET_CODES).includes(first);
+  const withDigits = /^[a-z]{1,5}\d{1,3}[a-z]?$/.test(first) && !/^\d+$/.test(first);
+  if (!printed && !withDigits) return { name: input.trim(), setHint: null };
+  const hit = splitKnownSet(first, setNames);
+  if (!hit.setHint || hit.name) return { name: input.trim(), setHint: null };
+  return { name: tokens.slice(1).join(" "), setHint: hit.setHint };
+};
+
 /**
  * Everything a typed query means, in one place.
  *
@@ -267,6 +488,16 @@ export interface ParsedSearch {
    * them finds neither, so the caller must OR them.
    */
   setOrNumber: boolean;
+  /** "jp" / "english" in the query. Overrides the language dropdown. */
+  language: "EN" | "JP" | null;
+  /**
+   * "psa 10", "bgs 9.5". The catalogue has no grades, so this is not a
+   * filter there; it is lifted out so it is not read as a card number, and
+   * kept for a listing search that does know grades.
+   */
+  grade: GradeHint | null;
+  /** "reverse holo", "1st edition": the price sub-type someone wants. */
+  variant: string | null;
 }
 
 /**
@@ -315,8 +546,13 @@ export const parseSearchQuery = (
   setNames: string[] = [],
   rarityNames: string[] = [],
 ): ParsedSearch => {
+  // Language, grading and finish words describe the copy, not the card.
+  // Off first, so "charizard psa 10" is not read as card number 10.
+  const q = extractQualifiers(raw);
+  const extra = { language: q.language, grade: q.grade, variant: q.variant };
+
   // Known collector phrases first, before any of it is read as a rarity.
-  const phrased = applyPhrases(raw);
+  const phrased = applyPhrases(q.rest);
 
   // A phrase that collapsed to a single word IS the whole query, and it names
   // a category rather than a card: "gold star" on its own means every Gold
@@ -326,7 +562,7 @@ export const parseSearchQuery = (
   // a one-word query is a name, and a card can be called "Promo" — and that
   // rule stands. This only lifts it where a MULTI-word phrase was rewritten
   // into one token, which is something the searcher cannot type by accident.
-  const rawWords = raw.trim().split(/\s+/).filter(Boolean);
+  const rawWords = q.rest.trim().split(/\s+/).filter(Boolean);
   const phrasedWords = phrased.split(/\s+/).filter(Boolean);
   if (rawWords.length > 1 && phrasedWords.length === 1) {
     const only = COLLOQUIAL_RARITIES[phrasedWords[0]!.toLowerCase()];
@@ -341,21 +577,50 @@ export const parseSearchQuery = (
         rarityHint: only,
         numberMatch: null,
         setOrNumber: false,
+        ...extra,
       };
     }
   }
 
+  // A rarity typed out in words — "hyper rare", "ace spec" — before the
+  // one-word reader, which would take "rare" alone and leave "hyper" in the
+  // name. On its own it is a browse of that rarity.
+  const phrase = stripRarityPhrase(phrased, rarityNames);
+  if (phrase.rarityMatches.length && !phrase.rest.trim()) {
+    return {
+      name: "",
+      setHint: null,
+      rarityMatches: phrase.rarityMatches,
+      rarityHint: phrase.rarityMatches[0]!,
+      numberMatch: null,
+      setOrNumber: false,
+      ...extra,
+    };
+  }
+
   // Rarity next: it can sit at the end, and while it does, nothing else is
   // last. Then the set, then the number.
-  const { rest, rarityMatches } = stripRarity(phrased, rarityNames);
+  const { rest, rarityMatches } = phrase.rarityMatches.length
+    ? phrase
+    : stripRarity(phrased, rarityNames);
+
+  // A set code in front — "ssp 238", "sv08 pikachu". Settles the set, so
+  // only the number is left to find.
+  const lead = splitLeadingSetCode(rest, setNames);
 
   // The set is tried at full length before any number is taken off, because a
   // set name can itself end in digits — "SV: Scarlet & Violet 151". Stripping
   // those as a card number would leave a set nobody can match.
-  let hit = splitKnownSet(rest, setNames);
+  let hit = lead.setHint
+    ? { name: lead.name, setHint: lead.setHint as string | null }
+    : splitKnownSet(rest, setNames);
   let number: string | null = null;
   let setOrNumber = false;
-  if (!hit.setHint) {
+  if (lead.setHint) {
+    const split = splitCardNumber(lead.name);
+    number = split.number;
+    hit = { name: split.name, setHint: lead.setHint };
+  } else if (!hit.setHint) {
     const split = splitCardNumber(rest);
     number = split.number;
     hit = splitKnownSet(split.name, setNames);
@@ -394,7 +659,8 @@ export const parseSearchQuery = (
     (rarityMatches.length || number) &&
     hit.setHint &&
     !hit.name.trim() &&
-    !setOrNumber
+    !setOrNumber &&
+    !lead.setHint
   ) {
     hit = { name: rest.trim(), setHint: null };
     setOrNumber = false;
@@ -418,15 +684,11 @@ export const parseSearchQuery = (
     // authority — otherwise a name it deliberately rejected ("rh" is Reverse
     // Holo, a finish no card here is filed under) comes back in through the
     // side door and filters the results to nothing.
-    // parseSmartQuery runs its own rarity pass off the unvalidated table. Once
-    // we have the catalogue's real rarity list, stripRarity above is the
-    // authority — otherwise a name it deliberately rejected ("rh" is Reverse
-    // Holo, a finish no card here is filed under) comes back in through the
-    // side door and filters the results to nothing.
     rarityMatches: rarities,
     rarityHint: rarities[0] ?? null,
     numberMatch: number,
     setOrNumber,
+    ...extra,
   };
 };
 
@@ -455,6 +717,9 @@ export const SET_CODES: Record<string, string> = {
   "destined rivals": "dri",
   "black bolt": "blk",
   "white flare": "wht",
+  // Mega Evolution
+  "mega evolution": "meg",
+  "phantasmal flames": "pfl",
   // Sword & Shield
   "sword & shield": "ssh",
   "rebel clash": "rcl",
@@ -487,6 +752,36 @@ export const SET_CODES: Record<string, string> = {
   "unified minds": "unm",
   "hidden fates": "hif",
   "cosmic eclipse": "cec",
+  "shining legends": "slg",
+  "dragon majesty": "drm",
+  "detective pikachu": "det",
+  // XY
+  "xy": "xy",
+  "flashfire": "flf",
+  "furious fists": "ffi",
+  "phantom forces": "phf",
+  "primal clash": "prc",
+  "roaring skies": "ros",
+  "ancient origins": "aor",
+  "breakthrough": "bkt",
+  "breakpoint": "bkp",
+  "generations": "gen",
+  "fates collide": "fco",
+  "steam siege": "sts",
+  "evolutions": "evo",
+  // Black & White
+  "black & white": "blw",
+  "emerging powers": "epo",
+  "noble victories": "nvi",
+  "next destinies": "nxd",
+  "dark explorers": "dex",
+  "dragons exalted": "drx",
+  "dragon vault": "drv",
+  "boundaries crossed": "bcr",
+  "plasma storm": "pls",
+  "plasma freeze": "plf",
+  "plasma blast": "plb",
+  "legendary treasures": "ltr",
 };
 
 /**

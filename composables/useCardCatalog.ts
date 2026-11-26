@@ -330,7 +330,16 @@ export const useCardCatalog = () => {
       rarityMatches?: string[] | null;
       sort?: CatalogSort;
     } = {},
-  ): Promise<{ results: CatalogMatch[]; total: number }> => {
+  ): Promise<{
+    results: CatalogMatch[];
+    total: number;
+    /**
+     * Nothing matched word for word, so these are the closest spellings —
+     * "charzard" came back as Charizard. The page says so rather than
+     * passing a guess off as a match.
+     */
+    fuzzy?: boolean;
+  }> => {
     if (!supabase) return { results: [], total: 0 };
     const trimmed = query.trim();
     const setMatch = opts.setMatch?.trim() || null;
@@ -398,7 +407,13 @@ export const useCardCatalog = () => {
           q = q.ilike("rarity", `%${rarityMatch}%`);
         }
 
-        if (trimmed.length >= 2) q = q.ilike("name", `%${trimmed}%`);
+        // Word by word, in any order, as the RPC matches: "ex charizard"
+        // finds Charizard ex.
+        if (trimmed.length >= 2) {
+          for (const word of trimmed.split(/\s+/).filter(Boolean)) {
+            q = q.ilike("name", `%${word}%`);
+          }
+        }
         if (setMatch && !opts.setOrNumber) q = q.ilike("group_name", `%${setMatch}%`);
         if (opts.language && opts.language !== "ALL") q = q.eq("language", opts.language);
         return q;
@@ -458,7 +473,7 @@ export const useCardCatalog = () => {
       language: row.language ?? "EN",
       price: pickPrice(row.prices),
     }));
-    return { results, total };
+    return { results, total, fuzzy: rows.some((row) => row.fuzzy === true) };
   };
 
   // Dropdown helpers — cached at composable level so we only hit Supabase
