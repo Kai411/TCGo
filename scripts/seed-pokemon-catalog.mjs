@@ -125,11 +125,22 @@ function buildRow(product, group, categoryId, language) {
     language,
     extended_data: product.extendedData ?? [],
     modified_on: product.modifiedOn ?? null,
-    // The set's release date ("2023-09-22T00:00:00"), for the Newest sort.
-    ...(hasReleasedOn
-      ? { released_on: group.publishedOn ? String(group.publishedOn).slice(0, 10) : null }
-      : {}),
+    // The set's release date, for the Newest sort. See releaseDate().
+    ...(hasReleasedOn ? { released_on: releaseDate(group) } : {}),
   };
+}
+
+// A set's real release date from TCGCSV's publishedOn, or null.
+//
+// Real sets carry a midnight date ("2023-09-22T00:00:00"). Groups with no
+// release date of their own (POP Series, Nintendo Promos, Miscellaneous Cards
+// & Products, Burger King Promos...) carry the time TCGCSV last rebuilt its
+// files instead ("2026-11-25T20:00:07.3733511Z"), the same stamp on all of
+// them, so they all looked released last night and sat at the top of every
+// Newest search. Those count as undated, which Newest sorts last.
+function releaseDate(group) {
+  const m = /^(\d{4}-\d{2}-\d{2})T00:00:00$/.exec(String(group.publishedOn ?? ""));
+  return m ? m[1] : null;
 }
 
 // released_on is added to the schema by hand. Until it is, leave it out
@@ -158,7 +169,7 @@ async function seedCategory(category) {
   const groups = await fetchGroups(category.id);
   console.log(`Found ${groups.length} groups (sets).`);
   // Release dates feed the Dex's Newest sort; say plainly if upstream sent none.
-  const dated = groups.filter((g) => g.publishedOn).length;
+  const dated = groups.filter((g) => releaseDate(g)).length;
   console.log(`Release dates: ${dated} of ${groups.length} sets (released_on ${hasReleasedOn ? "on" : "off"}).`);
   if (!dated && groups[0]) console.log(`First group's fields: ${Object.keys(groups[0]).join(", ")}`);
 

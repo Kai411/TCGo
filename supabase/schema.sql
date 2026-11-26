@@ -50,6 +50,7 @@ CREATE INDEX IF NOT EXISTS cards_catalog_group_name_trgm
   ON cards_catalog USING gin (group_name gin_trgm_ops);
 
 -- The set's release date (TCGCSV group publishedOn), for the Newest sort.
+-- NULL for promo and misc groups, whose publishedOn is only a build stamp.
 -- Added after launch, so ALTER rather than in the CREATE above; the nightly
 -- seed fills it.
 ALTER TABLE cards_catalog ADD COLUMN IF NOT EXISTS released_on DATE;
