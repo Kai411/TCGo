@@ -37,6 +37,11 @@
       <div class="mc-card-pad">
         <p class="mc-label">Completed sales</p>
         <p class="mc-hero-value mc-num mt-1">RM {{ formatMyr(salesValue) }}</p>
+        <!-- Completed means delivered orders plus counter sales. The Sales
+             page counts an order from the moment it is paid, so the paid but
+             not yet delivered value is shown beside it: the two add up to
+             the Sales page's all-time figure. -->
+        <p class="mc-small mt-1">All time · delivered orders and counter sales</p>
         <p v-if="momDelta !== null" class="mc-small mt-1.5 flex items-center gap-2">
           <span class="mc-dot" :data-tone="momDelta >= 0 ? 'good' : 'bad'" aria-hidden="true" />
           <span>
@@ -46,8 +51,8 @@
             vs last month
           </span>
         </p>
-        <p v-else-if="pipelineValue > 0" class="mc-small mt-1.5">
-          RM {{ formatMyr(pipelineValue) }} still in the pipeline
+        <p v-if="pipelineValue > 0" class="mc-small mt-1.5">
+          + RM {{ formatMyr(pipelineValue) }} paid, not yet delivered
         </p>
       </div>
 
@@ -58,11 +63,14 @@
         :style="{ '--cols': counterDiscount.total > 0 ? 4 : 3 }"
       >
         <AdminStat label="Items sold" :value="String(itemsSold)" />
-        <AdminStat label="Avg order" :value="`RM ${formatMyr(avgOrder)}`" />
+        <AdminStat label="Avg sale" :value="`RM ${formatMyr(avgOrder)}`" />
+        <!-- Delivered orders and counter sales together, so "Sales", the
+             word the Sales page uses. The hint counts counter sales (one per
+             receipt), not the cards sold at the counter. -->
         <AdminStat
-          label="Orders"
+          label="Sales"
           :value="String(completedCount)"
-          :hint="posCount > 0 ? `incl. ${posCount} in-person` : undefined"
+          :hint="posSaleCount > 0 ? `incl. ${posSaleCount} in-person` : undefined"
         />
         <!-- Haggling at the counter is invisible in revenue alone: a card
              sold at RM 80 off list still books as a sale. This is the
@@ -80,8 +88,12 @@
       <div class="mc-divider mc-card-pad">
         <h3 class="mc-h3 mb-4">Sales, last 8 weeks</h3>
 
+        <!-- The headline is all time and this chart is 8 weeks, so "none
+             yet" is only true when there are no sales at all. -->
         <p v-if="chartMax === 0" class="mc-small py-6 text-center">
-          No completed sales yet. Your weekly trend will appear here.
+          {{ salesValue > 0
+            ? "No completed sales in the last 8 weeks."
+            : "No completed sales yet. Your weekly trend will appear here." }}
         </p>
 
         <div v-else class="relative pl-12">
@@ -361,6 +373,8 @@ const salesValue = computed(() => unifiedSales.value.reduce((s, e) => s + e.valu
 const itemsSold = computed(() => unifiedSales.value.reduce((s, e) => s + e.itemsCount, 0));
 const completedCount = computed(() => unifiedSales.value.length);
 const posCount = computed(() => (props.posSales ?? []).length);
+/** Counter sales, one per receipt (a three-card sale is one sale). */
+const posSaleCount = computed(() => unifiedSales.value.filter((e) => e.source === "pos").length);
 
 // Counter discounts, straight off the inventory rows the dashboard already
 // has: every sold item carries both the price its label was printed with and
@@ -383,10 +397,12 @@ const avgOrder = computed(() =>
   completedCount.value ? salesValue.value / completedCount.value : 0,
 );
 
-// Value sitting in the pipeline (paid/confirmed/shipped, not yet delivered).
+// Paid but not yet delivered (paid or shipped): money the Sales page already
+// counts and this card doesn't yet. "confirmed" is left out because it is
+// still unpaid, which is also why the Sales page leaves it out.
 const pipelineValue = computed(() =>
   props.orders
-    .filter((o) => isAwaitingShipment(o) || o.status === "shipped")
+    .filter((o) => o.status === "paid" || o.status === "shipped")
     .reduce((s, o) => s + o.subtotal, 0),
 );
 

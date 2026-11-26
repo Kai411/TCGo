@@ -22,8 +22,12 @@
         </p>
       </template>
       <p class="mc-small mt-1">
-        {{ holdings.rows }} {{ holdings.rows === 1 ? "item" : "items" }}
+        <!-- Says what it counts: held stock only (sold rows are not on the
+             shelf) at market price, not the asking prices the Items page
+             totals. Without this the two pages read as disagreeing. -->
+        {{ holdings.rows }} {{ holdings.rows === 1 ? "item" : "items" }} in stock
         <template v-if="holdings.units !== holdings.rows"> · {{ holdings.units }} units</template>
+        <template v-if="holdings.pricedRows > 0"> · at market price</template>
         <template v-if="holdings.unpricedRows > 0">
           · {{ holdings.unpricedRows }} unpriced (RM {{ formatMyr(holdings.unpricedAskingValue) }} at asking)
         </template>
@@ -78,7 +82,7 @@
       >
         <span class="min-w-0">
           <span class="font-semibold">
-            {{ missingCost }} {{ missingCost === 1 ? "item has" : "items have" }} no cost price.
+            {{ missingCostLabel }}
           </span>
           Add what you paid to see your real margin.
         </span>
@@ -100,6 +104,21 @@ const { holdings, realised, trend, missingCost, loading, trendLoading } =
 
 /** Held rows with a recorded cost, priced or not. */
 const costedHeld = computed(() => holdings.value.rows - holdings.value.missingCostRows);
+
+/**
+ * The callout counts sold rows as well as held ones (realised profit needs
+ * their cost too), while the Cost basis cell above counts held rows only. So
+ * it says which is which: "30 items" beside "0 of 22 with a cost" otherwise
+ * reads as two different shelves.
+ */
+const missingCostLabel = computed(() => {
+  const held = holdings.value.missingCostRows;
+  const sold = realised.value.allTime.missingCostRows;
+  const verb = missingCost.value === 1 ? "has" : "have";
+  if (held && sold) return `${held} in stock and ${sold} sold ${verb} no cost price.`;
+  if (sold) return `${sold} sold ${sold === 1 ? "item" : "items"} ${verb} no cost price.`;
+  return `${held} ${held === 1 ? "item" : "items"} in stock ${verb} no cost price.`;
+});
 
 const changePct = computed(() => {
   const pct = trend.value.trend?.changePct;

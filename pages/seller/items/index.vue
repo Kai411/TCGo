@@ -30,9 +30,21 @@
       </SellerPageHead>
 
       <div v-if="count > 0 && !addOpen" class="mc-card mc-cells mc-cells--keep mb-5" style="--cols: 3">
-        <AdminStat label="Units" :value="String(totalUnits)" />
-        <AdminStat label="Entries" :value="String(count)" />
-        <AdminStat label="Est. value" :value="`RM ${formatMyr(totalValue)}`" hint="at list prices" />
+        <!-- Stock on the shelf only, like the dashboard's Stock value card:
+             sold rows used to be summed in here too, so the two pages showed
+             different item counts for the same stock. The value is at the
+             seller's own asking prices; the dashboard's is at market price. -->
+        <AdminStat
+          label="Units in stock"
+          :value="String(shelf.units)"
+          :hint="`${shelf.rows} ${shelf.rows === 1 ? 'item' : 'items'}`"
+        />
+        <AdminStat
+          label="Entries"
+          :value="String(count)"
+          :hint="soldCount ? `incl. ${soldCount} sold` : undefined"
+        />
+        <AdminStat label="Asking value" :value="`RM ${formatMyr(shelf.askingValue)}`" hint="in stock, at your prices" />
       </div>
 
       <!-- Add to inventory. Uses the same AddMethodPicker as Listings and
@@ -856,7 +868,7 @@ import type { AddMethod } from "~/components/AddMethodPicker.vue";
 import type { CardFormData } from "~/components/CardFormFields.vue";
 import { FREE_SCAN_LIMIT } from "~/composables/useScanQuota";
 import { validCost, type InventoryItem } from "~/composables/useInventory";
-import { hasCost, rowFee, rowProfit } from "~/shared/portfolio";
+import { hasCost, isHeld, rowFee, rowProfit, unitsOf } from "~/shared/portfolio";
 import {
   HIGH_VALUE_THRESHOLD,
   photoRequirement,
@@ -882,8 +894,6 @@ const {
   items,
   loading,
   count,
-  totalUnits,
-  totalValue,
   listenMyInventory,
   addItem,
   updateItem,
@@ -931,6 +941,23 @@ watch(
   },
   { immediate: true },
 );
+
+// Held stock (in stock, listed, reserved), counted the way the dashboard's
+// Stock value card counts it, so both pages agree on what is on the shelf.
+const shelf = computed(() => {
+  let rows = 0;
+  let units = 0;
+  let askingValue = 0;
+  for (const i of items.value) {
+    if (!isHeld(i)) continue;
+    const n = unitsOf(i);
+    rows++;
+    units += n;
+    askingValue += (Number(i.listPrice) || 0) * n;
+  }
+  return { rows, units, askingValue: Math.round(askingValue * 100) / 100 };
+});
+const soldCount = computed(() => items.value.filter((i) => i.status === "sold").length);
 
 // ── Filter + pagination ───────────────────────────────────────────────
 const PAGE_SIZE = 20;
