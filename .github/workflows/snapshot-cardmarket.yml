@@ -45,3 +45,24 @@ jobs:
           # Optional: raises pokemontcg.io's rate limit. Empty is fine.
           POKEMONTCG_API_KEY: ${{ secrets.POKEMONTCG_API_KEY }}
         run: node scripts/snapshot-cardmarket.mjs --yes
+
+  # Japanese cards come from TCGdex (pokemontcg.io has no Japanese sets), and
+  # only those TCGPlayer doesn't price. Its own job so either source can have
+  # a bad night without stopping the other.
+  snapshot-ja:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - run: npm install --no-audit --no-fund
+
+      - name: Snapshot Cardmarket prices (Japanese, via TCGdex)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/snapshot-cardmarket-ja.mjs --yes
