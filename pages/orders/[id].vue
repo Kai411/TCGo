@@ -94,7 +94,7 @@
                 class="h-12 px-5 shrink-0 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 inline-flex items-center gap-2"
               >
                 <span v-if="paying" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
-                Pay online (FPX)
+                Complete payment
               </button>
             </div>
             <p class="text-xs text-gray-500 dark:text-zinc-400 mt-3">
