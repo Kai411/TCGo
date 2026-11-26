@@ -170,6 +170,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatMoney } from "~/shared/format-money";
 import {
   ebayImageUrl,
   type EbayListing,
@@ -297,6 +298,6 @@ const formatMyr = (value: number) =>
 
 const formatOriginal = (price: { value: number; currency: string }) =>
   price.currency === "USD"
-    ? `US$${price.value.toFixed(2)}`
-    : `${price.value.toFixed(2)} ${price.currency}`;
+    ? `US$${formatMoney(price.value)}`
+    : `${formatMoney(price.value)} ${price.currency}`;
 </script>

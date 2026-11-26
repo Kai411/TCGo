@@ -7,6 +7,7 @@
 //
 // Transactional, one seller, one sale: no unsubscribe, no tracking.
 
+import { formatRM } from "~/shared/format-money";
 import type { Firestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { mailConfigured, sendMail } from "~/server/utils/mail";
@@ -19,7 +20,7 @@ const esc = (v: unknown): string =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-const money = (n: unknown) => `RM ${Number(n ?? 0).toFixed(2)}`;
+const money = (n: unknown) => formatRM(Number(n ?? 0));
 
 /** The seller's address: their profile first, then their sign-in account. */
 const sellerEmailFor = async (db: Firestore, uid: string): Promise<string> => {

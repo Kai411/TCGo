@@ -28,7 +28,7 @@
           </p>
         </div>
         <p class="font-semibold text-sm tabular-nums text-ink dark:text-white">
-          RM {{ item.price.toFixed(2) }}
+          {{ formatRM(item.price) }}
         </p>
       </li>
     </ul>
@@ -36,21 +36,22 @@
     <dl class="mt-2 pt-3 border-t border-black/[0.06] dark:border-white/[0.08] text-sm space-y-1">
       <div class="flex justify-between text-gray-600 dark:text-zinc-300">
         <dt>Subtotal</dt>
-        <dd class="tabular-nums">RM {{ order.subtotal.toFixed(2) }}</dd>
+        <dd class="tabular-nums">{{ formatRM(order.subtotal) }}</dd>
       </div>
       <div class="flex justify-between text-gray-600 dark:text-zinc-300">
         <dt>Shipping<template v-if="order.shippingCourier"> · {{ order.shippingCourier }}</template></dt>
-        <dd class="tabular-nums">RM {{ order.shipping.toFixed(2) }}</dd>
+        <dd class="tabular-nums">{{ formatRM(order.shipping) }}</dd>
       </div>
       <div class="flex justify-between font-bold text-base pt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
         <dt class="text-ink dark:text-white">{{ totalLabel }}</dt>
-        <dd class="text-pokemon-red tabular-nums">RM {{ order.total.toFixed(2) }}</dd>
+        <dd class="text-pokemon-red tabular-nums">{{ formatRM(order.total) }}</dd>
       </div>
     </dl>
   </section>
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import type {
   CompiledOrder,
   CompiledOrderItem,

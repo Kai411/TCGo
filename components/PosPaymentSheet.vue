@@ -4,6 +4,9 @@
     @click.self="$emit('close')"
   >
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Take payment"
       class="surface w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl border border-black/[0.06] dark:border-white/[0.08] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
     >
       <!-- ── Choosing how to take the money ───────────────────────────── -->
@@ -11,11 +14,11 @@
         <div class="flex items-baseline justify-between mb-1">
           <h3 class="text-base font-bold text-ink dark:text-white">Take payment</h3>
           <p class="text-xl font-extrabold text-ink dark:text-white tabular-nums">
-            RM {{ total.toFixed(2) }}
+            {{ formatRM(total) }}
           </p>
         </div>
         <p v-if="discountTotal > 0" class="text-xs text-amber-600 dark:text-amber-400 mb-4">
-          RM {{ discountTotal.toFixed(2) }} off {{ discountedCount }}
+          {{ formatRM(discountTotal) }} off {{ discountedCount }}
           {{ discountedCount === 1 ? "item" : "items" }}
         </p>
         <p v-else class="text-xs text-gray-500 dark:text-zinc-400 mb-4">
@@ -131,7 +134,7 @@
         <div class="text-center">
           <p class="text-xs font-semibold text-gray-500 dark:text-zinc-400">Scan to pay</p>
           <p class="mt-1 text-3xl font-extrabold text-ink dark:text-white tabular-nums">
-            RM {{ total.toFixed(2) }}
+            {{ formatRM(total) }}
           </p>
 
           <div class="mt-4 mx-auto w-60 max-w-full aspect-square rounded-2xl bg-white p-2 shadow-card flex items-center justify-center overflow-hidden">
@@ -139,7 +142,7 @@
           </div>
 
           <p class="mt-4 text-sm text-ink dark:text-white font-medium">
-            Ask the customer to pay exactly RM {{ total.toFixed(2) }}
+            Ask the customer to pay exactly {{ formatRM(total) }}
           </p>
           <p class="mt-1 text-xs text-gray-500 dark:text-zinc-400">
             Check the money arrived in your bank or e-wallet app, then mark it paid.
@@ -185,7 +188,7 @@
           </div>
           <p class="mt-4 text-lg font-bold text-ink dark:text-white">Paid</p>
           <p class="mt-1 text-sm text-gray-500 dark:text-zinc-400">
-            RM {{ total.toFixed(2) }} · {{ count }} {{ count === 1 ? "item" : "items" }} marked sold
+            {{ formatRM(total) }} · {{ count }} {{ count === 1 ? "item" : "items" }} marked sold
           </p>
 
           <!-- Receipt.
@@ -283,6 +286,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import type { PosPaymentMethod } from "~/shared/pos-sale";
 
 const receiptEmail = ref("");

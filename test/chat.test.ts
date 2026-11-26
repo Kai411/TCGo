@@ -111,7 +111,7 @@ describe("reply times", () => {
   });
 
   it("says nothing until there are enough replies", () => {
-    assert.equal(replyTimeLabel(addReplySample(undefined, 60_000)), "Not enough replies yet");
+    assert.equal(replyTimeLabel(addReplySample(undefined, 60_000)), "");
     let s = addReplySample(undefined, 20 * 60_000);
     s = addReplySample(s, 30 * 60_000);
     s = addReplySample(s, 25 * 60_000);

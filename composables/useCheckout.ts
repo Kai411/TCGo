@@ -65,11 +65,16 @@ export const useCheckout = () => {
     persist();
   };
 
-  const source = computed<CheckoutSource | null>(() => state.value?.source ?? null);
+  // Opening /checkout directly (typed URL, bookmark, a link that skips the
+  // drawer) has no saved selection. With items in the cart, that means "check
+  // out my cart", the same as pressing Checkout on /cart.
+  const source = computed<CheckoutSource | null>(() =>
+    state.value?.source ?? (cartItems.value.length ? "cart" : null),
+  );
 
   const checkoutItems = computed<CartItem[]>(() => {
     const s = state.value;
-    if (!s) return [];
+    if (!s) return cartItems.value;
     if (s.source === "buyNow") return s.buyNowItem ? [s.buyNowItem] : [];
     const wanted = new Set(s.ids);
     return cartItems.value.filter((i) => wanted.has(i.id));
@@ -82,7 +87,10 @@ export const useCheckout = () => {
   /** After orders are placed: clear only what was checked out. */
   const completeCheckout = () => {
     const s = state.value;
-    if (s?.source === "cart") for (const id of s.ids) removeFromCart(id);
+    const ids = s
+      ? s.source === "cart" ? s.ids : []
+      : checkoutItems.value.map((i) => i.id);
+    for (const id of ids) removeFromCart(id);
     state.value = null;
     persist();
   };

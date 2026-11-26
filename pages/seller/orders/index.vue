@@ -81,7 +81,7 @@
               </p>
             </div>
             <div class="text-right shrink-0">
-              <p class="mc-num text-[14px] font-semibold">RM {{ order.total.toFixed(2) }}</p>
+              <p class="mc-num text-[14px] font-semibold">{{ formatRM(order.total) }}</p>
               <p class="mc-small flex items-center justify-end gap-1.5 mt-0.5 whitespace-nowrap">
                 <span class="mc-dot so-dot" :data-tone="rowTone(order)" aria-hidden="true" />
                 {{ rowLabel(order) }}
@@ -95,6 +95,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import { ORDER_QUEUE_LABELS, hasWaybill, type OrderQueue } from "~/composables/useSellerOrders";
 import type { CompiledOrder } from "~/composables/useCompiledOrders";
 import { deliveryStage, deliveryStageLabel, type DeliveryStage } from "~/shared/delivery-stage";

@@ -129,6 +129,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatMoney } from "~/shared/format-money";
 import type { InventoryItem } from "~/composables/useInventory";
 
 definePageMeta({ layout: false });
@@ -213,7 +214,7 @@ const generate = async (list: InventoryItem[]) => {
       setName: item.setName || "",
       number: item.number || "",
       condition: item.condition,
-      price: (item.listPrice || 0).toFixed(2),
+      price: formatMoney(item.listPrice || 0),
       qr,
     });
   }

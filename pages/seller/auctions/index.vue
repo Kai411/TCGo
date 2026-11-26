@@ -34,7 +34,7 @@
               </p>
             </div>
             <span class="text-right">
-              <span class="mc-num font-semibold block">RM {{ auction.currentPrice.toFixed(2) }}</span>
+              <span class="mc-num font-semibold block">{{ formatRM(auction.currentPrice) }}</span>
               <span class="mc-small">current bid</span>
             </span>
           </NuxtLink>
@@ -54,7 +54,7 @@
               <div class="min-w-0">
                 <p class="mc-row-title">{{ auction.cardName }}</p>
                 <p class="mc-meta truncate">
-                  <span class="mc-num font-semibold text-[var(--ink)]">RM {{ auction.currentPrice.toFixed(2) }}</span>
+                  <span class="mc-num font-semibold text-[var(--ink)]">{{ formatRM(auction.currentPrice) }}</span>
                   · <template v-if="getWinner(auction)">won by {{ getWinner(auction)?.bidder }}</template>
                   <template v-else>no bids</template>
                 </p>
@@ -72,6 +72,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import type { Auction } from "~/composables/useAuctions";
 
 interface TabItem {

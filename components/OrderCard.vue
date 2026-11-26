@@ -11,7 +11,7 @@
         <p class="font-semibold text-sm text-ink dark:text-white truncate">{{ order.cardName }}</p>
         <p class="text-xs text-gray-500 dark:text-zinc-400">{{ order.cardSet }}</p>
         <div class="flex items-center gap-2 mt-1 flex-wrap">
-          <span class="text-xs font-semibold text-pokemon-red">RM {{ order.total.toFixed(2) }}</span>
+          <span class="text-xs font-semibold text-pokemon-red">{{ formatRM(order.total) }}</span>
           <span :class="['text-xs font-medium', orderStatusColor(order.status)]">
             {{ orderStatusLabel(order.status) }}
           </span>
@@ -82,6 +82,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import type { Order } from "~/composables/useOrders";
 import { orderStatusLabel, orderStatusColor } from "~/composables/useOrders";
 

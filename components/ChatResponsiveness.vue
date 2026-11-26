@@ -1,8 +1,10 @@
 <template>
   <p class="text-micro text-ink-soft dark:text-zinc-500">
     <span :class="online ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''">{{ seen }}</span>
-    <span aria-hidden="true"> · </span>
-    <span>{{ reply }}</span>
+    <template v-if="reply">
+      <span aria-hidden="true"> · </span>
+      <span>{{ reply }}</span>
+    </template>
   </p>
 </template>
 

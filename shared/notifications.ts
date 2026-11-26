@@ -90,6 +90,7 @@ export const badgeLabel = (count: number): string =>
 export const byNewest = <T extends NotificationView>(list: T[]): T[] =>
   [...list].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
 
+import { formatRM } from "~/shared/format-money";
 import { PAYOUT_HOLD_DAYS } from "~/shared/payouts";
 
 // ── Copy ──────────────────────────────────────────────────────────────
@@ -100,7 +101,7 @@ import { PAYOUT_HOLD_DAYS } from "~/shared/payouts";
 // worth interrupting what they're doing.
 
 const money = (n: unknown): string =>
-  typeof n === "number" ? `RM ${n.toFixed(2)}` : "";
+  typeof n === "number" ? formatRM(n) : "";
 
 export interface DraftNotification {
   kind: NotificationKind;

@@ -8,6 +8,7 @@
 // This is a transactional receipt, not marketing — it goes to one buyer about
 // one purchase they just made, so it carries no unsubscribe or tracking.
 
+import { formatRM } from "~/shared/format-money";
 import { stateName } from "~/shared/my-states";
 
 const esc = (v: unknown): string =>
@@ -17,7 +18,7 @@ const esc = (v: unknown): string =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-const money = (n: unknown) => `RM ${Number(n ?? 0).toFixed(2)}`;
+const money = (n: unknown) => formatRM(Number(n ?? 0));
 
 const fmtDate = (ms?: number) =>
   ms

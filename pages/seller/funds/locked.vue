@@ -59,6 +59,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatMoney } from "~/shared/format-money";
 import type { FundEntry } from "~/composables/useSellerFunds";
 import { PAYOUT_HOLD_DAYS } from "~/shared/payouts";
 
@@ -77,7 +78,7 @@ watch(user, (u) => {
 });
 
 const holdDays = PAYOUT_HOLD_DAYS;
-const fmt = (n: number) => n.toFixed(2);
+const fmt = (n: number) => formatMoney(n);
 const fmtDate = (ts: number) =>
   new Date(ts).toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" });
 

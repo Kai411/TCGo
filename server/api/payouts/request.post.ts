@@ -4,6 +4,7 @@
 // here from order documents — the client sends nothing but its identity. A
 // seller can call this all day and never move a figure they don't deserve.
 
+import { formatRM } from "~/shared/format-money";
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
 import { recordedPayout, isPayoutEligible, sumAmounts } from "~/shared/payouts";
@@ -140,8 +141,8 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 400,
         message:
-          `Withdrawing costs RM ${WITHDRAWAL_FEE.toFixed(2)}, and you have ` +
-          `RM ${grossAmount.toFixed(2)} available — so there'd be nothing left to send. ` +
+          `Withdrawing costs ${formatRM(WITHDRAWAL_FEE)}, and you have ` +
+          `${formatRM(grossAmount)} available — so there'd be nothing left to send. ` +
           `Wait until you've a little more, then withdraw it all in one go.`,
       });
     }

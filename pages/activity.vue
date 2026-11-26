@@ -164,8 +164,8 @@
               :to="`/auctions/${item.auction.id}`"
             >
               <template #meta>
-                <span class="text-pokemon-red font-semibold">Current RM {{ item.auction.currentPrice.toFixed(2) }}</span>
-                <span class="text-gray-500 dark:text-zinc-400 lg:ml-2">Your max RM {{ item.myHighestBid.toFixed(2) }}</span>
+                <span class="text-pokemon-red font-semibold">Current {{ formatRM(item.auction.currentPrice) }}</span>
+                <span class="text-gray-500 dark:text-zinc-400 lg:ml-2">Your max {{ formatRM(item.myHighestBid) }}</span>
                 <span class="hidden lg:inline ml-2 font-medium" :class="item.isLeading ? 'text-green-600' : 'text-red-500'">
                   {{ item.isLeading ? "Leading" : "Outbid" }}
                 </span>
@@ -207,7 +207,7 @@
               :to="`/auctions/${item.auction.id}`"
             >
               <template #meta>
-                <span class="text-pokemon-red font-semibold">Final RM {{ item.auction.currentPrice.toFixed(2) }}</span>
+                <span class="text-pokemon-red font-semibold">Final {{ formatRM(item.auction.currentPrice) }}</span>
               </template>
               <template #actions>
                 <span class="lg:hidden text-xs text-ink-muted dark:text-zinc-400">Ended {{ endedDate(item.auction.endsAt) }}</span>
@@ -222,6 +222,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import { withoutMergedChildren } from "~/shared/delivery-stage";
 import {
   ORDER_FILTER_LABELS,
@@ -314,6 +315,10 @@ const normalizeTab = (t: unknown): TabId => {
   return "purchases";
 };
 const activeTab = ref<TabId>(normalizeTab(route.query.tab));
+
+useHead(() => ({
+  title: `${activeTab.value === "purchases" ? "My orders" : "My activity"} | TCGo Marketplace`,
+}));
 watch(activeTab, (id) => {
   router.replace({ query: { ...route.query, tab: id } });
 });

@@ -117,7 +117,7 @@
                 {{ blockedReason(line.id) }}
               </p>
               <p v-else-if="discountOf(line) > 0" class="mc-small mc-num mt-0.5">
-                label RM {{ line.listPrice.toFixed(2) }} · RM {{ discountOf(line).toFixed(2) }} off
+                label {{ formatRM(line.listPrice) }} · {{ formatRM(discountOf(line)) }} off
               </p>
             </div>
             <div class="shrink-0 flex items-center gap-1">
@@ -139,10 +139,10 @@
               <p class="mc-small">
                 {{ stash.length }} {{ stash.length === 1 ? "item" : "items" }}
                 <span v-if="totals.discountTotal > 0" class="mc-num">
-                  · RM {{ totals.discountTotal.toFixed(2) }} off
+                  · {{ formatRM(totals.discountTotal) }} off
                 </span>
               </p>
-              <p class="mc-stat-value mc-num">RM {{ totals.total.toFixed(2) }}</p>
+              <p class="mc-stat-value mc-num">{{ formatRM(totals.total) }}</p>
             </div>
             <button
               @click="openPayment"
@@ -185,6 +185,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import type { InventoryItem } from "~/composables/useInventory";
 import { isPlausibleEmail, parseBuyerQr } from "~/shared/buyer-qr";
 import { posTotals, lineDiscount } from "~/shared/pos-sale";

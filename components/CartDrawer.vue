@@ -163,7 +163,7 @@
                   <span
                     class="tabular-price text-sm font-bold text-ink dark:text-white"
                   >
-                    RM {{ item.price.toFixed(2) }}
+                    {{ formatRM(item.price) }}
                   </span>
                   <button
                     @click="removeOne(item.id)"
@@ -188,7 +188,7 @@
               Subtotal<template v-if="someSelected"> ({{ selectedCount }} selected)</template>
             </span>
             <span class="tabular-nums font-bold text-ink dark:text-white">
-              RM {{ checkoutSubtotal.toFixed(2) }}
+              {{ formatRM(checkoutSubtotal) }}
             </span>
           </div>
           <p class="text-xs text-ink-soft dark:text-zinc-500">
@@ -214,6 +214,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import { isAvailable } from "~/shared/card-availability";
 const props = defineProps<{ modelValue: boolean }>();
 const emit = defineEmits<{ (e: "update:modelValue", v: boolean): void }>();

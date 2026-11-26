@@ -61,7 +61,7 @@
             :class="dense ? 'hidden sm:block' : ''"
           >
             <span class="text-xs font-semibold">RM</span>
-            {{ card.price.market.toFixed(2) }}
+            {{ formatMoney(card.price.market) }}
           </p>
           <p v-else class="text-[11px] text-gray-400 dark:text-zinc-500">
             No price
@@ -167,6 +167,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatMoney } from "~/shared/format-money";
 import type { CatalogMatch } from "~/composables/useCardCatalog";
 
 withDefaults(

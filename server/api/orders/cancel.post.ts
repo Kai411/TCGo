@@ -25,6 +25,7 @@
 // order that says "refunded" when nothing left the account is far worse than
 // one that says "refund pending".
 
+import { formatRM } from "~/shared/format-money";
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireUser } from "~/server/utils/auth";
 import { cancelShipmentForOrder } from "~/server/utils/book-shipment";
@@ -238,7 +239,7 @@ export default defineEventHandler(async (event) => {
     area: "payment",
     severity: "warning",
     code: "order.refund_due",
-    message: `Order ${orderId.slice(0, 8)} cancelled — RM ${refundAmount.toFixed(2)} to refund.`,
+    message: `Order ${orderId.slice(0, 8)} cancelled — ${formatRM(refundAmount)} to refund.`,
     orderId,
     userUid: caller.uid,
     context: {

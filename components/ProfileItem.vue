@@ -52,7 +52,7 @@
             <p
               class="tabular-price font-extrabold text-[17px] leading-none text-ink dark:text-white"
             >
-              {{ price.toFixed(2) }}
+              {{ formatMoney(price) }}
             </p>
           </div>
         </div>
@@ -62,6 +62,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatMoney } from "~/shared/format-money";
 const props = defineProps<{
   to: string;
   image: string;

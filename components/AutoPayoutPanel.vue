@@ -57,7 +57,7 @@
         Run now
       </button>
       <span class="mc-small ml-auto mc-num">
-        RM {{ spentLast24h.toFixed(2) }} sent automatically in the last 24h
+        {{ formatRM(spentLast24h) }} sent automatically in the last 24h
       </span>
     </div>
 
@@ -69,12 +69,12 @@
         {{ preview.dryRun ? "Would send" : "Sent" }}
         {{ preview.dryRun ? preview.wouldSend?.length : preview.sent }}
         {{ (preview.dryRun ? preview.wouldSend?.length : preview.sent) === 1 ? "payout" : "payouts" }}
-        · <span class="mc-num">RM {{ (preview.total ?? preview.totalSent ?? 0).toFixed(2) }}</span>
+        · <span class="mc-num">{{ formatRM(preview.total ?? preview.totalSent ?? 0) }}</span>
       </p>
       <ul v-if="skipList.length" class="grid gap-1">
         <li v-for="s in skipList" :key="s.payoutId" class="flex justify-between gap-3 mc-meta">
           <span class="mc-mono">{{ s.payoutId.slice(0, 8) }}</span>
-          <span class="text-right mc-num">RM {{ s.amount?.toFixed(2) }}: {{ s.label }}</span>
+          <span class="text-right mc-num">{{ formatRM(s.amount) }}: {{ s.label }}</span>
         </li>
       </ul>
       <p v-else class="mc-small">Nothing skipped.</p>
@@ -83,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import type { AutoPayoutConfig } from "~/shared/auto-payout";
 
 const emit = defineEmits<{ ran: [] }>();

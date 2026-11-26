@@ -86,7 +86,7 @@
             <div class="flex items-center justify-between gap-3">
               <div class="min-w-0">
                 <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-400">To pay</p>
-                <p class="text-xl font-extrabold tabular-nums text-ink dark:text-white">RM {{ order.total.toFixed(2) }}</p>
+                <p class="text-xl font-extrabold tabular-nums text-ink dark:text-white">{{ formatRM(order.total) }}</p>
               </div>
               <button
                 @click="startPayment"
@@ -165,7 +165,7 @@
                   </p>
                 </div>
                 <p class="font-semibold text-sm tabular-nums text-ink dark:text-white">
-                  RM {{ item.price.toFixed(2) }}
+                  {{ formatRM(item.price) }}
                 </p>
               </NuxtLink>
             </div>
@@ -173,7 +173,7 @@
             <div class="border-t border-gray-100 dark:border-white/[0.06] mt-4 pt-3 space-y-1 text-sm">
               <div class="flex justify-between text-gray-600 dark:text-zinc-300">
                 <span>Subtotal</span>
-                <span class="tabular-nums">RM {{ order.subtotal.toFixed(2) }}</span>
+                <span class="tabular-nums">{{ formatRM(order.subtotal) }}</span>
               </div>
               <!-- A join fee is not postage, and calling it "Shipping · Ninja
                    Van" tells the buyer they paid RM 1.25 for a courier — a
@@ -186,7 +186,7 @@
                     Shipping<template v-if="order.shippingCourier"> · {{ order.shippingCourier }}</template>
                   </template>
                 </span>
-                <span class="tabular-nums">RM {{ order.shipping.toFixed(2) }}</span>
+                <span class="tabular-nums">{{ formatRM(order.shipping) }}</span>
               </div>
               <p v-if="isJoinFee" class="-mt-1 text-micro leading-relaxed text-gray-400 dark:text-zinc-500">
                 Ships in the same parcel as your earlier order, so there's no
@@ -194,7 +194,7 @@
               </p>
               <div class="flex justify-between font-bold text-base pt-2 border-t border-gray-100 dark:border-white/[0.06]">
                 <span class="text-ink dark:text-white">Total</span>
-                <span class="text-pokemon-red tabular-nums">RM {{ order.total.toFixed(2) }}</span>
+                <span class="text-pokemon-red tabular-nums">{{ formatRM(order.total) }}</span>
               </div>
             </div>
           </div>
@@ -448,7 +448,7 @@
               {{ order.refundStatus === "refunded" ? "Refunded" : "Refund being processed" }}
             </p>
             <p class="text-lg font-extrabold text-ink dark:text-white tabular-nums">
-              RM {{ (order.refundAmount ?? order.total ?? 0).toFixed(2) }}
+              {{ formatRM(order.refundAmount ?? order.total ?? 0) }}
             </p>
           </div>
           <p class="text-micro text-gray-400 dark:text-zinc-500 mt-1.5">
@@ -490,11 +490,14 @@
       @click.self="refundOpen = false"
     >
       <form
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="refund-dialog-title"
         class="surface w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl p-5 border border-black/[0.06] dark:border-white/[0.08]"
         @submit.prevent="submitRefundRequest"
         novalidate
       >
-        <h3 class="text-base font-bold text-ink dark:text-white">Cancel &amp; request refund</h3>
+        <h3 id="refund-dialog-title" class="text-base font-bold text-ink dark:text-white">Cancel &amp; request refund</h3>
         <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1">
           We'll send your refund to the bank account below. The cards go back on sale.
         </p>
@@ -574,13 +577,13 @@
 
         <div class="mt-4 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] p-3 text-sm space-y-1 tabular-nums">
           <div class="flex justify-between text-gray-600 dark:text-zinc-300">
-            <span>Order total</span><span>RM {{ refundSummary.total.toFixed(2) }}</span>
+            <span>Order total</span><span>{{ formatRM(refundSummary.total) }}</span>
           </div>
           <div class="flex justify-between text-gray-600 dark:text-zinc-300">
-            <span>Refund processing fee</span><span>−RM {{ refundSummary.fee.toFixed(2) }}</span>
+            <span>Refund processing fee</span><span>−{{ formatRM(refundSummary.fee) }}</span>
           </div>
           <div class="flex justify-between font-bold text-ink dark:text-white pt-1 border-t border-black/[0.06] dark:border-white/[0.08]">
-            <span>You'll receive</span><span>RM {{ refundSummary.amount.toFixed(2) }}</span>
+            <span>You'll receive</span><span>{{ formatRM(refundSummary.amount) }}</span>
           </div>
           <p class="text-micro text-gray-500 dark:text-zinc-400 pt-1">
             A 5% payment processing fee (capped at RM 2) covers the payment and transfer charges. Refunds are sent to your bank after review.
@@ -619,8 +622,13 @@
       class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40"
       @click.self="confirmOpen = false"
     >
-      <div class="surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 pb-[max(20px,env(safe-area-inset-bottom))] border border-black/[0.06] dark:border-white/[0.08] max-h-[90vh] overflow-y-auto">
-        <h3 class="text-base font-bold text-ink dark:text-white">Check and pay</h3>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="check-pay-title"
+        class="surface w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 pb-[max(20px,env(safe-area-inset-bottom))] border border-black/[0.06] dark:border-white/[0.08] max-h-[90vh] overflow-y-auto"
+      >
+        <h3 id="check-pay-title" class="text-base font-bold text-ink dark:text-white">Check and pay</h3>
 
         <div class="mt-4 flex items-start justify-between gap-3">
           <div class="min-w-0 text-sm">
@@ -646,15 +654,15 @@
         <div class="mt-4 pt-3 border-t border-gray-100 dark:border-white/[0.06] space-y-1 text-sm">
           <div class="flex justify-between text-gray-600 dark:text-zinc-300">
             <span>Subtotal</span>
-            <span class="tabular-nums">RM {{ order.subtotal.toFixed(2) }}</span>
+            <span class="tabular-nums">{{ formatRM(order.subtotal) }}</span>
           </div>
           <div class="flex justify-between text-gray-600 dark:text-zinc-300">
             <span>Shipping<template v-if="price?.courier"> · {{ price.courier }}</template></span>
-            <span class="tabular-nums">{{ pricing ? "Checking…" : price ? `RM ${price.shipping.toFixed(2)}` : "–" }}</span>
+            <span class="tabular-nums">{{ pricing ? "Checking…" : price ? formatRM(price.shipping) : "–" }}</span>
           </div>
           <div class="flex justify-between font-bold text-base pt-2 border-t border-gray-100 dark:border-white/[0.06]">
             <span class="text-ink dark:text-white">Total</span>
-            <span class="text-pokemon-red tabular-nums">{{ price && !pricing ? `RM ${price.total.toFixed(2)}` : "–" }}</span>
+            <span class="text-pokemon-red tabular-nums">{{ price && !pricing ? formatRM(price.total) : "–" }}</span>
           </div>
         </div>
 
@@ -672,7 +680,7 @@
             class="flex-[2] h-12 rounded-xl text-sm font-semibold bg-pokemon-red text-white hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             <span v-if="paying" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"/>
-            {{ price && !pricing ? `Pay RM ${price.total.toFixed(2)}` : "Pay" }}
+            {{ price && !pricing ? `Pay ${formatRM(price.total)}` : "Pay" }}
           </button>
         </div>
       </div>
@@ -684,8 +692,13 @@
       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
       @click.self="addressOpen = false"
     >
-      <div class="surface rounded-2xl w-full max-w-md p-5 border border-black/[0.06] dark:border-white/[0.08] max-h-[90vh] overflow-y-auto">
-        <h3 class="text-base font-bold text-ink dark:text-white mb-1">Delivery address</h3>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="address-dialog-title"
+        class="surface rounded-2xl w-full max-w-md p-5 border border-black/[0.06] dark:border-white/[0.08] max-h-[90vh] overflow-y-auto"
+      >
+        <h3 id="address-dialog-title" class="text-base font-bold text-ink dark:text-white mb-1">Delivery address</h3>
         <p class="text-xs text-gray-500 dark:text-zinc-400 mb-4">Where should the seller ship this order?</p>
         <form @submit.prevent="saveAddressAndConfirm" class="space-y-3">
           <div class="grid grid-cols-2 gap-3">
@@ -743,6 +756,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import { JOIN_FEE_MYR } from "~/shared/order-joining";
 import {
   type CompiledOrder,

@@ -19,6 +19,7 @@
 // Stripe receipts use, it is honest, and it puts our name in front of every
 // walk-in customer without claiming their sale.
 
+import { formatRM } from "~/shared/format-money";
 import { sendMail } from "~/server/utils/mail";
 
 const esc = (s: unknown): string =>
@@ -27,7 +28,7 @@ const esc = (s: unknown): string =>
   );
 
 const money = (n: unknown): string =>
-  `RM ${Number(n ?? 0).toFixed(2)}`;
+  formatRM(Number(n ?? 0));
 
 export interface ReceiptLine {
   cardName: string;

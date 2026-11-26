@@ -86,7 +86,7 @@
               </div>
               <div class="text-right">
                 <p class="font-semibold text-sm tabular-nums text-ink dark:text-white">
-                  RM {{ item.price.toFixed(2) }}
+                  {{ formatRM(item.price) }}
                 </p>
               </div>
             </div>
@@ -95,7 +95,7 @@
           <div class="border-t border-gray-100 dark:border-white/[0.06] mt-3 pt-3 space-y-1 text-xs">
             <div class="flex justify-between text-gray-600 dark:text-zinc-300">
               <span>Subtotal</span>
-              <span class="tabular-nums">RM {{ group.subtotal.toFixed(2) }}</span>
+              <span class="tabular-nums">{{ formatRM(group.subtotal) }}</span>
             </div>
             <div class="flex justify-between text-gray-600 dark:text-zinc-300">
               <span>
@@ -109,10 +109,10 @@
                 v-else-if="joinsFor(group.sellerUid)"
                 class="tabular-nums font-semibold text-emerald-600 dark:text-emerald-400"
               >
-                RM {{ groupShipping(group).toFixed(2) }}
+                {{ formatRM(groupShipping(group)) }}
               </span>
               <span v-else-if="quoteFor(group.sellerUid)" class="tabular-nums">
-                RM {{ groupShipping(group).toFixed(2) }}
+                {{ formatRM(groupShipping(group)) }}
               </span>
               <span v-else class="text-gray-400 dark:text-zinc-500">—</span>
             </div>
@@ -128,7 +128,7 @@
                 <polyline points="20 6 9 17 4 12" />
               </svg>
               Ships with your existing order from {{ group.sellerName }}, so
-              you pay RM {{ groupShipping(group).toFixed(2) }} instead of full
+              you pay {{ formatRM(groupShipping(group)) }} instead of full
               postage. Everything arrives in one parcel.
             </p>
             <p v-if="quoteError(group.sellerUid)" class="text-micro text-amber-600 dark:text-amber-400">
@@ -137,7 +137,7 @@
             <div class="flex justify-between font-bold text-sm pt-1 border-t border-gray-100 dark:border-white/[0.06]">
               <span class="text-ink dark:text-white">Order total</span>
               <span class="text-pokemon-red tabular-nums">
-                RM {{ (group.subtotal + groupShipping(group)).toFixed(2) }}
+                {{ formatRM(group.subtotal + groupShipping(group)) }}
               </span>
             </div>
           </div>
@@ -150,15 +150,15 @@
         <div v-if="groupedBySeller.length > 1" class="space-y-1 text-sm mb-4">
           <div class="flex justify-between text-gray-600 dark:text-zinc-300">
             <span>Items ({{ items.length }})</span>
-            <span class="tabular-nums">RM {{ checkoutTotal.toFixed(2) }}</span>
+            <span class="tabular-nums">{{ formatRM(checkoutTotal) }}</span>
           </div>
           <div class="flex justify-between text-gray-600 dark:text-zinc-300">
             <span>Total shipping ({{ groupedBySeller.length }} {{ groupedBySeller.length === 1 ? "shipment" : "shipments" }})</span>
-            <span class="tabular-nums">RM {{ totalShipping.toFixed(2) }}</span>
+            <span class="tabular-nums">{{ formatRM(totalShipping) }}</span>
           </div>
           <div class="flex justify-between font-bold text-base pt-2 border-t border-gray-100 dark:border-white/[0.06]">
             <span class="text-ink dark:text-white">Grand total</span>
-            <span class="text-pokemon-red tabular-nums">RM {{ grandTotal.toFixed(2) }}</span>
+            <span class="text-pokemon-red tabular-nums">{{ formatRM(grandTotal) }}</span>
           </div>
         </div>
 
@@ -201,6 +201,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import type { CartItem } from "~/composables/useCart";
 import { stateName } from "~/shared/my-states";
 
