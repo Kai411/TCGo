@@ -278,11 +278,24 @@
       <div class="panel surface rounded-2xl p-4 sm:p-5">
         <div class="flex items-start justify-between gap-3">
           <div>
-            <p class="eyebrow">Estimated value</p>
+            <p class="eyebrow">Collection value</p>
             <p
               class="mt-1.5 text-2xl sm:text-4xl font-bold text-ink dark:text-white tabular-price leading-none tracking-tightest"
             >
               RM {{ formatMyr(totalValue) }}
+            </p>
+            <!-- The move across the chart's window: arrow and colour both
+                 carry the direction, and the words say it for a screen
+                 reader. -->
+            <p
+              v-if="valueChange"
+              class="mt-1.5 inline-flex items-baseline gap-1 text-xs sm:text-sm font-semibold tabular-price"
+              :class="valueChange.up ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
+            >
+              <span aria-hidden="true" class="text-[0.8em]">{{ valueChange.up ? "▲" : "▼" }}</span>
+              <span>{{ valueChange.up ? "+" : "−" }}RM {{ formatMyr(valueChange.amount) }} ({{ valueChange.pct }}%)</span>
+              <span class="font-normal text-ink-soft dark:text-zinc-500">past {{ valueChange.days }} days</span>
+              <span class="sr-only">{{ valueChange.up ? "Up" : "Down" }}</span>
             </p>
             <!-- The card count lives beside "Your collection" below; this
                  line only adds what that one does not say. -->
@@ -375,7 +388,7 @@
             :change="priceChanges.get(card.productId)"
             :busy="busyIds.has(card.productId)"
             class="shadow-[1px_0_0_0_rgba(0,0,0,0.06),0_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.08),0_1px_0_0_rgba(255,255,255,0.08)]"
-            @menu="openManage(card)"
+            @menu="openManage(card, $event)"
           />
         </div>
         <div
@@ -473,7 +486,7 @@
             :busy="busyIds.has(card.productId)"
             addable
             class="shadow-[1px_0_0_0_rgba(0,0,0,0.06),0_1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.08),0_1px_0_0_rgba(255,255,255,0.08)]"
-            @menu="openManage(card)"
+            @menu="openManage(card, $event)"
             @add="handleToggle(card.productId)"
           />
         </div>
@@ -542,24 +555,32 @@
       >
         <div
           v-if="manageCard"
-          class="fixed inset-0 z-[70] bg-black/40"
+          class="fixed inset-0 z-[70]"
+          :class="manageAnchor ? '' : 'bg-black/40'"
           @click="closeManage"
         />
       </Transition>
+      <!-- Phones: a bottom sheet. Desktop: the same menu drops down from the
+           ⋮ that opened it (or up, near the bottom of the window). -->
       <Transition
-        enter-active-class="transition-transform duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)]"
-        enter-from-class="translate-y-full"
-        leave-active-class="transition-transform duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]"
-        leave-to-class="translate-y-full"
+        :enter-active-class="manageAnchor ? 'transition-[opacity,transform] duration-150 ease-out' : 'transition-transform duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)]'"
+        :enter-from-class="manageAnchor ? 'opacity-0 scale-95' : 'translate-y-full'"
+        :leave-active-class="manageAnchor ? 'transition-opacity duration-100 ease-out' : 'transition-transform duration-200 ease-[cubic-bezier(0.32,0.72,0,1)]'"
+        :leave-to-class="manageAnchor ? 'opacity-0' : 'translate-y-full'"
       >
         <div
           v-if="manageCard"
           role="dialog"
-          aria-modal="true"
+          :aria-modal="manageAnchor ? undefined : 'true'"
           :aria-label="`Manage ${manageCard.name}`"
-          class="fixed inset-x-0 bottom-0 z-[71] mx-auto max-w-md surface rounded-t-3xl border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]"
+          :class="
+            manageAnchor
+              ? 'fixed z-[71] w-64 surface rounded-xl border border-black/[0.08] dark:border-white/[0.12] shadow-lg p-2'
+              : 'fixed inset-x-0 bottom-0 z-[71] mx-auto max-w-md surface rounded-t-3xl border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]'
+          "
+          :style="manageAnchor ?? undefined"
         >
-          <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15" aria-hidden="true" />
+          <div v-if="!manageAnchor" class="mx-auto mb-3 h-1 w-10 rounded-full bg-black/10 dark:bg-white/15" aria-hidden="true" />
           <div class="px-2 pb-2">
             <p class="truncate text-base font-bold text-ink dark:text-white">{{ manageCard.name }}</p>
             <p class="truncate text-xs text-ink-soft dark:text-zinc-500">
@@ -572,8 +593,11 @@
               v-for="action in manageActions"
               :key="action.view"
               type="button"
-              class="tab-press w-full flex items-center gap-3 px-2 min-h-[52px] rounded-xl text-left text-sm font-semibold active:bg-black/[0.04] dark:active:bg-white/[0.06]"
-              :class="action.view === 'remove' ? 'text-pokemon-red' : 'text-ink dark:text-white'"
+              class="tab-press w-full flex items-center gap-3 px-2 text-left text-sm font-semibold active:bg-black/[0.04] dark:active:bg-white/[0.06]"
+              :class="[
+                action.view === 'remove' ? 'text-pokemon-red' : 'text-ink dark:text-white',
+                manageAnchor ? 'min-h-[40px] rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06]' : 'min-h-[52px] rounded-xl',
+              ]"
               @click="startManage(action.view)"
             >
               {{ action.label }}
@@ -1121,6 +1145,21 @@ const priceChanges = ref(new Map<number, PriceChange | null>());
 // Set release dates, for the Newest sort. Empty until they load, which leaves
 // the grid in added order rather than holding it back.
 const releaseDates = ref(new Map<number, string>());
+// Collection value's move across the chart window, from the same fixed basket
+// the chart draws. Hidden when flat or not computable.
+const valueChange = computed(() => {
+  const t = valueTrend.value.trend;
+  if (!t || t.changePct == null || t.points.length < 2) return null;
+  const amount = t.last - t.first;
+  if (Math.abs(amount) < 0.005) return null;
+  return {
+    up: amount > 0,
+    amount: Math.abs(amount),
+    pct: Math.abs(t.changePct).toFixed(1),
+    days: t.requestedDays,
+  };
+});
+
 const valueNote = computed(() =>
   [
     totalCopies.value !== count.value ? `${totalCopies.value} copies` : "",
@@ -1300,13 +1339,39 @@ const manageMax = computed(() =>
   manageView.value === "sold" ? manageOwned.value : 999,
 );
 
-const openManage = (card: CatalogMatch) => {
+// Desktop only: where the dropdown sits, beside the ⋮ that opened it. Null on
+// phones, which keep the bottom sheet.
+const manageAnchor = ref<Record<string, string> | null>(null);
+const MENU_WIDTH = 256; // w-64
+const openManage = (card: CatalogMatch, ev?: MouseEvent) => {
+  const el = ev?.currentTarget as HTMLElement | null;
+  manageAnchor.value = null;
+  if (el && window.matchMedia("(min-width: 1024px)").matches) {
+    const r = el.getBoundingClientRect();
+    const left = Math.max(8, Math.min(r.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8));
+    // Open upward when there isn't room below for the tallest view.
+    manageAnchor.value =
+      window.innerHeight - r.bottom < 300
+        ? { left: `${left}px`, bottom: `${window.innerHeight - r.top + 6}px`, transformOrigin: "bottom right" }
+        : { left: `${left}px`, top: `${r.bottom + 6}px`, transformOrigin: "top right" };
+  }
+  menuScrollY = window.scrollY;
   manageCard.value = card;
   manageView.value = "actions";
 };
 const closeManage = () => {
   manageCard.value = null;
 };
+// A dropdown pinned to a spot on screen would drift off its ⋮ on scroll, so
+// a real scroll closes it. A few pixels (a click that nudged the page) don't.
+let menuScrollY = 0;
+const closeAnchoredMenu = () => {
+  if (manageAnchor.value && manageCard.value && Math.abs(window.scrollY - menuScrollY) > 40) {
+    closeManage();
+  }
+};
+onMounted(() => window.addEventListener("scroll", closeAnchoredMenu, { passive: true }));
+onBeforeUnmount(() => window.removeEventListener("scroll", closeAnchoredMenu));
 const onManageKey = (e: KeyboardEvent) => {
   if (e.key === "Escape" && manageCard.value) closeManage();
 };

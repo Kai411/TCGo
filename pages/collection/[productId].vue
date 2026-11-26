@@ -359,7 +359,7 @@
                 <p
                   class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price"
                 >
-                  {{ card.price ? `RM ${formatMyr(card.price.low)}` : "—" }}
+                  {{ rangeLow != null ? `RM ${formatMyr(rangeLow)}` : "—" }}
                 </p>
               </div>
               <div
@@ -373,7 +373,7 @@
                 <p
                   class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price"
                 >
-                  {{ card.price ? `RM ${formatMyr(card.price.high)}` : "—" }}
+                  {{ rangeHigh != null ? `RM ${formatMyr(rangeHigh)}` : "—" }}
                 </p>
               </div>
               <div
@@ -482,7 +482,7 @@
               Market low
             </dt>
             <dd class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
-              {{ card.price ? formatMyr(card.price.low) : "—" }}
+              {{ rangeLow != null ? formatMyr(rangeLow) : "—" }}
             </dd>
           </div>
           <div class="px-2">
@@ -490,7 +490,7 @@
               Market high
             </dt>
             <dd class="mt-1 text-sm font-bold text-ink dark:text-white tabular-price">
-              {{ card.price ? formatMyr(card.price.high) : "—" }}
+              {{ rangeHigh != null ? formatMyr(rangeHigh) : "—" }}
             </dd>
           </div>
           <div class="px-2">
@@ -1101,6 +1101,14 @@ const RANGE_WORDS: Record<HistoryDays, string> = {
   365: "year",
 };
 const selectedRangeLabel = computed(() => RANGE_WORDS[selectedRange.value]);
+
+// Market low and high are the lowest and highest market price on the chart
+// for the range picked (1M, 3M, 1Y), so they move with it. Not TCGPlayer's
+// listing low/high, which are today's asking prices and ran far apart from
+// the chart (RM 304 to RM 3,269 on a RM 320 card). A dash when the range has
+// no points.
+const rangeLow = computed(() => (trend.value?.points.length ? trend.value.min : null));
+const rangeHigh = computed(() => (trend.value?.points.length ? trend.value.max : null));
 
 const trend = computed<PriceTrend | null>(
   () =>
