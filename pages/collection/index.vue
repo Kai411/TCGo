@@ -470,6 +470,15 @@
             </button>
           </div>
         </div>
+        <!-- A misspelt name found nothing, so the search tried the real one.
+             Say so, or the results look unrelated to what was typed. -->
+        <p
+          v-if="correctedQuery"
+          class="-mt-2 mb-3 text-xs text-ink-soft dark:text-zinc-400"
+        >
+          No cards matched “{{ parsed.name }}”. Showing results for
+          <span class="font-semibold text-ink dark:text-white">“{{ correctedQuery }}”</span>.
+        </p>
         <!-- Same flat hairline grid as Your collection: owned results get
              the ⋮ manage sheet, the rest an add button. -->
         <div
@@ -925,7 +934,12 @@ const parsed = computed(() =>
 // to every language on its own whenever a query named something with no
 // English printing — a patch applied three times for three symptoms of the
 // English-only default that is now gone.
-const effectiveLanguage = computed(() => languageFilter.value);
+//
+// A language typed into the query ("pikachu jp") is the one exception, the
+// same way a typed set beats the set dropdown: it was asked for just now.
+const effectiveLanguage = computed(
+  () => parsed.value.languageHint ?? languageFilter.value,
+);
 
 // What the query said, else what the dropdown says. Typing beats the dropdown
 // so a smart query is not silently narrowed by a filter left over from an
@@ -940,6 +954,9 @@ const effectiveRarityMatch = computed(
 const searchResults = useState<CatalogMatch[]>("collection:results", () => []);
 const searchTotal = useState("collection:total", () => 0);
 const searchPage = useState("collection:page", () => 0);
+// The real name searched in place of a misspelt one ("charzard"), so later
+// pages ask for the same thing page one found.
+const correctedQuery = useState<string | null>("collection:corrected", () => null);
 // Where they were, and whether returning here should put them back there.
 // Only a trip into a card counts — arriving from the nav bar is a fresh visit
 // and should start at the top.
@@ -976,6 +993,7 @@ const clearSearch = () => {
   searchResults.value = [];
   searchTotal.value = 0;
   searchPage.value = 0;
+  correctedQuery.value = null;
   hasRunSearch.value = false;
 };
 
@@ -1013,7 +1031,7 @@ const runSearch = async (opts: { typing?: boolean } = {}) => {
   hasRunSearch.value = true;
   searchLoading.value = true;
   refreshing.value = true;
-  const { results, total } = await searchCatalog(trimmed, {
+  const { results, total, correctedQuery: corrected } = await searchCatalog(trimmed, {
     limit: SEARCH_PAGE_SIZE,
     page: 0,
     language: effectiveLanguage.value,
@@ -1028,6 +1046,7 @@ const runSearch = async (opts: { typing?: boolean } = {}) => {
   if (request !== searchRequest) return;
   searchResults.value = priced;
   searchTotal.value = total;
+  correctedQuery.value = corrected ?? null;
   searchLoading.value = false;
   refreshing.value = false;
 };
@@ -1060,7 +1079,7 @@ const loadMore = async () => {
   searchLoading.value = true;
   const request = searchRequest;
   const nextPage = searchPage.value + 1;
-  const { results } = await searchCatalog(parsed.value.name.trim(), {
+  const { results } = await searchCatalog(correctedQuery.value ?? parsed.value.name.trim(), {
     limit: SEARCH_PAGE_SIZE,
     page: nextPage,
     language: effectiveLanguage.value,

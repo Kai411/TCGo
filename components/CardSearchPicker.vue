@@ -66,6 +66,7 @@
       <div class="mb-2 flex items-center justify-between gap-3">
         <p class="text-micro text-ink-muted dark:text-zinc-400 tabular-price">
           {{ total }} result{{ total === 1 ? "" : "s" }}
+          <template v-if="corrected"> for “{{ corrected }}”</template>
         </p>
         <div v-if="totalPages > 1" class="flex items-center gap-1">
           <button
@@ -193,6 +194,8 @@ const lastQuery = ref("");
 const lastSetHint = ref<string | null>(null);
 const lastRarityHint = ref<string | null>(null);
 const lastNumber = ref<string | null>(null);
+// The real name searched when the typed one was misspelt ("charzard").
+const corrected = ref<string | null>(null);
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)));
 
@@ -200,7 +203,7 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)
 const fetchPage = async (n: number) => {
   loading.value = true;
   try {
-    const { results: r, total: t } = await searchCatalog(lastQuery.value, {
+    const { results: r, total: t, correctedQuery } = await searchCatalog(lastQuery.value, {
       limit: PAGE_SIZE,
       page: n,
       language: lang.value,
@@ -209,6 +212,11 @@ const fetchPage = async (n: number) => {
       numberMatch: lastNumber.value,
     });
     results.value = r;
+    // A misspelt name was searched as the real one; page with that from now on.
+    if (correctedQuery) {
+      lastQuery.value = correctedQuery;
+      corrected.value = correctedQuery;
+    }
     // Trust the latest count so "x / y" can't drift mid-browse.
     total.value = t || total.value;
     page.value = n;
@@ -241,6 +249,7 @@ const runSearch = async () => {
   lastSetHint.value = setHint;
   lastNumber.value = parsed.numberMatch;
   lastRarityHint.value = parsed.rarityHint;
+  corrected.value = null;
   total.value = 0;
   await fetchPage(0);
 };
