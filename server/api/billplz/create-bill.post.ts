@@ -5,7 +5,7 @@
 // server/ledger/checkout.ts), so two buyers can't both be sent to pay for one
 // card.
 //
-// Flow: buyer taps "Pay online (FPX)" → this creates the bill, links it to
+// Flow: buyer taps "Complete payment" → this creates the bill, links it to
 // the order, and returns the hosted payment URL. The webhook flips the order
 // to paid; the redirect lands the buyer on /payment/success, which watches
 // the order live and hands a declined payment (billplz[paid]=false) on to

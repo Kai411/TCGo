@@ -45,7 +45,7 @@
 
       <div class="grid md:grid-cols-2 gap-6 md:gap-10 md:items-start">
         <!-- ── Gallery ─────────────────────────────────────────────── -->
-        <section aria-label="Photos" class="w-full max-w-[18rem] mx-auto md:max-w-none md:sticky md:top-24 lg:top-[8.75rem]">
+        <section aria-label="Photos" class="w-full max-w-[15rem] sm:max-w-[18rem] mx-auto md:max-w-none md:sticky md:top-24 lg:top-[8.75rem]">
           <div
             class="relative aspect-[3.55/5] rounded-2xl overflow-hidden"
             tabindex="0"
@@ -138,26 +138,19 @@
         <div class="min-w-0">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-ink dark:text-white">
+              <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-ink dark:text-white text-balance">
                 {{ card.cardName }}
               </h1>
-              <p v-if="card.cardSet" class="mt-1 text-sm font-medium text-ink-muted dark:text-zinc-400">{{ card.cardSet }}</p>
+              <p v-if="subtitle" class="mt-1.5 text-base text-ink-muted dark:text-zinc-400">{{ subtitle }}</p>
             </div>
-            <div class="flex items-center gap-0.5 shrink-0 -mr-1.5 text-ink-muted dark:text-zinc-400">
-              <NuxtLink
-                v-if="isOwnListing && available"
-                :to="`/seller/listings/${card.id}/edit`"
-                aria-label="Edit listing"
-                title="Edit listing"
-                class="w-9 h-9 rounded-full flex items-center justify-center hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
-              >
-                <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
-              </NuxtLink>
+            <!-- Buyers: share and save. The owner gets Edit and Share as
+                 buttons below the price instead. -->
+            <div v-if="!isOwnListing" class="flex items-center gap-0.5 shrink-0 -mr-1.5 text-ink-muted dark:text-zinc-400">
               <button
                 type="button"
                 @click="handleShare"
                 :aria-label="copied ? 'Link copied' : 'Share listing'"
-                class="relative w-9 h-9 rounded-full flex items-center justify-center hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+                class="w-10 h-10 rounded-full flex items-center justify-center hover:text-ink dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
               >
                 <svg v-if="!copied" class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
@@ -166,71 +159,18 @@
                 <svg v-else class="w-[18px] h-[18px] text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span v-if="copied" role="status" class="absolute -bottom-5 left-1/2 -translate-x-1/2 text-2xs font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap pointer-events-none">
-                  Copied!
-                </span>
               </button>
               <FavouriteButton :item-id="card.id" item-type="card" size="md" />
             </div>
           </div>
 
-          <!-- Condition + quick facts -->
-          <div class="flex flex-wrap items-center gap-1.5 mt-3">
-            <span
-              v-if="card.productType === 'Graded' && card.grade"
-              class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 border border-amber-600"
-            >
-              <span class="">{{ gradingProviderLabel }}</span>
-              <span>{{ card.grade }}</span>
-            </span>
-            <span
-              v-else-if="card.productType === 'Sealed'"
-              class="text-xs font-bold px-2 py-0.5 rounded-md bg-blue-500 text-white border border-blue-700"
-            >
-              Sealed
-            </span>
-            <span
-              v-else-if="card.condition"
-              class="text-xs font-semibold px-2 py-0.5 rounded-md bg-white text-ink border border-ink-faint dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-600"
-            >
-              {{ card.condition }}
-            </span>
-            <span v-if="card.language && card.language !== 'EN'" class="text-xs font-bold px-2 py-0.5 rounded-md bg-black/85 text-white">
-              {{ card.language }}
-            </span>
-            <span v-if="card.negotiable" class="text-xs font-medium px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-              Negotiable
-            </span>
-            <span v-if="card.pickupAvailable" class="text-xs font-medium px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
-              Pickup available
-            </span>
-          </div>
-
-          <!-- Price -->
-          <div class="mt-5">
-            <p class="tabular-price text-3xl font-extrabold text-ink dark:text-white">
-              <span class="text-lg font-bold text-ink-muted dark:text-zinc-400 mr-1">RM</span>{{ formatRM(card.price) }}
-            </p>
-            <p class="mt-1 text-sm text-ink-muted dark:text-zinc-400">
-              + shipping, quoted at checkout for your address
-            </p>
-            <div
-              v-if="available && ((card.viewCount ?? 0) > 0 || card.interestedCount > 0)"
-              class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium text-ink-muted dark:text-zinc-400"
-            >
-              <span v-if="(card.viewCount ?? 0) > 0">
-                {{ card.viewCount }} {{ card.viewCount === 1 ? "view" : "views" }}
-              </span>
-              <span v-if="card.interestedCount > 0" class="inline-flex items-center gap-1.5">
-                <span class="w-1.5 h-1.5 rounded-full bg-pokemon-red" aria-hidden="true" />
-                {{ card.interestedCount }}
-                {{ card.interestedCount === 1 ? "person" : "people" }} interested
-              </span>
-            </div>
-          </div>
+          <!-- Price. Shipping is priced on the checkout page, not here. -->
+          <p class="mt-5 tabular-price text-4xl font-extrabold tracking-tight text-ink dark:text-white">
+            RM&nbsp;{{ formatRM(card.price) }}
+          </p>
 
           <!-- Actions -->
-          <div class="mt-6" :class="available && !isOwnListing ? 'hidden lg:block' : ''">
+          <div class="mt-6">
             <div v-if="!available" class="surface rounded-xl px-4 py-3 text-sm text-center text-ink-muted dark:text-zinc-400">
               <template v-if="reserved">Being paid for in store. Check back in a few minutes.</template>
               <template v-else>
@@ -239,13 +179,47 @@
               </template>
             </div>
 
-            <div v-else-if="!isOwnListing" class="hidden lg:block space-y-2.5">
+            <!-- Owner: manage instead of buy. -->
+            <div v-else-if="isOwnListing" class="grid grid-cols-2 gap-2.5">
+              <NuxtLink
+                :to="`/seller/listings/${card.id}/edit`"
+                class="h-12 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold bg-ink text-white dark:bg-white dark:text-ink transition-transform duration-150 active:scale-[0.97]"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+                Edit listing
+              </NuxtLink>
+              <button
+                type="button"
+                @click="handleShare"
+                class="h-12 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-[background-color,transform] duration-150 active:scale-[0.97]"
+              >
+                <svg v-if="!copied" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+                <svg v-else class="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
+                {{ copied ? "Link copied" : "Share" }}
+              </button>
+            </div>
+
+            <!-- Buyer, desktop. Phones get the same buttons pinned to the
+                 bottom of the screen (below). -->
+            <div v-else class="hidden lg:block space-y-2.5">
+              <!-- Buy Now: straight to checkout with this card only; it is
+                   not added to the cart. -->
+              <button
+                type="button"
+                @click="user ? handleBuyNow() : goToLogin()"
+                class="w-full h-12 inline-flex items-center justify-center rounded-xl text-[15px] font-semibold bg-pokemon-red text-white transition-transform duration-150 active:scale-[0.98]"
+              >
+                {{ user ? "Buy now" : "Sign in to buy" }}
+              </button>
               <div class="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   @click="handleAddToCart($event)"
                   :disabled="inCart"
-                  class="inline-flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors disabled:cursor-default"
+                  class="h-11 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-[background-color,transform] duration-150 active:scale-[0.97] disabled:cursor-default disabled:active:scale-100"
                 >
                   <svg v-if="!inCart" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
@@ -254,85 +228,97 @@
                   <svg v-else class="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
                   {{ inCart ? "In cart" : "Add to cart" }}
                 </button>
-                <!-- Buy Now: straight to checkout with this card only; it is
-                     not added to the cart. -->
                 <button
                   type="button"
-                  @click="user ? handleBuyNow() : goToLogin()"
-                  class="inline-flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-colors"
+                  @click="chatWithSeller"
+                  class="h-11 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-[background-color,transform] duration-150 active:scale-[0.97]"
                 >
-                  {{ user ? "Buy now" : "Sign in to buy" }}
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+                  Chat with seller
                 </button>
               </div>
             </div>
           </div>
 
-          <!-- Seller: the badge opens their profile; the icon messages them
-               with this listing ready to attach (hidden on your own). -->
-          <div class="mt-6 surface rounded-xl pl-4 pr-2 py-2 flex items-center gap-2">
-            <NuxtLink
-              :to="`/profile/${card.sellerUid}`"
-              class="flex-1 min-w-0 flex items-center gap-3 py-1 rounded-lg transition-opacity active:opacity-60"
-            >
-              <img
-                v-if="sellerPhotoURL"
-                :src="sellerPhotoURL"
-                alt=""
-                class="w-10 h-10 rounded-full object-cover"
-              />
-              <div
-                v-else
-                class="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-black/[0.06] dark:bg-white/[0.08] text-ink-muted dark:text-zinc-400 text-sm font-bold"
-                aria-hidden="true"
-              >
-                {{ card.seller.charAt(0).toUpperCase() }}
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs text-ink-muted dark:text-zinc-400">Sold by</p>
-                <p class="text-sm font-semibold text-ink dark:text-white truncate">@{{ card.seller }}</p>
-              </div>
-              <svg class="w-4 h-4 shrink-0 text-ink-faint dark:text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
-            </NuxtLink>
-            <MessageButton
-              :uid="card.sellerUid"
-              :product-id="card.id"
-              product-kind="listing"
-              icon-only
-            />
-          </div>
-          <SellerDisclosure :uid="card.sellerUid" />
+          <!-- One spec table, no heading: only rows the seller filled in. -->
+          <dl v-if="details.length" class="mt-8 border-t border-black/[0.06] dark:border-white/[0.08] divide-y divide-black/[0.06] dark:divide-white/[0.08] text-[15px]">
+            <div v-for="row in details" :key="row.label" class="flex justify-between gap-4 py-3">
+              <dt class="text-ink-muted dark:text-zinc-400">{{ row.label }}</dt>
+              <dd class="text-right font-medium text-ink dark:text-white">{{ row.value }}</dd>
+            </div>
+          </dl>
 
           <!-- Description -->
           <section v-if="card.description" class="mt-8">
-            <h2 class="text-sm font-semibold text-ink dark:text-white">From the seller</h2>
-            <p class="mt-2 text-sm leading-relaxed text-ink-subtle dark:text-zinc-300 whitespace-pre-line">{{ card.description }}</p>
+            <h2 class="text-base font-semibold text-ink dark:text-white">Description</h2>
+            <p class="mt-2 text-[15px] leading-relaxed text-ink-subtle dark:text-zinc-300 whitespace-pre-line">{{ card.description }}</p>
           </section>
 
           <!-- Condition notes -->
           <section v-if="card.defects?.length" class="mt-8">
-            <h2 class="text-sm font-semibold text-ink dark:text-white">Condition notes</h2>
+            <h2 class="text-base font-semibold text-ink dark:text-white">Condition notes</h2>
             <ul class="mt-2 space-y-1">
               <li
                 v-for="d in card.defects"
                 :key="d"
-                class="flex items-start gap-2 text-sm text-ink-subtle dark:text-zinc-300"
+                class="flex items-start gap-2 text-[15px] text-ink-subtle dark:text-zinc-300"
               >
-                <span class="mt-[7px] w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" aria-hidden="true" />
+                <span class="mt-[8px] w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" aria-hidden="true" />
                 {{ d }}
               </li>
             </ul>
           </section>
 
-          <!-- Card details -->
-          <section v-if="details.length" class="mt-8">
-            <h2 class="text-sm font-semibold text-ink dark:text-white">Card details</h2>
-            <dl class="mt-2 divide-y divide-black/[0.06] dark:divide-white/[0.06] text-sm">
-              <div v-for="row in details" :key="row.label" class="flex justify-between gap-4 py-2">
-                <dt class="text-ink-muted dark:text-zinc-400">{{ row.label }}</dt>
-                <dd class="text-right font-medium text-ink dark:text-white">{{ row.value }}</dd>
+          <!-- Seller strip. The second line is the legally required
+               disclosure (shared/seller-disclosure.ts): the seller's name, or
+               business name and SSM number. -->
+          <div class="mt-8 surface rounded-2xl p-4 flex items-center gap-3">
+            <NuxtLink :to="`/profile/${card.sellerUid}`" class="shrink-0" tabindex="-1" aria-hidden="true">
+              <img
+                v-if="sellerPhotoURL"
+                :src="sellerPhotoURL"
+                alt=""
+                class="w-12 h-12 rounded-full object-cover"
+              />
+              <div
+                v-else
+                class="w-12 h-12 rounded-full flex items-center justify-center bg-black/[0.06] dark:bg-white/[0.08] text-ink-muted dark:text-zinc-400 font-bold"
+              >
+                {{ card.seller.charAt(0).toUpperCase() }}
               </div>
-            </dl>
-          </section>
+            </NuxtLink>
+            <div class="flex-1 min-w-0">
+              <p class="flex items-center gap-1 min-w-0">
+                <NuxtLink
+                  :to="`/profile/${card.sellerUid}`"
+                  class="truncate font-semibold text-ink dark:text-white hover:underline underline-offset-2"
+                >@{{ card.seller }}</NuxtLink>
+                <svg
+                  v-if="sellerVerified"
+                  class="w-4 h-4 shrink-0 text-sky-500"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  role="img"
+                  aria-label="Identity verified"
+                >
+                  <title>Identity verified</title>
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+              </p>
+              <p v-if="disclosure" class="mt-0.5 text-sm text-ink-muted dark:text-zinc-400 break-words">
+                <template v-if="disclosure.type === 'business'">
+                  {{ disclosure.name }}<template v-if="disclosure.ssmNumber"> · SSM <span class="tabular-nums">{{ disclosure.ssmNumber }}</span></template>
+                </template>
+                <template v-else>{{ disclosure.name }}</template>
+              </p>
+            </div>
+            <NuxtLink
+              :to="`/profile/${card.sellerUid}`"
+              class="shrink-0 h-9 px-3.5 inline-flex items-center rounded-full text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-[background-color,transform] duration-150 active:scale-[0.97]"
+            >
+              View shop
+            </NuxtLink>
+          </div>
 
           <ReportListingButton
             listing-kind="card"
@@ -343,6 +329,24 @@
           />
         </div>
       </div>
+
+      <!-- Related listings: each shows only when it has something. -->
+      <section v-if="moreFromSeller.length" class="mt-14" aria-labelledby="more-from-seller">
+        <div class="flex items-baseline justify-between gap-4 mb-4">
+          <h2 id="more-from-seller" class="text-lg font-bold text-ink dark:text-white">More from @{{ card.seller }}</h2>
+          <NuxtLink :to="`/profile/${card.sellerUid}`" class="text-sm font-semibold text-ink-muted dark:text-zinc-400 hover:text-ink dark:hover:text-white">See all</NuxtLink>
+        </div>
+        <div class="-mx-1.5 md:mx-0 grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4">
+          <CardTile v-for="c in moreFromSeller" :key="c.id" :card="c" hide-seller />
+        </div>
+      </section>
+
+      <section v-if="sameCardListings.length" class="mt-14" aria-labelledby="same-card">
+        <h2 id="same-card" class="mb-4 text-lg font-bold text-ink dark:text-white">Other listings of this card</h2>
+        <div class="-mx-1.5 md:mx-0 grid grid-cols-3 md:grid-cols-5 gap-2 sm:gap-4">
+          <CardTile v-for="c in sameCardListings" :key="c.id" :card="c" />
+        </div>
+      </section>
 
       <!-- Phone action bar: fixed where the bottom nav would be (the nav
            hides on product pages). Only while the card can be bought by
@@ -355,24 +359,28 @@
           v-if="available && !isOwnListing"
           class="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-white dark:bg-canvas-inverse border-t border-black/[0.06] dark:border-white/[0.08] px-4 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))]"
         >
-          <div class="grid grid-cols-2 gap-2.5">
+          <div class="flex gap-2.5">
+            <button
+              type="button"
+              @click="chatWithSeller"
+              aria-label="Chat with seller"
+              class="w-12 h-12 shrink-0 inline-flex items-center justify-center rounded-xl border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white transition-transform duration-150 active:scale-[0.95]"
+            >
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+            </button>
             <button
               type="button"
               @click="handleAddToCart($event)"
               :disabled="inCart"
-              class="h-12 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white transition-transform duration-150 active:scale-[0.97] disabled:cursor-default disabled:active:scale-100"
+              class="flex-1 h-12 inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold border border-black/[0.10] dark:border-white/[0.12] text-ink dark:text-white transition-transform duration-150 active:scale-[0.97] disabled:cursor-default disabled:active:scale-100"
             >
-              <svg v-if="!inCart" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
-                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-              </svg>
-              <svg v-else class="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
+              <svg v-if="inCart" class="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
               {{ inCart ? "In cart" : "Add to cart" }}
             </button>
             <button
               type="button"
               @click="user ? handleBuyNow() : goToLogin()"
-              class="h-12 inline-flex items-center justify-center rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-transform duration-150 active:scale-[0.97]"
+              class="flex-1 h-12 inline-flex items-center justify-center rounded-xl text-sm font-semibold bg-pokemon-red text-white transition-transform duration-150 active:scale-[0.97]"
             >
               {{ user ? "Buy now" : "Sign in to buy" }}
             </button>
@@ -387,6 +395,7 @@
 import type { Card } from "~/composables/useCards";
 import { isAvailable, isReserved } from "~/shared/card-availability";
 import { cdnUrl } from "~/composables/useStorage";
+import type { SellerDisclosure } from "~/shared/seller-disclosure";
 
 const route = useRoute();
 const cardId = route.params.id as string;
@@ -479,7 +488,15 @@ const gradingProviderLabel = computed(() => {
     : c.gradingProvider;
 });
 
-// Spec sheet — only rows the seller actually filled in.
+// "Set · number" under the title. Both live here only, not in the table.
+const subtitle = computed(() => {
+  const c = card.value;
+  if (!c) return "";
+  return [c.cardSet, c.cardNumber].map((v) => (v ?? "").toString().trim()).filter(Boolean).join(" · ");
+});
+
+// Spec sheet — only rows the seller actually filled in. Condition first: it
+// is what a buyer checks first, and the page has no condition badge.
 const details = computed(() => {
   const c = card.value;
   if (!c) return [];
@@ -488,12 +505,6 @@ const details = computed(() => {
     if (value !== undefined && value !== null && String(value).trim())
       rows.push({ label, value: String(value) });
   };
-  add("Set", c.cardSet);
-  add("Card number", c.cardNumber);
-  add("Rarity", c.rarity);
-  add("Variant", c.variant);
-  add("Edition", c.edition);
-  add("Language", c.language || "EN");
   if (c.productType === "Graded") {
     add("Grade", `${gradingProviderLabel.value} ${c.grade}`.trim());
     add("Cert number", c.certNumber);
@@ -502,8 +513,52 @@ const details = computed(() => {
   } else {
     add("Condition", c.condition);
   }
+  add("Rarity", c.rarity);
+  add("Variant", c.variant);
+  add("Edition", c.edition);
+  add("Language", c.language || "EN");
   add("Illustrator", c.artist);
+  if (c.pickupAvailable) add("Pickup", "Available");
+  if (c.negotiable) add("Price", "Negotiable");
   return rows;
+});
+
+// Opens the chat with this listing ready to attach (same as MessageButton).
+const { requireSignIn } = useSignInGate();
+const chatWithSeller = () => {
+  if (!card.value || !requireSignIn()) return;
+  navigateTo({
+    path: `/messages/${card.value.sellerUid}`,
+    query: { product: card.value.id, kind: "listing" },
+  });
+};
+
+// Related listings, from the cards already loaded for the shop.
+const RELATED_LIMIT = 5;
+const otherAvailable = computed(() =>
+  card.value ? cards.value.filter((c: Card) => c.id !== card.value!.id && isAvailable(c)) : [],
+);
+const moreFromSeller = computed(() =>
+  otherAvailable.value
+    .filter((c: Card) => c.sellerUid === card.value!.sellerUid)
+    .sort((a: Card, b: Card) => (b.listedAt ?? b.createdAt ?? 0) - (a.listedAt ?? a.createdAt ?? 0))
+    .slice(0, RELATED_LIMIT),
+);
+// Same printing from other listings, cheapest first. Matches on the catalog
+// id when both have one, else on name + number.
+const norm = (v?: string | null) => (v ?? "").toString().trim().toLowerCase();
+const sameCardListings = computed(() => {
+  const c = card.value;
+  if (!c) return [];
+  const name = norm(c.cardName);
+  const num = norm(c.cardNumber);
+  return otherAvailable.value
+    .filter((o: Card) => {
+      if (c.productId && o.productId) return o.productId === c.productId;
+      return !!num && norm(o.cardName) === name && norm(o.cardNumber) === num;
+    })
+    .sort((a: Card, b: Card) => a.price - b.price)
+    .slice(0, RELATED_LIMIT);
 });
 
 const isOwnListing = computed(
@@ -607,8 +662,26 @@ const activeImage = computed(
   () => allImages.value[activeImageIndex.value] || "",
 );
 
-// Seller avatar for the listing header.
+// Seller avatar and verified tick for the seller strip. users/{uid} is only
+// readable signed in, so signed-out visitors get the tick from the public
+// disclosure (an individual's name there comes from their verified MyKad).
 const sellerPhotoURL = ref("");
+const sellerKycVerified = ref(false);
+const disclosure = ref<SellerDisclosure | null>(null);
+const sellerVerified = computed(
+  () => sellerKycVerified.value || disclosure.value?.type === "individual",
+);
+watch(
+  () => card.value?.sellerUid,
+  async (uid) => {
+    disclosure.value = null;
+    if (!uid) return;
+    try {
+      disclosure.value = await $fetch<SellerDisclosure | null>(`/api/sellers/${uid}/disclosure`);
+    } catch {}
+  },
+  { immediate: true },
+);
 
 const fetchSellerProfile = async () => {
   if (!card.value) return;
@@ -619,6 +692,7 @@ const fetchSellerProfile = async () => {
     );
     if (userDoc.exists()) {
       sellerPhotoURL.value = (userDoc.data().photoURL || "") as string;
+      sellerKycVerified.value = userDoc.data().kycStatus === "verified";
     }
   } catch {}
 };
