@@ -139,7 +139,7 @@
 
 <script setup lang="ts">
 import type { CatalogMatch, PriceTrend } from "~/composables/useCardCatalog";
-import { parseSearchQuery } from "~/shared/search-query";
+import { parseSearchQuery, type CardVariant } from "~/shared/search-query";
 
 const props = defineProps<{
   /** Free-text built from the form fields, used for the manual-entry suggestions. */
@@ -194,6 +194,8 @@ const lastQuery = ref("");
 const lastSetHint = ref<string | null>(null);
 const lastRarityHint = ref<string | null>(null);
 const lastNumber = ref<string | null>(null);
+// "reverse holo", "1st edition": shows that finish's price on each result.
+const lastVariant = ref<CardVariant | null>(null);
 // The real name searched when the typed one was misspelt ("charzard").
 const corrected = ref<string | null>(null);
 
@@ -210,6 +212,7 @@ const fetchPage = async (n: number) => {
       setMatch: lastSetHint.value,
       rarityMatch: lastRarityHint.value,
       numberMatch: lastNumber.value,
+      variant: lastVariant.value,
     });
     results.value = r;
     // A misspelt name was searched as the real one; page with that from now on.
@@ -248,6 +251,7 @@ const runSearch = async () => {
   lastQuery.value = parsed.name.trim();
   lastSetHint.value = setHint;
   lastNumber.value = parsed.numberMatch;
+  lastVariant.value = parsed.variant;
   lastRarityHint.value = parsed.rarityHint;
   corrected.value = null;
   total.value = 0;

@@ -1,5 +1,6 @@
 import { numberCandidates } from "~/shared/card-number";
 import { nameSearchPattern, suggestNameCorrection } from "~/shared/search-name";
+import { VARIANT_SUBTYPES, type CardVariant } from "~/shared/search-query";
 import { parsePrintedNumber, printedNumberForms, rankScanMatches } from "~/shared/scan-match";
 
 // Query parsing lives in shared/ so it can be tested without a Nuxt runtime.
@@ -228,9 +229,15 @@ export const buildPriceTrend = (
 
 // Pull the best market price out of the card_prices.prices JSONB and
 // convert to MYR. Returns null if nothing usable was published.
-const pickPrice = (prices: Record<string, any> | null | undefined): CatalogPrice | null => {
+//
+// `prefer` puts some subtypes first: "charizard reverse holo" should show the
+// reverse holo's price, not the regular print's.
+const pickPrice = (
+  prices: Record<string, any> | null | undefined,
+  prefer: string[] = [],
+): CatalogPrice | null => {
   if (!prices || typeof prices !== "object") return null;
-  for (const subtype of SUBTYPE_PREFERENCE) {
+  for (const subtype of [...prefer, ...SUBTYPE_PREFERENCE]) {
     const block = prices[subtype];
     if (!block) continue;
     const market = block.market ?? block.mid ?? null;
@@ -268,7 +275,7 @@ const upgradeImageRes = (url: string | null | undefined): string | null => {
 };
 
 // Lift a Supabase row (with embedded card_prices) into the public shape.
-const rowToMatch = (row: any): CatalogMatch => ({
+const rowToMatch = (row: any, prefer: string[] = []): CatalogMatch => ({
   productId: row.product_id,
   name: row.name,
   setName: row.group_name ?? "",
@@ -280,6 +287,7 @@ const rowToMatch = (row: any): CatalogMatch => ({
   // shape) or a single object depending on the inferred relationship.
   price: pickPrice(
     Array.isArray(row.card_prices) ? row.card_prices[0]?.prices : row.card_prices?.prices,
+    prefer,
   ),
 });
 
@@ -310,6 +318,8 @@ export type SearchOptions = {
    */
   rarityMatches?: string[] | null;
   sort?: CatalogSort;
+  /** A finish typed into the search ("reverse holo"); picks the price shown. */
+  variant?: CardVariant | null;
 };
 
 export const useCardCatalog = () => {
@@ -374,6 +384,7 @@ export const useCardCatalog = () => {
 
     // Fetch the FX rate concurrently with the query.
     const fxReady = ensureRate();
+    const prefer = opts.variant ? VARIANT_SUBTYPES[opts.variant] : [];
 
     // ── A number search cannot go through the RPC ─────────────────────
     //
@@ -452,7 +463,7 @@ export const useCardCatalog = () => {
         return { results: [], total: 0 };
       }
       await fxReady;
-      return { results: (data ?? []).map(rowToMatch), total: count ?? 0 };
+      return { results: (data ?? []).map((row) => rowToMatch(row, prefer)), total: count ?? 0 };
     }
 
     const { data, error } = await supabase.rpc("search_catalog", {
@@ -481,7 +492,7 @@ export const useCardCatalog = () => {
       rarity: row.rarity ?? null,
       imageUrl: upgradeImageRes(row.image_url),
       language: row.language ?? "EN",
-      price: pickPrice(row.prices),
+      price: pickPrice(row.prices, prefer),
     }));
     return { results, total };
   };

@@ -273,7 +273,157 @@ export interface ParsedSearch {
    * set beats the set dropdown.
    */
   languageHint: "EN" | "JP" | null;
+  /**
+   * The finish asked for — reverse holo, 1st edition and so on. Not a card of
+   * its own in the catalogue (TCGPlayer files it as a price subtype of the
+   * same card), so it picks which price to show rather than filtering.
+   */
+  variant: CardVariant | null;
+  /**
+   * A grade typed with the card: "psa 10", "bgs 9.5", "graded", "raw". The
+   * catalogue has no grades, so this mainly keeps "charizard psa 10" from
+   * being read as card number 10. Surfaced for the UI and listing searches.
+   */
+  grade: GradeHint | null;
 }
+
+export type CardVariant =
+  | "reverse-holo"
+  | "holo"
+  | "non-holo"
+  | "1st-edition"
+  | "unlimited";
+
+/** TCGPlayer price subtypes for each variant, best first. */
+export const VARIANT_SUBTYPES: Record<CardVariant, string[]> = {
+  "reverse-holo": ["Reverse Holofoil"],
+  holo: ["Holofoil", "Unlimited Holofoil", "1st Edition Holofoil"],
+  "non-holo": ["Normal", "Unlimited", "1st Edition"],
+  "1st-edition": ["1st Edition Holofoil", "1st Edition"],
+  unlimited: ["Unlimited Holofoil", "Unlimited"],
+};
+
+export interface GradeHint {
+  /** "PSA", "BGS", "CGC"… or null for a bare "graded". */
+  company: string | null;
+  /** "10", "9.5"… or null. */
+  grade: string | null;
+  /** True for "raw" / "ungraded". */
+  raw: boolean;
+}
+
+/**
+ * Finishes, as [phrase, meaning].
+ *
+ * Longest first, so "reverse holo" is taken whole before "holo" can be. Bare
+ * "holo" is deliberately absent: on vintage cards "Holo Rare" is the rarity,
+ * and that reading already works.
+ */
+const VARIANT_PHRASES: Array<[string, CardVariant]> = [
+  ["reverse holofoil", "reverse-holo"],
+  ["reverse holo", "reverse-holo"],
+  ["rev holo", "reverse-holo"],
+  ["reverse", "reverse-holo"],
+  ["revholo", "reverse-holo"],
+  ["rh", "reverse-holo"],
+  ["non holo", "non-holo"],
+  ["non-holo", "non-holo"],
+  ["nonholo", "non-holo"],
+  ["holofoil", "holo"],
+  ["1st edition", "1st-edition"],
+  ["first edition", "1st-edition"],
+  ["1st ed", "1st-edition"],
+  ["1st", "1st-edition"],
+  ["unlimited", "unlimited"],
+];
+
+const GRADERS = ["psa", "bgs", "beckett", "cgc", "sgc", "tag", "ace", "ags"];
+
+/**
+ * Take what describes the copy out of a query: its finish and its grade.
+ * The language is stripLanguage's job.
+ *
+ * Any position, because "psa 10 charizard" and "charizard psa 10" are both
+ * natural. Never
+ * the whole query, though — "unlimited" alone is better searched as a name
+ * than as nothing.
+ */
+export const extractModifiers = (
+  input: string,
+): {
+  rest: string;
+  variant: CardVariant | null;
+  grade: GradeHint | null;
+} => {
+  let tokens = input.trim().split(/\s+/).filter(Boolean);
+  let variant: CardVariant | null = null;
+  let grade: GradeHint | null = null;
+
+  const lower = () => tokens.map((t) => t.toLowerCase());
+  const remove = (start: number, len: number) => {
+    tokens = [...tokens.slice(0, start), ...tokens.slice(start + len)];
+  };
+  // Remove a phrase only if something is left to search for.
+  const take = (phrase: string): boolean => {
+    const words = phrase.split(" ");
+    const l = lower();
+    for (let i = 0; i + words.length <= l.length; i++) {
+      if (words.every((w, j) => l[i + j] === w)) {
+        if (tokens.length - words.length < 1) return false;
+        remove(i, words.length);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Grade first: "psa 10" must lose its 10 before anything reads it as a
+  // card number. "psa10" written as one word too.
+  {
+    const l = lower();
+    for (let i = 0; i < l.length; i++) {
+      const glued = l[i]!.match(/^(psa|bgs|cgc|sgc|tag|ags)(\d{1,2}(?:\.5)?)$/);
+      if (glued && tokens.length > 1) {
+        grade = { company: glued[1]!.toUpperCase(), grade: glued[2]!, raw: false };
+        remove(i, 1);
+        break;
+      }
+      if (GRADERS.includes(l[i]!)) {
+        const next = l[i + 1];
+        const hasNum = !!next && /^\d{1,2}(\.5)?$/.test(next) && Number(next) <= 10;
+        // Some graders' names are words on cards too: "ace" is ACE SPEC, "tag"
+        // is TAG TEAM. Those only count as a grade with a number after them.
+        if (["ace", "tag", "ags"].includes(l[i]!) && !hasNum) continue;
+        if (tokens.length - (hasNum ? 2 : 1) < 1) continue;
+        grade = {
+          company: l[i] === "beckett" ? "BGS" : l[i]!.toUpperCase(),
+          grade: hasNum ? next! : null,
+          raw: false,
+        };
+        remove(i, hasNum ? 2 : 1);
+        break;
+      }
+    }
+    if (!grade) {
+      if (take("gem mint") || take("graded") || take("slab") || take("slabbed")) {
+        grade = { company: null, grade: null, raw: false };
+      } else if (take("ungraded") || take("raw")) {
+        grade = { company: null, grade: null, raw: true };
+      }
+    }
+  }
+
+  for (const [phrase, v] of VARIANT_PHRASES) {
+    if (take(phrase)) {
+      variant = v;
+      break;
+    }
+  }
+
+
+  return { rest: tokens.join(" "), variant, grade };
+};
+
 
 /**
  * Is this number also the name of a set?
@@ -316,6 +466,37 @@ export const applyPhrases = (input: string): string => {
   return [...t.slice(0, -1), "goldstar"].join(" ");
 };
 
+/**
+ * Tidy what was typed before reading it.
+ *
+ * "#4", "No. 4" and "4/102" are all the card number; curly apostrophes from a
+ * phone keyboard should match the straight ones in "Team Rocket's"; and "alt
+ * art" is how collectors say what TCGPlayer files as "(Alternate Art …)" in
+ * the card's name.
+ */
+export const normalizeQuery = (raw: string): string =>
+  raw
+    .replace(/[\u2018\u2019\u02BC]/g, "'")
+    .replace(/(^|\s)(?:no\.?\s*)?#\s*(?=[a-z]{0,4}\d)/gi, "$1")
+    .replace(/\balt(?:ernate)?\s+art\b|\balt\b/gi, "alternate")
+    .replace(/\s*\/\s*/g, "/")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/**
+ * A full printed number ("199/165", "GG44/GG70", "4/102") anywhere in the
+ * query. The trailing-number reader only looks at the last word; a number
+ * with a slash cannot be anything else, so it is safe to lift from anywhere —
+ * "199/165 charizard" works as well as "charizard 199/165".
+ */
+const takeSlashNumber = (input: string): { rest: string; number: string | null } => {
+  const tokens = input.split(/\s+/).filter(Boolean);
+  const i = tokens.findIndex((t) => /^[a-z]{0,4}\d{1,4}\/[a-z]{0,4}\d{1,4}$/i.test(t));
+  if (i < 0 || i === tokens.length - 1) return { rest: input, number: null };
+  const number = tokens[i]!;
+  return { rest: [...tokens.slice(0, i), ...tokens.slice(i + 1)].join(" "), number };
+};
+
 export const parseSearchQuery = (
   raw: string,
   setNames: string[] = [],
@@ -323,8 +504,11 @@ export const parseSearchQuery = (
 ): ParsedSearch => {
   // The language, and a "#" in front of a number, come off before anything
   // else reads the words.
-  const { rest: unlanguaged, languageHint } = stripLanguage(raw);
-  raw = unlanguaged.replace(/(^|\s)#(?=\w)/g, "$1");
+  const { rest: unlanguaged, languageHint } = stripLanguage(normalizeQuery(raw));
+  // Then what describes the copy rather than the card, so "psa 10" is never
+  // read as card number 10 and "reverse holo" never as the Holo Rare rarity.
+  const { rest: plain, variant, grade } = extractModifiers(unlanguaged);
+  raw = plain.replace(/(^|\s)#(?=\w)/g, "$1");
 
   // Known collector phrases first, before any of it is read as a rarity.
   const phrased = applyPhrases(raw);
@@ -353,6 +537,8 @@ export const parseSearchQuery = (
         numberMatch: null,
         setOrNumber: false,
         languageHint,
+        variant,
+        grade,
       };
     }
   }
@@ -362,17 +548,34 @@ export const parseSearchQuery = (
   // A rarity written out in full ("pikachu illustration rare") is a phrase,
   // which the token pass below would never see as one.
   const byPhrase = stripRarityPhrase(phrased, rarityNames);
-  const { rest, rarityMatches } = byPhrase.rarityMatches.length
+  const stripped = byPhrase.rarityMatches.length
     ? byPhrase
     : stripRarity(phrased, rarityNames);
+  const { rarityMatches } = stripped;
+  // A full printed number ("199/165") can sit anywhere; take it now, before
+  // "199/165 charizard" ends in a word the Charizard set claims.
+  const slash = takeSlashNumber(stripped.rest);
+  const rest = slash.rest;
 
   // The set is tried at full length before any number is taken off, because a
   // set name can itself end in digits — "SV: Scarlet & Violet 151". Stripping
   // those as a card number would leave a set nobody can match.
-  let hit = splitKnownSet(rest, setNames);
-  let number: string | null = null;
+  //
+  // A set CODE or multi-word set name at the start is taken first: in "obf
+  // charizard 125" the trailing "charizard" would otherwise end-match the set
+  // named after Charizard, and Obsidian Flames would be read as the card name.
+  const lead = splitLeadingSet(rest, setNames);
+  let hit = lead.setHint ? lead : splitKnownSet(rest, setNames);
+  let number: string | null = slash.number;
   let setOrNumber = false;
-  if (!hit.setHint) {
+  if (lead.setHint) {
+    // "sv08 pikachu 057": the set leads, and a number may still trail.
+    const split = splitCardNumber(lead.name);
+    if (split.number) {
+      hit = { name: split.name, setHint: lead.setHint };
+      number ??= split.number;
+    }
+  } else if (!hit.setHint && !number) {
     const split = splitCardNumber(rest);
     number = split.number;
     hit = splitKnownSet(split.name, setNames);
@@ -409,6 +612,7 @@ export const parseSearchQuery = (
   // for cards called "151".
   if (
     (rarityMatches.length || number) &&
+    !lead.setHint &&
     hit.setHint &&
     !hit.name.trim() &&
     !setOrNumber
@@ -448,6 +652,8 @@ export const parseSearchQuery = (
     numberMatch: number,
     setOrNumber,
     languageHint,
+    variant,
+    grade,
   };
 };
 

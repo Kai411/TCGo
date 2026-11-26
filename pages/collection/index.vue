@@ -1041,6 +1041,7 @@ const runSearch = async (opts: { typing?: boolean } = {}) => {
     setMatch: effectiveSetMatch.value,
     rarityMatch: effectiveRarityMatch.value,
     sort: sortBy.value,
+    variant: parsed.value.variant,
   });
   const priced = await withSecondaryPrices(results);
   if (request !== searchRequest) return;
@@ -1091,6 +1092,7 @@ const loadMore = async () => {
     setMatch: effectiveSetMatch.value,
     rarityMatch: effectiveRarityMatch.value,
     sort: sortBy.value,
+    variant: parsed.value.variant,
   });
   const priced = await withSecondaryPrices(results);
   // A new search started while this page loaded; it owns the list now.
