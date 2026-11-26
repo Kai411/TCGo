@@ -366,7 +366,7 @@ export const HELP_TOPICS: HelpTopic[] = [
         summary: "Find your orders, pay, and follow the parcel.",
         steps: [
           "Go to Account and look under My orders. To pay and In transit show how many need you.",
-          "Open an order and tap Pay online (FPX) if it hasn't been paid yet.",
+          "Open an order and tap Complete payment if it hasn't been paid yet.",
           "Once paid, the order shows where the parcel is, from preparing to delivered, with the waybill number to track it on the courier's site.",
           "When the card arrives, tap Mark received.",
         ],
