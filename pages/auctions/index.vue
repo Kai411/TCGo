@@ -36,17 +36,51 @@
         </p>
       </div>
 
-      <!-- Grid -->
-      <div
-        v-else
-        class="-mx-1.5 lg:mx-0 grid grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-4 xl:gap-5"
-      >
-        <CardTile
-          v-for="auction in publicAuctions"
-          :key="auction.id"
-          :auction="auction"
-        />
-      </div>
+      <!-- Nothing live: say so up front, then show what recently ended. -->
+      <template v-else>
+        <div
+          v-if="splitByLive && liveAuctions.length === 0 && !endedOnlyFilter"
+          class="surface rounded-2xl px-4 py-10 text-center mb-6"
+        >
+          <p class="text-lg font-semibold text-ink dark:text-white">
+            No live auctions right now
+          </p>
+          <p class="mt-1 text-sm text-ink-muted dark:text-zinc-400">
+            Check back soon, or start one by listing a card.
+          </p>
+        </div>
+
+        <!-- Grid: under "Ending soon", live auctions first and ended ones
+             in their own section below. -->
+        <div
+          v-if="!splitByLive || liveAuctions.length"
+          class="-mx-1.5 lg:mx-0 grid grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-4 xl:gap-5"
+        >
+          <CardTile
+            v-for="auction in splitByLive ? liveAuctions : publicAuctions"
+            :key="auction.id"
+            :auction="auction"
+          />
+        </div>
+
+        <template v-if="splitByLive && endedAuctions.length">
+          <h2
+            class="text-sm font-semibold text-ink-muted dark:text-zinc-400 mb-3"
+            :class="liveAuctions.length ? 'mt-10' : ''"
+          >
+            Recently ended
+          </h2>
+          <div
+            class="-mx-1.5 lg:mx-0 grid grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-4 xl:gap-5"
+          >
+            <CardTile
+              v-for="auction in endedAuctions"
+              :key="auction.id"
+              :auction="auction"
+            />
+          </div>
+        </template>
+      </template>
     </div>
   </div>
 </template>
@@ -72,4 +106,26 @@ const publicAuctions = computed(() => {
   const base = auctions.value.filter((a: Auction) => !a.isPrivate);
   return filters.apply(base);
 });
+
+// "Ending soon" already orders live before ended (compareEndingSoon); split
+// at that boundary so ended auctions sit in their own section and an
+// all-ended list says nothing is live instead of looking like live stock.
+const now = ref(Date.now());
+let tick: ReturnType<typeof setInterval> | undefined;
+onMounted(() => {
+  now.value = Date.now();
+  tick = setInterval(() => (now.value = Date.now()), 30_000);
+});
+onBeforeUnmount(() => clearInterval(tick));
+
+// Someone who filtered to "Ended" doesn't need telling nothing is live.
+const endedOnlyFilter = computed(
+  () => filters.statuses.value.length > 0 && !filters.statuses.value.includes("live"),
+);
+const splitByLive = computed(() => filters.sort.value === "ending-soon");
+const isLive = (a: Auction) => (a.endsAt ?? 0) > now.value;
+const liveAuctions = computed(() => publicAuctions.value.filter(isLive));
+const endedAuctions = computed(() =>
+  publicAuctions.value.filter((a) => !isLive(a)),
+);
 </script>

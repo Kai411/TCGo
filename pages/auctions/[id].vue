@@ -432,8 +432,9 @@
             </ul>
           </section>
 
-          <!-- Bid history -->
-          <section class="mt-8">
+          <!-- Bid history. An ended auction with no bids already says so in
+               the box above, so it gets no empty "Be the first" list. -->
+          <section v-if="!isEnded || bids.length > 0" class="mt-8">
             <h2 class="text-sm font-semibold text-ink dark:text-white">Bids ({{ bids.length }})</h2>
             <p v-if="bids.length === 0" class="mt-2 text-sm text-ink-muted dark:text-zinc-400">
               No bids yet. Be the first!
