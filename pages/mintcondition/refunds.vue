@@ -100,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 definePageMeta({ layout: "admin", middleware: "mintcondition" });
 useHead({ title: "Refunds — TCGo Admin" });
 
@@ -145,7 +146,7 @@ const load = async () => {
 };
 
 const send = async (r: RefundRow) => {
-  if (!confirm(`Send RM ${r.amount.toFixed(2)} to ${r.holderName} (${r.bank} ${r.account})?`)) return;
+  if (!confirm(`Send ${formatRM(r.amount)} to ${r.holderName} (${r.bank} ${r.account})?`)) return;
   busy.value = r.id;
   error.value = "";
   try {

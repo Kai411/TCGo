@@ -44,7 +44,7 @@
               {{ shortDate }} · #{{ order.id.slice(0, 6) }}
             </p>
             <p class="shrink-0 text-body-ui font-bold tabular-nums text-ink dark:text-white">
-              RM {{ order.total.toFixed(2) }}
+              {{ formatRM(order.total) }}
             </p>
           </div>
         </div>
@@ -115,7 +115,7 @@
     <!-- Money + state -->
     <div class="text-right shrink-0">
       <p class="font-bold text-sm tabular-nums text-ink dark:text-white">
-        RM {{ order.total.toFixed(2) }}
+        {{ formatRM(order.total) }}
       </p>
       <span
         class="inline-block mt-1 text-micro font-semibold px-2 py-0.5 rounded-full"
@@ -155,6 +155,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import { deliveryStageColor, deliveryStageLabel } from "~/shared/delivery-stage";
 import {
   type CompiledOrder,

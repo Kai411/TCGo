@@ -392,6 +392,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import type { Card } from "~/composables/useCards";
 import { isAvailable, isReserved } from "~/shared/card-availability";
 import { cdnUrl } from "~/composables/useStorage";
@@ -586,7 +587,7 @@ const pageUrl = computed(() => `${origin}/cards/${cardId}`);
 // Per-page SEO
 useHead(() => {
   if (!card.value) return { title: "Card Details | TCGo Marketplace" };
-  const title = `${card.value.cardName} — RM ${card.value.price.toFixed(2)} | TCGo`;
+  const title = `${card.value.cardName} — ${formatRM(card.value.price)} | TCGo`;
   const description = `${card.value.cardSet}${card.value.condition ? ` · ${card.value.condition}` : ""} · Listed by ${card.value.seller} on TCGo Marketplace.`;
   const image = card.value.imageUrls?.[0] || card.value.imageUrl || `${origin}/og.webp`;
   const url = pageUrl.value;
@@ -616,7 +617,7 @@ const handleShare = async () => {
   if (navigator.share) {
     try {
       await navigator.share({
-        title: `${card.value.cardName} — RM ${card.value.price.toFixed(2)}`,
+        title: `${card.value.cardName} — ${formatRM(card.value.price)}`,
         text: `${card.value.cardSet}${card.value.condition ? ` · ${card.value.condition}` : ""}`,
         url,
       });

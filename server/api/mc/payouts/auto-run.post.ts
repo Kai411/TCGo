@@ -21,6 +21,7 @@
 // With no secret configured the scheduled path is refused outright rather
 // than left open.
 
+import { formatRM } from "~/shared/format-money";
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireStaff } from "~/server/utils/staff-auth";
 import type { StaffPrincipal } from "~/server/utils/staff-auth";
@@ -224,7 +225,7 @@ export default defineEventHandler(async (event) => {
     actor: { staffId: actor.staffId, name: actor.name },
     summary:
       sent.length || failed.length
-        ? `Auto-payout: sent ${sent.length} (RM${totalSent.toFixed(2)}), ${failed.length} failed, ${decision.skipped.length} skipped.`
+        ? `Auto-payout: sent ${sent.length} (${formatRM(totalSent)}), ${failed.length} failed, ${decision.skipped.length} skipped.`
         : `Auto-payout ran with nothing to send (${decision.skipped.length} skipped).`,
     detail: { totalSent, sentCount: sent.length, failedCount: failed.length, scheduled },
     event,

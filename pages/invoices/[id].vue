@@ -79,7 +79,7 @@
                   {{ [item.cardSet, item.condition].filter(Boolean).join(" · ") }}
                 </p>
               </td>
-              <td class="py-2.5 text-right tabular-nums">RM {{ item.price.toFixed(2) }}</td>
+              <td class="py-2.5 text-right tabular-nums">{{ formatRM(item.price) }}</td>
             </tr>
           </tbody>
         </table>
@@ -88,15 +88,15 @@
           <div class="w-64 text-sm space-y-1">
             <div class="flex justify-between text-gray-600">
               <span>Subtotal</span>
-              <span class="tabular-nums">RM {{ order.subtotal.toFixed(2) }}</span>
+              <span class="tabular-nums">{{ formatRM(order.subtotal) }}</span>
             </div>
             <div class="flex justify-between text-gray-600">
               <span>Shipping<template v-if="order.shippingCourier"> ({{ order.shippingCourier }})</template></span>
-              <span class="tabular-nums">RM {{ order.shipping.toFixed(2) }}</span>
+              <span class="tabular-nums">{{ formatRM(order.shipping) }}</span>
             </div>
             <div class="flex justify-between font-bold text-base pt-2 border-t border-gray-300">
               <span>Total</span>
-              <span class="tabular-nums">RM {{ order.total.toFixed(2) }}</span>
+              <span class="tabular-nums">{{ formatRM(order.total) }}</span>
             </div>
           </div>
         </section>
@@ -114,6 +114,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import { isOrderCompleted } from "~/shared/delivery-stage";
 import { type CompiledOrder } from "~/composables/useCompiledOrders";
 import { stateName } from "~/shared/my-states";

@@ -19,6 +19,7 @@
 //
 // DRAFTS, NOT LEGAL ADVICE. Have a Malaysian lawyer review before launch.
 
+import { formatRM } from "~/shared/format-money";
 import { CANCEL_GRACE_MINUTES } from "~/shared/order-windows";
 import { PAYOUT_HOLD_DAYS } from "~/shared/payouts";
 import { AUCTION_PAYMENT_WINDOW_HOURS } from "~/shared/auctions";
@@ -52,7 +53,7 @@ export const OPERATOR = {
 
 // ── Numbers the app already enforces ──────────────────────────────────
 const pct = (fraction: number) => `${Math.round(fraction * 1000) / 10}%`;
-const rm = (n: number) => `RM ${n.toFixed(2)}`;
+const rm = (n: number) => formatRM(n);
 
 export const POLICY_NUMBERS = {
   commission: pct(STANDARD_RATE),

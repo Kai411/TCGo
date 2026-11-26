@@ -5,6 +5,7 @@
 // once can't send the money twice. Any failure puts it back to `requested`
 // with the reason, rather than leaving it stuck in `processing`.
 
+import { formatRM } from "~/shared/format-money";
 import { getAdminFirestore } from "~/server/utils/firebase-admin";
 import { requireStaff } from "~/server/utils/staff-auth";
 import { createMassPaymentCollection, createMassPaymentInstruction, mapInstructionStatus } from "~/server/utils/billplz";
@@ -85,7 +86,7 @@ export default defineEventHandler(async (event) => {
       action: "refund.executed",
       actor,
       subject: refundId,
-      summary: `Sent refund of RM ${Number(claimed.amount).toFixed(2)} for order ${shortId} (${mapped}).`,
+      summary: `Sent refund of ${formatRM(Number(claimed.amount))} for order ${shortId} (${mapped}).`,
     });
     return { ok: true, status: mapped, instructionId: instruction.id };
   } catch (e: any) {

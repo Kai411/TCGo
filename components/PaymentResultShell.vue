@@ -43,7 +43,7 @@
         </h1>
 
         <p class="mt-3 text-sm text-gray-500 dark:text-zinc-400">
-          <span class="font-semibold tabular-nums text-ink dark:text-white">RM {{ order.total.toFixed(2) }}</span>
+          <span class="font-semibold tabular-nums text-ink dark:text-white">{{ formatRM(order.total) }}</span>
           <span class="mx-1.5 text-gray-400 dark:text-zinc-500" aria-hidden="true">·</span>
           <NuxtLink :to="`/profile/${order.sellerUid}`" class="font-medium text-ink dark:text-white hover:underline">
             {{ order.sellerName }}
@@ -88,6 +88,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 // Shared skeleton of the payment-return pages: the gates (loading, signed
 // out, no such order), then the hero — card fan, outcome copy, calls to
 // action — with the page's own details in the default slot.

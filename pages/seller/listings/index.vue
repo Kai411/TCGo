@@ -29,7 +29,7 @@
               <div class="min-w-0">
                 <p class="mc-row-title">{{ card.cardName }}</p>
                 <p class="mc-meta truncate">
-                  <span class="mc-num font-semibold text-[var(--ink)]">RM {{ card.price.toFixed(2) }}</span>
+                  <span class="mc-num font-semibold text-[var(--ink)]">{{ formatRM(card.price) }}</span>
                   · {{ [card.cardSet, card.condition].filter(Boolean).join(" · ") }}
                 </p>
               </div>
@@ -57,7 +57,7 @@
               <p class="mc-meta truncate">{{ [card.cardSet, card.condition].filter(Boolean).join(" · ") }}</p>
             </div>
             <span class="text-right">
-              <span class="mc-num block">RM {{ card.price.toFixed(2) }}</span>
+              <span class="mc-num block">{{ formatRM(card.price) }}</span>
               <span class="mc-small">Sold</span>
             </span>
           </NuxtLink>
@@ -68,6 +68,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import type { Card } from "~/composables/useCards";
 
 interface TabItem {

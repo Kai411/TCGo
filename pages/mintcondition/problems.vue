@@ -52,7 +52,7 @@
                 </p>
               </div>
               <div class="text-right">
-                <p class="mc-amount">RM {{ Number(p.total).toFixed(2) }}</p>
+                <p class="mc-amount">{{ formatRM(Number(p.total)) }}</p>
                 <p v-if="p.status === 'escalated'" class="mc-small">Escalated by {{ p.escalatedBy }}</p>
               </div>
             </div>
@@ -100,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 definePageMeta({ layout: "admin", middleware: "mintcondition" });
 useHead({ title: "Order problems — TCGo Admin" });
 
@@ -143,7 +144,7 @@ const decide = async (p: ProblemRow, decision: "refund" | "release") => {
     error.value = "Write the decision first; both sides will see it.";
     return;
   }
-  const verb = decision === "refund" ? `refund RM ${p.total.toFixed(2)} to the buyer` : "release the payment to the seller";
+  const verb = decision === "refund" ? `refund ${formatRM(p.total)} to the buyer` : "release the payment to the seller";
   if (!confirm(`Decide to ${verb}?`)) return;
   busy.value = p.orderId;
   error.value = "";

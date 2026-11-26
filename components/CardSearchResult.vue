@@ -19,12 +19,13 @@
       {{ card.setName }}<span v-if="card.number"> · {{ card.number }}</span>
     </p>
     <p v-if="card.price" class="text-micro font-bold text-ink dark:text-white tabular-price mt-0.5">
-      RM {{ card.price.market.toFixed(2) }}
+      {{ formatRM(card.price.market) }}
     </p>
   </button>
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import type { CatalogMatch } from "~/composables/useCardCatalog";
 
 defineProps<{ card: CatalogMatch; selected?: boolean }>();

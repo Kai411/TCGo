@@ -171,6 +171,7 @@ export default defineEventHandler(async (event) => {
     await billplzDeleteBill(order.billplzBillId).catch(() => {});
   }
 
+  const itemCount = order.items?.length ?? 0;
   const form = new URLSearchParams({
     collection_id: collectionId,
     email: order.buyerEmail || "buyer@tcgo.shop",
@@ -178,7 +179,7 @@ export default defineEventHandler(async (event) => {
     amount: String(amount),
     callback_url: `${siteUrl}/api/billplz/webhook`,
     redirect_url: `${siteUrl}/payment/success?orderId=${encodeURIComponent(orderId)}`,
-    description: `TCGo order #${orderId.slice(0, 8)} (${order.items?.length ?? 0} items)`,
+    description: `TCGo order #${orderId.slice(0, 8)} (${itemCount} ${itemCount === 1 ? "item" : "items"})`,
     reference_1_label: "orderId",
     reference_1: orderId,
   });

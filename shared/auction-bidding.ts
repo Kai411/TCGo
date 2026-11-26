@@ -13,6 +13,8 @@
 //
 // Money is worked in sen (whole numbers) so 0.1 + 0.2 never matters.
 
+import { formatRM } from "~/shared/format-money";
+
 export const ANTI_SNIPE_WINDOW_MS = 60_000;
 export const ANTI_SNIPE_EXTENSION_MS = 60_000;
 // A typo guard, not a business limit.
@@ -63,7 +65,7 @@ export type BidOutcome =
 const sen = (rm: number) => Math.round(rm * 100);
 const rm = (s: number) => s / 100;
 
-export const formatBidRM = (n: number) => `RM ${n.toFixed(2)}`;
+export const formatBidRM = (n: number) => formatRM(n);
 
 export const minNextBid = (currentPrice: number, minIncrement: number) =>
   rm(sen(currentPrice) + sen(minIncrement > 0 ? minIncrement : 1));

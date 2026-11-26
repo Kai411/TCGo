@@ -76,7 +76,7 @@
           v-if="actions.includes('agree_refund')"
           type="button"
           :disabled="busy"
-          @click="act('agree_refund', `Refund RM ${Number(order.total).toFixed(2)} to the buyer in full? You won't be paid for this order.`)"
+          @click="act('agree_refund', `Refund ${formatRM(Number(order.total))} to the buyer in full? You won't be paid for this order.`)"
           class="px-3 py-2 rounded-lg text-sm font-semibold border border-gray-200 dark:border-white/[0.10] text-ink dark:text-white disabled:opacity-50"
         >
           Agree to full refund
@@ -191,6 +191,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import { computed, reactive, ref } from "vue";
 import {
   CLAIM_WINDOW_DAYS,

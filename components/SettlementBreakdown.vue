@@ -70,6 +70,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatMoney } from "~/shared/format-money";
 import {
   settlementLines,
   shippingNote,
@@ -89,5 +90,5 @@ const props = withDefaults(
 
 const lines = computed(() => settlementLines(props.order));
 const postage = computed(() => shippingNote(props.order));
-const fmt = (n: number) => n.toFixed(2);
+const fmt = (n: number) => formatMoney(n);
 </script>

@@ -605,6 +605,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import { AUCTION_PAYMENT_WINDOW_HOURS } from "~/shared/auctions";
 import { readyToBuy } from "~/shared/onboarding";
 import { cdnUrl } from "~/composables/useStorage";
@@ -614,6 +615,12 @@ const auctionId = route.params.id as string;
 
 const { auction, bids, loading, placeBid, setAutoBid } =
   useAuctionDetail(auctionId);
+
+useHead(() => ({
+  title: auction.value?.title
+    ? `${auction.value.title} auction | TCGo Marketplace`
+    : "Auction | TCGo Marketplace",
+}));
 const {user} = useAuth();
 const { goToLogin } = useSignInGate();
 const { profile: myProfile } = useMyProfile();
@@ -850,7 +857,7 @@ const confirmBidIntro = () => {
 };
 
 const handleQuickBid = () =>
-  beforeBid(`Place bid RM ${minBidAmount.value.toFixed(2)}`, placeQuickBid);
+  beforeBid(`Place bid ${formatRM(minBidAmount.value)}`, placeQuickBid);
 
 const placeQuickBid = async () => {
   bidError.value = "";
@@ -860,8 +867,8 @@ const placeQuickBid = async () => {
     const amount = minBidAmount.value;
     const res = await placeBid(amount);
     // Someone's auto bid can answer straight away and stay on top.
-    if (res.leading) bidSuccess.value = `Bid placed: RM ${amount.toFixed(2)}`;
-    else bidError.value = `Bid placed, but another bidder's auto bid already covered it, so they're still on top at RM ${res.currentPrice.toFixed(2)}.`;
+    if (res.leading) bidSuccess.value = `Bid placed: ${formatRM(amount)}`;
+    else bidError.value = `Bid placed, but another bidder's auto bid already covered it, so they're still on top at ${formatRM(res.currentPrice)}.`;
   } catch (e: any) {
     bidError.value = e.message || "Failed to place bid";
   } finally {
@@ -873,10 +880,10 @@ const handleAutoBid = () => {
   bidError.value = "";
   bidSuccess.value = "";
   if (!autoBidMax.value || autoBidMax.value < minBidAmount.value) {
-    bidError.value = `Max bid must be at least RM ${minBidAmount.value.toFixed(2)}`;
+    bidError.value = `Max bid must be at least ${formatRM(minBidAmount.value)}`;
     return;
   }
-  beforeBid(`Set auto bid up to RM ${autoBidMax.value.toFixed(2)}`, placeAutoBid);
+  beforeBid(`Set auto bid up to ${formatRM(autoBidMax.value)}`, placeAutoBid);
 };
 
 const placeAutoBid = async () => {
@@ -885,8 +892,8 @@ const placeAutoBid = async () => {
   try {
     const max = autoBidMax.value;
     const res = await setAutoBid(max);
-    if (res.leading) bidSuccess.value = `Auto bid set! Max: RM ${max.toFixed(2)}`;
-    else bidError.value = `Another bidder's maximum is at least as high as yours, so they're still on top at RM ${res.currentPrice.toFixed(2)}. Try a higher maximum.`;
+    if (res.leading) bidSuccess.value = `Auto bid set! Max: ${formatRM(max)}`;
+    else bidError.value = `Another bidder's maximum is at least as high as yours, so they're still on top at ${formatRM(res.currentPrice)}. Try a higher maximum.`;
     autoBidMax.value = null;
   } catch (e: any) {
     bidError.value = e.message || "Failed to set auto bid";

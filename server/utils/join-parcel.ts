@@ -9,6 +9,7 @@
 // seller never asked for this and shouldn't have to — from their side an
 // order simply arrives with more cards in it.
 
+import { formatRM } from "~/shared/format-money";
 import type { Firestore } from "firebase-admin/firestore";
 import { isOpenParcel, JOIN_FEE_MYR } from "~/shared/order-joining";
 import { findOpenParcelFor } from "~/server/utils/open-parcel";
@@ -68,7 +69,7 @@ export const joinPaidOrderToParcel = async (
           severity: "error",
           code: "parcel.join_target_missing",
           message:
-            `Order ${orderId.slice(0, 8)} was charged the RM ${JOIN_FEE_MYR.toFixed(2)} ` +
+            `Order ${orderId.slice(0, 8)} was charged the ${formatRM(JOIN_FEE_MYR)} ` +
             `join fee but no open parcel could be found to combine it with.`,
           orderId,
           hint: "It will ship on its own label at mostly platform cost. Combine by hand if the other parcel is still unlabelled.",

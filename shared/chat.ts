@@ -388,9 +388,15 @@ export const formatDuration = (ms: number): string => {
   return `about ${d} day${d === 1 ? "" : "s"}`;
 };
 
+/**
+ * "Replies in about 25 min on average", or "" until there are enough replies
+ * to say. Empty rather than "Not enough replies yet": to a buyer that read as
+ * a remark about the seller, so the header just shows when they were last
+ * online instead.
+ */
 export const replyTimeLabel = (stats: Partial<ReplyStats> | null | undefined): string => {
   if (!stats || (stats.recentReplyMs?.length ?? 0) < REPLY_MIN_SAMPLES || stats.avgReplyMs == null) {
-    return "Not enough replies yet";
+    return "";
   }
   return `Replies in ${formatDuration(stats.avgReplyMs)} on average`;
 };

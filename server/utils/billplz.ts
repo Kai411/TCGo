@@ -38,6 +38,7 @@ export const billplzAuthHeader = () => {
 //   2. the checksum is HMAC-SHA512 over the signed values concatenated in the
 //      documented order with NO separator, keyed by the X-Signature key
 //      (verified against the sandbox — see PAYMENT_ORDER_CHECKSUM_FIELDS).
+import { formatRM } from "~/shared/format-money";
 import { createHmac } from "node:crypto";
 import { SANDBOX_BANK_CODE } from "~/shared/banks";
 import type { BillplzBill } from "~/server/utils/billplz-callback";
@@ -202,7 +203,7 @@ export const createMassPaymentInstruction = async (input: {
       throw createError({
         statusCode: 502,
         message:
-          `Billplz Payment Order Limit is RM ${(remaining / 100).toFixed(2)} but this payout needs RM ${input.amount.toFixed(2)}. ` +
+          `Billplz Payment Order Limit is ${formatRM(remaining / 100)} but this payout needs ${formatRM(input.amount)}. ` +
           `Raise the limit in the Billplz dashboard (Payment Orders → limit), then retry.`,
       });
     }

@@ -16,13 +16,14 @@
       <p class="text-xs text-ink-muted dark:text-zinc-400 truncate">{{ detail }}</p>
     </div>
     <div class="shrink-0 text-right">
-      <p class="text-sm font-bold tabular-nums text-ink dark:text-white">RM {{ price.toFixed(2) }}</p>
+      <p class="text-sm font-bold tabular-nums text-ink dark:text-white">{{ formatRM(price) }}</p>
       <p v-if="link" class="text-micro font-semibold text-pokemon-red">View →</p>
     </div>
   </component>
 </template>
 
 <script setup lang="ts">
+import { formatRM } from "~/shared/format-money";
 import { computed, resolveComponent } from "vue";
 import { attachmentHref, type ChatAttachment } from "~/shared/chat";
 import { compiledOrderStatusLabel, type CompiledOrderStatus } from "~/composables/useCompiledOrders";
