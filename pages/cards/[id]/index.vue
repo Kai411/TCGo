@@ -45,7 +45,7 @@
 
       <div class="grid md:grid-cols-2 gap-6 md:gap-10 md:items-start">
         <!-- ── Gallery ─────────────────────────────────────────────── -->
-        <section aria-label="Photos" class="w-full max-w-[18rem] mx-auto md:max-w-none md:sticky md:top-24 lg:top-[8.75rem]">
+        <section aria-label="Photos" class="w-full max-w-[15rem] sm:max-w-[18rem] mx-auto md:max-w-none md:sticky md:top-24 lg:top-[8.75rem]">
           <div
             class="relative aspect-[3.55/5] rounded-2xl overflow-hidden"
             tabindex="0"
