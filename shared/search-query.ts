@@ -36,7 +36,7 @@ const RARITY_ABBREVIATIONS: Array<[RegExp, string]> = [
   [/^ace$/i, "ACE SPEC Rare"],
 ];
 
-const matchRarity = (token: string): string | null => {
+export const matchRarity = (token: string): string | null => {
   for (const [pattern, full] of RARITY_ABBREVIATIONS) {
     if (pattern.test(token)) return full;
   }
@@ -267,6 +267,12 @@ export interface ParsedSearch {
    * them finds neither, so the caller must OR them.
    */
   setOrNumber: boolean;
+  /**
+   * A language named in the query — "pikachu jp", "charizard english". The
+   * caller uses it in place of its language dropdown, the same way a typed
+   * set beats the set dropdown.
+   */
+  languageHint: "EN" | "JP" | null;
 }
 
 /**
@@ -315,6 +321,11 @@ export const parseSearchQuery = (
   setNames: string[] = [],
   rarityNames: string[] = [],
 ): ParsedSearch => {
+  // The language, and a "#" in front of a number, come off before anything
+  // else reads the words.
+  const { rest: unlanguaged, languageHint } = stripLanguage(raw);
+  raw = unlanguaged.replace(/(^|\s)#(?=\w)/g, "$1");
+
   // Known collector phrases first, before any of it is read as a rarity.
   const phrased = applyPhrases(raw);
 
@@ -341,13 +352,19 @@ export const parseSearchQuery = (
         rarityHint: only,
         numberMatch: null,
         setOrNumber: false,
+        languageHint,
       };
     }
   }
 
   // Rarity next: it can sit at the end, and while it does, nothing else is
   // last. Then the set, then the number.
-  const { rest, rarityMatches } = stripRarity(phrased, rarityNames);
+  // A rarity written out in full ("pikachu illustration rare") is a phrase,
+  // which the token pass below would never see as one.
+  const byPhrase = stripRarityPhrase(phrased, rarityNames);
+  const { rest, rarityMatches } = byPhrase.rarityMatches.length
+    ? byPhrase
+    : stripRarity(phrased, rarityNames);
 
   // The set is tried at full length before any number is taken off, because a
   // set name can itself end in digits — "SV: Scarlet & Violet 151". Stripping
@@ -400,6 +417,14 @@ export const parseSearchQuery = (
     setOrNumber = false;
   }
 
+  // Nothing at the end named a set, so try the front: "ssp pikachu",
+  // "sv08 pikachu 057", "surging sparks pikachu", "151 charizard". People
+  // type the set first as often as last.
+  if (!hit.setHint) {
+    const lead = splitLeadingSet(hit.name, setNames);
+    if (lead.setHint) hit = lead;
+  }
+
   // Whatever is left: parseSmartQuery still picks up numeric set hints like
   // "151" that are not in the caller's set list.
   const parsed = parseSmartQuery(hit.name);
@@ -418,15 +443,11 @@ export const parseSearchQuery = (
     // authority — otherwise a name it deliberately rejected ("rh" is Reverse
     // Holo, a finish no card here is filed under) comes back in through the
     // side door and filters the results to nothing.
-    // parseSmartQuery runs its own rarity pass off the unvalidated table. Once
-    // we have the catalogue's real rarity list, stripRarity above is the
-    // authority — otherwise a name it deliberately rejected ("rh" is Reverse
-    // Holo, a finish no card here is filed under) comes back in through the
-    // side door and filters the results to nothing.
     rarityMatches: rarities,
     rarityHint: rarities[0] ?? null,
     numberMatch: number,
     setOrNumber,
+    languageHint,
   };
 };
 
@@ -455,6 +476,10 @@ export const SET_CODES: Record<string, string> = {
   "destined rivals": "dri",
   "black bolt": "blk",
   "white flare": "wht",
+  // Mega Evolution
+  "mega evolution": "meg",
+  "phantasmal flames": "pfl",
+  "ascended heroes": "asc",
   // Sword & Shield
   "sword & shield": "ssh",
   "rebel clash": "rcl",
@@ -487,6 +512,30 @@ export const SET_CODES: Record<string, string> = {
   "unified minds": "unm",
   "hidden fates": "hif",
   "cosmic eclipse": "cec",
+  "shining legends": "slg",
+  "dragon majesty": "drm",
+  // XY
+  "flashfire": "flf",
+  "furious fists": "ffi",
+  "phantom forces": "phf",
+  "primal clash": "prc",
+  "roaring skies": "ros",
+  "ancient origins": "aor",
+  "breakthrough": "bkt",
+  "breakpoint": "bkp",
+  "fates collide": "fco",
+  "steam siege": "sts",
+  "evolutions": "evo",
+  // Black & White
+  "emerging powers": "epo",
+  "noble victories": "nvi",
+  "next destinies": "nxd",
+  "dark explorers": "dex",
+  "dragons exalted": "drx",
+  "boundaries crossed": "bcr",
+  "plasma storm": "pls",
+  "plasma freeze": "plf",
+  "plasma blast": "plb",
 };
 
 /**
@@ -519,7 +568,9 @@ export const setAliasMap = (setName: string): Map<string, string> => {
   m.set(full.toLowerCase(), full);
 
   // Everything before a colon is the code; everything after is the name.
-  const parts = full.split(":").map((x) => x.trim()).filter(Boolean);
+  // TCGplayer writes some eras as "SM - Burning Shadows" rather than with a
+  // colon; both are a code and a name.
+  const parts = full.split(/:| - /).map((x) => x.trim()).filter(Boolean);
   const target = parts.length > 1 ? parts[parts.length - 1]! : full;
   if (parts.length > 1) {
     m.set(parts[0]!.toLowerCase(), parts[0]!); // "sv08", "swsh"
@@ -595,18 +646,25 @@ export const splitKnownSet = (
     return { name: raw, setHint: null };
   }
 
-  // An alias shared by several sets resolves to the phrase behind it, not to
-  // whichever set happened to be listed first. setHint is used as a substring
-  // match, so "Radiant Collection" finds both sets that end that way and
-  // "Trainer Gallery" finds all four.
-  const matching = setNames.filter((n) => setAliasMap(n).has(best!));
+  const setHint = resolveSetAlias(best, setNames);
+  return setHint ? { name, setHint } : { name: raw, setHint: null };
+};
+
+/**
+ * The set filter an alias stands for, or null when it cannot be decided.
+ *
+ * An alias shared by several sets resolves to the phrase behind it, not to
+ * whichever set happened to be listed first. setHint is used as a substring
+ * match, so "Radiant Collection" finds both sets that end that way and
+ * "Trainer Gallery" finds all four.
+ */
+const resolveSetAlias = (best: string, setNames: string[]): string | null => {
+  const matching = setNames.filter((n) => setAliasMap(n).has(best));
   if (matching.length > 1) {
     const phrases = new Set(
-      matching.map((n) => setAliasMap(n).get(best!)!.toLowerCase()),
+      matching.map((n) => setAliasMap(n).get(best)!.toLowerCase()),
     );
-    if (phrases.size === 1) {
-      return { name, setHint: setAliasMap(matching[0]!).get(best!)! };
-    }
+    if (phrases.size === 1) return setAliasMap(matching[0]!).get(best)!;
 
     // Sets that disagree about what the alias means. Across both languages
     // this is common — "tg" is Trainer Gallery on four sets and Time Gazer on
@@ -615,7 +673,7 @@ export const splitKnownSet = (
     // people mean; a genuine tie is left in the name rather than guessed.
     const byPhrase = new Map<string, { phrase: string; count: number }>();
     for (const n of matching) {
-      const phrase = setAliasMap(n).get(best!)!;
+      const phrase = setAliasMap(n).get(best)!;
       const k = phrase.toLowerCase();
       const e = byPhrase.get(k) ?? { phrase, count: 0 };
       e.count += 1;
@@ -623,17 +681,149 @@ export const splitKnownSet = (
     }
     const ranked = [...byPhrase.values()].sort((a, b) => b.count - a.count);
     if (ranked.length > 1 && ranked[0]!.count > ranked[1]!.count) {
-      return { name, setHint: ranked[0]!.phrase };
+      return ranked[0]!.phrase;
     }
-    if (!setNames.some((n) => n.trim().toLowerCase() === best)) {
-      return { name: raw, setHint: null };
-    }
+    if (!setNames.some((n) => n.trim().toLowerCase() === best)) return null;
   }
 
   // Recover the set's real casing for display and for the RPC's substring match.
-  const canonical =
+  return (
     setNames.find((n) => n.trim().toLowerCase() === best) ??
     matching[0] ??
-    best;
-  return { name, setHint: canonical };
+    best
+  );
+};
+
+/**
+ * Pull a set off the FRONT of a query: "ssp pikachu", "surging sparks
+ * pikachu", "sv08 pikachu", "151 charizard".
+ *
+ * Stricter than the trailing match, because the front is where the card's
+ * own name usually sits and sets are named after Pokémon and trainers. Only
+ * forms that cannot be a card's first word are taken:
+ *
+ *   - a printed set code ("ssp", "obf", "pfl") or a code with digits
+ *     ("sv08", "swsh09", "sm11b")
+ *   - a set name of two words or more ("surging sparks", "base set")
+ *   - a number that a set is named after ("151")
+ *
+ * Derived initials ("ss", "gg") are not taken here: two letters at the start
+ * of a query are too often the start of something else. Something must be
+ * left over — a query that is only a set is the trailing match's job.
+ */
+export const splitLeadingSet = (
+  input: string,
+  setNames: string[],
+): { name: string; setHint: string | null } => {
+  const raw = input.trim();
+  const words = raw.split(/\s+/).filter(Boolean);
+  if (words.length < 2 || !setNames.length) return { name: raw, setHint: null };
+  const lower = raw.toLowerCase();
+
+  // "151 charizard": the number that names a set.
+  const first = words[0]!;
+  if (/^\d{2,}$/.test(first) && numberNamesASet(first, setNames)) {
+    return { name: words.slice(1).join(" "), setHint: first };
+  }
+
+  const printed = new Set(Object.values(SET_CODES));
+  let best: string | null = null;
+  for (const set of setNames) {
+    for (const alias of setAliases(set)) {
+      const eligible =
+        alias.includes(" ") || /\d/.test(alias) || printed.has(alias);
+      if (!eligible || !lower.startsWith(alias + " ")) continue;
+      if (!best || alias.length > best.length) best = alias;
+    }
+  }
+  if (!best) return { name: raw, setHint: null };
+
+  const name = raw.slice(best.length).trim();
+  if (!name) return { name: raw, setHint: null };
+  const setHint = resolveSetAlias(best, setNames);
+  return setHint ? { name, setHint } : { name: raw, setHint: null };
+};
+
+// ── Language ────────────────────────────────────────────────────────────
+
+export const LANGUAGE_WORDS: Record<string, "EN" | "JP"> = {
+  jp: "JP",
+  jpn: "JP",
+  jap: "JP",
+  japan: "JP",
+  japanese: "JP",
+  en: "EN",
+  eng: "EN",
+  english: "EN",
+};
+
+/**
+ * Lift a language word out of the query: "pikachu jp", "japanese charizard".
+ *
+ * Anywhere in the query, but never the only word — "japanese" alone is too
+ * thin a search to be worth reading as a filter with nothing to filter.
+ */
+export const stripLanguage = (
+  input: string,
+): { rest: string; languageHint: "EN" | "JP" | null } => {
+  const tokens = input.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length < 2) return { rest: tokens.join(" "), languageHint: null };
+  let languageHint: "EN" | "JP" | null = null;
+  const kept = tokens.filter((t) => {
+    if (languageHint) return true;
+    const lang = LANGUAGE_WORDS[t.toLowerCase()];
+    if (!lang) return true;
+    languageHint = lang;
+    return false;
+  });
+  return { rest: kept.join(" "), languageHint };
+};
+
+// ── Rarities written out ────────────────────────────────────────────────
+
+/**
+ * Lift a rarity typed in words: "pikachu illustration rare", "charizard
+ * special illustration", "hyper rare" on its own.
+ *
+ * stripRarity reads one token at a time, so a rarity of several words stayed
+ * in the card's name and matched nothing. Only names of two words or more are
+ * read as a phrase — "Rare" and "Promo" alone are handled (or not) by the
+ * token pass — and the word "rare" may be left off a name of three words
+ * ("special illustration", "special art", "ace spec"). Longest wins, so
+ * "special illustration rare" is never read as "illustration rare".
+ */
+export const stripRarityPhrase = (
+  input: string,
+  rarityNames: string[] = [],
+): { rest: string; rarityMatches: string[] } => {
+  const words = input.trim().split(/\s+/).filter(Boolean);
+  const lower = words.map((w) => w.toLowerCase());
+  const names = rarityNames.length
+    ? rarityNames
+    : [...new Set(RARITY_ABBREVIATIONS.map(([, full]) => full))];
+
+  const phrases: Array<{ words: string[]; rarity: string }> = [];
+  for (const rarity of names) {
+    const rw = rarity.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (rw.length >= 2) phrases.push({ words: rw, rarity });
+    if (rw.length >= 3 && rw[rw.length - 1] === "rare") {
+      phrases.push({ words: rw.slice(0, -1), rarity });
+    }
+  }
+  phrases.sort((a, b) => b.words.length - a.words.length);
+
+  for (const { words: pw } of phrases) {
+    for (let i = 0; i + pw.length <= lower.length; i++) {
+      if (!pw.every((w, k) => lower[i + k] === w)) continue;
+      const key = pw.join(" ");
+      const matches = [
+        ...new Set(
+          phrases.filter((p) => p.words.join(" ") === key).map((p) => p.rarity),
+        ),
+      ];
+      const rest = [...words.slice(0, i), ...words.slice(i + pw.length)];
+      return { rest: rest.join(" "), rarityMatches: matches };
+    }
+  }
+  return { rest: words.join(" "), rarityMatches: [] };
 };

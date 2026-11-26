@@ -226,6 +226,7 @@ import { cdnUrl } from "~/composables/useStorage";
 import type { Card } from "~/composables/useCards";
 import type { Auction } from "~/composables/useAuctions";
 import { isAvailable } from "~/shared/card-availability";
+import { listingMatches, type ListingSearchFields } from "~/shared/search-listing";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -254,20 +255,32 @@ watch(
 
 const close = () => emit("update:modelValue", false);
 
-const matches = (haystack: string, term: string) =>
-  haystack.toLowerCase().includes(term.toLowerCase());
+// Every word of the query must land on some field of the listing — name,
+// set or its code, number, rarity code, language, grading, variant, edition,
+// illustrator — so "charizard obf sir" and "umbreon psa 10" both work. See
+// shared/search-listing.ts.
+const listingFields = (l: Card | Auction): ListingSearchFields => ({
+  name: l.cardName,
+  set: l.cardSet,
+  number: l.cardNumber,
+  rarity: l.rarity,
+  language: l.language,
+  seller: l.seller,
+  condition: l.condition,
+  gradingProvider: l.gradingProvider || l.customGradingProvider,
+  grade: l.grade,
+  variant: l.variant,
+  edition: l.edition,
+  artist: l.artist,
+  tags: "tags" in l ? l.tags : null,
+});
 
 const cardResults = computed<Card[]>(() => {
   const term = query.value.trim();
   if (!term) return [];
   return cards.value
     .filter(isAvailable)
-    .filter((c: Card) =>
-      matches(
-        `${c.cardName} ${c.cardSet ?? ""} ${c.seller ?? ""}`,
-        term,
-      ),
-    )
+    .filter((c: Card) => listingMatches(listingFields(c), term))
     .slice(0, 24);
 });
 
@@ -277,10 +290,7 @@ const auctionResults = computed<Auction[]>(() => {
   return auctions.value
     .filter((a: Auction) => !a.isPrivate)
     .filter((a: Auction) =>
-      matches(
-        `${a.cardName} ${a.cardSet ?? ""} ${a.seller ?? ""} ${a.title ?? ""}`,
-        term,
-      ),
+      listingMatches({ ...listingFields(a), title: a.title }, term),
     )
     .slice(0, 24);
 });

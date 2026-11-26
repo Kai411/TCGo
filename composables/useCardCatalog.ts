@@ -1,4 +1,5 @@
 import { numberCandidates } from "~/shared/card-number";
+import { nameSearchPattern, suggestNameCorrection } from "~/shared/search-name";
 import { parsePrintedNumber, printedNumberForms, rankScanMatches } from "~/shared/scan-match";
 
 // Query parsing lives in shared/ so it can be tested without a Nuxt runtime.
@@ -287,6 +288,30 @@ const rowToMatch = (row: any): CatalogMatch => ({
 const SELECT_COLUMNS =
   "product_id, name, group_name, number, rarity, image_url, language, card_prices(prices)";
 
+/** What searchCatalog can be narrowed by, beside the name. */
+export type SearchOptions = {
+  limit?: number;
+  page?: number;
+  language?: "EN" | "JP" | "ALL";
+  /** A card number like "012", "gg44" or "065/202". Bypasses the RPC. */
+  numberMatch?: string | null;
+  setMatch?: string | null;
+  /**
+   * Treat setMatch and numberMatch as alternatives rather than filters to
+   * combine. See ParsedSearch.setOrNumber — "pikachu 151" means a Pikachu
+   * in the 151 set OR one numbered 151, and combining them finds neither.
+   */
+  setOrNumber?: boolean;
+  rarityMatch?: string | null;
+  /**
+   * Every rarity an ambiguous code could mean, ORed together. "sr" is
+   * Secret, Shiny and Super Rare across the two languages; one of them is
+   * the wrong answer for most searchers.
+   */
+  rarityMatches?: string[] | null;
+  sort?: CatalogSort;
+};
+
 export const useCardCatalog = () => {
   // Catch missing env vars at composable boundary so pages that *also*
   // happen to render scanner/collection components don't crash entirely
@@ -308,31 +333,31 @@ export const useCardCatalog = () => {
   // give the original prefix → similarity → alphabetical ordering.
   const searchCatalog = async (
     query: string,
-    opts: {
-      limit?: number;
-      page?: number;
-      language?: "EN" | "JP" | "ALL";
-      /** A card number like "012", "gg44" or "065/202". Bypasses the RPC. */
-      numberMatch?: string | null;
-      setMatch?: string | null;
-      /**
-       * Treat setMatch and numberMatch as alternatives rather than filters to
-       * combine. See ParsedSearch.setOrNumber — "pikachu 151" means a Pikachu
-       * in the 151 set OR one numbered 151, and combining them finds neither.
-       */
-      setOrNumber?: boolean;
-      rarityMatch?: string | null;
-      /**
-       * Every rarity an ambiguous code could mean, ORed together. "sr" is
-       * Secret, Shiny and Super Rare across the two languages; one of them is
-       * the wrong answer for most searchers.
-       */
-      rarityMatches?: string[] | null;
-      sort?: CatalogSort;
-    } = {},
+    opts: SearchOptions = {},
+  ): Promise<{ results: CatalogMatch[]; total: number; correctedQuery?: string }> => {
+    const first = await searchCatalogOnce(query, opts);
+    if (first.total > 0 || (opts.page ?? 0) > 0) return first;
+
+    // Nothing at all. If the name looks like a misspelt Pokémon ("charzard"),
+    // search the real name and say so, rather than showing an empty page.
+    // Only on page 0: a later page belongs to a search that already worked,
+    // and the caller pages with the corrected name it was handed.
+    const corrected = suggestNameCorrection(query);
+    if (!corrected) return first;
+    const second = await searchCatalogOnce(corrected, opts);
+    return second.total > 0 ? { ...second, correctedQuery: corrected } : first;
+  };
+
+  const searchCatalogOnce = async (
+    query: string,
+    opts: SearchOptions = {},
   ): Promise<{ results: CatalogMatch[]; total: number }> => {
     if (!supabase) return { results: [], total: 0 };
     const trimmed = query.trim();
+    // What the name becomes in `name ILIKE '%…%'`: punctuation, accents and
+    // apostrophes the searcher left out no longer stop a match ("mr mime",
+    // "farfetchd", "flabebe"). See shared/search-name.ts.
+    const namePattern = nameSearchPattern(trimmed);
     const setMatch = opts.setMatch?.trim() || null;
     const rarityMatch = opts.rarityMatch?.trim() || null;
     // Either a usable name, or something to filter on. A number counts —
@@ -398,7 +423,7 @@ export const useCardCatalog = () => {
           q = q.ilike("rarity", `%${rarityMatch}%`);
         }
 
-        if (trimmed.length >= 2) q = q.ilike("name", `%${trimmed}%`);
+        if (trimmed.length >= 2 && namePattern) q = q.ilike("name", `%${namePattern}%`);
         if (setMatch && !opts.setOrNumber) q = q.ilike("group_name", `%${setMatch}%`);
         if (opts.language && opts.language !== "ALL") q = q.eq("language", opts.language);
         return q;
@@ -431,7 +456,7 @@ export const useCardCatalog = () => {
     }
 
     const { data, error } = await supabase.rpc("search_catalog", {
-      q: trimmed,
+      q: namePattern,
       page: opts.page ?? 0,
       page_size: opts.limit ?? 28,
       lang: opts.language ?? "EN",

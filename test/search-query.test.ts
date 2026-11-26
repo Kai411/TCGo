@@ -187,6 +187,7 @@ describe("set, number and rarity together", () => {
       rarityHint: null,
       numberMatch: null,
       setOrNumber: false,
+      languageHint: null,
     });
   });
 
