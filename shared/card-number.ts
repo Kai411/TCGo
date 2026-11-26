@@ -67,6 +67,16 @@ export const numberCandidates = (token: string): string[] => {
   const t = token.trim();
   if (!t) return [];
   const out = new Set<string>([t]);
+  // "4/102" is stored as "004/102" on some sets and "4/102" on others; try
+  // each side with and without its padding.
+  const slash = t.match(/^([a-z]{0,4})(\d{1,4})\/([a-z]{0,4})(\d{1,4})$/i);
+  if (slash) {
+    const [, p1, n1, p2, n2] = slash;
+    const pads = (n: string) =>
+      [...new Set([n, String(Number(n)), n.padStart(2, "0"), n.padStart(3, "0")])];
+    for (const a of pads(n1!)) for (const b of pads(n2!)) out.add(`${p1}${a}/${p2}${b}`);
+    return [...out];
+  }
   if (/^\d{1,3}$/.test(t)) {
     out.add(t.padStart(2, "0"));
     out.add(t.padStart(3, "0"));

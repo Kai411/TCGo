@@ -188,6 +188,8 @@ describe("set, number and rarity together", () => {
       numberMatch: null,
       setOrNumber: false,
       languageHint: null,
+      variant: null,
+      grade: null,
     });
   });
 
