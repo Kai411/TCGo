@@ -3,7 +3,7 @@
        draws the hairlines between cells. Layout follows the reference kai
        picked: photo, name + number, set, rarity, then value · qty with the
        manage menu beside it. -->
-  <div class="relative flex flex-col p-2.5 sm:p-3">
+  <div class="relative flex flex-col p-2.5 sm:p-3 cell-hover">
     <NuxtLink
       :to="`/collection/${card.productId}`"
       class="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-pokemon-blue rounded-[6px]"

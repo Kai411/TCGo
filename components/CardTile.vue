@@ -129,7 +129,7 @@ const timerClasses = computed(() => {
     class="group block rounded-[6px] sm:rounded-2xl lg:rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokemon-red focus-visible:ring-offset-2 focus-visible:ring-offset-canvas dark:focus-visible:ring-offset-canvas-inverse"
   >
     <article
-      class="surface rounded-[6px] sm:rounded-2xl lg:rounded-lg overflow-hidden group-hover:shadow-card-hover group-hover:-translate-y-0.5 transition duration-300 ease-premium h-full flex flex-col"
+      class="surface rounded-[6px] sm:rounded-2xl lg:rounded-lg overflow-hidden tile-hover h-full flex flex-col"
     >
       <!-- Image well -->
       <div class="p-1 sm:p-2.5 bg-white dark:bg-white/[0.04]">
