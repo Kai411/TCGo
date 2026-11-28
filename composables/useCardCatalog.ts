@@ -1,4 +1,5 @@
 import { numberCandidates } from "~/shared/card-number";
+import { expandHistory } from "~/shared/price-history";
 import { parsePrintedNumber, printedNumberForms, rankScanMatches } from "~/shared/scan-match";
 
 // Query parsing lives in shared/ so it can be tested without a Nuxt runtime.
@@ -105,9 +106,9 @@ export interface CatalogPrice {
 }
 
 /**
- * One day of the 365-day series kept in card_prices.history, which a daily
- * cron prepends via the snapshot_prices_range() RPC. `market` is USD as
- * stored; callers get MYR from getPriceHistory().
+ * One day of the 365-day series. card_prices.history stores only the days the
+ * price changed (snapshot_prices_range()); historyPoints() fills in the days
+ * between. `market` is USD as stored; callers get MYR from getPriceHistory().
  */
 export interface PricePoint {
   date: string; // YYYY-MM-DD
@@ -155,27 +156,9 @@ const DAY_MS = 86_400_000;
 
 const dayTime = (date: string) => Date.parse(`${date}T00:00:00Z`);
 
-const historyPoints = (raw: unknown): PricePoint[] => {
-  if (!Array.isArray(raw)) return [];
-  const byDate = new Map<string, number>();
-  for (const point of raw) {
-    if (!point || typeof point !== "object") continue;
-    const date = String((point as any).date ?? "");
-    const rawMarket = (point as any).market;
-    const market = rawMarket == null ? Number.NaN : toMyr(Number(rawMarket));
-    if (
-      !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
-      !Number.isFinite(dayTime(date)) ||
-      !Number.isFinite(market)
-    ) {
-      continue;
-    }
-    byDate.set(date, market);
-  }
-  return [...byDate.entries()]
-    .map(([date, market]) => ({ date, market }))
-    .sort((a, b) => a.date.localeCompare(b.date));
-};
+// One MYR point a day from the change-only history (see shared/price-history.ts).
+const historyPoints = (raw: unknown): PricePoint[] =>
+  expandHistory(raw).map((point) => ({ date: point.date, market: toMyr(point.market) }));
 
 /** Build chart statistics using a real calendar window, not a point count. */
 export const buildPriceTrend = (
@@ -879,9 +862,10 @@ export const useCardCatalog = () => {
       startTime = Math.max(...tracked.map((item) => dayTime(item.points[0]!.date)));
     }
 
-    // Aggregate only dates actually observed for every tracked card. Carrying
-    // an old value forward would disguise stale or missing snapshots as fresh
-    // market data and can create a misleading collection total.
+    // Aggregate only dates every tracked card has a value for. Each card's
+    // series is already carried forward between price changes (historyPoints),
+    // but a card with no price for a day (none published, or before its first
+    // point) leaves that day out rather than counting it as zero.
     const valuesByCard = tracked.map(
       (item) => new Map(item.points.map((point) => [point.date, point.market])),
     );

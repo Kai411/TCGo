@@ -15,6 +15,11 @@
 // months without anyone noticing; it must not have a quiet no-op path. A full
 // paced sync is ~680 requests against a published ceiling of 10,000.
 //
+// Every card is still fetched and compared each night, but only cards that are
+// new or differ from the stored row are written (see scripts/lib/catalog-diff.mjs).
+// Rewriting all ~64k unchanged rows every night left a dead copy of each one
+// behind and kept the table at about twice its live size.
+//
 // The script is idempotent — it upserts on product_id (TCGPlayer ids are
 // globally unique across categories), so re-running picks up new sets and
 // edits without duplicating rows. Run again whenever new sets release.
@@ -22,6 +27,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { applyGoldStar } from "./lib/gold-star.mjs";
+import { releaseDate, rowChanged, COMPARED_COLUMNS } from "./lib/catalog-diff.mjs";
 import "dotenv/config";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -123,24 +129,14 @@ function buildRow(product, group, categoryId, language) {
     stage: extractField(product.extendedData, "Stage"),
     hp: extractField(product.extendedData, "HP"),
     language,
-    extended_data: product.extendedData ?? [],
+    // extended_data (everything else TCGCSV returns, ~48 MB across the
+    // catalogue) is no longer written: nothing reads it, and the useful
+    // fields are extracted above. Rows keep whatever they had until it is
+    // cleared by hand (supabase/schema.sql has the statement).
     modified_on: product.modifiedOn ?? null,
     // The set's release date, for the Newest sort. See releaseDate().
     ...(hasReleasedOn ? { released_on: releaseDate(group) } : {}),
   };
-}
-
-// A set's real release date from TCGCSV's publishedOn, or null.
-//
-// Real sets carry a midnight date ("2023-09-22T00:00:00"). Groups with no
-// release date of their own (POP Series, Nintendo Promos, Miscellaneous Cards
-// & Products, Burger King Promos...) carry the time TCGCSV last rebuilt its
-// files instead ("2026-11-25T20:00:07.3733511Z"), the same stamp on all of
-// them, so they all looked released last night and sat at the top of every
-// Newest search. Those count as undated, which Newest sorts last.
-function releaseDate(group) {
-  const m = /^(\d{4}-\d{2}-\d{2})T00:00:00$/.exec(String(group.publishedOn ?? ""));
-  return m ? m[1] : null;
 }
 
 // released_on is added to the schema by hand. Until it is, leave it out
@@ -153,6 +149,30 @@ async function checkReleasedOn() {
     console.log(`released_on not in cards_catalog yet (${error.message}); skipping release dates.`);
   }
 }
+
+// What is stored now, for the compared columns, keyed by product_id. Paged by
+// primary key: ~64 requests of 1,000 rows, a few MB in all.
+const STORED_PAGE = 1000;
+async function loadStoredRows() {
+  const columns = ["product_id", ...COMPARED_COLUMNS.filter((c) => c !== "released_on" || hasReleasedOn)];
+  const stored = new Map();
+  let after = -1;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("cards_catalog")
+      .select(columns.join(","))
+      .gt("product_id", after)
+      .order("product_id", { ascending: true })
+      .limit(STORED_PAGE);
+    if (error) throw new Error(`cards_catalog read failed: ${error.message}`);
+    for (const row of data) stored.set(Number(row.product_id), row);
+    if (data.length < STORED_PAGE) break;
+    after = data[data.length - 1].product_id;
+  }
+  return stored;
+}
+
+let storedRows = new Map();
 
 async function upsertBatched(rows) {
   for (let i = 0; i < rows.length; i += UPSERT_BATCH_SIZE) {
@@ -174,6 +194,7 @@ async function seedCategory(category) {
   if (!dated && groups[0]) console.log(`First group's fields: ${Object.keys(groups[0]).join(", ")}`);
 
   let totalProducts = 0;
+  let totalWritten = 0;
   const failures = [];
 
   for (let i = 0; i < groups.length; i++) {
@@ -192,31 +213,37 @@ async function seedCategory(category) {
       const rows = products
         .map((p) => buildRow(p, group, category.id, language))
         .map(applyGoldStar);
-      await upsertBatched(rows);
+      const changed = rows.filter((row) => rowChanged(row, storedRows.get(Number(row.product_id))));
+      if (changed.length) await upsertBatched(changed);
       totalProducts += rows.length;
-      console.log(`${tag} — ${rows.length} ${language} ✓`);
+      totalWritten += changed.length;
+      console.log(`${tag} — ${rows.length} ${language}, ${changed.length} written ✓`);
     } catch (err) {
       failures.push({ group, error: err.message });
       console.log(`${tag} — ERROR: ${err.message}`);
     }
   }
-  return { totalProducts, failures, groupCount: groups.length };
+  return { totalProducts, totalWritten, failures, groupCount: groups.length };
 }
 
 async function main() {
   const startedAt = Date.now();
   await checkReleasedOn();
+  storedRows = await loadStoredRows();
+  console.log(`${storedRows.size} cards already stored.`);
   let grandTotal = 0;
+  let grandWritten = 0;
   const allFailures = [];
 
   for (const category of CATEGORIES) {
-    const { totalProducts, failures } = await seedCategory(category);
+    const { totalProducts, totalWritten, failures } = await seedCategory(category);
     grandTotal += totalProducts;
+    grandWritten += totalWritten;
     allFailures.push(...failures);
   }
 
   const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
-  console.log(`\nDone in ${seconds}s. ${grandTotal} products upserted.`);
+  console.log(`\nDone in ${seconds}s. ${grandTotal} products checked, ${grandWritten} new or changed written.`);
   if (allFailures.length) {
     console.log(`\n${allFailures.length} groups failed:`);
     for (const f of allFailures) {

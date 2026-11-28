@@ -23,11 +23,16 @@ CREATE TABLE IF NOT EXISTS cards_catalog (
   stage         TEXT,                          -- "Basic", "Stage 1", ...
   hp            TEXT,
   language      TEXT DEFAULT 'EN',             -- 'EN' | 'JP'
-  extended_data JSONB DEFAULT '[]'::jsonb,     -- everything else TCGCSV returns
+  extended_data JSONB DEFAULT '[]'::jsonb,     -- no longer written; see below
   modified_on   TIMESTAMPTZ,                   -- TCGCSV's last-modified
   seeded_at     TIMESTAMPTZ DEFAULT NOW(),
   updated_at    TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- extended_data held everything else TCGCSV returns (~48 MB). Nothing reads
+-- it and the seed stopped writing it on 2026-11-28; clear old values once by
+-- hand, then VACUUM FULL cards_catalog to give the space back:
+--   UPDATE cards_catalog SET extended_data = '[]'::jsonb WHERE extended_data <> '[]'::jsonb;
 
 -- Fuzzy name search (powers the add-to-collection autocomplete).
 CREATE INDEX IF NOT EXISTS cards_catalog_name_trgm
@@ -76,8 +81,8 @@ CREATE TABLE IF NOT EXISTS card_prices (
   --   { "Normal": { market, low, mid, high, directLow },
   --     "Holofoil": { ... }, "Reverse Holofoil": { ... } }
   prices     JSONB NOT NULL DEFAULT '{}'::jsonb,
-  -- Time series, newest first: one point a day for the last 365 days,
-  -- nothing older (scripts/backfill-price-history.mjs fills gaps).
+  -- Time series, newest first, a point only on days the price changed
+  -- (see snapshot_prices_range below), covering the last 365 days.
   --   [{ "date": "2026-05-29", "market": 22.50 }, ...]
   history    JSONB NOT NULL DEFAULT '[]'::jsonb,
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -124,51 +129,104 @@ CREATE POLICY "prices public read"
 -- which bypasses RLS, so no INSERT/UPDATE policies are needed.
 
 ------------------------------------------------------------------
--- snapshot_prices_range : called by the daily cron after upserting
--- the current prices, once per slice of product_ids. Reads each row's
--- current market price (preferring Holofoil → Normal → Reverse Holofoil),
--- prepends today's snapshot to the history array, drops any duplicate
--- today entry, and drops anything older than 365 days. Skips rows whose
--- current prices have no usable market value.
+-- History is CHANGE-ONLY: a point is stored on the days a card's market
+-- price changed, newest first, and readers carry each price forward to the
+-- next point (shared/price-history.ts). A card's price moves on about 81 of
+-- 268 days, so one point a day kept ~3x the data, and rewriting every card's
+-- whole history every night left ~200 MB of dead space in card_prices on a
+-- 500 MB plan (measured 2026-11-28: 317 MB table, 98 MB live).
+--
+-- {"date": ..., "market": null} marks the day TCGPlayer stopped publishing a
+-- price, so a card that went quiet does not chart its old price as current.
+------------------------------------------------------------------
+
+-- Drops every point whose market equals the next older point's, keeping the
+-- oldest point of each run. Newest first. Running it twice changes nothing.
+CREATE OR REPLACE FUNCTION compact_price_history(h JSONB)
+RETURNS JSONB AS $$
+  SELECT COALESCE(jsonb_agg(elem ORDER BY d DESC), '[]'::jsonb)
+  FROM (
+    SELECT elem, d,
+           (elem->'market') IS DISTINCT FROM lag(elem->'market') OVER (ORDER BY d) AS changed
+    FROM (
+      SELECT e AS elem, e->>'date' AS d
+      FROM jsonb_array_elements(COALESCE(h, '[]'::jsonb)) e
+    ) points
+  ) runs
+  WHERE changed;
+$$ LANGUAGE sql IMMUTABLE;
+
+-- Keeps points newer than `cutoff`, plus the newest point on or before it:
+-- with change-only points that one is still the price at the start of the
+-- year, so dropping it would blank the oldest days of the chart.
+CREATE OR REPLACE FUNCTION trim_price_history(h JSONB, cutoff DATE)
+RETURNS JSONB AS $$
+  SELECT COALESCE(jsonb_agg(e ORDER BY e->>'date' DESC), '[]'::jsonb)
+  FROM jsonb_array_elements(COALESCE(h, '[]'::jsonb)) e
+  WHERE (e->>'date')::date > cutoff
+     OR e->>'date' = (
+       SELECT max(x->>'date') FROM jsonb_array_elements(h) x
+       WHERE (x->>'date')::date <= cutoff
+     );
+$$ LANGUAGE sql IMMUTABLE;
+
+------------------------------------------------------------------
+-- snapshot_prices_range : called by the daily cron after upserting the
+-- current prices, once per slice of product_ids. Reads each row's current
+-- market price (Holofoil → Normal → Reverse Holofoil), and adds a point for
+-- today only if it differs from the newest stored point. Also compacts old
+-- one-a-day rows and drops points past the 365-day window. A row is written
+-- only when its history actually changes, so most rows are left alone.
 --
 -- Sliced because one UPDATE over the whole table outgrew PostgREST's
--- statement timeout once the JP catalogue roughly doubled the row count:
--- the nightly run died with "canceling statement due to statement
--- timeout". Each call is its own statement, so each gets its own timeout.
+-- statement timeout once the JP catalogue roughly doubled the row count.
+-- Each call is its own statement, so each gets its own timeout.
 ------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION snapshot_prices_range(from_id BIGINT, to_id BIGINT)
 RETURNS INT AS $$
 DECLARE
   today_date TEXT := to_char(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD');
+  cutoff DATE := (NOW() AT TIME ZONE 'UTC')::date - 365;
   rows_affected INT;
 BEGIN
+  WITH cur AS (
+    SELECT cp.product_id,
+           COALESCE(
+             (cp.prices->'Holofoil'->>'market')::numeric,
+             (cp.prices->'Normal'->>'market')::numeric,
+             (cp.prices->'Reverse Holofoil'->>'market')::numeric
+           ) AS market,
+           -- Today's point is decided afresh, so a rerun never duplicates it.
+           compact_price_history(COALESCE(
+             (SELECT jsonb_agg(e) FROM jsonb_array_elements(cp.history) e
+              WHERE e->>'date' <> today_date),
+             '[]'::jsonb
+           )) AS base
+    FROM card_prices cp
+    WHERE cp.product_id BETWEEN from_id AND to_id
+  ),
+  next AS (
+    SELECT product_id,
+           trim_price_history(
+             CASE
+               WHEN market IS NOT NULL
+                    AND (base->0->>'market')::numeric IS DISTINCT FROM market
+                 THEN jsonb_build_array(jsonb_build_object('date', today_date, 'market', market)) || base
+               WHEN market IS NULL
+                    AND jsonb_array_length(base) > 0
+                    AND base->0->'market' <> 'null'::jsonb
+                 THEN jsonb_build_array(jsonb_build_object('date', today_date, 'market', NULL)) || base
+               ELSE base
+             END,
+             cutoff
+           ) AS history
+    FROM cur
+  )
   UPDATE card_prices cp
-  SET history = jsonb_build_array(
-                  jsonb_build_object(
-                    'date', today_date,
-                    'market', COALESCE(
-                      (cp.prices->'Holofoil'->>'market')::numeric,
-                      (cp.prices->'Normal'->>'market')::numeric,
-                      (cp.prices->'Reverse Holofoil'->>'market')::numeric
-                    )
-                  )
-                ) || COALESCE(
-                  (SELECT jsonb_agg(elem)
-                   FROM (
-                     SELECT elem
-                     FROM jsonb_array_elements(cp.history) elem
-                     WHERE elem->>'date' != today_date
-                       AND (elem->>'date')::date > (NOW() AT TIME ZONE 'UTC')::date - 365
-                     ORDER BY (elem->>'date') DESC
-                   ) sub),
-                  '[]'::jsonb
-                )
-  WHERE cp.product_id BETWEEN from_id AND to_id
-    AND COALESCE(
-      (cp.prices->'Holofoil'->>'market')::numeric,
-      (cp.prices->'Normal'->>'market')::numeric,
-      (cp.prices->'Reverse Holofoil'->>'market')::numeric
-    ) IS NOT NULL;
+  SET history = n.history
+  FROM next n
+  WHERE cp.product_id = n.product_id
+    AND cp.history IS DISTINCT FROM n.history;
 
   GET DIAGNOSTICS rows_affected = ROW_COUNT;
   RETURN rows_affected;
@@ -208,7 +266,8 @@ BEGIN
     JOIN incoming i ON i.product_id = cp.product_id
   )
   UPDATE card_prices cp
-  SET history = m.history
+  -- Compacted, so backfilled days keep the change-only shape.
+  SET history = compact_price_history(m.history)
   FROM merged m
   WHERE cp.product_id = m.product_id
     AND jsonb_array_length(m.history) > m.old_len;
