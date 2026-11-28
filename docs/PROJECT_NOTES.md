@@ -63,7 +63,7 @@ Server environment variables come from `runtimeConfig` in `nuxt.config.ts` (came
 
 ## Feature state
 
-- **TCGo Dex** (formerly "Collection"): the name in all copy is "TCGo Dex"; URLs stay `/collection`. Prices are TCGPlayer USD market prices (via TCGCSV), imported nightly into Supabase with a 365-day history and converted to MYR in the browser (`/api/fx/usd-myr`). Cardmarket EUR is a manual fallback. Default sort is newest release. The Dex tab on profiles is hidden by one setting in `shared/dex.ts`.
+- **TCGo Dex** (formerly "Collection"): the name in all copy is "TCGo Dex"; URLs stay `/collection`. Prices are TCGPlayer USD market prices (via TCGCSV), imported nightly into Supabase with a 365-day history (stored change-only: a point only on days the price moved, filled in by `shared/price-history.ts`) and converted to MYR in the browser (`/api/fx/usd-myr`). Cardmarket EUR is a manual fallback. Default sort is newest release. The Dex tab on profiles is hidden by one setting in `shared/dex.ts`.
 - **Card price page** (`pages/collection/[productId].vue`): on phones the price must show without scrolling.
 - **Card scanning** (`/api/identify-card`): sign-in required, 20 scans a month plus a one-time 5 bonus, counted on the server; Pro is unlimited; seller photo import counts toward the same limit.
 - **Auctions**: winning creates an order the winner pays through Billplz. Every bid goes through `/api/auctions/bid`, which runs auto bids (secret maximums in `auction_private`) and anti-snipe on the server in one transaction. Once an auction has a bid, the seller can't edit or delete it.

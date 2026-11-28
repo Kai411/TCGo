@@ -92,7 +92,8 @@ describe("Supabase SQL", () => {
     const body = fn.slice(0, fn.indexOf("$$ LANGUAGE"));
     assert.doesNotMatch(body, /LIMIT 364/);
     assert.doesNotMatch(body, /ISODOW/);
-    assert.match(body, /::date > \(NOW\(\) AT TIME ZONE 'UTC'\)::date - 365/);
+    assert.match(body, /cutoff DATE := \(NOW\(\) AT TIME ZONE 'UTC'\)::date - 365/);
+    assert.match(body, /trim_price_history\(/);
   });
 
   it("the backfill merge only adds dates a card doesn't have", () => {
