@@ -207,6 +207,33 @@
     @apply bg-night-raised border-white/[0.06] shadow-none;
   }
 
+  /* Card hover on desktop (kai 2026-11-28): a quiet highlight in place of
+     the old lift. Only colours change, and only for a real pointer, so
+     touch screens never keep a stuck hover after a tap. `.tile-hover` is
+     for raised cards (CardTile, CollectionItemCard); `.cell-hover` is for
+     the flat Dex grid cells (CollectionOwnedTile). The global
+     reduced-motion rule above already cuts the fade. */
+  .tile-hover,
+  .cell-hover {
+    transition-property: background-color, border-color;
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .tile-hover:hover {
+      @apply border-black/[0.16];
+    }
+    .dark .tile-hover:hover {
+      @apply bg-night-hover border-white/[0.14];
+    }
+    .cell-hover:hover {
+      @apply bg-black/[0.025];
+    }
+    .dark .cell-hover:hover {
+      @apply bg-white/[0.035];
+    }
+  }
+
   /* Section label: a small heading in sentence case. No capitals or
      tracking (both read as template UI, see the 2026-11 design audit). */
   .eyebrow {
